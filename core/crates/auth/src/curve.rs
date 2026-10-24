@@ -32,6 +32,18 @@ impl Curve {
     }
 }
 
+/// True when `public_key` is base64 of a point `curve` accepts: the test
+/// verification applies, so a key that passes it can be used to verify.
+pub fn is_valid_public_key(curve: Curve, public_key: &str) -> bool {
+    let Ok(raw) = STANDARD.decode(public_key) else {
+        return false;
+    };
+    match curve {
+        Curve::P256 => p256_from_bytes(&raw).is_some(),
+        Curve::Ed25519 => ed25519_from_bytes(&raw).is_some(),
+    }
+}
+
 /// True when `signature` is a valid signature of `message` for `public_key`.
 ///
 /// `public_key` is base64: an uncompressed SEC1 point (65 bytes) for P-256, or
@@ -43,7 +55,7 @@ pub fn verify_signature(curve: Curve, public_key: &str, signature: &[u8], messag
     };
     match curve {
         Curve::P256 => {
-            let Ok(key) = P256Key::from_sec1_bytes(&raw) else {
+            let Some(key) = p256_from_bytes(&raw) else {
                 return false;
             };
             let Ok(signature) = P256Signature::from_der(signature) else {
@@ -52,10 +64,7 @@ pub fn verify_signature(curve: Curve, public_key: &str, signature: &[u8], messag
             key.verify(message, &signature).is_ok()
         }
         Curve::Ed25519 => {
-            let Ok(key_bytes) = <[u8; 32]>::try_from(raw.as_slice()) else {
-                return false;
-            };
-            let Ok(key) = Ed25519Key::from_bytes(&key_bytes) else {
+            let Some(key) = ed25519_from_bytes(&raw) else {
                 return false;
             };
             let Ok(signature) = Ed25519Signature::from_slice(signature) else {
@@ -66,15 +75,25 @@ pub fn verify_signature(curve: Curve, public_key: &str, signature: &[u8], messag
     }
 }
 
+fn p256_from_bytes(raw: &[u8]) -> Option<P256Key> {
+    P256Key::from_sec1_bytes(raw).ok()
+}
+
+fn ed25519_from_bytes(raw: &[u8]) -> Option<Ed25519Key> {
+    let key_bytes = <[u8; 32]>::try_from(raw).ok()?;
+    Ed25519Key::from_bytes(&key_bytes).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use ed25519_dalek::{Signer as _, SigningKey as Ed25519SigningKey};
-    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::{signature::Signer, SigningKey};
+    use p256::elliptic_curve::Generate;
 
     fn p256_key() -> (SigningKey, String) {
-        let key = SigningKey::random(&mut rand_core::OsRng);
-        let public = STANDARD.encode(key.verifying_key().to_encoded_point(false).as_bytes());
+        let key = SigningKey::generate();
+        let public = STANDARD.encode(key.verifying_key().to_sec1_point(false).as_bytes());
         (key, public)
     }
 
@@ -127,6 +146,18 @@ mod tests {
             &signature.to_bytes(),
             b"otro"
         ));
+    }
+
+    #[test]
+    fn public_keys_are_checked_for_their_curve() {
+        let (_, public) = p256_key();
+        assert!(is_valid_public_key(Curve::P256, &public));
+        assert!(!is_valid_public_key(Curve::Ed25519, &public));
+        assert!(!is_valid_public_key(
+            Curve::P256,
+            &STANDARD.encode([0u8; 10])
+        ));
+        assert!(!is_valid_public_key(Curve::P256, "no-base64!"));
     }
 
     #[test]

@@ -13,6 +13,7 @@ mod actions;
 mod agents;
 pub mod cli;
 mod hook_token;
+pub mod import_report;
 pub mod paths;
 mod session;
 mod snapshot;
@@ -22,6 +23,7 @@ mod team_delegations;
 mod team_errors;
 mod team_paths;
 mod team_tools;
+mod term_size;
 pub mod tls_slots;
 
 pub use agents::{default_catalog, load_or_create as load_agents};
@@ -41,6 +43,7 @@ use tokio::sync::Notify;
 
 use session::{Monitor, Session, SCROLLBACK_LINES};
 use snapshot::SnapshotPane;
+use term_size::TermSize;
 
 /// How long a hook report stays authoritative over screen patterns.
 pub const DEFAULT_HOOK_TTL: Duration = Duration::from_secs(45);
@@ -168,6 +171,7 @@ impl AgentHost {
 
     /// Start one agent and return its pane id.
     pub async fn start(&self, spec: SpawnSpec) -> Result<String> {
+        let size = TermSize::try_from(self.options.size)?;
         let pane_id = self.store.allocate_pane_id().await;
         let kind = identify_program(&spec.program);
         let detector = kind.manifest_id().and_then(Detector::bundled).map(Arc::new);
@@ -201,8 +205,8 @@ impl AgentHost {
         let exit = pty.take_exit().context("pty exit")?;
         let writer = pty.write_handle();
         let parser = Arc::new(Mutex::new(vt100::Parser::new(
-            self.options.size.rows,
-            self.options.size.cols,
+            size.rows(),
+            size.cols(),
             SCROLLBACK_LINES,
         )));
         let title = Arc::new(Mutex::new(TitleTracker::new()));

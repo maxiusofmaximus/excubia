@@ -4,8 +4,8 @@
 //! loopback. `host pair-code` mints a single-use pairing code (and its link,
 //! with `--lan`), `host tls prepare|activate` rotates the LAN certificate,
 //! `host hook-token` prints the token agent hooks use, and
-//! `host devices list|revoke|grant` manage the trust store — the same files
-//! the daemon re-reads, so both processes agree without a restart.
+//! `host devices list|revoke|grant|import-gateway` manage the trust store — the
+//! same files the daemon re-reads, so both processes agree without a restart.
 
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -17,9 +17,10 @@ use axum::serve::Listener;
 use hn_core_api::{
     serve, serve_client, serve_internal, AgentActions, ApiConfig, ApiContext, TlsListener,
 };
-use hn_core_auth::{DeviceStore, Permission};
+use hn_core_auth::{ConflictPolicy, DeviceStore, Permission};
 use hn_core_chat::{ChatSeat, ChatStore, HookScope};
 use hn_core_host::cli::{self, Command, DevicesCommand, RunOptions, TlsCommand};
+use hn_core_host::import_report;
 use hn_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
 use hn_core_host::tls_slots::TlsSlots;
 use hn_core_host::{load_agents, load_hook_token, paths, AgentHost, HostOptions, SpawnSpec};
@@ -185,6 +186,21 @@ fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {
             } else {
                 bail!("no such device: {device_id}")
             }
+        }
+        DevicesCommand::ImportGateway { path, force } => {
+            let policy = if force {
+                ConflictPolicy::Replace
+            } else {
+                ConflictPolicy::Keep
+            };
+            let entries = store
+                .import_gateway(&path, policy)
+                .with_context(|| format!("import {}", path.display()))?;
+            for line in import_report::report_lines(&entries) {
+                println!("{line}");
+            }
+            println!("{}", import_report::summary(&entries));
+            Ok(())
         }
     }
 }

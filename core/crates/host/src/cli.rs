@@ -7,6 +7,7 @@
 //! host devices list                   list paired devices
 //! host devices revoke <id>            revoke one device
 //! host devices grant <id> -p <perm>   grant one permission (host-side act)
+//! host devices import-gateway <file> [--force]  bring a gateway's devices over
 //! ```
 //!
 //! Every subcommand accepts `--data-dir DIR`; the daemon also accepts
@@ -49,6 +50,12 @@ pub enum DevicesCommand {
     Grant {
         device_id: String,
         permission: String,
+    },
+    /// Merge the devices of a gateway's `devices.json` into this trust store.
+    ImportGateway {
+        path: PathBuf,
+        /// Replace a registered device whose id arrives with another key.
+        force: bool,
     },
 }
 
@@ -229,9 +236,10 @@ fn concrete_address(flag: &str, value: String) -> Result<SocketAddr, String> {
 fn devices(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
     let sub = args
         .next()
-        .ok_or("devices needs a subcommand: list|revoke|grant")?;
+        .ok_or("devices needs a subcommand: list|revoke|grant|import-gateway")?;
     let mut data_dir = None;
     let mut permission = None;
+    let mut force = false;
     let mut positional: Vec<String> = Vec::new();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -243,11 +251,19 @@ fn devices(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
             "--permission" | "-p" => {
                 permission = Some(args.next().ok_or("--permission needs a value")?)
             }
+            "--force" => force = true,
             other => positional.push(other.to_string()),
         }
     }
     let command = match sub.as_str() {
         "list" => DevicesCommand::List,
+        "import-gateway" => DevicesCommand::ImportGateway {
+            path: positional
+                .first()
+                .map(PathBuf::from)
+                .ok_or("import-gateway needs the gateway's devices.json")?,
+            force,
+        },
         "revoke" => DevicesCommand::Revoke {
             device_id: positional
                 .first()
@@ -386,7 +402,8 @@ pub const USAGE: &str = "host [--port N] [--bind ADDR] [--rows R] [--cols C] [--
        host claude-settings --hook <hn-uac-hook binary> [--out FILE]\n\
        host devices list [--data-dir DIR]\n\
        host devices revoke <device_id> [--data-dir DIR]\n\
-       host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]";
+       host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]\n\
+       host devices import-gateway <devices.json> [--force] [--data-dir DIR]";
 
 /// The canonical grant command, exactly as the host CLI accepts it. The
 /// contracts and the clients' hints quote this text; a test keeps it equal to
@@ -587,6 +604,22 @@ mod tests {
             panic!("expected grant");
         };
         assert_eq!(permission, "respond");
+
+        let Command::Devices { command, .. } = parse(args(&[
+            "devices",
+            "import-gateway",
+            "gw/devices.json",
+            "--force",
+        ]))
+        .expect("parse") else {
+            panic!("expected devices");
+        };
+        let DevicesCommand::ImportGateway { path, force } = command else {
+            panic!("expected import-gateway");
+        };
+        assert_eq!(path, PathBuf::from("gw/devices.json"));
+        assert!(force);
+        assert!(parse(args(&["devices", "import-gateway"])).is_err());
     }
 
     #[test]

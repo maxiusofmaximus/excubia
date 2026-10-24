@@ -291,8 +291,9 @@ mod tests {
     #[test]
     fn a_valid_signature_verifies_and_a_replay_does_not() {
         use p256::ecdsa::{signature::Signer, SigningKey};
-        let key = SigningKey::random(&mut rand_core::OsRng);
-        let public = STANDARD.encode(key.verifying_key().to_encoded_point(false).as_bytes());
+        use p256::elliptic_curve::Generate;
+        let key = SigningKey::generate();
+        let public = STANDARD.encode(key.verifying_key().to_sec1_point(false).as_bytes());
         let store = store_with_device(Curve::P256, &public);
         let verifier = RequestVerifier::new(Arc::clone(&store));
         let device_id = store.list()[0].device_id.clone();
@@ -319,8 +320,9 @@ mod tests {
     #[test]
     fn unknown_revoked_and_stale_devices_are_refused_with_the_right_reason() {
         use p256::ecdsa::SigningKey;
-        let key = SigningKey::random(&mut rand_core::OsRng);
-        let public = STANDARD.encode(key.verifying_key().to_encoded_point(false).as_bytes());
+        use p256::elliptic_curve::Generate;
+        let key = SigningKey::generate();
+        let public = STANDARD.encode(key.verifying_key().to_sec1_point(false).as_bytes());
         let store = store_with_device(Curve::P256, &public);
         let verifier = RequestVerifier::new(Arc::clone(&store));
         let device_id = store.list()[0].device_id.clone();

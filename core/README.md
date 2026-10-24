@@ -69,6 +69,20 @@ uv pip install --python .venv/Scripts/python.exe -e ".[dev]"
 PYTHONPATH=src .venv/Scripts/python.exe -m herdr_notify.cli dump --follow
 ```
 
+## Migrar desde el gateway Python
+
+```bash
+host devices import-gateway /ruta/a/devices.json           # informe por dispositivo
+host devices import-gateway /ruta/a/devices.json --force   # reemplaza claves en conflicto
+```
+
+- El fichero del gateway no se modifica. La importación es idempotente y atómica.
+- Se conservan `device_id`, permisos, revocación y el hash del código de
+  recuperación. El teléfono se re-empareja enviando su código de recuperación
+  en `POST /v1/pair`.
+- Detalle y reglas: [`docs/contracts/pairing.md`](docs/contracts/pairing.md#migrar-desde-el-gateway-python).
+- Paridad funcional con el gateway: [`docs/PARITY-GATEWAY.md`](docs/PARITY-GATEWAY.md).
+
 ## Testing
 
 ```bash

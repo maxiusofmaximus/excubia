@@ -1,5 +1,6 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use p256::elliptic_curve::Generate;
 use rand_core::{OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -37,7 +38,7 @@ impl DeviceIdentity {
         } else {
             device_id.trim().to_string()
         };
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         Self {
             device_id,
             label: label.into(),
@@ -87,19 +88,19 @@ impl DeviceIdentity {
     /// Public key material, for callers that verify their own signatures
     /// (tests) or publish the identity.
     pub fn verifying_key(&self) -> VerifyingKey {
-        *self.signing_key.verifying_key()
+        self.signing_key.verifying_key().clone()
     }
 
     /// Uncompressed SEC1 point, 65 bytes, base64: what the gateway verifies.
     pub fn public_key_b64(&self) -> String {
-        let point = self.verifying_key().to_encoded_point(false);
+        let point = self.verifying_key().to_sec1_point(false);
         STANDARD.encode(point.as_bytes())
     }
 
     /// First eight bytes of SHA-256 over the SEC1 point, lowercase and colon
     /// separated, matching the Android pairing screen.
     pub fn fingerprint(&self) -> String {
-        let point = self.verifying_key().to_encoded_point(false);
+        let point = self.verifying_key().to_sec1_point(false);
         let digest = Sha256::digest(point.as_bytes());
         digest[..FINGERPRINT_BYTES]
             .iter()
@@ -156,7 +157,7 @@ pub fn random_device_id() -> String {
     format!("dev-{}", hex::encode(bytes))
 }
 
-/// A sensible name for this machine: "Escritorio <host>", or "Escritorio" when
+/// A sensible name for this machine: "Escritorio `<host>`", or "Escritorio" when
 /// the host name is not available.
 pub fn default_device_label() -> String {
     let host = std::env::var("COMPUTERNAME")

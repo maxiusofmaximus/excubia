@@ -9,6 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::curve::Curve;
 use crate::error::StoreError;
@@ -23,6 +24,19 @@ pub struct TrustFile {
     pub devices: Vec<DeviceRecord>,
     #[serde(default)]
     pub codes: Vec<CodeRecord>,
+}
+
+/// Why a record names no usable device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+pub enum RecordError {
+    #[error("the record has no device_id")]
+    MissingDeviceId,
+    #[error("the record has no public_key")]
+    MissingPublicKey,
+    #[error("the curve is neither p256 nor ed25519")]
+    UnsupportedCurve,
+    #[error("the public key is not a valid point for its curve")]
+    InvalidPublicKey,
 }
 
 /// The on-disk device record. `permissions` is optional on purpose: a missing
@@ -58,11 +72,14 @@ pub struct DeviceRecord {
 
 impl DeviceRecord {
     /// A record that names no usable device is dropped, not guessed at.
-    pub fn into_device(self) -> Option<Device> {
-        if self.device_id.is_empty() || self.public_key.is_empty() {
-            return None;
+    pub fn into_device(self) -> Result<Device, RecordError> {
+        if self.device_id.is_empty() {
+            return Err(RecordError::MissingDeviceId);
         }
-        let curve = Curve::from_label(&self.curve)?;
+        if self.public_key.is_empty() {
+            return Err(RecordError::MissingPublicKey);
+        }
+        let curve = Curve::from_label(&self.curve).ok_or(RecordError::UnsupportedCurve)?;
         let permissions = match self.permissions {
             None => vec![Permission::ReadState],
             Some(labels) => labels
@@ -70,7 +87,7 @@ impl DeviceRecord {
                 .filter_map(|label| Permission::from_label(label))
                 .collect(),
         };
-        Some(Device {
+        Ok(Device {
             device_id: self.device_id,
             curve,
             public_key: self.public_key,

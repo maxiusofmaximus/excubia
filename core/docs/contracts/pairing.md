@@ -241,6 +241,32 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
   so the next request gets `401`.
 - Revoking one device does not affect any other device's key.
 
+## Migrar desde el gateway Python
+
+Un dispositivo emparejado con el gateway Python (`gateway/`, obsoleto y solo
+de lectura) pasa a este host en tres pasos:
+
+1. Copiar el `devices.json` del gateway al host. El importador no lo modifica.
+2. `host devices import-gateway <devices.json> [--force] [--data-dir DIR]`
+3. El teléfono se re-empareja con su **código de recuperación** enviándolo como
+   `code` en `POST /v1/pair`. Conserva su `device_id` y sus permisos, y recibe
+   un código de recuperación nuevo.
+
+Reglas del importador:
+
+- Se importan el `device_id`, la clave pública y su curva, la etiqueta, los
+  permisos, la revocación y el hash del código de recuperación.
+- No se importan el token FCM ni los códigos de emparejamiento pendientes.
+- Un permiso desconocido se descarta con aviso; el dispositivo se conserva.
+- Una entrada corrupta o con clave inválida se informa como rechazada; el resto
+  se importa igual.
+- Mismo `device_id` con otra clave: se conserva la clave del host salvo con
+  `--force`. La misma clave bajo otro id no se duplica.
+- Reimportar sin cambios no escribe nada. La escritura es atómica: si falla, el
+  fichero del host queda como estaba.
+- Un dispositivo sin `recovery_code_hash` no puede re-emparejarse; debe volver a
+  emparejarse con un código de emparejamiento.
+
 ## Implementation status
 
 | Capability | Status |

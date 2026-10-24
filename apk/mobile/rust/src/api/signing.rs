@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{Signature, SigningKey};
+use p256::elliptic_curve::Generate;
 use rand_core::{OsRng, RngCore};
 use sha2::{Digest, Sha256};
 
@@ -29,7 +30,7 @@ pub struct DeviceKeyMaterial {
 /// it in the platform secure store; it is never written by this crate.
 #[flutter_rust_bridge::frb(sync)]
 pub fn generate_device_key() -> DeviceKeyMaterial {
-    let key = SigningKey::random(&mut OsRng);
+    let key = SigningKey::generate();
     let private_key_b64 = STANDARD.encode(key.to_bytes());
     let public_key_b64 = encode_public(&key);
     let fingerprint = fingerprint_of(&key);
@@ -100,11 +101,11 @@ fn decode_key(private_key_b64: &str) -> Option<SigningKey> {
 }
 
 fn encode_public(key: &SigningKey) -> String {
-    STANDARD.encode(key.verifying_key().to_encoded_point(false).as_bytes())
+    STANDARD.encode(key.verifying_key().to_sec1_point(false).as_bytes())
 }
 
 fn fingerprint_of(key: &SigningKey) -> String {
-    let point = key.verifying_key().to_encoded_point(false);
+    let point = key.verifying_key().to_sec1_point(false);
     let digest = Sha256::digest(point.as_bytes());
     digest
         .iter()

@@ -1,0 +1,62 @@
+{
+  "codes": [
+    {
+      "code_hash": "1ca134ab156ca731e7238fe146d7b5f2fde1b327feaa9214a2662bb5bd9d0981",
+      "created_at": 1790000000.0,
+      "expires_at": 1790000600.0
+    }
+  ],
+  "devices": [
+    {
+      "created_at": 1790000000.0,
+      "curve": "p256",
+      "device_id": "dev-synth-a1",
+      "fcm_token": null,
+      "label": "Movil sintetico A",
+      "last_seen_at": null,
+      "owner_id": "owner-synth",
+      "permissions": [
+        "read_state",
+        "respond",
+        "send_key"
+      ],
+      "persisted_at": 1790000000.0,
+      "public_key": "BJSDrsN8oFZfKgGNzMVKMjyiuVUI7Jv3zZig6WIrEUuykejTcDuy0ZuyUKaLNGuoBHxd7f0m7lA/NFVpBv+VnK4=",
+      "recovery_code_hash": "8a7e4cb34469ca6a9645ca7ae817d0b62d7168122fa42a1a1c194d26298c9470",
+      "revoked": false
+    },
+    {
+      "created_at": 1790000000.0,
+      "curve": "ed25519",
+      "device_id": "dev-synth-b2",
+      "fcm_token": null,
+      "label": "Tablet sintetica B",
+      "last_seen_at": null,
+      "owner_id": "owner-synth",
+      "permissions": [
+        "read_state"
+      ],
+      "persisted_at": 1790000000.0,
+      "public_key": "lj3Ir/uw8NdEPPDmpEXWn4+dKiz1tZ/PXKxAZB/Afuo=",
+      "recovery_code_hash": "c8fcaad3584f3ca259d9ff1af2a2962b17b70b8d27976ae21496d4b6018c3893",
+      "revoked": true
+    },
+    {
+      "created_at": 1790000000.0,
+      "curve": "ed25519",
+      "device_id": "dev-synth-c3",
+      "fcm_token": null,
+      "label": null,
+      "last_seen_at": null,
+      "owner_id": "",
+      "permissions": [
+        "admin"
+      ],
+      "persisted_at": 1790000000.0,
+      "public_key": "7EFpCp8Zjqg4DafDxhjTG/ugGwJxKwVe/5FxsghLyRE=",
+      "recovery_code_hash": null,
+      "revoked": false
+    }
+  ],
+  "version": 1
+}

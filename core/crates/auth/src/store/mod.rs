@@ -8,8 +8,11 @@
 
 mod device;
 mod file;
+mod import;
 
 pub use device::{Device, Permission, PublicDevice};
+pub use file::RecordError;
+pub use import::{ConflictPolicy, ImportEntry, ImportOutcome};
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -118,7 +121,7 @@ impl DeviceStore {
                 let devices: BTreeMap<String, Device> = file
                     .devices
                     .into_iter()
-                    .filter_map(|record| record.into_device())
+                    .filter_map(|record| record.into_device().ok())
                     .map(|device| (device.device_id.clone(), device))
                     .collect();
                 let codes: BTreeMap<String, EnrollmentCode> = file

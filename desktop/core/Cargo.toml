@@ -10,7 +10,7 @@ base64 = "0.22"
 futures-util = "0.3"
 hex = "0.4"
 hn-core-pin = { path = "../../core/crates/pin" }
-p256 = { version = "0.13", features = ["ecdsa"] }
+p256 = { version = "0.14", features = ["ecdsa"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }

@@ -7,6 +7,7 @@
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey};
+use p256::elliptic_curve::Generate;
 use rand_core::{OsRng, RngCore};
 use sha2::{Digest, Sha256};
 
@@ -30,7 +31,7 @@ impl DemoIdentity {
         Self {
             device_id,
             label: label.into(),
-            signing_key: SigningKey::random(&mut OsRng),
+            signing_key: SigningKey::generate(),
         }
     }
 
@@ -52,13 +53,13 @@ impl DemoIdentity {
 
     /// Uncompressed SEC1 point, 65 bytes, base64: what the host verifies.
     pub fn public_key_b64(&self) -> String {
-        let point = self.signing_key.verifying_key().to_encoded_point(false);
+        let point = self.signing_key.verifying_key().to_sec1_point(false);
         STANDARD.encode(point.as_bytes())
     }
 
     /// First eight bytes of SHA-256 over the point, lowercase, colon-separated.
     pub fn fingerprint(&self) -> String {
-        let point = self.signing_key.verifying_key().to_encoded_point(false);
+        let point = self.signing_key.verifying_key().to_sec1_point(false);
         let digest = Sha256::digest(point.as_bytes());
         digest[..8]
             .iter()
