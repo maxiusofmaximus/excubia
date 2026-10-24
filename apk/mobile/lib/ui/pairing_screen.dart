@@ -322,7 +322,7 @@ class _PairingScreenState extends State<PairingScreen> {
         child: ListView(
           padding: const EdgeInsets.all(Spacing.lg),
           children: [
-            Text('herdr-notify', style: context.text.headline),
+            Text('Excubia', style: context.text.headline),
             const SizedBox(height: Spacing.xs),
             Text(
               'Empareja este teléfono con el equipo que ejecuta el gateway.',

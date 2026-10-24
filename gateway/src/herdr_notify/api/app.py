@@ -277,7 +277,7 @@ def create_app(
     settings = config or ApiConfig()
 
     app = FastAPI(
-        title="herdr-notify",
+        title="Excubia",
         version="0.1.0",
         docs_url=None,
         redoc_url=None,

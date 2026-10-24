@@ -25,7 +25,7 @@ class PairingQrPayload {
     if (uri == null) return _invalid('El código QR no se pudo leer.');
 
     if (uri.scheme.toLowerCase() != scheme) {
-      return _invalid('Este código QR no es de herdr notify.');
+      return _invalid('Este código QR no es de Excubia.');
     }
     if ((uri.host).toLowerCase() != host) {
       return _invalid('Este código QR no es de emparejamiento.');

@@ -1,4 +1,4 @@
-# herdr-notify
+# Excubia
 
 Control and notifications for coding agents from your phone and desktop: see
 what your agents are doing, approve or deny the actions they ask for, and talk
@@ -27,7 +27,7 @@ other by relative path (for example the shared pin-verification crate
 ## Documentation
 
 User manual (Spanish) and the generated API reference (Rust and Dart):
-https://maxiusofmaximus.github.io/herdr-notify/
+https://maxiusofmaximus.github.io/excubia/
 
 Contracts, RFCs and the security review are in [`core/docs`](core/docs).
 

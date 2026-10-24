@@ -45,7 +45,7 @@ class _HerdrNotifyAppState extends State<HerdrNotifyApp> {
   Widget build(BuildContext context) {
     final pairing = _pairing;
     return MaterialApp(
-      title: 'herdr-notify',
+      title: 'Excubia',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(),

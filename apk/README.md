@@ -1,4 +1,4 @@
-# herdr-notify
+# Excubia
 
 **Producto: la app Flutter de `mobile/`, paquete `dev.herdrnotify.app`.** La app Kotlin v1 está retirada (`_legacy-kotlin-v1/`, ver su `LEGACY.md`).
 

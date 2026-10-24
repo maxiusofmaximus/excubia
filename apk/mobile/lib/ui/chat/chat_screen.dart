@@ -370,9 +370,9 @@ class _EmptyChat extends StatelessWidget {
         ),
         _Suggestion(
           icon: Icons.help_outline,
-          title: '¿Cómo va herdr-notify?',
+          title: '¿Cómo va Excubia?',
           detail: 'estado, bloqueos y última entrega',
-          onTap: () => onSuggestion('¿Cómo va herdr-notify?'),
+          onTap: () => onSuggestion('¿Cómo va Excubia?'),
         ),
         _Suggestion(
           icon: Icons.check,
