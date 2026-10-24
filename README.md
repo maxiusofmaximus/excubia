@@ -24,6 +24,13 @@ Each component builds on its own (`cargo` in `core/` and `desktop/`,
 other by relative path (for example the shared pin-verification crate
 `core/crates/pin`), so keep the layout as is.
 
+## Documentation
+
+User manual (Spanish) and the generated API reference (Rust and Dart):
+https://maxiusofmaximus.github.io/herdr-notify/
+
+Contracts, RFCs and the security review are in [`core/docs`](core/docs).
+
 ## Pairing and transport
 
 A phone pairs with a host by scanning a QR code (or pasting the link). On a
