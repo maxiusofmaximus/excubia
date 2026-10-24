@@ -83,6 +83,9 @@ h3 {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
   color: var(--text);
   text-decoration: none;
@@ -107,6 +110,13 @@ h3 {
 .hero {
   padding-top: 48px;
   padding-bottom: 32px;
+}
+
+.hero-icon {
+  display: block;
+  width: 128px;
+  height: 128px;
+  margin-bottom: 20px;
 }
 
 .hero h1 {
