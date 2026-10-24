@@ -16,7 +16,7 @@ reference in [`apk/_legacy-kotlin-v1`](apk/_legacy-kotlin-v1).
 | [`apk/`](apk) | Android app (Flutter UI + Rust client core). |
 | [`desktop/`](desktop) | Desktop app (Tauri). |
 | `gateway/` | Original Python gateway for [herdr](https://github.com/herdrdev/herdr). Superseded by `core/`; kept until the migration ends. |
-| `docs/` | Contracts and guides. `core/docs`, `apk/docs` and `desktop/docs` hold the newer versions of the contracts each component changed. |
+| `docs/` | Documents from the previous (Kotlin-era) release. Current API docs will be generated from the code. |
 | `tooling/` | Scripts shared by the project. |
 
 Each component builds on its own (`cargo` in `core/` and `desktop/`,
