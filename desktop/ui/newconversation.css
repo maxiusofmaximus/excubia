@@ -1,0 +1,106 @@
+.dialog {
+  width: min(520px, calc(100vw - 32px));
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  color: var(--text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.dialog::backdrop {
+  background: rgba(6, 9, 13, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.dialog h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.dialog-lede {
+  margin: 0 0 16px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.dialog .field-label {
+  margin-top: 14px;
+}
+
+.nc-agents {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nc-agent {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.nc-agent:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.nc-agent.is-unavailable {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nc-agent input {
+  width: 15px;
+  min-height: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.nc-agent-name {
+  color: var(--text);
+}
+
+.nc-agent-note {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.nc-cwd-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nc-cwd-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.nc-cwd-row .btn {
+  flex: none;
+}
+
+.nc-optional {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

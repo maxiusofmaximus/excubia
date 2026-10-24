@@ -1,0 +1,24 @@
+[package]
+name = "hn-core-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Local HTTP + SSE API for herdr-notify core (contract: docs/contracts/api.md)"
+
+[dependencies]
+async-trait = "0.1"
+axum.workspace = true
+futures-core.workspace = true
+hn-core-auth = { path = "../auth" }
+hn-core-chat = { path = "../chat" }
+hn-core-state = { path = "../state" }
+rustls = { version = "0.23", default-features = false, features = ["std", "logging", "tls12", "ring"] }
+serde.workspace = true
+serde_json.workspace = true
+subtle = "2"
+tokio.workspace = true
+tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
+toml.workspace = true
+
+[dev-dependencies]
+hn-core-test-dir = { path = "../test-dir" }

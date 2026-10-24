@@ -1,0 +1,22 @@
+[package]
+name = "hn-core-auth"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pairing, request authentication and authorization for herdr-notify core (contracts: pairing.md, auth.md, errors.md)"
+
+[dependencies]
+base64.workspace = true
+data-encoding.workspace = true
+ed25519-dalek.workspace = true
+hex.workspace = true
+hn-core-persist = { path = "../persist" }
+p256.workspace = true
+rand_core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+hn-core-test-dir = { path = "../test-dir" }

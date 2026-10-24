@@ -1,0 +1,242 @@
+/* Approval cards (operator level), timeline lines and Ajustes → Aprobaciones.
+   Colours come from the theme tokens in base.css, so light and dark follow it. */
+
+.approval-card {
+  margin: 10px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  max-width: 560px;
+}
+
+.approval-card.tone-approved { border-left-color: var(--done); }
+.approval-card.tone-denied { border-left-color: var(--blocked); }
+.approval-card.tone-expired { border-left-color: var(--idle); }
+
+.approval-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.approval-kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.approval-title {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.approval-where,
+.approval-result,
+.approval-question {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.approval-question {
+  color: var(--text);
+}
+
+.approval-command {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--raised);
+  font-family: var(--mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.approval-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.approval-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.approval-chip.risk-low { color: var(--done); }
+.approval-chip.risk-medium { color: var(--warning); }
+.approval-chip.risk-high { color: var(--blocked); }
+.approval-chip.level { color: var(--accent); }
+
+.approval-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.approval-digest {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.approval-card .btn,
+.approval-settings .btn {
+  min-height: 32px;
+}
+
+.approval-card :focus-visible,
+.approval-line :focus-visible,
+.approval-settings :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.approval-error {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--blocked);
+  font-size: 13px;
+}
+
+.approval-error p { margin: 0 0 6px; }
+
+.approval-grant {
+  display: block;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.approval-line {
+  margin: 6px 0;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.approval-line-summary {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.approval-line-detail {
+  padding: 6px 0 4px 12px;
+  border-left: 1px solid var(--line);
+}
+
+.approval-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.approval-chain li::after { content: "→"; margin-left: 4px; color: var(--muted); }
+.approval-chain li:last-child::after { content: ""; }
+.approval-chain li.current { color: var(--accent); font-weight: 600; }
+
+.approval-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 10px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.approval-facts dt { color: var(--muted); }
+.approval-facts dd { margin: 0; }
+
+.approval-audit {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+
+.approval-settings {
+  margin: 24px auto 0;
+  padding: 16px;
+  max-width: 560px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.approval-settings-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.approval-switch {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.approval-switch input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .approval-card { padding: 12px; }
+  .approval-actions .btn { flex: 1 1 auto; }
+}
+
+/* Pendientes de ti: the operator's inbox strip above the thread. It keeps its
+   natural height up to 40% of the window, then scrolls, so the empty state below
+   never loses its room. */
+.approval-inbox {
+  display: grid;
+  gap: 2px;
+  flex: none;
+  max-height: 40vh;
+  margin: 10px 16px 0;
+  overflow-y: auto;
+}
+
+.approval-inbox[hidden] {
+  display: none;
+}
+
+.approval-inbox-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}

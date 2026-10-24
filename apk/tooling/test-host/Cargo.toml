@@ -1,0 +1,17 @@
+[package]
+name = "apk6-test-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+hn-core-api = { path = "../../../core/crates/api" }
+hn-core-auth = { path = "../../../core/crates/auth" }
+hn-core-chat = { path = "../../../core/crates/chat" }
+hn-core-host = { path = "../../../core/crates/host" }
+hn-core-pty = { path = "../../../core/crates/pty" }
+hn-core-seat = { path = "../../../core/crates/seat" }
+hn-core-state = { path = "../../../core/crates/state" }
+tokio = { version = "1", features = ["full"] }
+vt100 = "=0.18.0"

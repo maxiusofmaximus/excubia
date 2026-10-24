@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>herdr notify</title>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="pairing.css">
+  <link rel="stylesheet" href="chat.css">
+  <link rel="stylesheet" href="thread.css">
+  <link rel="stylesheet" href="delegation.css">
+  <link rel="stylesheet" href="agents.css">
+  <link rel="stylesheet" href="detail.css">
+  <link rel="stylesheet" href="newconversation.css">
+  <link rel="stylesheet" href="approvals.css">
+</head>
+<body>
+  <div class="app">
+    <section id="view-pair" class="view view-pair">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span>herdr notify</span>
+      </div>
+
+      <div class="pair-intro">
+        <h1>Conecta este equipo</h1>
+        <p class="lede">Introduce el código que muestra el host. Alfred y el equipo se actualizarán en vivo.</p>
+      </div>
+
+      <p id="plain-warning" class="warning hidden" role="note">La conexión con este gateway no va cifrada. Solo es aceptable en este equipo o en una red privada de confianza.</p>
+
+      <div id="local-card" class="card local-card hidden">
+        <h2>Este equipo aloja su propio núcleo</h2>
+        <p id="local-status" class="hint">Arrancando el host local…</p>
+        <button id="btn-restart-host" class="btn ghost btn-block hidden" type="button">Reiniciar el host</button>
+        <button id="btn-use-remote" class="btn secondary btn-block" type="button">Conectar a otro host</button>
+      </div>
+
+      <form id="pair-form" class="card" novalidate>
+        <label class="field-label" for="pair-code">Código de emparejamiento</label>
+        <input id="pair-code" class="code-input" type="text" inputmode="text" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" maxlength="64" placeholder="HJKQ2ZP4"
+               aria-describedby="pair-hint">
+        <p id="pair-hint" class="hint">Déjalo vacío para emparejar automáticamente por Tailscale.</p>
+        <button id="btn-pair" class="btn primary btn-block" type="submit">Emparejar</button>
+        <p id="pair-error" class="form-error hidden" role="alert"></p>
+      </form>
+
+      <form id="link-form" class="card" novalidate>
+        <label class="field-label" for="pair-link">Enlace de emparejamiento</label>
+        <textarea id="pair-link" class="link-input" rows="2" spellcheck="false" autocomplete="off"
+                  placeholder="herdr-notify://pair?v=1&amp;c=…" aria-describedby="link-hint"></textarea>
+        <p id="link-hint" class="hint">Pega el enlace que muestra el host con <code>host pair-code --lan</code>. Caduca y sirve una sola vez.</p>
+        <button id="btn-pair-link" class="btn primary btn-block" type="submit">Emparejar con el enlace</button>
+        <p id="link-error" class="form-error hidden" role="alert"></p>
+      </form>
+
+      <section id="lan-card" class="card lan-card">
+        <div class="lan-head">
+          <h2>Emparejar el móvil en la red local</h2>
+          <label class="toggle" for="lan-toggle">
+            <input id="lan-toggle" type="checkbox">
+            <span>Activado</span>
+          </label>
+        </div>
+        <p class="hint">Activa esta opción para que el host acepte móviles en la red local. Se cifra con su certificado; el móvil comprueba la huella antes de enviar nada.</p>
+        <button id="btn-show-lan" class="btn secondary btn-block" type="button" disabled>Mostrar código QR</button>
+        <p id="lan-error" class="form-error hidden" role="alert"></p>
+      </section>
+
+      <details id="advanced" class="advanced">
+        <summary>
+          <span>Avanzado</span>
+          <span class="summary-note">huella, comando y URL</span>
+        </summary>
+        <div class="advanced-body">
+          <div class="field">
+            <span class="field-label">Huella del dispositivo</span>
+            <code id="fingerprint" class="fingerprint">Generando…</code>
+            <p class="hint">Compárala con la que muestre el host antes de continuar.</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="device-id">Identificador</label>
+            <input id="device-id" class="mono-input" type="text" autocomplete="off" spellcheck="false"
+                   maxlength="64" aria-describedby="device-id-hint">
+            <p id="device-id-hint" class="hint">Debe coincidir con el identificador registrado en el gateway.</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="device-label">Nombre de este equipo</label>
+            <input id="device-label" type="text" autocomplete="off" spellcheck="false"
+                   maxlength="64" aria-describedby="device-label-hint">
+            <p id="device-label-hint" class="hint">Se envía al gateway al emparejar; por defecto, el nombre del host.</p>
+          </div>
+
+          <div class="field">
+            <div class="field-head">
+              <span class="field-label">Comando en el host</span>
+              <button id="btn-copy-command" class="btn ghost btn-small" type="button">Copiar</button>
+            </div>
+            <div class="command"><pre id="command">Cargando…</pre></div>
+            <p class="hint">Ejecútalo en la máquina del gateway si el emparejamiento por código no está disponible.</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="gateway-url">URL del gateway</label>
+            <input id="gateway-url" class="mono-input" type="text" inputmode="url" autocomplete="off"
+                   spellcheck="false" placeholder="http://127.0.0.1:8787">
+            <p class="hint">Por defecto, el gateway local en el puerto 8787.</p>
+          </div>
+
+          <div class="field">
+            <label class="toggle" for="notifications-toggle">
+              <input id="notifications-toggle" type="checkbox">
+              <span>Avisos del sistema</span>
+            </label>
+            <p class="hint">Avisa cuando un agente pasa a bloqueado o termina. Se guarda en este equipo.</p>
+          </div>
+
+          <button id="btn-save-advanced" class="btn secondary btn-block" type="button">Guardar y continuar</button>
+          <p id="advanced-note" class="hint note" role="status"></p>
+          <button id="btn-pair-back" class="btn ghost btn-block" type="button">Volver al chat</button>
+          <button id="btn-use-local" class="btn ghost btn-block hidden" type="button">Volver al host local de este equipo</button>
+        </div>
+      </details>
+
+      <p class="secure-note">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
+             stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="10" width="16" height="10" rx="2"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+        </svg>
+        La clave privada se guarda en el Almacén de credenciales de Windows; nunca se escribe en disco.
+      </p>
+    </section>
+
+    <section id="view-recovery" class="view view-recovery hidden">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span>herdr notify</span>
+      </div>
+      <div class="recovery-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6l-8-3Z"></path>
+          <path d="m9 12 2 2 4-4"></path>
+        </svg>
+      </div>
+      <h1>Guarda este código</h1>
+      <p class="lede">El gateway solo lo muestra una vez. Sirve para volver a emparejar este equipo si pierdes el acceso al host.</p>
+      <div class="card recovery-card">
+        <div id="recovery-code" class="recovery-code">—</div>
+        <button id="btn-copy-recovery" class="btn ghost btn-block" type="button">Copiar código</button>
+        <p id="recovery-note" class="hint">No se volverá a mostrar.</p>
+        <button id="btn-recovery-continue" class="btn primary btn-block" type="button">Ya lo he guardado · Continuar</button>
+      </div>
+    </section>
+
+    <section id="view-lan" class="view view-lan hidden">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span>herdr notify</span>
+      </div>
+      <h1>Escanea con el móvil</h1>
+      <p class="lede">Usa un móvil conectado a la misma red local. El código sirve una sola vez.</p>
+      <div class="card lan-card">
+        <img id="lan-qr" class="lan-qr" width="240" height="240"
+             alt="Código QR del enlace de emparejamiento de la red local">
+        <p id="lan-expiry" class="hint" role="status"></p>
+        <p class="hint">Si el móvil avisa de que la huella no coincide, no te conectes a esa red.</p>
+        <button id="btn-lan-new" class="btn secondary btn-block" type="button">Generar otro código</button>
+        <button id="btn-lan-back" class="btn ghost btn-block" type="button">Volver</button>
+      </div>
+    </section>
+
+    <section id="view-chat" class="view view-chat hidden">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span>herdr notify</span>
+        </div>
+        <nav class="nav-tabs" aria-label="Vistas">
+          <button id="tab-chat" class="nav-tab is-active" type="button" aria-current="page">Chat</button>
+          <button id="tab-team" class="nav-tab" type="button">Equipo</button>
+        </nav>
+        <div class="top-actions">
+          <span id="chat-connection" class="chip idle" role="status" title="Estado de la conexión">
+            <span class="chip-dot" aria-hidden="true"></span>
+            <span class="chip-label">Sin conectar</span>
+          </span>
+          <button id="btn-settings" class="icon-btn" type="button" title="Ajustes" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="chat-shell" class="chat-shell">
+        <aside id="chat-history" class="history" aria-label="Historial de conversaciones">
+          <div class="history-head">
+            <h2>Historial</h2>
+            <span class="history-tools">
+              <span id="history-count" class="count">0</span>
+              <button id="btn-new-section" class="icon-btn tiny" type="button"
+                      title="Nueva sección" aria-label="Nueva sección">+</button>
+            </span>
+          </div>
+          <button id="btn-new-chat" class="btn primary btn-block" type="button">+ Nuevo chat</button>
+          <label class="search">
+            <span class="sr-only">Buscar en títulos y mensajes</span>
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m20 20-3.4-3.4"></path>
+            </svg>
+            <input id="chat-search" type="search" placeholder="Buscar…" autocomplete="off" spellcheck="false">
+          </label>
+          <div id="chat-groups" class="chat-groups"></div>
+          <div class="history-foot">
+            <button id="btn-archived" class="linkish" type="button">Archivados (0)</button>
+            <button id="btn-team-foot" class="linkish" type="button">Equipo →</button>
+          </div>
+        </aside>
+
+        <main id="chat-main" class="thread" aria-label="Conversación con Alfred">
+          <header class="thread-head">
+            <button id="btn-history-toggle" class="icon-btn narrow-only" type="button"
+                    title="Mostrar historial" aria-label="Mostrar historial">☰</button>
+            <div class="thread-title">
+              <span id="chat-avatar" class="avatar" aria-hidden="true">A</span>
+              <div>
+                <h1 id="chat-title">Alfred</h1>
+                <p id="chat-subtitle" class="subtitle">Cargando…</p>
+              </div>
+            </div>
+            <div class="thread-actions">
+              <button id="btn-chat-new" class="icon-btn" type="button" title="Nueva conversación"
+                      aria-label="Nueva conversación">+</button>
+              <button id="btn-chat-more" class="icon-btn" type="button" title="Acciones de la conversación"
+                      aria-label="Acciones de la conversación" data-menu="current">⋯</button>
+            </div>
+          </header>
+
+          <div id="chat-banner" class="chat-banner hidden" role="status"></div>
+
+          <div id="chat-timeline" class="timeline" role="log" aria-live="polite"
+               aria-label="Mensajes de la conversación"></div>
+
+          <div id="chat-empty" class="chat-empty hidden">
+            <div class="empty-alfred" aria-hidden="true">A</div>
+            <h2 id="empty-chat-title">¿Qué movemos hoy?</h2>
+            <p id="empty-chat-body">Dime un objetivo y reparto el trabajo entre Ernesto y su equipo. Yo te traigo el resultado.</p>
+            <div class="suggestions" role="list">
+              <button class="suggestion" type="button" role="listitem" data-suggestion="Crea el proyecto Demo y pide a Ernesto un plan de 3 hitos">
+                <span class="suggestion-mark" aria-hidden="true">+</span>
+                <span><strong>Crea el proyecto Demo</strong><small>y pide a Ernesto un plan de 3 hitos</small></span>
+              </button>
+              <button class="suggestion" type="button" role="listitem" data-suggestion="¿Cómo va herdr-notify? Estado, bloqueos y última entrega">
+                <span class="suggestion-mark" aria-hidden="true">?</span>
+                <span><strong>¿Cómo va herdr-notify?</strong><small>estado, bloqueos y última entrega</small></span>
+              </button>
+              <button class="suggestion" type="button" role="listitem" data-suggestion="Revisa los tests de la API con Ines">
+                <span class="suggestion-mark" aria-hidden="true">✓</span>
+                <span><strong>Revisa los tests de la API</strong><small>Ines puede ejecutar la suite e2e</small></span>
+              </button>
+            </div>
+          </div>
+
+          <form id="chat-composer" class="chat-composer" novalidate>
+            <label class="sr-only" for="chat-input">Mensaje a Alfred</label>
+            <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Mensaje a Alfred"></textarea>
+            <button id="btn-send" class="send-btn" type="submit" title="Enviar mensaje" aria-label="Enviar mensaje">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19V5"></path>
+                <path d="m5 12 7-7 7 7"></path>
+              </svg>
+            </button>
+            <p id="chat-hint" class="composer-hint">Enter envía · Shift+Enter salto de línea</p>
+          </form>
+        </main>
+
+        <aside id="chat-side" class="side" aria-label="Equipo">
+          <div class="side-head">
+            <h2>Equipo</h2>
+            <button id="btn-side-toggle" class="icon-btn side-toggle" type="button"
+                    title="Plegar el panel" aria-label="Plegar el panel del equipo" aria-expanded="true">›</button>
+          </div>
+          <div id="side-body" class="side-body">
+            <div class="side-card">
+              <div class="side-person">
+                <span class="avatar small" aria-hidden="true">A</span>
+                <div>
+                  <strong id="side-alfred-name">Alfred</strong>
+                  <span id="side-alfred-status" class="side-meta">CTO · disponible</span>
+                </div>
+              </div>
+              <p id="side-company" class="side-company"></p>
+            </div>
+            <div class="side-section">
+              <h3>Proyectos</h3>
+              <div id="side-projects" class="side-list"></div>
+            </div>
+            <div id="side-team-section" class="side-section">
+              <h3>Equipo del proyecto</h3>
+              <div id="side-team" class="side-list"></div>
+            </div>
+            <button id="btn-open-team" class="btn secondary btn-block" type="button">Abrir equipo</button>
+          </div>
+        </aside>
+      </div>
+      <div id="chat-menu" class="menu hidden" role="menu" aria-label="Acciones de la conversación"></div>
+    </section>
+
+    <section id="view-agents" class="view view-agents hidden">
+      <header class="topbar team-topbar">
+        <nav class="nav-tabs" aria-label="Vistas">
+          <button id="team-tab-chat" class="nav-tab" type="button">Chat</button>
+          <button id="team-tab-team" class="nav-tab is-active" type="button" aria-current="page">Equipo</button>
+        </nav>
+        <div class="top-actions">
+          <span id="connection-chip" class="chip idle" role="status" title="Estado de la conexión">
+            <span class="chip-dot" aria-hidden="true"></span>
+            <span class="chip-label">Sin conectar</span>
+          </span>
+          <button id="btn-settings-team" class="icon-btn" type="button" title="Ajustes" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">herdr notify</p>
+          <h1>Equipo</h1>
+          <p id="agents-subtitle" class="subtitle">Cargando estado…</p>
+        </div>
+        <div class="header-actions">
+          <button id="btn-new" class="btn primary btn-small" type="button">Nueva conversación</button>
+          <button id="btn-refresh" class="icon-btn" type="button" title="Actualizar ahora" aria-label="Actualizar ahora">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 11a8 8 0 1 0-2.3 5.7"></path>
+              <path d="M20 4v7h-7"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="stale-banner" class="stale hidden" role="status">
+        <span id="stale-text">Sin conexión con el gateway. Mostrando el último estado conocido.</span>
+        <span class="stale-actions">
+          <button id="btn-stale-retry" class="btn ghost btn-small" type="button">Reintentar</button>
+          <button id="btn-stale-pair" class="btn ghost btn-small hidden" type="button">Volver a emparejar</button>
+        </span>
+      </div>
+
+      <div id="agents-loading" class="loading-list" aria-label="Cargando agentes">
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+      </div>
+
+      <ul id="agent-list" class="agent-list hidden" role="list"></ul>
+
+      <div id="agents-empty" class="state-block hidden">
+        <div class="state-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9Z"></path>
+          </svg>
+        </div>
+        <h2 id="empty-title">Ningún agente en marcha</h2>
+        <p id="empty-body">Arranca un agente en herdr y aparecerá aquí en cuanto lo detecte.</p>
+        <div class="empty-actions">
+          <button id="btn-empty-new" class="btn primary" type="button">Nueva conversación</button>
+          <button id="btn-empty-action" class="btn secondary" type="button">Actualizar</button>
+          <button id="btn-empty-pair" class="btn ghost hidden" type="button">Volver a emparejar</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-detail" class="view view-detail hidden">
+      <header class="detail-header">
+        <button id="btn-back" class="icon-btn" type="button" title="Volver a la lista" aria-label="Volver a la lista">←</button>
+        <div class="detail-title">
+          <div class="detail-project">
+            <span id="detail-dot" class="status-dot" aria-hidden="true"></span>
+            <span id="detail-project">Agente</span>
+            <span id="detail-restored" class="badge hidden">restaurado</span>
+          </div>
+          <h1 id="detail-task">Detalle</h1>
+          <p id="detail-meta" class="meta"></p>
+        </div>
+        <span id="detail-status" class="status-label">—</span>
+      </header>
+
+      <div class="detail-actions">
+        <button id="btn-read" class="btn secondary btn-small" type="button">Actualizar salida</button>
+        <button id="btn-stop" class="btn destructive btn-small" type="button">Detener agente</button>
+        <button id="btn-new-here" class="btn primary btn-small hidden" type="button">Nueva conversación aquí</button>
+        <span id="detail-live" class="detail-live"></span>
+      </div>
+
+      <div id="stop-confirm" class="stop-confirm hidden" role="group" aria-label="Confirmar detención">
+        <span>¿Detener este agente? Se cerrará su proceso y el panel desaparecerá.</span>
+        <span class="stop-confirm-actions">
+          <button id="btn-stop-cancel" class="btn ghost btn-small" type="button">Cancelar</button>
+          <button id="btn-stop-confirm" class="btn destructive btn-small" type="button">Detener</button>
+        </span>
+      </div>
+      <p id="stop-result" class="hint hidden" role="status"></p>
+
+      <div id="detail-error" class="form-error hidden" role="alert"></div>
+
+      <section id="composer" class="composer">
+        <div class="composer-head">
+          <span class="field-label">Responder</span>
+          <span id="composer-hint" class="hint">Disponible cuando el agente está bloqueado.</span>
+        </div>
+        <textarea id="respond-text" rows="3" spellcheck="false"
+                  placeholder="Escribe una respuesta para el agente…"></textarea>
+        <div class="composer-actions">
+          <button id="btn-respond" class="btn primary btn-small" type="button">Enviar</button>
+          <span class="quick-keys" role="group" aria-label="Teclas rápidas">
+            <button class="btn ghost btn-small key" data-key="enter" type="button">Aprobar ⏎</button>
+            <button class="btn ghost btn-small key" data-key="esc" type="button">Rechazar ⎋</button>
+            <button class="btn ghost btn-small key" data-key="up" type="button" aria-label="Flecha arriba">↑</button>
+            <button class="btn ghost btn-small key" data-key="down" type="button" aria-label="Flecha abajo">↓</button>
+            <button class="btn ghost btn-small key" data-key="left" type="button" aria-label="Flecha izquierda">←</button>
+            <button class="btn ghost btn-small key" data-key="right" type="button" aria-label="Flecha derecha">→</button>
+          </span>
+        </div>
+        <p id="composer-result" class="hint" role="status"></p>
+      </section>
+
+      <div class="output-panel">
+        <div class="output-head">
+          <span>Salida reciente</span>
+          <span id="output-meta">Solo lectura</span>
+        </div>
+        <pre id="detail-output">Leyendo…</pre>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="new-conversation" class="dialog">
+    <form id="new-conversation-form" method="dialog" novalidate>
+      <h2>Nueva conversación</h2>
+      <p class="dialog-lede">Elige un agente del catálogo del host y la carpeta donde trabajará.</p>
+
+      <span class="field-label">Agente</span>
+      <div id="nc-agents" class="nc-agents" role="radiogroup" aria-label="Agente"></div>
+
+      <label class="field-label" for="nc-cwd">Carpeta de trabajo</label>
+      <div class="nc-cwd-row">
+        <input id="nc-cwd" class="mono-input" type="text" spellcheck="false" placeholder="D:\Documentos\Projects\mi-repo">
+        <button id="btn-pick-folder" class="btn secondary btn-small" type="button">Elegir carpeta…</button>
+      </div>
+
+      <label class="field-label" for="nc-label">Etiqueta <span class="nc-optional">(opcional)</span></label>
+      <input id="nc-label" type="text" maxlength="64" spellcheck="false" placeholder="Qué va a hacer el agente">
+
+      <p id="nc-error" class="form-error hidden" role="alert"></p>
+
+      <div class="dialog-actions">
+        <button id="nc-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="nc-submit" class="btn primary" type="submit">Crear conversación</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="chat-rename" class="dialog chat-dialog">
+    <form id="chat-rename-form" method="dialog" novalidate>
+      <h2>Renombrar conversación</h2>
+      <label class="field-label" for="chat-rename-input">Título</label>
+      <input id="chat-rename-input" type="text" maxlength="120" spellcheck="false" autocomplete="off">
+      <p id="chat-rename-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="chat-rename-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="chat-rename-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="chat-section" class="dialog chat-dialog">
+    <form id="chat-section-form" method="dialog" novalidate>
+      <h2>Mover a una sección</h2>
+      <label class="field-label" for="chat-section-select">Sección</label>
+      <select id="chat-section-select"></select>
+      <label class="field-label" for="chat-section-name">O crea una nueva</label>
+      <input id="chat-section-name" type="text" maxlength="60" spellcheck="false" autocomplete="off"
+             placeholder="Trabajo profundo">
+      <p id="chat-section-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="chat-section-clear" class="btn ghost" type="button">Quitar de la sección</button>
+        <button id="chat-section-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="chat-section-save" class="btn primary" type="submit">Mover</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="delegation-detail" class="dialog delegation-dialog">
+    <div class="delegation-detail-head">
+      <div>
+        <p id="delegation-detail-kicker" class="eyebrow">Delegación</p>
+        <h2 id="delegation-detail-title">Delegación</h2>
+      </div>
+      <span id="delegation-detail-status" class="delegation-status">—</span>
+    </div>
+    <div id="delegation-detail-body" class="delegation-detail-body"></div>
+    <div class="dialog-actions">
+      <button id="delegation-detail-agent" class="btn secondary" type="button">Abrir agente</button>
+      <button id="delegation-detail-close" class="btn primary" type="button">Cerrar</button>
+    </div>
+  </dialog>
+
+  <dialog id="delegation-kill" class="dialog chat-dialog">
+    <form id="delegation-kill-form" method="dialog" novalidate>
+      <h2>Cancelar delegaciones</h2>
+      <p class="dialog-lede">Se cancelarán todas las delegaciones activas de esta conversación. El historial y las tarjetas se conservan.</p>
+      <div class="dialog-actions">
+        <button id="delegation-kill-cancel" class="btn ghost" type="button">Volver</button>
+        <button id="delegation-kill-confirm" class="btn destructive" type="submit">Cancelar delegaciones</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <noscript>Esta interfaz necesita JavaScript habilitado.</noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

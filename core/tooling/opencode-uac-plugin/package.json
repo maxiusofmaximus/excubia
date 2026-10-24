@@ -1,0 +1,24 @@
+{
+  "name": "@herdr/opencode-uac-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UAC fail-closed para OpenCode: pide aprobación al host antes de shell, red o edición fuera del cwd",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "src",
+    "INTERFACE.md",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "e2e:v1": "node e2e/run-v1-cases.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

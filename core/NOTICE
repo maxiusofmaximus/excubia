@@ -1,0 +1,49 @@
+herdr-notify — núcleo (worktree `core`)
+=======================================
+
+Este directorio contiene código propio (MIT, ver LICENSE) y código adaptado de
+herdr (https://github.com/herdrdev/herdr), que se distribuye bajo Apache-2.0.
+La copia de Apache-2.0 está en LICENSE-APACHE.
+
+Origen del código adaptado (herdr 0.9.5, snapshot del 2026-10-16):
+
+- crates/detect/src/identify.rs
+    Tabla de alias de agentes y normalización del nombre de programa,
+    adaptada de src/detect/mod.rs (`lookup_agent`, `path_basename`).
+    Recortada a claude/codex/opencode/gemini (+ agente falso de pruebas).
+- crates/detect/src/manifest.rs
+    Semántica de las puertas de las reglas (`contains` en minúsculas,
+    `regex`, `line_regex`, `all`/`any`/`not`) y recorte de regiones,
+    adaptada de src/detect/manifest.rs (`compiled_gate_matches`, `region`).
+    Regiones recortadas a: whole_recent, osc_title, after_last_horizontal_rule,
+    bottom_non_empty_lines(n), bottom_lines(n), top_non_empty_lines(n).
+- crates/detect/manifests/claude.toml
+    Subconjunto de reglas adaptado de src/detect/manifests/claude.toml.
+    Modificado: regiones sustituidas por equivalentes soportadas aquí.
+- crates/detect/manifests/codex.toml
+    Subconjunto de reglas adaptado de src/detect/manifests/codex.toml.
+    Modificado: regiones sustituidas por equivalentes soportadas aquí.
+- crates/detect/manifests/opencode.toml
+    Subconjunto de reglas adaptado de src/detect/manifests/opencode.toml.
+- crates/detect/src/identify.rs (tests) y crates/detect/src/manifest.rs (tests)
+    Casos de prueba adaptados de los tests de src/detect/mod.rs y
+    src/detect/manifest/tests.rs.
+
+Todo lo anterior está modificado respecto al original (recortes y cambios de
+región); no se han copiado cabeceras porque los ficheros de herdr no las
+llevan. Los ficheros adaptados indican su origen en un comentario de cabecera.
+
+Además, código adaptado del cliente de escritorio (MIT):
+
+- crates/test-support/src/{identity,client}.rs
+    Copia mínima del cliente firmado de `desktop/core/src/{identity,signing,
+    client}.rs` (MIT), para los tests de integración y el cliente de la demo
+    (`demo-client`). Es una dependencia de desarrollo (`publish = false`), no
+    forma parte de ningún artefacto del producto, y la canonicalización no se
+    duplica: reutiliza `hn_core_auth::canonical_string`. Fijado contra los
+    mismos vectores dorados del gateway
+    (`gateway/tests/vectors/signing_vectors.json`).
+
+- docs/core/evidence/desktop-compat/ (herramienta de evidencia, fuera del
+  workspace): usa `desktop/core` como dependencia para comprobar el cliente
+  real contra el núcleo. No se copia código.

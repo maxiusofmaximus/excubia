@@ -64,3 +64,12 @@ android/ui4-shots/
 
 # Grafo de conocimiento generado por graphify (artefacto local, se regenera con `graphify update`).
 graphify-out/
+
+# Build output of every component
+target/
+target-*/
+build/
+.dart_tool/
+node_modules/
+.gradle/
+.playwright-mcp/

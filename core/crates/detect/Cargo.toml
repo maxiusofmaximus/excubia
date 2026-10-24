@@ -1,0 +1,12 @@
+[package]
+name = "hn-core-detect"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Agent identification and screen-state detection for herdr-notify core"
+
+[dependencies]
+anyhow.workspace = true
+regex.workspace = true
+serde.workspace = true
+toml.workspace = true

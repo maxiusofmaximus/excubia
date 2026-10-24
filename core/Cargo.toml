@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = ["crates/api", "crates/auth", "crates/chat", "crates/detect", "crates/host", "crates/persist", "crates/pin", "crates/pty", "crates/seat", "crates/state", "crates/test-dir", "crates/test-support"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+anyhow = "1"
+axum = "0.8"
+base64 = "0.22"
+data-encoding = "2"
+ed25519-dalek = "2"
+futures-core = "0.3"
+hex = "0.4"
+p256 = { version = "0.13", features = ["ecdsa"] }
+portable-pty = "=0.9.0"
+rand_core = { version = "0.6", features = ["getrandom"] }
+regex = "1"
+rusqlite = { version = "0.40", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "io-std", "process", "signal"] }
+toml = "0.8"
+ulid = "3"
+vt100 = "0.18"

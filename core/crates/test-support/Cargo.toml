@@ -1,0 +1,21 @@
+[package]
+name = "hn-core-test-support"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Test-only signed HTTP client for herdr-notify core (a dev-dependency; never shipped)"
+
+[dependencies]
+async-trait = "0.1"
+base64.workspace = true
+hex.workspace = true
+hn-core-auth = { path = "../auth" }
+hn-core-chat = { path = "../chat" }
+p256.workspace = true
+rand_core.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true

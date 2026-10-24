@@ -1,0 +1,15 @@
+[package]
+name = "hn-core-state"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Authoritative state store for herdr-notify core (contract: docs/contracts/state.md)"
+
+[dependencies]
+hn-core-persist = { path = "../persist" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+hn-core-test-dir = { path = "../test-dir" }

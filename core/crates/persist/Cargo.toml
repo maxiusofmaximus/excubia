@@ -1,0 +1,13 @@
+[package]
+name = "hn-core-persist"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Atomic file persistence, one implementation for the whole herdr-notify core"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+hn-core-test-dir = { path = "../test-dir" }

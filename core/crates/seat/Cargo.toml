@@ -1,0 +1,25 @@
+[package]
+name = "hn-core-seat"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Alfred's CLI seat: declarative adapters, one-turn FIFO queue and the MCP stdio shim (CORE6B)"
+
+[dependencies]
+async-trait = "0.1"
+hex.workspace = true
+hn-core-chat = { path = "../chat" }
+hn-core-persist = { path = "../persist" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+hn-core-test-dir = { path = "../test-dir" }
+
+[[bin]]
+name = "hn-uac-hook"
+path = "src/bin/hn-uac-hook.rs"
