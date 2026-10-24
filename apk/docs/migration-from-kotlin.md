@@ -1,5 +1,9 @@
 # Migrating the pairing from the Kotlin app (v0.1.x)
 
+> **Status: in development, not released.** The flow below is implemented in the
+> source for app version 1.0.2 and covered by unit tests, but it has not yet been
+> verified end to end on a device. Until it ships, re-pair the app after updating.
+
 Anyone who had the Kotlin app installed (same `applicationId` and signing key) and
 updates to the Flutter app keeps the data directory, so the new app can detect the
 previous pairing and offer to reuse it instead of asking to pair again.

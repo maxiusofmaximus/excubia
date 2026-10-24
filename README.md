@@ -15,7 +15,7 @@ reference in [`apk/_legacy-kotlin-v1`](apk/_legacy-kotlin-v1).
 | [`core/`](core) | Rust host: owns the agent sessions, the client API (HTTPS/SSE), device pairing and approvals. TLS 1.3 with a pinned host key for LAN use. |
 | [`apk/`](apk) | Android app (Flutter UI + Rust client core). |
 | [`desktop/`](desktop) | Desktop app (Tauri). |
-| `gateway/` | Original Python gateway for [herdr](https://github.com/herdrdev/herdr). Superseded by `core/`; kept until the migration ends. |
+| `gateway/` | **Deprecated.** Original Python gateway for [herdr](https://github.com/herdrdev/herdr), superseded by `core/`. It gets no new features. To move existing devices to the Rust host, run `host devices import-gateway <devices.json>`; see [Migrating from the Python gateway](core/README.md#migrar-desde-el-gateway-python) and the [feature parity table](core/docs/PARITY-GATEWAY.md). Missing today: push notifications. |
 | `docs/` | Documents from the previous (Kotlin-era) release. Current contracts, RFCs and the security review live next to their component (`core/docs/`, `apk/docs/`); API reference docs are generated from the code. |
 | `tooling/` | Scripts shared by the project. |
 

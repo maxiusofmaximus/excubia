@@ -1,0 +1,132 @@
+# Publica en GitHub Pages el manual (mdBook) y la documentación de API
+# (rustdoc de los tres árboles Rust y dartdoc de la app Flutter).
+#
+# Rutas publicadas:
+#   /                 página de inicio con enlaces
+#   /manual/          manual de usuario
+#   /api/rust/core/   rustdoc de core/ (workspace)
+#   /api/rust/desktop/ rustdoc de desktop/core (herdr-desktop-core)
+#   /api/rust/apk/    rustdoc de apk/mobile/rust (apk_core)
+#   /api/dart/        dartdoc de apk/mobile
+#
+# Decisiones (ver DOCS1-RESULT.md):
+# - RUSTDOCFLAGS=-D warnings solo afecta a rustdoc; con --no-deps solo se documentan
+#   los crates del propio repositorio. RUSTFLAGS no se fija, así que las dependencias
+#   se compilan igual que siempre.
+# - Solo se documenta desktop/core, no src-tauri: src-tauri necesita las bibliotecas de
+#   sistema de Tauri, que no están en el runner de Linux.
+# - mdBook 0.5.4 y dartdoc 9.0.11 se fijan por versión exacta.
+
+name: docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Una sola publicación a la vez. No se cancela una en curso: una cancelación a
+# mitad del despliegue puede dejar Pages sin versión válida.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  MDBOOK_VERSION: 0.5.4
+  FLUTTER_VERSION: 3.47.7
+  DARTDOC_VERSION: 9.0.11
+  RUSTDOCFLAGS: -D warnings
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Instalar mdBook
+        run: cargo install --locked mdbook --version "$MDBOOK_VERSION"
+
+      - name: Construir el manual
+        run: mdbook build docs/manual --dest-dir "$GITHUB_WORKSPACE/_site/manual"
+
+      - name: rustdoc de core (workspace)
+        run: cargo doc --locked --no-deps --workspace --manifest-path core/Cargo.toml --target-dir target-docs/core
+
+      - name: rustdoc de desktop/core
+        run: cargo doc --locked --no-deps -p herdr-desktop-core --manifest-path desktop/Cargo.toml --target-dir target-docs/desktop
+
+      - name: rustdoc de apk/mobile/rust
+        run: cargo doc --locked --no-deps --manifest-path apk/mobile/rust/Cargo.toml --target-dir target-docs/apk
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: false
+
+      - name: dartdoc de apk/mobile
+        working-directory: apk/mobile
+        run: |
+          flutter pub get
+          dart pub global activate dartdoc "$DARTDOC_VERSION"
+          dart pub global run dartdoc --output "$GITHUB_WORKSPACE/_site/api/dart"
+
+      - name: Reunir la documentación de API
+        run: |
+          mkdir -p _site/api/rust
+          cp -r target-docs/core/doc _site/api/rust/core
+          cp -r target-docs/desktop/doc _site/api/rust/desktop
+          cp -r target-docs/apk/doc _site/api/rust/apk
+
+      - name: Página de inicio
+        run: |
+          cat > _site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>herdr notify: documentación</title>
+          </head>
+          <body>
+            <h1>herdr notify: documentación</h1>
+            <ul>
+              <li><a href="manual/">Manual de usuario</a></li>
+              <li><a href="api/rust/core/">API Rust: core</a></li>
+              <li><a href="api/rust/desktop/">API Rust: desktop/core</a></li>
+              <li><a href="api/rust/apk/">API Rust: apk/mobile/rust</a></li>
+              <li><a href="api/dart/">API Dart: app Android</a></li>
+            </ul>
+          </body>
+          </html>
+          EOF
+
+      - name: Subir el sitio
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    # Solo despliega desde main. Un workflow_dispatch desde otra rama construye pero no publica.
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
