@@ -17,10 +17,17 @@ después de [emparejarse](emparejar.md) con él.
 
 - Un PC con Windows donde corre el host (o el escritorio).
 - Un móvil Android.
-- Los dos en la misma red local, o en la misma red de Tailscale.
+- Los dos en la misma red local, o en la misma red de Tailscale. Tailscale es opcional.
+
+## Lo que todavía no está disponible
+
+- **Avisos con la app cerrada.** Las notificaciones push (FCM) todavía no están
+  implementadas. Mientras la app está abierta, los cambios llegan en tiempo real.
+- **Instalador del escritorio.** Todavía no hay un instalador publicado. Hoy el host y el
+  escritorio se compilan desde el código.
 
 ## Cómo leer esta guía
 
-Empieza por [instalar la app](instalar-apk.md) y [emparejar el móvil](emparejar.md).
-Los capítulos de [seguridad](seguridad.md) y [solución de problemas](solucion-problemas.md)
-sirven cuando algo no encaja. Donde algo todavía no está disponible, la guía lo dice claramente.
+Si es tu primera vez, sigue el [inicio rápido](inicio-rapido.md). Los capítulos de
+[seguridad](seguridad.md) y [solución de problemas](solucion-problemas.md) sirven cuando algo
+no encaja. El [glosario](glosario.md) explica los términos que aparecen en la app.

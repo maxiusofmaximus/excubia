@@ -1,5 +1,5 @@
 [book]
-title = "herdr notify: manual de usuario"
+title = "herdr notify: guía de usuario"
 description = "Cómo instalar, emparejar y usar la app Android y el host de escritorio de herdr notify."
 authors = ["herdr notify"]
 language = "es"
@@ -10,4 +10,6 @@ build-dir = "book"
 create-missing = false
 
 [output.html]
+site-url = "/herdr-notify/guide/"
+theme = "../shared/theme"
 git-repository-url = "https://github.com/maxiusofmaximus/herdr-notify"

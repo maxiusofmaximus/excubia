@@ -19,8 +19,8 @@ El enlace de emparejamiento tiene tres datos importantes:
 
 ## Opción 2: pegar el enlace
 
-1. En el PC, ejecuta el comando de la tabla de [instalar el host](instalar-host.md), con
-   la IP privada del PC y el puerto 8443. Sustituye `<IP-del-PC>` por la de tu equipo:
+1. En el PC, crea el enlace con la IP privada del equipo y el puerto `8443`. Sustituye
+   `<IP-del-PC>` por la de tu equipo:
 
    ```powershell
    host pair-code --lan <IP-del-PC>:8443
@@ -29,12 +29,13 @@ El enlace de emparejamiento tiene tres datos importantes:
 2. Copia el enlace que imprime. Empieza por `herdr-notify://pair?`.
 3. En la app, pulsa **Pegar enlace** y pega el enlace.
 
-Si la app no llega al PC, añade la dirección en **Avanzado** o usa el QR.
+Si la app no llega al PC, añade la dirección en **Avanzado** o usa el QR. Si cambia la IP
+del PC, crea un enlace nuevo.
 
 ## Después de emparejar
 
-El móvil queda **pendiente**: el host lo conoce, pero no le concede ningún permiso.
-Hasta que no lo autorices, la app no mostrará el estado de tus agentes. En el PC:
+El móvil queda **pendiente**: el host lo conoce, pero no le concede ningún permiso. Hasta
+que no lo autorices, la app no mostrará el estado de tus agentes. En el PC:
 
 ```powershell
 host devices list
@@ -45,6 +46,6 @@ Los permisos y su significado están en [Seguridad](seguridad.md).
 
 ## Si el enlace falla
 
-Un enlace caducado o usado ya no sirve. Crea otro con `host pair-code`. Si la app dice
-que la huella no coincide, no sigas: es otro host o otra red. Más casos en
+Un enlace caducado o usado ya no sirve. Crea otro con `host pair-code`. Si la app dice que la
+huella no coincide, no sigas: es otro host o otra red. Más casos en
 [solución de problemas](solucion-problemas.md).

@@ -1,6 +1,7 @@
 # Resumen
 
 [Qué es herdr notify](introduccion.md)
+[Inicio rápido](inicio-rapido.md)
 
 - [Instalar la app Android](instalar-apk.md)
 - [Instalar el host y el escritorio](instalar-host.md)
@@ -9,4 +10,10 @@
 - [Chat con Alfred](chat-alfred.md)
 - [Seguridad](seguridad.md)
 - [Solución de problemas](solucion-problemas.md)
+- [Preguntas frecuentes](preguntas-frecuentes.md)
+- [Glosario](glosario.md)
+
+# Migración
+
 - [Migrar desde la app anterior](migracion.md)
+- [Migrar desde el gateway Python](gateway-python.md)

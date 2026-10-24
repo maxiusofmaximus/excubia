@@ -1,13 +1,18 @@
-# Publica en GitHub Pages el manual (mdBook) y la documentación de API
-# (rustdoc de los tres árboles Rust y dartdoc de la app Flutter).
+# Publica en GitHub Pages el sitio de herdr notify: portada, guía de usuario,
+# documentación técnica y referencia de API (rustdoc de los tres árboles Rust y
+# dartdoc de la app Flutter).
 #
 # Rutas publicadas:
-#   /                 página de inicio con enlaces
-#   /manual/          manual de usuario
-#   /api/rust/core/   rustdoc de core/ (workspace)
+#   /                  portada (docs/site)
+#   /guide/            guía de usuario (mdBook, docs/guide)
+#   /docs/             documentación técnica (mdBook, docs/techdocs). Sus fuentes se
+#                      copian desde core/docs y apk/docs con docs/techdocs/build.sh.
+#   /api/              índice de la API (docs/site/api)
+#   /api/rust/core/    rustdoc de core/ (workspace)
 #   /api/rust/desktop/ rustdoc de desktop/core (herdr-desktop-core)
-#   /api/rust/apk/    rustdoc de apk/mobile/rust (apk_core)
-#   /api/dart/        dartdoc de apk/mobile
+#   /api/rust/apk/     rustdoc de apk/mobile/rust (apk_core)
+#   /api/dart/         dartdoc de apk/mobile
+#   /manual/           redirección a /guide/
 #
 # Decisiones (ver DOCS1-RESULT.md):
 # - RUSTDOCFLAGS=-D warnings solo afecta a rustdoc; con --no-deps solo se documentan
@@ -16,6 +21,7 @@
 # - Solo se documenta desktop/core, no src-tauri: src-tauri necesita las bibliotecas de
 #   sistema de Tauri, que no están en el runner de Linux.
 # - mdBook 0.5.4 y dartdoc 9.0.11 se fijan por versión exacta.
+# - Los dos libros comparten el tema de docs/shared/theme (cabecera y acento).
 
 name: docs
 
@@ -57,8 +63,14 @@ jobs:
       - name: Instalar mdBook
         run: cargo install --locked mdbook --version "$MDBOOK_VERSION"
 
-      - name: Construir el manual
-        run: mdbook build docs/manual --dest-dir "$GITHUB_WORKSPACE/_site/manual"
+      - name: Construir la guía de usuario
+        run: mdbook build docs/guide --dest-dir "$GITHUB_WORKSPACE/_site/guide"
+
+      - name: Preparar la documentación técnica
+        run: bash docs/techdocs/build.sh
+
+      - name: Construir la documentación técnica
+        run: mdbook build docs/techdocs --dest-dir "$GITHUB_WORKSPACE/_site/docs"
 
       - name: rustdoc de core (workspace)
         run: cargo doc --locked --no-deps --workspace --manifest-path core/Cargo.toml --target-dir target-docs/core
@@ -89,29 +101,32 @@ jobs:
           cp -r target-docs/core/doc _site/api/rust/core
           cp -r target-docs/desktop/doc _site/api/rust/desktop
           cp -r target-docs/apk/doc _site/api/rust/apk
-
-      - name: Página de inicio
-        run: |
-          cat > _site/index.html <<'EOF'
+          # rustdoc no crea index.html en la raíz de cada árbol: se redirige a su crate principal.
+          for par in core:hn_core_host desktop:herdr_desktop_core apk:apk_core; do
+            dir="${par%%:*}"
+            main="${par##*:}"
+            cat > "_site/api/rust/$dir/index.html" <<EOF
           <!doctype html>
           <html lang="es">
           <head>
             <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>herdr notify: documentación</title>
+            <meta http-equiv="refresh" content="0; url=$main/">
+            <link rel="canonical" href="$main/">
+            <title>API Rust: $dir</title>
           </head>
           <body>
-            <h1>herdr notify: documentación</h1>
-            <ul>
-              <li><a href="manual/">Manual de usuario</a></li>
-              <li><a href="api/rust/core/">API Rust: core</a></li>
-              <li><a href="api/rust/desktop/">API Rust: desktop/core</a></li>
-              <li><a href="api/rust/apk/">API Rust: apk/mobile/rust</a></li>
-              <li><a href="api/dart/">API Dart: app Android</a></li>
-            </ul>
+            <p><a href="$main/">Documentación de $main</a></p>
           </body>
           </html>
           EOF
+          done
+
+      - name: Portada, índice de API y redirección de /manual/
+        run: |
+          cp docs/site/index.html docs/site/style.css docs/site/favicon.svg _site/
+          cp docs/site/api/index.html _site/api/index.html
+          mkdir -p _site/manual
+          cp docs/site/manual/index.html _site/manual/index.html
 
       - name: Subir el sitio
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

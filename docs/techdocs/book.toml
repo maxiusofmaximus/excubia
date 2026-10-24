@@ -1,0 +1,15 @@
+[book]
+title = "herdr notify: documentación técnica"
+description = "Contratos, RFC, revisión de seguridad y arquitectura de herdr notify."
+authors = ["herdr notify"]
+language = "es"
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+site-url = "/herdr-notify/docs/"
+theme = "../shared/theme"
+git-repository-url = "https://github.com/maxiusofmaximus/herdr-notify"

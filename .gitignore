@@ -73,3 +73,8 @@ build/
 node_modules/
 .gradle/
 .playwright-mcp/
+
+# Documentación generada: libros de mdBook y el sitio ensamblado
+book/
+_site/
+docs/techdocs/src/

@@ -1,0 +1,275 @@
+/* Hoja de estilo de la portada y de la página de API. Sin recursos externos.
+   Los colores son tokens en :root; el modo oscuro los redefine según el sistema. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --surface: #f3f6f5;
+  --text: #1b2321;
+  --muted: #4a5654;
+  --accent: #0f6b6b;
+  --accent-text: #ffffff;
+  --border: #d3dcd9;
+  --link: #0f6b6b;
+  --focus: #0f6b6b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121614;
+    --surface: #1b211f;
+    --text: #e8efec;
+    --muted: #a9b8b5;
+    --accent: #7fd6cc;
+    --accent-text: #0b1a18;
+    --border: #2e3836;
+    --link: #7fd6cc;
+    --focus: #7fd6cc;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+a {
+  color: var(--link);
+}
+
+a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Cabecera */
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.brand {
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.header-inner nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.header-inner nav a {
+  text-decoration: none;
+}
+
+.header-inner nav a:hover {
+  text-decoration: underline;
+}
+
+/* Portada */
+
+.hero {
+  padding-top: 48px;
+  padding-bottom: 32px;
+}
+
+.hero h1 {
+  margin: 0 0 12px;
+  font-size: clamp(2rem, 6vw, 2.75rem);
+}
+
+.lead {
+  margin: 0 0 24px;
+  max-width: 40em;
+  font-size: 1.15rem;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.1rem;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+.btn:hover {
+  text-decoration: underline;
+}
+
+.note {
+  margin: 16px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+section.wrap {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+section.wrap h2 {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+}
+
+/* Inicio rápido: tres pasos */
+
+.steps {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  position: relative;
+  padding: 16px 16px 16px 56px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.steps h3 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+
+.steps p {
+  margin: 0 0 8px;
+}
+
+/* Tarjetas */
+
+.cards {
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  display: block;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Pie */
+
+.site-footer {
+  margin-top: 32px;
+  padding: 24px 0;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+/* Anchos a partir de tableta y escritorio */
+
+@media (min-width: 640px) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .cards {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
