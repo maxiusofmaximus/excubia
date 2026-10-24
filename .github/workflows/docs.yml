@@ -123,7 +123,7 @@ jobs:
 
       - name: Portada, índice de API y redirección de /manual/
         run: |
-          cp docs/site/index.html docs/site/style.css docs/site/favicon.svg _site/
+          cp docs/site/index.html docs/site/style.css docs/site/favicon.svg docs/site/icon.svg _site/
           cp docs/site/api/index.html _site/api/index.html
           mkdir -p _site/manual
           cp docs/site/manual/index.html _site/manual/index.html
