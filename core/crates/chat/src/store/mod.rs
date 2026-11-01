@@ -55,6 +55,7 @@ mod journal;
 mod lookup;
 mod mail_card;
 mod mail_draft_card;
+mod mail_history;
 mod messages;
 mod notes;
 mod projects;
@@ -75,6 +76,7 @@ pub(crate) use lookup::{
 };
 pub use mail_card::NewMailCard;
 pub use mail_draft_card::MailDraftCard;
+pub use mail_history::SenderHistory;
 pub use runs::{validate_suggestions, ProgressOutcome};
 pub use status::{StatusApproval, StatusDelegation, StatusFacts};
 

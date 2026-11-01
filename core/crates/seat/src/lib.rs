@@ -21,6 +21,7 @@ mod profile;
 mod prompt;
 mod role_seed;
 mod role_seed_apply;
+mod role_seed_auto;
 mod role_seed_folders;
 mod role_seed_inbox;
 mod role_seed_moves;

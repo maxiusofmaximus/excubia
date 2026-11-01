@@ -2,6 +2,7 @@
 //! of them byte for byte is rewritten to `ROLE_SEED`; `OLD_ROLE_SEEDS` lists them.
 
 use crate::role_seed_apply::ROLE_SEED_MAIL_APPLY;
+use crate::role_seed_auto::ROLE_SEED_MAIL_AUTO;
 use crate::role_seed_folders::ROLE_SEED_MAIL_FOLDERS;
 use crate::role_seed_inbox::ROLE_SEED_MAIL_INBOX;
 use crate::role_seed_moves::ROLE_SEED_MAIL_MOVE;
@@ -287,7 +288,7 @@ por el sentido y pregunta solo si el error cambiaría la acción.
 /// The seeds this host shipped before the current one. A role file still holding
 /// one of them byte for byte is rewritten to `ROLE_SEED`; any other edit is the
 /// operator's and stays.
-pub(crate) const OLD_ROLE_SEEDS: [&str; 12] = [
+pub(crate) const OLD_ROLE_SEEDS: [&str; 13] = [
     ROLE_SEED_PREVIOUS,
     ROLE_SEED_CORE6B,
     ROLE_SEED_STATUS,
@@ -300,6 +301,7 @@ pub(crate) const OLD_ROLE_SEEDS: [&str; 12] = [
     ROLE_SEED_MAIL_FOLDERS,
     ROLE_SEED_MAIL_MOVE,
     ROLE_SEED_MAIL_APPLY,
+    ROLE_SEED_MAIL_AUTO,
 ];
 
 /// The seed shipped with `status.overview` (2026-10-28, before the notes).

@@ -182,6 +182,12 @@ Reglas de `mail.triage`: `limit` fuera de 1..=10 se rechaza; `sentitems` y
 ni enlaces, y ninguna entrada los trae nunca. Cada lectura que sale bien añade
 una línea de auditoría con el id del mensaje, nunca el asunto.
 
+Memoria del remitente: si el usuario ya decidió lotes de `mail.move` con correos
+del mismo dominio, la entrada trae `history: {deleted_by_owner, kept_by_owner}`
+(dejó pasar a eliminados / dejó fuera o denegó). Sale de las aprobaciones ya
+resueltas (`consumed`, `denied`); sin decisiones previas, el campo no existe.
+Es información, no un veredicto: el host no actúa por ella.
+
 Reglas:
 
 - `limit` fuera de 1..=20 se rechaza; no se recorta en silencio. `folder` solo

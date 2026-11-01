@@ -280,3 +280,34 @@ fn the_timeline_line_of_a_decided_batch_says_how_many_were_left_out() {
         .expect("the batch has its line");
     assert!(line.ends_with(" · dejaste fuera 2"), "{line}");
 }
+
+#[test]
+fn the_sender_history_counts_what_the_operator_let_go_and_what_he_kept() {
+    let team = team("organize-history");
+    let batch = listed_batch(&team, &["m1", "m2", "m3"]);
+    let digest = batch.action_digest.clone();
+    let approval = team
+        .store
+        .create_mail_organize_approval(batch)
+        .expect("the batch is filed");
+    team.store
+        .decide_approval_excluding(
+            &approval.id,
+            Decision::Approve,
+            &excluding(&["m3"]),
+            "client-1",
+            "device-1",
+        )
+        .expect("the operator approves without m3");
+    assert!(
+        team.store.mail_sender_history().unwrap().is_empty(),
+        "approved is not yet applied"
+    );
+    team.store
+        .consume_for_host(&approval.id, &digest)
+        .expect("the host applies it");
+
+    let history = team.store.mail_sender_history().expect("history");
+    let seen = history.get("tienda.example").expect("the sender's domain");
+    assert_eq!((seen.deleted, seen.kept), (2, 1));
+}

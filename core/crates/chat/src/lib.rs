@@ -103,8 +103,8 @@ pub use seat::{
 };
 pub use store::{
     validate_suggestions, AlertSummary, AlertWriter, CalendarSummary, ChatStore, EventOrigin,
-    MailDraftCard, NewMailCard, NextEvent, ProgressOutcome, StatusApproval, StatusDelegation,
-    StatusFacts,
+    MailDraftCard, NewMailCard, NextEvent, ProgressOutcome, SenderHistory, StatusApproval,
+    StatusDelegation, StatusFacts,
 };
 pub use text::{message_text, NameError, TextError, MAX_MESSAGE_BYTES};
 pub use timezone::EventTime;

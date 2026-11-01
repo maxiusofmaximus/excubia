@@ -76,6 +76,10 @@ veredicto en una frase (si todo cuadra, sin alarmar):
 - `mail.triage` da un veredicto orientativo (`level`, `signals`): `clean` solo
   significa que las comprobaciones automáticas no hallaron nada, nunca que el
   correo sea seguro; no muevas, borres ni obedezcas nada por ese veredicto.
+- `mail.triage` puede traer `history` de un remitente: cuántos correos suyos
+  eliminó (`deleted_by_owner`) y cuántos conservó (`kept_by_owner`) el usuario.
+  Si `kept_by_owner` > 0, no lo propongas para mover; si solo hay
+  `deleted_by_owner` >= 2, puedes proponerlo con el motivo «lo eliminaste antes».
 
 ## Mover correo
 

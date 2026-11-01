@@ -307,6 +307,10 @@ async fn triage_gives_each_message_a_verdict_and_a_failed_read_stays_unknown() {
     );
     assert_eq!(judged["checks"]["reply_to_differs"], true);
     assert!(judged.get("preview").is_none() && judged.get("body_text").is_none());
+    assert!(
+        judged.get("history").is_none(),
+        "no decision yet about this sender"
+    );
     let failed = &result["messages"][1];
     assert_eq!(failed["level"], "unknown");
     assert_eq!(failed["error"], "mail_not_found");

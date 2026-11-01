@@ -10,6 +10,9 @@ use hn_core_mail::{MailError, ReadRecord};
 use hn_core_seat::TriageQuery;
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::collections::HashMap;
+
+use hn_core_chat::SenderHistory;
 
 use crate::mail_read::NOTICE;
 use crate::mail_shadow::Batch;
@@ -41,10 +44,12 @@ impl MailTools {
             }
             reads.push(read);
         }
+        // shortcut: a failed read of the history leaves it out; the verdict does not need it.
+        let history = self.chat.mail_sender_history().unwrap_or_default();
         let messages: Vec<Entry> = items
             .iter()
             .zip(&reads)
-            .map(|(item, read)| Entry::of(item, read.as_ref()))
+            .map(|(item, read)| Entry::of(item, read.as_ref(), &history))
             .collect();
         let reply = json!({
             "ok": true,
@@ -75,14 +80,35 @@ struct Entry<'a> {
     received_at: &'a str,
     level: Level,
     signals: Vec<Signal>,
+    /// What the owner has decided before about this sender's domain, if anything.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    history: Option<Past>,
     #[serde(skip_serializing_if = "Option::is_none")]
     checks: Option<&'a Checks>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<&'static str>,
 }
 
+#[derive(Serialize)]
+struct Past {
+    deleted_by_owner: u32,
+    kept_by_owner: u32,
+}
+
 impl<'a> Entry<'a> {
-    fn of(item: &'a InboxItem, read: Result<&'a ReceivedMessage, &MailError>) -> Self {
+    fn of(
+        item: &'a InboxItem,
+        read: Result<&'a ReceivedMessage, &MailError>,
+        history: &HashMap<String, SenderHistory>,
+    ) -> Self {
+        let past = item
+            .from_address
+            .rsplit_once('@')
+            .and_then(|(_, domain)| history.get(&domain.to_ascii_lowercase()))
+            .map(|seen| Past {
+                deleted_by_owner: seen.deleted,
+                kept_by_owner: seen.kept,
+            });
         let mut entry = Entry {
             id: &item.id,
             from_name: &item.from_name,
@@ -91,6 +117,7 @@ impl<'a> Entry<'a> {
             received_at: &item.received_at,
             level: Level::Unknown,
             signals: Vec::new(),
+            history: past,
             checks: None,
             error: None,
         };
