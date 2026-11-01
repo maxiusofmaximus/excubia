@@ -1,0 +1,322 @@
+/* «Contactos» and «Notas»: a list beside a panel, the forms and the delete
+   confirmation. Colours come from the tokens in base.css, so both themes follow. */
+
+[hidden] {
+  display: none !important;
+}
+
+.view-agenda {
+  max-width: 1120px;
+}
+
+.agenda-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.agenda-list-pane {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.agenda-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agenda-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+}
+
+.agenda-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.agenda-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agenda-row {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.agenda-row:hover {
+  background: var(--raised);
+}
+
+.agenda-row[aria-current="true"] {
+  border-color: var(--accent);
+}
+
+.agenda-row-title {
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.agenda-row-meta,
+.agenda-row-excerpt {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.agenda-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.agenda-panel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.agenda-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.agenda-panel-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.agenda-panel-body {
+  display: grid;
+  gap: 12px;
+}
+
+.agenda-detail-line {
+  margin: 0;
+}
+
+.agenda-label {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.agenda-addresses {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+
+.agenda-notes,
+.agenda-body {
+  margin: 0;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.agenda-muted,
+.agenda-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.agenda-field {
+  display: grid;
+  gap: 5px;
+}
+
+.agenda-field input,
+.agenda-field select,
+.agenda-field textarea,
+.calendar-zone input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.agenda-field textarea {
+  resize: vertical;
+}
+
+.agenda-field [aria-invalid="true"] {
+  border-color: var(--blocked);
+}
+
+.agenda-error {
+  margin: 0;
+  color: var(--blocked);
+  font-size: 13px;
+}
+
+.agenda-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agenda-confirm {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--blocked);
+  border-radius: var(--radius-sm);
+}
+
+.agenda-confirm p {
+  margin: 0;
+}
+
+.btn.danger {
+  background: var(--blocked);
+  color: var(--on-attention);
+}
+
+/* «Calendario»: the day headers, the range bar, the zone form and the all-day check. */
+.agenda-day {
+  margin-top: 12px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.calendar-range,
+.calendar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-range .btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.calendar-nav .agenda-muted {
+  flex: 1;
+  text-align: center;
+}
+
+.calendar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-ics {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.calendar-ics p {
+  margin: 0;
+}
+
+.calendar-ics summary {
+  cursor: pointer;
+}
+
+.calendar-ics ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.calendar-zone {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.calendar-zone h3,
+.calendar-zone .agenda-label {
+  margin: 0;
+}
+
+.agenda-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.agenda-recurrence,
+.agenda-days {
+  display: grid;
+  gap: 10px;
+}
+
+.agenda-days {
+  grid-auto-flow: column;
+  justify-content: start;
+  gap: 14px;
+}
+
+@media (max-width: 720px) {
+  .agenda-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .agenda-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    overflow-y: auto;
+    border-radius: 0;
+  }
+}

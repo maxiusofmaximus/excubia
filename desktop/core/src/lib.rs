@@ -7,8 +7,10 @@
 pub mod chat;
 pub mod chat_feed;
 pub mod client;
+pub mod devices;
 pub mod error;
 pub mod identity;
+pub mod mail;
 pub mod notify;
 pub mod pair_link;
 pub mod signing;
@@ -16,6 +18,7 @@ pub mod sse;
 pub mod state;
 pub mod stream;
 pub mod transport;
+pub mod voice;
 
 pub use chat::{
     ChatBootstrap, ChatEvent, ChatFailure, Conversation, ConversationPatch, Message, Section,
@@ -34,3 +37,4 @@ pub use pair_link::{pair_through_link, LinkPairing, PairLink};
 pub use state::{AgentRow, AgentStatus, StateSnapshot, StateStore};
 pub use stream::{run_event_loop, ConnectionStatus, EventSink, StreamOptions};
 pub use transport::Transport;
+pub use voice::{VoiceFailure, VoiceTranscript};

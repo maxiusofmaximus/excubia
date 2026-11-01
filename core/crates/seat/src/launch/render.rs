@@ -12,16 +12,50 @@ use crate::hook_action::CLAUDE_HOOK_MATCHER;
 /// the hook always answers before Claude gives up on it.
 pub(super) const CLAUDE_HOOK_TIMEOUT_SECONDS: u64 = hn_core_chat::DEFAULT_TTL_SECONDS as u64 + 30;
 
+/// The MCP server name the seat declares to every CLI.
+pub(super) const MCP_SERVER: &str = "hn-core";
+
+/// Claude names an MCP tool `mcp__<server>__<tool>` with the dots of the tool
+/// name turned into `_`.
+fn mcp_rule(tool: &str) -> String {
+    format!("mcp__{MCP_SERVER}__{}", tool.replace('.', "_"))
+}
+
 /// The tools the CLI may run are gated by the blocking hook: the hook opens an
 /// approval and exits `2` unless the operator allows it. Claude runs hooks
 /// before its permission check, so the hook is the gate, and the permission
 /// list must allow the same tools or the approved call is still refused. The
 /// hook timeout must outlast the approval TTL (120 s by default), or Claude
 /// would treat a timed-out hook as non-blocking and run the command.
+///
+/// Print mode has no prompt to answer: an MCP tool missing from the list is
+/// refused, so the turn ends without `chat.reply` (CORE10 diagnosis).
 pub fn claude_settings(hook_command: &Path) -> Result<Vec<u8>, LaunchError> {
+    let mut allow: Vec<String> = [
+        "Bash",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "NotebookEdit",
+        "WebFetch",
+    ]
+    .map(String::from)
+    .to_vec();
+    // Every tool the host serves to this seat is meant to be called: the host
+    // is the gate (scope, approval, `mail.*` never sends), so print mode must
+    // not refuse them. Deriving the rules from the served list keeps the two in
+    // step when a tool is added.
+    if let Some(tools) = crate::tools::definitions()["tools"].as_array() {
+        allow.extend(
+            tools
+                .iter()
+                .filter_map(|tool| tool["name"].as_str())
+                .map(mcp_rule),
+        );
+    }
     serde_json::to_vec_pretty(&json!({
         "permissions": {
-            "allow": ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit", "WebFetch"],
+            "allow": allow,
             "deny": ["WebSearch"]
         },
         "hooks": {
@@ -41,7 +75,7 @@ pub fn claude_settings(hook_command: &Path) -> Result<Vec<u8>, LaunchError> {
 pub(super) fn claude_mcp(command: &str, tool_url: &str) -> Result<Vec<u8>, LaunchError> {
     serde_json::to_vec_pretty(&json!({
         "mcpServers": {
-            "hn-core": {
+            (MCP_SERVER): {
                 "type": "stdio",
                 "command": command,
                 "args": [],

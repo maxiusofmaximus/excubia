@@ -89,7 +89,7 @@ fn is_next_candidate(error: &CoreError) -> bool {
 fn invalid(error: PinError) -> CoreError {
     CoreError::LinkInvalid(match error {
         PinError::UnsupportedLinkVersion(version) => {
-            format!("la versión {version} no es compatible; actualiza Herdr Notify")
+            format!("la versión {version} no es compatible; actualiza Excubia")
         }
         PinError::MalformedFingerprint => "la huella del host no es válida".to_string(),
         _ => "faltan datos o el formato no es válido".to_string(),

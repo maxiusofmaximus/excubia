@@ -145,7 +145,7 @@ fn a_refused_turn_leaves_no_message_and_its_client_id_can_be_reused() {
     let (store, _dir) = store("withdraw");
     let conversation_id = conversation(&store);
     let accepted = store
-        .append_user_message(&conversation_id, "client-7", "hola")
+        .append_user_message(&conversation_id, "client-7", "hola", None)
         .expect("message");
 
     store.withdraw_turn(&accepted.message.id).expect("withdraw");
@@ -159,7 +159,7 @@ fn a_refused_turn_leaves_no_message_and_its_client_id_can_be_reused() {
         .all(|entry| entry.message_id.as_deref() != Some(accepted.message.id.as_str())));
 
     let again = store
-        .append_user_message(&conversation_id, "client-7", "hola")
+        .append_user_message(&conversation_id, "client-7", "hola", None)
         .expect("the same text is accepted again");
     assert!(!again.duplicate, "the withdrawn copy is not a duplicate");
 }

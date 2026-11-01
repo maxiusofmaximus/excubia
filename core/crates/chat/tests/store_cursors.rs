@@ -36,7 +36,7 @@ fn conversation(store: &ChatStore, title: &str) -> String {
 /// timeline while the run is still active.
 fn seed_agent_messages(store: &ChatStore, id: &str, texts: &[&str]) {
     let accepted = store
-        .append_user_message(id, "seed-messages", "inicio")
+        .append_user_message(id, "seed-messages", "inicio", None)
         .expect("seed message");
     for text in texts {
         store
@@ -63,7 +63,7 @@ fn the_event_journal_replays_after_an_id() {
     let (store, _path, _dir) = store("events");
     let id = conversation(&store, "Chat");
     store
-        .append_user_message(&id, "client-1", "hola")
+        .append_user_message(&id, "client-1", "hola", None)
         .expect("message");
     let all = store.events_after(0, 10).expect("all");
     assert_eq!(all.len(), 2);
@@ -113,7 +113,7 @@ fn archived_conversations_reject_writes() {
         )
         .expect("archive");
     assert!(matches!(
-        store.append_user_message(&id, "client-1", "hola"),
+        store.append_user_message(&id, "client-1", "hola", None),
         Err(ChatError::ConversationArchived)
     ));
 }
@@ -130,6 +130,8 @@ fn cursor_pagination_does_not_repeat_rows() {
             section_id: None,
             pinned: false,
             archived: false,
+            attention: false,
+            working: false,
             cursor: None,
             limit: 2,
         })
@@ -142,6 +144,8 @@ fn cursor_pagination_does_not_repeat_rows() {
             section_id: None,
             pinned: false,
             archived: false,
+            attention: false,
+            working: false,
             cursor: Some(cursor),
             limit: 2,
         })
@@ -158,7 +162,7 @@ fn finishing_a_turn_records_its_end() {
     let (store, _path, _dir) = store("runs");
     let id = conversation(&store, "Chat");
     let accepted = store
-        .append_user_message(&id, "client-1", "hola")
+        .append_user_message(&id, "client-1", "hola", None)
         .expect("message");
     assert!(store.start_run(&accepted.turn.id).expect("start"));
     store.fail_run(&accepted.turn.id, "test").expect("finish");
@@ -193,4 +197,31 @@ fn context_keeps_only_the_last_twenty_four_thousand_chars() {
     assert_eq!(context.messages.len(), 2);
     assert_eq!(context.messages[0].seq, 4);
     assert!(context.truncated);
+}
+
+#[test]
+fn context_names_the_message_each_reply_answers() {
+    let (store, _path, _dir) = store("context-replies");
+    let id = conversation(&store, "Chat");
+    seed_agent_messages(&store, &id, &["¿qué proyecto?"]);
+    let cited = store.context(&id, 20, 24_000).expect("context").messages[0]
+        .id
+        .clone();
+    let reply = store
+        .append_user_message(
+            &id,
+            "reply-context",
+            "Demo",
+            Some(("message", cited.as_str())),
+        )
+        .expect("reply");
+
+    let context = store.context(&id, 20, 24_000).expect("context");
+    assert_eq!(context.replies.get(&reply.message.id), Some(&cited));
+    assert_eq!(context.replies.len(), 1);
+
+    // A window that leaves the cited message out still names it.
+    let newest = store.context(&id, 1, 24_000).expect("context");
+    assert_eq!(newest.messages.len(), 1);
+    assert_eq!(newest.replies.get(&reply.message.id), Some(&cited));
 }

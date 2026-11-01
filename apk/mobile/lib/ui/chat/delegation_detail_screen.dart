@@ -186,7 +186,7 @@ class _DelegationDetailScreenState extends State<DelegationDetailScreen> {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(48, 48),
                       backgroundColor: c.statusBlocked,
-                      foregroundColor: c.onAccent,
+                      foregroundColor: c.onAttention,
                     ),
                     icon: _cancelling
                         ? const SizedBox(
@@ -324,7 +324,9 @@ class _ChildRow extends StatelessWidget {
           ),
           Text(
             delegationStatusLabel(child.state),
-            style: context.text.small.copyWith(color: color),
+            style: context.text.small.copyWith(
+              color: delegationStatusTextColor(context, child.state),
+            ),
           ),
         ],
       ),

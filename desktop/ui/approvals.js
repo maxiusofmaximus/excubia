@@ -7,9 +7,12 @@ import { errorMessage } from "./format.js";
 import {
   CHECKING_TEXT,
   countdownText,
+  excludeFor,
+  isMailMove,
   localFor,
   patchLocal,
   remainingSeconds,
+  sameIds,
   setDeviceId,
 } from "./approval-model.js";
 import { cardEntries, renderApprovalCard } from "./approval-card.js";
@@ -47,13 +50,22 @@ function readHostAgain() {
   refreshActive();
 }
 
+// Only an approve of a mail batch carries the mails the operator left out.
+function excludeOf(card, decision, unchecked) {
+  const held = cardEntries.get(card);
+  if (!held || decision !== "approve" || !isMailMove(held.entry)) return undefined;
+  return excludeFor(held.entry, unchecked);
+}
+
 async function decide(id, decision, card) {
   const mine = localFor(id);
   if (mine.busy || mine.decided) return;
-  // A retry of the same decision reuses its id; a different decision gets a new one.
-  const clientId = mine.decision === decision && mine.clientId ? mine.clientId : newClientId();
+  const exclude = excludeOf(card, decision, mine.unchecked);
+  // A retry reuses its id only for the same decision with the same mails left out.
+  const sameAsk = mine.decision === decision && sameIds(mine.exclude, exclude);
+  const clientId = sameAsk && mine.clientId ? mine.clientId : newClientId();
   let current = redraw(card);
-  patchLocal(id, { busy: true, clientId, decision, forbidden: false });
+  patchLocal(id, { busy: true, clientId, decision, exclude, forbidden: false });
   current = redraw(current);
 
   try {
@@ -61,6 +73,7 @@ async function decide(id, decision, card) {
       approvalId: id,
       decision,
       clientId,
+      exclude,
     });
     // Only the host's own status counts as decided; the time keeps the card on the strip a while.
     patchLocal(id, { busy: false, decided: (record && record.status) || "", settledAt: Date.now() });
@@ -105,9 +118,28 @@ function askHostOnce(card) {
   readHostAgain();
 }
 
+// One checkbox says whether its mail stays in the batch. The card is drawn again from
+// that, and focus goes back to the same checkbox so a keyboard user keeps their place.
+function toggleMail(box) {
+  const card = box.closest(".approval-card");
+  const id = card.dataset.approval;
+  const mailId = box.dataset.moveId;
+  const unchecked = new Set(localFor(id).unchecked);
+  if (box.checked) unchecked.delete(mailId);
+  else unchecked.add(mailId);
+  patchLocal(id, { unchecked });
+  const next = redraw(card);
+  next.querySelector(`[data-move-id="${CSS.escape(mailId)}"]`)?.focus();
+}
+
 export function installApprovalHandlers() {
   // The strip sits beside the thread, so both share one listener.
   $("chat-main").addEventListener("click", (event) => {
+    const box = event.target.closest("input[data-move-id]");
+    if (box) {
+      toggleMail(box);
+      return;
+    }
     const button = event.target.closest("[data-approval-action]");
     if (!button || button.disabled) return;
     const decision = button.dataset.approvalAction === "approve" ? "approve" : "deny";

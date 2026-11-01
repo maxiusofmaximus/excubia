@@ -8,7 +8,7 @@ void main() {
     ('127.0.0.1:18878', 'http://127.0.0.1:18878'),
     ('localhost:8787', 'http://localhost:8787'),
     ('100.64.0.1', 'http://100.64.0.1'),
-    ('100.64.0.9:8787', 'http://100.64.0.9:8787'),
+    ('100.64.0.2:8787', 'http://100.64.0.2:8787'),
     ('100.127.255.255:8787', 'http://100.127.255.255:8787'),
     ('[::1]:8787', 'http://[::1]:8787'),
     // Private addresses have no certificate to check, so they are https too.
@@ -26,7 +26,7 @@ void main() {
     ('pc.tailnet.ts.net:8788', 'https://pc.tailnet.ts.net:8788'),
     ('pc.example.com', 'https://pc.example.com'),
     // Surrounding spaces and trailing slashes are dropped first.
-    ('  100.64.0.9:8787/  ', 'http://100.64.0.9:8787'),
+    ('  100.64.0.2:8787/  ', 'http://100.64.0.2:8787'),
     ('pc.tailnet.ts.net:8788//', 'https://pc.tailnet.ts.net:8788'),
     // A scheme the user typed is kept as written.
     ('http://pc.example.com', 'http://pc.example.com'),
@@ -49,7 +49,7 @@ void main() {
     ('http://172.32.0.1', false, false),
     ('https://192.168.1.20:8788', false, false),
     ('http://192.168.1.20:8788', true, false),
-    ('http://100.64.0.9:8787', false, false),
+    ('http://100.64.0.2:8787', false, false),
     ('http://127.0.0.1:18878', false, false),
     ('http://pc.example.com', false, false),
   ];
@@ -71,7 +71,7 @@ void main() {
           allowLoopback: debug,
         );
         if (refused) {
-          expect(problem, 'Usa la dirección de la tailnet (100.x) o https');
+          expect(problem, 'Usa https o la dirección de una VPN privada (100.x)');
         } else {
           expect(problem, isNull);
         }

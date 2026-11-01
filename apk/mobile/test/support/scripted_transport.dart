@@ -2,9 +2,18 @@ import 'dart:convert';
 
 import 'package:herdr_notify/core/api/chat_transport.dart';
 
-/// Answers by `METHOD path` (the query is ignored) and can fail the next calls
+/// Answers by `METHOD path` (the query is ignored), or by the whole
+/// `METHOD target` when a route names its query, and can fail the next calls
 /// of one route, so a test refuses a decision and then reads its state back.
 class ScriptedTransport implements ChatTransport {
+  @override
+  Future<String> postBytes(String target, List<int> body, String contentType) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<int>> callBytes(String method, String target) =>
+      throw UnimplementedError();
+
   ScriptedTransport(this.routes);
 
   final Map<String, String> routes;
@@ -31,7 +40,7 @@ class ScriptedTransport implements ChatTransport {
     }
     final queued = _errors[key];
     if (queued != null && queued.isNotEmpty) throw queued.removeAt(0);
-    final response = routes[key] ?? routes[path];
+    final response = routes['$method $target'] ?? routes[key] ?? routes[path];
     if (response == null) throw StateError('no canned response for $key');
     return response;
   }

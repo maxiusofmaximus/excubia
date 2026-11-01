@@ -8,7 +8,8 @@ use std::sync::Arc;
 use std::thread;
 
 use crate::api::pinned::{
-    pinned_request, HeaderField, PinnedEndpoint, PinnedFailureKind, PinnedReply, PinnedResponse,
+    pinned_request, pinned_request_bytes, HeaderField, PinnedBytesReply, PinnedBytesResponse,
+    PinnedEndpoint, PinnedFailureKind, PinnedReply, PinnedResponse,
 };
 use hn_core_pin::{server_config, unix_now, Identity, DEFAULT_VALIDITY_SECONDS};
 use rustls::crypto::ring::default_provider;
@@ -16,12 +17,15 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::version::TLS12;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 
+use super::transport::MAX_BODY_BYTES;
+
 const DAY: i64 = 24 * 60 * 60;
 const OK_RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}";
 
 /// How the loopback host answers the one connection it accepts.
 enum Host {
     Tls13(Arc<ServerConfig>),
+    Tls13Reply(Arc<ServerConfig>, Vec<u8>),
     Tls12Only(Identity),
     Plain,
 }
@@ -38,20 +42,23 @@ fn serve(host: Host) -> SocketAddr {
             Host::Plain => {
                 let _ = tcp.write_all(OK_RESPONSE);
             }
-            Host::Tls13(config) => answer(tcp, config),
-            Host::Tls12Only(identity) => answer(tcp, Arc::new(tls12_config(&identity))),
+            Host::Tls13(config) => answer(tcp, config, OK_RESPONSE),
+            Host::Tls13Reply(config, reply) => answer(tcp, config, &reply),
+            Host::Tls12Only(identity) => {
+                answer(tcp, Arc::new(tls12_config(&identity)), OK_RESPONSE)
+            }
         }
     });
     address
 }
 
-fn answer(tcp: TcpStream, config: Arc<ServerConfig>) {
+fn answer(tcp: TcpStream, config: Arc<ServerConfig>, reply: &[u8]) {
     let Ok(connection) = ServerConnection::new(config) else {
         return;
     };
     let mut tls = StreamOwned::new(connection, tcp);
     read_head(&mut tls);
-    let _ = tls.write_all(OK_RESPONSE);
+    let _ = tls.write_all(reply);
     tls.conn.send_close_notify();
     let _ = tls.flush();
 }
@@ -103,6 +110,32 @@ fn get_health(endpoint: PinnedEndpoint) -> PinnedReply {
         headers,
         Vec::new(),
     )
+}
+
+/// The whole response a host sends for one WebP body.
+fn webp_reply(body: &[u8]) -> Vec<u8> {
+    let head = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: image/webp\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        body.len()
+    );
+    [head.as_bytes(), body].concat()
+}
+
+fn get_bytes(endpoint: PinnedEndpoint, target: &str) -> PinnedBytesReply {
+    pinned_request_bytes(
+        endpoint,
+        "GET".to_string(),
+        target.to_string(),
+        Vec::new(),
+        Vec::new(),
+    )
+}
+
+fn answered_bytes(reply: PinnedBytesReply) -> PinnedBytesResponse {
+    match reply.response {
+        Some(response) => response,
+        None => panic!("expected an answer, got {:?}", reply.failure),
+    }
 }
 
 fn answered(reply: PinnedReply) -> PinnedResponse {
@@ -230,6 +263,40 @@ fn a_pin_failure_on_a_candidate_is_final_and_not_retried_elsewhere() {
         None,
     ));
     assert_eq!(failure_kind(&reply), PinnedFailureKind::PinMismatch);
+}
+
+#[test]
+fn a_binary_body_arrives_byte_for_byte() {
+    let host = identity();
+    // Not UTF-8: a text decode would replace the 0xFF and 0x80 bytes.
+    let mut image = b"RIFF\x10\x00\x00\x00WEBPVP8 ".to_vec();
+    image.extend_from_slice(&[0xFF, 0x80, 0x00, 0xC3]);
+    let config = Arc::new(server_config(&host).expect("server config"));
+    let address = serve(Host::Tls13Reply(config, webp_reply(&image)));
+    let reply = get_bytes(
+        endpoint(vec![address.to_string()], pin_of(&host), None),
+        "/v1/chat/conversations/c1/attachments/a1/content",
+    );
+    let response = answered_bytes(reply);
+    assert_eq!((response.status, response.body), (200, image));
+}
+
+#[test]
+fn a_binary_body_over_the_cap_is_refused_with_the_cap_error() {
+    let host = identity();
+    let oversized = vec![0u8; MAX_BODY_BYTES as usize + 1];
+    let config = Arc::new(server_config(&host).expect("server config"));
+    let address = serve(Host::Tls13Reply(config, webp_reply(&oversized)));
+    let reply = get_bytes(
+        endpoint(vec![address.to_string()], pin_of(&host), None),
+        "/v1/chat/conversations/c1/attachments/a1/content",
+    );
+    assert!(reply.response.is_none(), "the oversized body must not pass");
+    let failure = reply.failure.expect("a failure");
+    assert_eq!(
+        (failure.kind, failure.detail.as_str()),
+        (PinnedFailureKind::Protocol, "the body is over the limit")
+    );
 }
 
 #[test]

@@ -1,5 +1,7 @@
 use super::error::{approval_grant_command, explain_approval_failure, ApprovalFailureKind};
-use super::model::{parse_approval_inbox, parse_approval_record, parse_approval_settings};
+use super::model::{
+    parse_approval_inbox, parse_approval_record, parse_approval_settings, MailAttachDetails,
+};
 use super::plan::{plan_approval_decision, plan_approval_inbox, plan_approval_settings_write};
 use super::reducer::new_approval_reducer;
 use crate::api::chat::model::parse_chat_event;
@@ -58,6 +60,67 @@ fn state_read_is_a_flat_record_without_summary() {
     );
 }
 
+const MAIL_SEND_ROW: &str = r#"{"ok":true,"approvals":[{"id":"apr_m1","status":"pending",
+  "kind":"tool","tool":"mail.send","summary":"Enviar correo a bea@ejemplo.org",
+  "expires_at":"2026-10-25T10:12:00.000Z",
+  "details":{"account":"trabajo","from":"ana@ejemplo.com","to":["bea@ejemplo.org"],
+    "cc":["carlos@ejemplo.org"],"subject":"Presupuesto","body_preview":"Hola Bea…",
+    "attachments":[{"name":"presupuesto.pdf","size":12034,"sha256":"ab12"}],
+    "device_code":"dc_secret","access_token":"tok_secret"}}]}"#;
+
+#[test]
+fn a_mail_send_row_carries_its_details() {
+    let rows = parse_approval_inbox(MAIL_SEND_ROW.to_string()).expect("inbox");
+    let send = rows[0].mail_send.clone().expect("send details");
+    assert_eq!(send.account, "trabajo");
+    assert_eq!(send.from.as_deref(), Some("ana@ejemplo.com"));
+    assert_eq!(send.to, vec!["bea@ejemplo.org".to_string()]);
+    assert_eq!(send.cc, vec!["carlos@ejemplo.org".to_string()]);
+    assert_eq!(send.subject, "Presupuesto");
+    assert_eq!(send.body_preview, "Hola Bea…");
+    assert_eq!(send.attachments.len(), 1);
+    assert_eq!(send.attachments[0].name, "presupuesto.pdf");
+    assert_eq!(send.attachments[0].size, 12034);
+    assert_eq!(send.attachments[0].sha256, "ab12");
+    assert!(rows[0].mail_attach.is_none());
+}
+
+#[test]
+fn a_mail_send_details_never_hold_a_token_or_a_device_code() {
+    let rows = parse_approval_inbox(MAIL_SEND_ROW.to_string()).expect("inbox");
+    let debug = format!("{:?}", rows[0]);
+    assert!(!debug.contains("dc_secret"));
+    assert!(!debug.contains("tok_secret"));
+}
+
+#[test]
+fn an_attach_path_row_carries_path_size_and_digest() {
+    let json = r#"{"ok":true,"approvals":[{"id":"apr_a1","status":"pending",
+      "kind":"tool","tool":"mail.attach_path","summary":"Adjuntar un fichero",
+      "details":{"path":"D:/fuera/contrato.pdf","size":512,"sha256":"cd34"}}]}"#;
+    let rows = parse_approval_inbox(json.to_string()).expect("inbox");
+    assert!(rows[0].mail_send.is_none());
+    assert_eq!(
+        rows[0].mail_attach,
+        Some(MailAttachDetails {
+            path: "D:/fuera/contrato.pdf".to_string(),
+            size: 512,
+            sha256: "cd34".to_string(),
+        })
+    );
+}
+
+#[test]
+fn an_approval_without_details_or_with_unknown_details_has_none() {
+    let json = r#"{"ok":true,"approvals":[
+      {"id":"apr_1","status":"pending","summary":"Ejecutar comando"},
+      {"id":"apr_2","status":"pending","summary":"Otra","details":{"cosa_nueva":1}}]}"#;
+    let rows = parse_approval_inbox(json.to_string()).expect("inbox");
+    assert_eq!(rows.len(), 2);
+    assert!(rows[0].mail_send.is_none() && rows[0].mail_attach.is_none());
+    assert!(rows[1].mail_send.is_none() && rows[1].mail_attach.is_none());
+}
+
 #[test]
 fn settings_keep_only_valid_modes() {
     let json = r#"{"ok":true,"settings":{"global":"always_user",
@@ -98,6 +161,38 @@ fn reducer_moves_forward_and_never_back() {
     // A frame without a summary keeps the one already stored.
     assert_eq!(views[0].summary, "Ejecutar comando: cargo test");
     assert_eq!(views[0].level.as_deref(), Some("user"));
+}
+
+#[test]
+fn a_frame_that_lands_first_keeps_the_mail_details_of_the_inbox() {
+    // Regression: «Falta el detalle del comando» on a mail.send card. The frame
+    // arrives before the inbox read, which has no revision and so looks older.
+    let mut reducer = new_approval_reducer();
+    let pending = frame(
+        r#"{"event":"chat.approval","revision":10,"conversation_id":null,"approval_id":"apr_m1",
+           "level":"user","status":"pending","summary":"Enviar correo a bea@ejemplo.org"}"#,
+    );
+    assert!(reducer.accept_event(pending));
+    let row = parse_approval_inbox(MAIL_SEND_ROW.to_string()).expect("inbox");
+    assert!(reducer.accept_record(row[0].clone()));
+    let view = reducer.user_inbox_unassigned();
+    assert_eq!(view.len(), 1);
+    let send = view[0].mail_send.clone().expect("send details kept");
+    assert_eq!(send.subject, "Presupuesto");
+    assert_eq!(send.account, "trabajo");
+    // A newer frame of the same pending state keeps those facts too.
+    let newer = frame(
+        r#"{"event":"chat.approval","revision":11,"conversation_id":null,"approval_id":"apr_m1",
+           "level":"user","status":"pending"}"#,
+    );
+    reducer.accept_event(newer);
+    assert_eq!(
+        reducer.user_inbox_unassigned()[0]
+            .mail_send
+            .as_ref()
+            .map(|send| send.subject.as_str()),
+        Some("Presupuesto")
+    );
 }
 
 #[test]
@@ -183,7 +278,7 @@ fn plans_build_routes_bodies_and_refuse_bad_input() {
         "/v1/chat/approvals?status=expired&conversation_id=cnv_1"
     );
 
-    let decision = plan_approval_decision("apr_1".to_string(), true, "c-1".to_string());
+    let decision = plan_approval_decision("apr_1".to_string(), true, "c-1".to_string(), vec![]);
     let call = decision.request.expect("decision request");
     assert_eq!(call.method, "POST");
     assert_eq!(call.target, "/v1/chat/approvals/apr_1/decision");
@@ -192,13 +287,13 @@ fn plans_build_routes_bodies_and_refuse_bad_input() {
     assert_eq!(body["scope"], "once");
     assert_eq!(body["client_id"], "c-1");
 
-    let deny = plan_approval_decision("apr_1".to_string(), false, "c-2".to_string());
+    let deny = plan_approval_decision("apr_1".to_string(), false, "c-2".to_string(), vec![]);
     let body: serde_json::Value =
         serde_json::from_slice(&deny.request.expect("deny").body).expect("json");
     assert_eq!(body["decision"], "deny");
 
     assert!(
-        plan_approval_decision("../x".to_string(), true, "c-1".to_string())
+        plan_approval_decision("../x".to_string(), true, "c-1".to_string(), vec![])
             .problem
             .is_some()
     );

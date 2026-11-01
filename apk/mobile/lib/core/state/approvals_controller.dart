@@ -8,9 +8,11 @@ import 'package:herdr_notify/src/rust/api/approvals/reducer.dart';
 import 'package:herdr_notify/src/rust/api/chat/model.dart';
 import 'package:herdr_notify/src/rust/api/chat/plan.dart' show newChatClientId;
 
+import '../api/approval_find.dart';
 import '../api/chat_transport.dart';
 import '../api/gateway_client.dart';
 import '../api/plan_runner.dart';
+import 'approval_move.dart';
 
 /// What the chat shows of approvals: one view per approval id, the mode
 /// settings and the decisions in flight. The host stays the only writer: a
@@ -23,7 +25,10 @@ class ApprovalsController extends ChangeNotifier {
   final ApprovalReducer _reducer = newApprovalReducer();
   // One client_id per approval while a retry may still come: the host answers
   // the same id with the same answer, so a retry never decides twice.
-  final Map<String, String> _clientIds = <String, String>{};
+  final Map<String, _Attempt> _attempts = <String, _Attempt>{};
+  // The mails a user unchecked in a mail.move batch. Kept here, not in the card,
+  // so a refresh or a rotation does not check them again.
+  final Map<String, Set<String>> _unchecked = <String, Set<String>>{};
   final Map<String, ApprovalFailure> _failures = <String, ApprovalFailure>{};
   final Set<String> _busy = <String>{};
   ApprovalSettings? _settings;
@@ -89,14 +94,41 @@ class ApprovalsController extends ChangeNotifier {
     if (changed) _notify();
   }
 
+  /// The mails checked off in one `mail.move` batch are the ones the operator
+  /// keeps: this is what the card shows and what a decision leaves out.
+  Set<String> uncheckedOf(String approvalId) =>
+      _unchecked[approvalId] ?? const <String>{};
+
+  /// Checks or unchecks one mail of a batch. Only an approval sends the result.
+  void setMailChecked(
+    String approvalId,
+    String messageId, {
+    required bool checked,
+  }) {
+    final unchecked = {...uncheckedOf(approvalId)};
+    if (checked) {
+      unchecked.remove(messageId);
+    } else {
+      unchecked.add(messageId);
+    }
+    _unchecked[approvalId] = unchecked;
+    _notify();
+  }
+
   /// Answers one approval once. A retry after a network failure reuses the
   /// same `client_id`.
   Future<void> decide(String approvalId, {required bool approve}) async {
     if (_busy.contains(approvalId)) return;
+    final exclude = _exclusionsFor(approvalId, approve: approve);
+    if (exclude == null) return;
     _busy.add(approvalId);
     _failures.remove(approvalId);
     _notify();
-    final clientId = _clientIds.putIfAbsent(approvalId, newChatClientId);
+    final clientId = _clientIdFor(
+      approvalId,
+      approve: approve,
+      exclude: exclude,
+    );
     try {
       final body = await runPlan(
         _transport,
@@ -104,17 +136,18 @@ class ApprovalsController extends ChangeNotifier {
           approvalId: approvalId,
           approve: approve,
           clientId: clientId,
+          exclude: exclude,
         ),
       );
       final record = parseApprovalRecord(json: body);
       if (record != null) _reducer.acceptRecord(record: record);
-      _clientIds.remove(approvalId);
+      _attempts.remove(approvalId);
     } catch (error) {
       final failure = _explain(error);
       _failures[approvalId] = failure;
       // A refusal does not change with a retry, so its client_id is spent.
       if (failure.kind != ApprovalFailureKind.other) {
-        _clientIds.remove(approvalId);
+        _attempts.remove(approvalId);
       }
       if (failure.kind == ApprovalFailureKind.alreadyDecided ||
           failure.kind == ApprovalFailureKind.expired) {
@@ -138,6 +171,7 @@ class ApprovalsController extends ChangeNotifier {
           approvalId: _grantProbeId,
           approve: false,
           clientId: newChatClientId(),
+          exclude: const [],
         ),
       );
       return false;
@@ -154,14 +188,10 @@ class ApprovalsController extends ChangeNotifier {
     return true;
   }
 
-  /// The state and deadline of one approval, never its payload.
+  /// The state and deadline of one approval, from the inbox (see [findApproval]).
   Future<void> readApproval(String approvalId) async {
     try {
-      final body = await runPlan(
-        _transport,
-        planApprovalRead(approvalId: approvalId),
-      );
-      final record = parseApprovalRecord(json: body);
+      final record = await findApproval(_transport, approvalId);
       if (record != null) _reducer.acceptRecord(record: record);
     } catch (_) {
       // The card keeps its last state; its deadline still closes it.
@@ -176,20 +206,24 @@ class ApprovalsController extends ChangeNotifier {
     required String status,
     String? conversationId,
   }) async {
-    try {
-      final body = await runPlan(
-        _transport,
-        planApprovalInbox(conversationId: conversationId, status: status),
-      );
-      final rows = parseApprovalInbox(json: body) ?? const <ChatApproval>[];
-      for (final row in rows) {
-        if (row.approvalId != approvalId) continue;
-        _reducer.acceptRecord(record: row);
-        _notify();
-        return row;
+    // An approved batch is consumed once the host applies it, so the card's
+    // own status is only the first place to look.
+    for (final asked in {status, 'consumed', 'approved'}) {
+      try {
+        final body = await runPlan(
+          _transport,
+          planApprovalInbox(conversationId: conversationId, status: asked),
+        );
+        final rows = parseApprovalInbox(json: body) ?? const <ChatApproval>[];
+        for (final row in rows) {
+          if (row.approvalId != approvalId) continue;
+          _reducer.acceptRecord(record: row);
+          _notify();
+          return row;
+        }
+      } catch (_) {
+        // The detail shows its own message when there is no record.
       }
-    } catch (_) {
-      // The detail shows its own message when there is no record.
     }
     return null;
   }
@@ -228,6 +262,38 @@ class ApprovalsController extends ChangeNotifier {
     }
   }
 
+  /// The exclusions a decision sends: only an approval of `mail.move` has them.
+  /// Null when every mail of the batch is unchecked, which the card never sends.
+  List<String>? _exclusionsFor(String approvalId, {required bool approve}) {
+    final view = viewOf(approvalId);
+    if (!approve || view == null || !isMailMove(view)) return const [];
+    final unchecked = uncheckedOf(approvalId);
+    if (!canApproveMove(view, unchecked)) return null;
+    return excludeFor(view, unchecked);
+  }
+
+  /// A retry reuses its `client_id` only for the same decision and the same
+  /// exclusions; any other answer is a new decision with a new id.
+  String _clientIdFor(
+    String approvalId, {
+    required bool approve,
+    required List<String> exclude,
+  }) {
+    final previous = _attempts[approvalId];
+    if (previous != null &&
+        previous.approve == approve &&
+        listEquals(previous.exclude, exclude)) {
+      return previous.clientId;
+    }
+    final attempt = _Attempt(
+      newChatClientId(),
+      approve: approve,
+      exclude: exclude,
+    );
+    _attempts[approvalId] = attempt;
+    return attempt.clientId;
+  }
+
   ApprovalFailure _explain(Object error) {
     if (error is GatewayError) {
       return explainApprovalFailure(
@@ -262,4 +328,13 @@ class ApprovalsController extends ChangeNotifier {
     _disposed = true;
     super.dispose();
   }
+}
+
+/// One decision that a retry may repeat, with the exact answer it carries.
+class _Attempt {
+  const _Attempt(this.clientId, {required this.approve, required this.exclude});
+
+  final String clientId;
+  final bool approve;
+  final List<String> exclude;
 }

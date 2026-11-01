@@ -2,7 +2,12 @@
 //! the fields; internal columns (company id, preview source) stay out of these
 //! types unless a route needs them.
 
+use std::collections::HashMap;
+use std::path::PathBuf;
+
 use serde::Serialize;
+
+use crate::model_attachment::LinkedFile;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Company {
@@ -73,8 +78,18 @@ pub struct Conversation {
     pub last_seq: i64,
     pub last_read_seq: i64,
     pub unread: u64,
+    /// Turns of this conversation that are `queued` or `running` (omitted when 0).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub active_runs: u32,
+    /// The progress line of the latest open turn (omitted when none).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+fn is_zero(value: &u32) -> bool {
+    *value == 0
 }
 
 impl Conversation {
@@ -96,6 +111,8 @@ impl Conversation {
             last_seq: 0,
             last_read_seq: 0,
             unread: 0,
+            active_runs: 0,
+            progress: None,
             created_at: created_at.clone(),
             updated_at: created_at,
         }
@@ -142,8 +159,22 @@ pub struct ConversationFilter {
     pub section_id: Option<String>,
     pub pinned: bool,
     pub archived: bool,
+    /// Only conversations that wait for the operator (an unread reply or an approval).
+    pub attention: bool,
+    /// Only conversations with a turn queued or running.
+    pub working: bool,
     pub cursor: Option<String>,
     pub limit: usize,
+}
+
+/// The chip numbers of the list: `all` and `attention`/`working` skip archived
+/// conversations, like the default listing does.
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct ConversationCounts {
+    pub all: u64,
+    pub attention: u64,
+    pub working: u64,
+    pub archived: u64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -218,7 +249,10 @@ pub struct AcceptedMessage {
     pub duplicate: bool,
 }
 
-pub use crate::model_timeline::{ApprovalLine, CardLinks, TimelineEntry, TimelinePage};
+pub use crate::model_timeline::{
+    ApprovalLine, CalendarCardLine, CardLinks, MailCardLine, MailDraftLine, Quote, TimelineEntry,
+    TimelinePage,
+};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct MessagePage {
@@ -239,7 +273,20 @@ pub struct Section {
 #[derive(Clone, Debug)]
 pub struct ContextPage {
     pub messages: Vec<Message>,
+    /// Message id → id of the message it answers, for the replies in `messages`.
+    /// The cited message may sit outside the page.
+    pub replies: HashMap<String, String>,
+    /// Message id → the files that message carries, for the messages in `messages`.
+    pub attachments: HashMap<String, Vec<ContextAttachment>>,
     pub truncated: bool,
+}
+
+/// A file of a context message, with the host's path to it. The path is the
+/// host's to write; it never comes from the user's text.
+#[derive(Clone, Debug)]
+pub struct ContextAttachment {
+    pub file: LinkedFile,
+    pub path: PathBuf,
 }
 
 #[derive(Clone, Debug)]
@@ -252,8 +299,16 @@ pub struct ChatFrame {
 /// One line of a message, bounded: SSE and the timeline never carry the full
 /// body (`orchestrator-chat.md` §3.2).
 pub fn preview(text: &str) -> String {
+    bounded_preview(text.lines().next().unwrap_or_default())
+}
+
+/// The text a quote shows: the whole message on one line, spaces collapsed.
+pub fn quote_preview(text: &str) -> String {
+    bounded_preview(&text.split_whitespace().collect::<Vec<_>>().join(" "))
+}
+
+fn bounded_preview(line: &str) -> String {
     const MAX_CHARS: usize = 120;
-    let line = text.lines().next().unwrap_or_default();
     let mut chars = line.chars();
     let mut preview: String = chars.by_ref().take(MAX_CHARS).collect();
     if chars.next().is_some() {

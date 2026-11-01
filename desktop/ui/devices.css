@@ -1,0 +1,63 @@
+/* «Mis dispositivos»: the rows of the list, the tags and the revoke confirmation. Colours come
+   from the tokens in base.css, so both themes follow. */
+
+.devices-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.device-row {
+  gap: 6px;
+  cursor: default;
+}
+
+.device-row.is-revoked {
+  color: var(--muted);
+}
+
+.device-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.device-tag {
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--accent-text);
+  font-size: 12px;
+}
+
+.device-tag.is-revoked {
+  color: var(--muted);
+}
+
+.device-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.device-id code {
+  font-family: var(--mono);
+}
+
+.device-revoke {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.devices-revoked {
+  margin-top: 12px;
+}
+
+.devices-revoked summary {
+  color: var(--muted);
+  cursor: pointer;
+}

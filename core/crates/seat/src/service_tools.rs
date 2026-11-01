@@ -2,7 +2,7 @@
 //! question for the user and the approval it asks for. The lifecycle of the
 //! turn itself lives in [`crate::service`].
 
-use hn_core_chat::{ToolError, ToolReply};
+use hn_core_chat::{ProgressOutcome, ToolError, ToolReply};
 use serde_json::json;
 
 use crate::approvals::{approval_for, approval_result, ApprovalAsk};
@@ -11,11 +11,16 @@ use crate::tools::ApprovalRequest;
 
 impl SeatService {
     /// The final answer of the run. It closes the turn for good.
-    pub(crate) fn reply(&self, grant: &RunGrant, text: String) -> Result<ToolReply, ToolError> {
+    pub(crate) fn reply(
+        &self,
+        grant: &RunGrant,
+        text: String,
+        suggestions: &[String],
+    ) -> Result<ToolReply, ToolError> {
         let mut phase = lock(&grant.phase);
         Self::check_phase(&phase)?;
         self.chat
-            .complete_run_with_reply(&grant.run_id, &text)
+            .complete_run_with_reply(&grant.run_id, &text, suggestions)
             .map_err(tool_chat_error)?;
         *phase = Phase::Replied;
         grant.notify.notify_one();
@@ -33,6 +38,24 @@ impl SeatService {
             .map_err(tool_chat_error)?;
         Ok(ToolReply {
             result: json!({ "status": "question_delivered" }),
+        })
+    }
+
+    /// A progress line. It does not close the turn; the store holds back a line
+    /// that comes inside the window of the last accepted one.
+    pub(crate) fn progress(&self, grant: &RunGrant, text: &str) -> Result<ToolReply, ToolError> {
+        let phase = lock(&grant.phase);
+        Self::check_phase(&phase)?;
+        let status = match self
+            .chat
+            .set_run_progress(&grant.run_id, text)
+            .map_err(tool_chat_error)?
+        {
+            ProgressOutcome::Accepted => "accepted",
+            ProgressOutcome::Throttled => "throttled",
+        };
+        Ok(ToolReply {
+            result: json!({ "status": status }),
         })
     }
 

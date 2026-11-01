@@ -13,13 +13,16 @@ Map<String, Object?> approvalRow({
   String? question,
   String command = 'cargo test',
   String? conversationId = 'cnv_1',
+  String seatId = 'seat_bob',
+  String tool = 'bash',
+  Map<String, Object?>? details,
 }) => {
   'id': id,
   'conversation_id': conversationId,
-  'seat_id': 'seat_bob',
+  'seat_id': seatId,
   'pane_id': 'w1:p9',
   'kind': 'command',
-  'tool': 'bash',
+  'tool': tool,
   'summary': 'Ejecutar comando: $command',
   'cwd': 'demo/api',
   'risk': 'medium',
@@ -27,7 +30,40 @@ Map<String, Object?> approvalRow({
   'level': level,
   'expires_at': expiresAt ?? soonIso(),
   'payload_redacted': {'command': command, 'question': ?question},
+  'details': ?details,
 };
+
+/// One mail of a `mail.move` batch, with the facts the host sends to `APPROVE`.
+Map<String, Object?> moveItem(
+  String messageId, {
+  String dest = 'junkemail',
+  String? fromAddress = 'oferta@ejemplo.org',
+  String subject = 'Gana dinero',
+  String reason = 'Phishing probable',
+  String? level = 'phish_candidate',
+  bool excluded = false,
+}) => {
+  'message_id': messageId,
+  'dest': dest,
+  'reason': reason,
+  'from_address': ?fromAddress,
+  'subject': subject,
+  'level': ?level,
+  'excluded': excluded,
+};
+
+/// A `mail.move` approval row whose details carry [items].
+Map<String, Object?> moveRow({
+  String status = 'pending',
+  List<Map<String, Object?>>? items,
+}) => approvalRow(
+  tool: 'mail.move',
+  status: status,
+  details: {
+    'account': 'trabajo',
+    'items': items ?? [moveItem('m1'), moveItem('m2', dest: 'inbox')],
+  },
+);
 
 String inboxJson([List<Map<String, Object?>>? rows]) => jsonEncode({
   'ok': true,

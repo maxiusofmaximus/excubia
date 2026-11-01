@@ -7,8 +7,8 @@ import '../../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `approval_from`, `audit_from`, `mode_of`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `approval_from`, `attachment_from`, `audit_from`, `mail_attach_from`, `mail_move_from`, `mail_move_item_from`, `mail_send_from`, `mode_of`, `texts`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 ChatApproval? parseApprovalRecord({required String json}) =>
     RustLib.instance.api.crateApiApprovalsModelParseApprovalRecord(json: json);
@@ -20,6 +20,30 @@ ApprovalSettings? parseApprovalSettings({required String json}) => RustLib
     .instance
     .api
     .crateApiApprovalsModelParseApprovalSettings(json: json);
+
+class ApprovalAttachment {
+  final String name;
+  final PlatformInt64 size;
+  final String sha256;
+
+  const ApprovalAttachment({
+    required this.name,
+    required this.size,
+    required this.sha256,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ size.hashCode ^ sha256.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ApprovalAttachment &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          size == other.size &&
+          sha256 == other.sha256;
+}
 
 class ApprovalAudit {
   final String? deviceId;
@@ -104,6 +128,16 @@ class ChatApproval {
 
   /// The concrete question, when the host lacked information to decide.
   final String? question;
+
+  /// The facts of `mail.send`. The host sends `details` only to a device with
+  /// `APPROVE`; every other reader gets `None` here and in `mail_attach`.
+  final MailSendDetails? mailSend;
+
+  /// The facts of `mail.attach_path`, with the same rule as `mail_send`.
+  final MailAttachDetails? mailAttach;
+
+  /// The batch of `mail.move`, with the same rule as `mail_send`.
+  final MailMoveDetails? mailMove;
   final String status;
 
   /// `lead`, `cto` or `user`; `None` when the policy decided it.
@@ -130,6 +164,9 @@ class ChatApproval {
     this.risk,
     this.command,
     this.question,
+    this.mailSend,
+    this.mailAttach,
+    this.mailMove,
     required this.status,
     this.level,
     this.escalatedFrom,
@@ -154,6 +191,9 @@ class ChatApproval {
       risk.hashCode ^
       command.hashCode ^
       question.hashCode ^
+      mailSend.hashCode ^
+      mailAttach.hashCode ^
+      mailMove.hashCode ^
       status.hashCode ^
       level.hashCode ^
       escalatedFrom.hashCode ^
@@ -180,6 +220,9 @@ class ChatApproval {
           risk == other.risk &&
           command == other.command &&
           question == other.question &&
+          mailSend == other.mailSend &&
+          mailAttach == other.mailAttach &&
+          mailMove == other.mailMove &&
           status == other.status &&
           level == other.level &&
           escalatedFrom == other.escalatedFrom &&
@@ -189,4 +232,146 @@ class ChatApproval {
           decidedAt == other.decidedAt &&
           audit == other.audit &&
           revision == other.revision;
+}
+
+/// What the operator reads before approving `mail.attach_path`.
+class MailAttachDetails {
+  final String path;
+  final PlatformInt64 size;
+  final String sha256;
+
+  const MailAttachDetails({
+    required this.path,
+    required this.size,
+    required this.sha256,
+  });
+
+  @override
+  int get hashCode => path.hashCode ^ size.hashCode ^ sha256.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MailAttachDetails &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          size == other.size &&
+          sha256 == other.sha256;
+}
+
+/// What the operator reads before approving `mail.move` (contract `mail.md`,
+/// «Exclusiones de un lote»). Only items the host could read are kept.
+class MailMoveDetails {
+  final String account;
+  final List<MailMoveItem> items;
+
+  const MailMoveDetails({required this.account, required this.items});
+
+  @override
+  int get hashCode => account.hashCode ^ items.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MailMoveDetails &&
+          runtimeType == other.runtimeType &&
+          account == other.account &&
+          items == other.items;
+}
+
+class MailMoveItem {
+  final String messageId;
+
+  /// `junkemail`, `deleteditems` or `inbox`.
+  final String dest;
+  final String reason;
+  final String? fromAddress;
+  final String subject;
+
+  /// The triage level of the verdict, as the host names it.
+  final String? level;
+
+  /// Left out by the decision that closed the approval.
+  final bool excluded;
+
+  const MailMoveItem({
+    required this.messageId,
+    required this.dest,
+    required this.reason,
+    this.fromAddress,
+    required this.subject,
+    this.level,
+    required this.excluded,
+  });
+
+  @override
+  int get hashCode =>
+      messageId.hashCode ^
+      dest.hashCode ^
+      reason.hashCode ^
+      fromAddress.hashCode ^
+      subject.hashCode ^
+      level.hashCode ^
+      excluded.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MailMoveItem &&
+          runtimeType == other.runtimeType &&
+          messageId == other.messageId &&
+          dest == other.dest &&
+          reason == other.reason &&
+          fromAddress == other.fromAddress &&
+          subject == other.subject &&
+          level == other.level &&
+          excluded == other.excluded;
+}
+
+/// What the operator reads before approving `mail.send` (contract `mail.md`,
+/// «Detalles de la aprobación»). Only the listed fields are read, so a token or a
+/// `device_code` can never reach this model.
+class MailSendDetails {
+  final String account;
+  final String? from;
+  final List<String> to;
+  final List<String> cc;
+  final String subject;
+
+  /// The first 300 characters of the body, as the host cuts them.
+  final String bodyPreview;
+  final List<ApprovalAttachment> attachments;
+
+  const MailSendDetails({
+    required this.account,
+    this.from,
+    required this.to,
+    required this.cc,
+    required this.subject,
+    required this.bodyPreview,
+    required this.attachments,
+  });
+
+  @override
+  int get hashCode =>
+      account.hashCode ^
+      from.hashCode ^
+      to.hashCode ^
+      cc.hashCode ^
+      subject.hashCode ^
+      bodyPreview.hashCode ^
+      attachments.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MailSendDetails &&
+          runtimeType == other.runtimeType &&
+          account == other.account &&
+          from == other.from &&
+          to == other.to &&
+          cc == other.cc &&
+          subject == other.subject &&
+          bodyPreview == other.bodyPreview &&
+          attachments == other.attachments;
 }

@@ -1,6 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:herdr_notify/src/rust/api/chat/attach_model.dart'
+    show ChatAttachment;
+import 'package:herdr_notify/src/rust/api/chat/attach_plan.dart'
+    show planAttachmentContent, planChatSendWithAttachments;
 import 'package:herdr_notify/src/rust/api/chat/model.dart';
 import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
 import 'package:herdr_notify/src/rust/api/chat/plan.dart';
@@ -12,16 +16,41 @@ import 'package:herdr_notify/src/rust/api/state.dart' show AgentEntry;
 import 'package:herdr_notify/src/rust/api/write.dart' show HttpCall;
 
 import '../api/chat_transport.dart';
+import '../api/connection_failure.dart';
+import '../api/connection_text.dart';
 import '../api/gateway_client.dart';
+import '../api/agenda_api.dart';
+import '../api/alerts_api.dart';
+import '../api/mail_api.dart';
+import '../api/plan_runner.dart';
 import '../model/connection_state.dart';
 import 'approvals_controller.dart';
+import 'chat_attachment_errors.dart';
+import 'chat_attachment_images.dart';
+import 'chat_attachment_tray.dart';
 import 'live_triage.dart';
+import 'mail_drafts.dart';
+import 'voice_notes.dart';
+import 'voice_recorder.dart';
+import 'voice_send_settings.dart';
 
+part 'chat_controller_attachments.dart';
 part 'chat_controller_delegation.dart';
 part 'chat_controller_history.dart';
+part 'chat_controller_send.dart';
+part 'chat_controller_stop.dart';
+part 'chat_controller_sync.dart';
 
-/// Which slice of the history the drawer asks the host for.
-enum HistoryFilter { all, pinned, sections, archived }
+/// Which slice of the history the drawer asks the host for, in chip order.
+enum HistoryFilter { all, attention, working, pinned, sections, archived }
+
+/// The newest message the operator wrote, sent or not; null when there is none.
+ChatEntry? latestOwnMessage(List<ChatEntry> entries) {
+  for (final entry in entries.reversed) {
+    if (entry.kind == 'message' && entry.authorKind == 'user') return entry;
+  }
+  return null;
+}
 
 /// One refusal from the chat surface. `code` is stable; the screen branches on
 /// it and never on a raw HTTP status.
@@ -35,15 +64,20 @@ class ChatController extends ChangeNotifier {
     this._transport,
     this._triage, {
     this.approvals,
+    VoiceSendSettings? voiceSend,
     this.searchDelay = const Duration(milliseconds: 220),
     this.refreshDelay = const Duration(milliseconds: 180),
-  }) : _reducer = newChatReducer();
+  }) : voiceSend = voiceSend ?? VoiceSendSettings(),
+       _reducer = newChatReducer();
 
   final ChatTransport _transport;
   final LiveTriage _triage;
 
   /// Approval state, fed from the same SSE stream; null in tests without it.
   final ApprovalsController? approvals;
+
+  /// The composer's voice-note destination («Al terminar de hablar»).
+  final VoiceSendSettings voiceSend;
   final Duration searchDelay;
   final Duration refreshDelay;
   final ChatReducer _reducer;
@@ -72,12 +106,48 @@ class ChatController extends ChangeNotifier {
   String? _retryClientId;
   int _pinnedCount = 0;
   int _archivedCount = 0;
+  ChatCounts? _counts;
+  bool _countsSupported = true;
   final Map<String, int> _readSent = <String, int>{};
+  ChatEntry? _replyTo;
+  bool _stopping = false;
+  ChatProblem? _stopDenial;
+
+  /// The reply each unsent `client_id` answers, so a retry keeps its quote.
+  final Map<String, ChatEntry> _replyByClient = <String, ChatEntry>{};
+
+  /// The files each unsent `client_id` names, so a retry keeps them too.
+  final Map<String, List<ChatAttachment>> _attachmentsByClient =
+      <String, List<ChatAttachment>>{};
+
+  /// The composer's files; they are uploaded here and named by the next send.
+  late final ChatAttachmentTray attachments = ChatAttachmentTray(_transport);
+
+  /// The stored images of the timeline, by attachment id.
+  late final ChatAttachmentImages images = ChatAttachmentImages(
+    (id) => _attachmentBytes(id),
+  );
 
   ChatBootstrap? get bootstrap => _bootstrap;
   List<ChatProject> get projects =>
       _bootstrap?.projects ?? const <ChatProject>[];
   LiveTriage get triage => _triage;
+
+  /// The mail routes over the same signed transport as the chat.
+  MailApi get mail => MailApi(_transport);
+
+  /// The agenda routes (notes and contacts) over the same signed transport.
+  AgendaApi get agenda => AgendaApi(_transport);
+
+  /// The alert rules and the alerts mode, over the same signed transport.
+  AlertsApi get alertRules => AlertsApi(_transport);
+
+  /// The draft sheets opened from the timeline. A send under way keeps its
+  /// watch here, so it ends even when its sheet is closed.
+  late final MailDrafts mailDrafts = MailDrafts(MailApi(_transport));
+
+  /// The composer's voice notes: recorded on the phone, transcribed on the host.
+  late final VoiceNotes voice = VoiceNotes(_transport, RecordVoiceRecorder());
   List<ChatConversation> get conversations => _conversations;
   List<ChatSection> get sections => _sections;
   ChatConversation? get current => _current;
@@ -88,10 +158,71 @@ class ChatController extends ChangeNotifier {
   bool get loadingConversation => _loadingConversation;
   bool get loadingMore => _loadingMore;
   bool get sending => _sending;
+
+  /// The message the next send answers; null when the operator is not replying.
+  ChatEntry? get replyTo => _replyTo;
+
+  void startReply(ChatEntry entry) {
+    _replyTo = entry;
+    _notify();
+  }
+
+  void cancelReply() {
+    if (_replyTo == null) return;
+    _replyTo = null;
+    _notify();
+  }
+
+  /// A turn of the open conversation is queued or running. The newest own
+  /// message's turn is the fact; the list's count of open runs only stands in
+  /// until that message has a turn state, because the list can be older.
+  bool get turnInFlight {
+    final state = latestOwnMessage(entries)?.turnState;
+    if (state != null) return state == 'queued' || state == 'running';
+    return (_current?.activeRuns ?? 0) > 0;
+  }
+
+  /// The step Alfred set on a conversation's open turn, as one plain line.
+  String? progressOf(String conversationId) =>
+      _reducer.progressOf(conversationId: conversationId);
+
+  /// The step of the open conversation, while its turn is in flight.
+  String? get turnProgress {
+    final id = _current?.id;
+    if (id == null || !turnInFlight) return null;
+    return progressOf(id);
+  }
+
+  /// The stop button works while a turn is in flight, once per tap, and not
+  /// after the host refused this device the `respond` grant.
+  bool get canStop => turnInFlight && !_stopping && _stopDenial == null;
+
+  /// Why the last stop was refused for want of the grant; it keeps the button
+  /// off until the next turn is sent.
+  ChatProblem? get stopDenial => _stopDenial;
+
   DateTime? get lastSync => _lastSync;
   int get pinnedCount => _pinnedCount;
   int get archivedCount => _archivedCount;
+
+  /// The chip numbers; null until the host answers. The new chips show only
+  /// while [countsSupported] is true.
+  ChatCounts? get counts => _counts;
+  bool get countsSupported => _countsSupported;
   String get alfredName => _bootstrap?.alfredName ?? 'Alfred';
+
+  /// Alfred as a seat, so an approval he asks for reads as his name; null until
+  /// the bootstrap arrives or when the host sends no agent id.
+  ChatSeat? get alfredSeat {
+    final boot = _bootstrap;
+    final id = boot?.alfredAgentId;
+    if (boot == null || id == null) return null;
+    return ChatSeat(
+      agentId: id,
+      name: boot.alfredName,
+      status: boot.alfredStatus,
+    );
+  }
 
   String get alfredStatus {
     final status = _bootstrap?.alfredStatus ?? 'draft';
@@ -108,7 +239,12 @@ class ChatController extends ChangeNotifier {
   bool get offline =>
       _triage.connection is Offline || _triage.connection is Failed;
 
-  bool get canSend => !offline && !_sending;
+  ConnectionFailure? get connectionFailure => _triage.connectionFailure;
+
+  /// The device is paired but no one has approved its read_state yet.
+  bool get awaitingApproval => _triage.connection is AwaitingApproval;
+
+  bool get canSend => !offline && !awaitingApproval && !_sending;
 
   int get unreadMessages =>
       _conversations.fold(0, (total, chat) => total + chat.unread.toInt());
@@ -145,270 +281,12 @@ class ChatController extends ChangeNotifier {
     return null;
   }
 
-  Future<void> start() async {
-    _chatSubscription = _triage.chatSignals.listen(_onChatEvent);
-    _triage.addListener(_onTriageChanged);
-    approvals?.addListener(_notify);
-    await _loadBootstrap();
-    await Future.wait([_loadSections(), _refreshConversations()]);
-    _loading = false;
-    _notify();
-    if (_current == null && _conversations.isNotEmpty) {
-      await openConversation(_conversations.first.id);
-    }
-  }
-
-  Future<void> refresh() async {
-    await Future.wait([
-      _loadBootstrap(),
-      _loadSections(),
-      _refreshConversations(),
-    ]);
-    final id = _current?.id;
-    if (id != null) await _loadConversation(id, reset: false);
-    _notify();
-  }
-
-  void reconnect() {
-    _triage.start();
-    unawaited(_triage.refreshNow());
-    unawaited(refresh());
-  }
-
-  Future<void> openConversation(String id) async {
-    final known = _conversationFor(id);
-    _current = known;
-    _failure = null;
-    _reducer.reset();
-    _loadingConversation = true;
-    _notify();
-    await _loadConversation(id, reset: true);
-  }
-
-  Future<String?> createConversation({String? title}) async {
-    final plan = planChatCreateConversation(title: title);
-    try {
-      final body = await _execute(plan);
-      final created = parseChatConversation(json: body);
-      if (created == null) {
-        _failure = _localFailure(
-          'El equipo no devolvió la conversación creada.',
-        );
-        _notify();
-        return null;
-      }
-      _conversations = [created, ..._conversations];
-      _current = created;
-      _failure = null;
-      _reducer.reset();
-      _notify();
-      return created.id;
-    } catch (error) {
-      _failure = _explain(error, WriteAction.respond);
-      _notify();
-      return null;
-    }
-  }
-
-  /// Send one user turn. The conversation is created on the first message so
-  /// the empty start screen needs no separate form.
-  Future<void> send(String raw) async {
-    final text = raw.trim();
-    if (text.isEmpty) return;
-    if (offline) {
-      _failure = offlineChatFailure(
-        message: 'Sin conexión con el equipo.',
-        action: 'Reconecta para escribir a Alfred.',
-      );
-      _notify();
-      return;
-    }
-    var id = _current?.id;
-    if (id == null) {
-      id = await createConversation(title: _titleFrom(text));
-      if (id == null) return;
-    }
-    await _sendText(id, text, newChatClientId());
-  }
-
-  /// Retry a failed local bubble. A transport failure reuses the `client_id`
-  /// because the host may have stored the message; an HTTP refusal did not
-  /// store anything, so a fresh id avoids resurrecting a refused turn.
-  Future<void> retryLocal(ChatEntry entry) async {
-    final id = _current?.id;
-    final old = entry.clientId;
-    if (id == null || old == null) return;
-    final reuse = _retryClientId == old;
-    final clientId = reuse ? old : newChatClientId();
-    _reducer.discardSend(clientId: old);
-    _failure = null;
-    await _sendText(id, entry.body, clientId);
-  }
-
-  /// Retry a failed turn: send the user message that preceded the empty agent
-  /// failure card again, with a new `client_id` (the failed one is durable).
-  Future<void> retryTurn(ChatEntry failed) async {
-    final id = _current?.id;
-    if (id == null) return;
-    final all = entries;
-    final index = all.indexWhere((entry) => entry.seq == failed.seq);
-    for (var cursor = index - 1; cursor >= 0; cursor--) {
-      final candidate = all[cursor];
-      if (candidate.authorKind == 'user' && candidate.body.isNotEmpty) {
-        await _sendText(id, candidate.body, newChatClientId());
-        return;
-      }
-    }
-  }
-
-  Future<void> loadOlder() async {
-    final id = _current?.id;
-    final before = oldestSeq;
-    if (_loadingMore || id == null || before == null || !hasMore) return;
-    _loadingMore = true;
-    _notify();
-    try {
-      final body = await _execute(
-        planChatTimeline(conversationId: id, beforeSeq: before),
-      );
-      _reducer.acceptTimeline(json: body);
-      _lastSync = DateTime.now();
-    } catch (error) {
-      _failure = _explain(error, WriteAction.read);
-    } finally {
-      _loadingMore = false;
-      _notify();
-    }
-  }
-
   Stream<ChatProblem> get failures => _failures.stream;
 
   void clearFailure() {
     if (_failure == null) return;
     _failure = null;
     _notify();
-  }
-
-  /// The one recovery the failure card offers: resend the local turn, reconnect
-  /// when offline, or read the state again.
-  void retryFailure() {
-    final local = failedLocal;
-    if (local != null) {
-      unawaited(retryLocal(local));
-      return;
-    }
-    if (offline) {
-      reconnect();
-      return;
-    }
-    unawaited(refresh());
-  }
-
-  Future<void> _sendText(
-    String conversationId,
-    String text,
-    String clientId,
-  ) async {
-    final plan = planChatSend(
-      conversationId: conversationId,
-      clientId: clientId,
-      text: text,
-    );
-    _reducer.beginSend(clientId: clientId, text: text);
-    _sending = true;
-    _failure = null;
-    _notify();
-    var accepted = false;
-    try {
-      final body = await _execute(plan);
-      accepted = true;
-      final linked = _reducer.acceptSent(clientId: clientId, json: body);
-      if (!linked) {
-        _reducer.discardSend(clientId: clientId);
-        _failure = _localFailure(
-          'El equipo aceptó el mensaje pero no lo devolvió.',
-        );
-      }
-      _retryClientId = null;
-      _lastSync = DateTime.now();
-      _markRead();
-    } catch (error) {
-      final failure = _explain(error, WriteAction.respond);
-      _failure = failure;
-      if (accepted || failure.keptByHost) {
-        // The host kept the turn (or accepted it but failed the run); the
-        // timeline is the truth, so the optimistic bubble is not duplicated.
-        _reducer.discardSend(clientId: clientId);
-        unawaited(_refreshCurrent());
-      } else {
-        _reducer.failSend(clientId: clientId);
-      }
-      _retryClientId = error is GatewayError && error.status == 0
-          ? clientId
-          : null;
-    } finally {
-      _sending = false;
-      _notify();
-      unawaited(_refreshConversations(silent: true));
-    }
-  }
-
-  Future<void> _loadBootstrap() async {
-    try {
-      final body = await _execute(planChatBootstrap());
-      final boot = parseChatBootstrap(json: body);
-      if (boot != null) _bootstrap = boot;
-      _lastSync = DateTime.now();
-    } catch (_) {
-      // The list and the timeline still work with a stale bootstrap; the
-      // header falls back to its defaults instead of blanking the screen.
-    }
-  }
-
-  Future<void> _loadConversation(String id, {required bool reset}) async {
-    if (reset) {
-      _reducer.reset();
-      _readSent.remove(id);
-    }
-    try {
-      final results = await Future.wait([
-        _execute(planChatTimeline(conversationId: id)),
-        _execute(planChatMessages(conversationId: id, afterSeq: 0)),
-      ]);
-      if (_current?.id != id) return;
-      _reducer.acceptMessages(json: results[1]);
-      _reducer.acceptTimeline(json: results[0]);
-      _lastSync = DateTime.now();
-      _failure = null;
-      _markRead();
-    } catch (error) {
-      if (_current?.id == id) _failure = _explain(error, WriteAction.read);
-    } finally {
-      if (_current?.id == id) {
-        _loadingConversation = false;
-        _notify();
-      }
-    }
-  }
-
-  Future<void> _refreshCurrent() async {
-    final id = _current?.id;
-    if (id == null || _loadingConversation) return;
-    final after = lastSeq;
-    try {
-      final results = await Future.wait([
-        _execute(planChatTimeline(conversationId: id)),
-        _execute(planChatMessages(conversationId: id, afterSeq: after)),
-      ]);
-      if (_current?.id != id) return;
-      _reducer.acceptTimeline(json: results[0]);
-      _reducer.acceptMessages(json: results[1]);
-      _lastSync = DateTime.now();
-      _markRead();
-      _notify();
-    } catch (_) {
-      // A refresh never replaces a good view with a transient failure.
-    }
   }
 
   Future<ChatProblem?> _action(ChatPlan plan) async {
@@ -426,48 +304,6 @@ class ChatController extends ChangeNotifier {
       final failure = _explain(error, WriteAction.respond);
       _failures.add(failure);
       return failure;
-    }
-  }
-
-  void _onChatEvent(ChatEvent event) {
-    approvals?.onChatEvent(event);
-    _reducer.acceptChatEvent(event: event);
-    if (event.conversationId == _current?.id) {
-      _refreshTimer?.cancel();
-      _refreshTimer = Timer(refreshDelay, () => unawaited(_refreshCurrent()));
-    }
-    _listTimer?.cancel();
-    _listTimer = Timer(
-      refreshDelay,
-      () => unawaited(_refreshConversations(silent: true)),
-    );
-    _notify();
-  }
-
-  void _onTriageChanged() {
-    final live = _triage.connection is Live;
-    if (live && !_wasLive && !_loading) {
-      unawaited(refresh());
-    }
-    _wasLive = live;
-    _notify();
-  }
-
-  void _markRead() {
-    final id = _current?.id;
-    final seq = lastSeq;
-    if (id == null || seq <= 0) return;
-    final sent = _readSent[id] ?? 0;
-    if (seq <= sent) return;
-    _readSent[id] = seq;
-    unawaited(_markReadNow(id, seq));
-  }
-
-  Future<void> _markReadNow(String id, int seq) async {
-    try {
-      await _execute(planChatRead(conversationId: id, lastSeq: seq));
-    } catch (_) {
-      // The read cursor is best effort; the next open retries it.
     }
   }
 
@@ -512,11 +348,6 @@ class ChatController extends ChangeNotifier {
     return null;
   }
 
-  String _titleFrom(String text) {
-    final line = text.split('\n').first.trim();
-    return line.length <= 60 ? line : '${line.substring(0, 59)}…';
-  }
-
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -531,6 +362,9 @@ class ChatController extends ChangeNotifier {
     _triage.removeListener(_onTriageChanged);
     approvals?.removeListener(_notify);
     unawaited(_failures.close());
+    mailDrafts.dispose();
+    attachments.dispose();
+    voice.dispose();
     super.dispose();
   }
 }

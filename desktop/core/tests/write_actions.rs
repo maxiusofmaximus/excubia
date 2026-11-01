@@ -1,61 +1,13 @@
 mod common;
 
-use std::sync::{Arc, Mutex};
-
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use common::read_request;
+use common::{spawn_server, Captured};
+use herdr_desktop_core::chat::ChatFailure;
 use herdr_desktop_core::error::{CoreError, WriteAction};
 use herdr_desktop_core::identity::DeviceIdentity;
 use herdr_desktop_core::signing::canonical_string;
 use herdr_desktop_core::GatewayClient;
 use p256::ecdsa::{signature::Verifier, Signature};
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpListener;
-
-struct Captured {
-    method: String,
-    target: String,
-    headers: String,
-    body: Vec<u8>,
-}
-
-/// A fake gateway that answers `responses` in order and records what it saw.
-async fn spawn_server(responses: Vec<(u16, &'static str)>) -> (String, Arc<Mutex<Vec<Captured>>>) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let address = listener.local_addr().unwrap();
-    let captured = Arc::new(Mutex::new(Vec::new()));
-    let server_captured = captured.clone();
-
-    tokio::spawn(async move {
-        for (status, body) in responses {
-            let (mut socket, _) = listener.accept().await.unwrap();
-            let (headers, request_body) = read_request(&mut socket).await;
-            let request_line = headers.lines().next().unwrap_or_default().to_string();
-            let mut parts = request_line.split(' ');
-            server_captured.lock().unwrap().push(Captured {
-                method: parts.next().unwrap_or_default().to_string(),
-                target: parts.next().unwrap_or_default().to_string(),
-                headers: headers.clone(),
-                body: request_body,
-            });
-            let reason = match status {
-                200 => "OK",
-                403 => "Forbidden",
-                409 => "Conflict",
-                429 => "Too Many Requests",
-                _ => "Error",
-            };
-            let response = format!(
-                "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-                body.len()
-            );
-            socket.write_all(response.as_bytes()).await.unwrap();
-            let _ = socket.shutdown().await;
-        }
-    });
-
-    (format!("http://{address}"), captured)
-}
 
 fn header<'a>(headers: &'a str, name: &str) -> &'a str {
     headers
@@ -254,4 +206,36 @@ async fn an_invalid_pane_never_reaches_the_wire() {
         .unwrap_err();
     assert!(matches!(error, CoreError::InvalidInput(_)));
     assert!(captured.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn chat_stop_is_an_empty_signed_post_and_a_second_stop_is_not_an_error() {
+    let (base_url, captured) =
+        spawn_server(vec![(200, r#"{"ok":true,"stopped":false,"runs":0}"#)]).await;
+    let outcome = client(&base_url)
+        .chat_stop_conversation("cnv_01JABC")
+        .await
+        .unwrap();
+    assert!(!outcome.stopped);
+    let captured = captured.lock().unwrap();
+    assert_eq!(captured[0].method, "POST");
+    assert_eq!(captured[0].target, "/v1/chat/conversations/cnv_01JABC/stop");
+    assert!(captured[0].body.is_empty());
+}
+
+#[tokio::test]
+async fn chat_stop_maps_a_missing_permission_and_an_old_host_apart() {
+    let (base_url, _) = spawn_server(vec![(403, r#"{"detail":"forbidden"}"#)]).await;
+    let error = client(&base_url)
+        .chat_stop_conversation("cnv_01JABC")
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ChatFailure::Forbidden { .. }));
+
+    let (base_url, _) = spawn_server(vec![(405, "")]).await;
+    let error = client(&base_url)
+        .chat_stop_conversation("cnv_01JABC")
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ChatFailure::Gateway { status: 405, .. }));
 }

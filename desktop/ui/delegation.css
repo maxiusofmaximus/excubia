@@ -211,14 +211,14 @@
   margin-left: auto;
   border-color: transparent;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .delegation-link:hover {
   background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .delegation-cancel {
@@ -368,7 +368,7 @@
 }
 
 .delegation-child:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 

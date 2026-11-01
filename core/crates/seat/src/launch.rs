@@ -35,6 +35,9 @@ pub struct LaunchInput<'a> {
     pub hook_token: &'a str,
     /// The `hn-uac-hook` binary the CLI runs before each shell command.
     pub hook_command: &'a Path,
+    /// Folders that hold this turn's attachments. Only the restricted Claude CLI
+    /// needs them: it reads files only under its working directory.
+    pub attachment_dirs: &'a [PathBuf],
 }
 
 /// A resident panel: one CLI process per seat that reads tasks from stdin
@@ -146,6 +149,9 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
                 settings.to_string_lossy().to_string(),
                 "--restricted".to_string(),
             ]);
+            for dir in input.attachment_dirs {
+                args.extend(["--add-dir".to_string(), dir.to_string_lossy().to_string()]);
+            }
         }
         PromptDelivery::DeveloperInstructions => {
             let codex_home = input.run_dir.join("codex");

@@ -10,6 +10,7 @@ import 'package:herdr_notify/ui/theme.dart';
 ChatEntry cardEntry({required String status, int attention = 0}) => ChatEntry(
   seq: 3,
   kind: 'card',
+  suggestions: const [],
   cardId: 'act_dlg_1',
   delegationId: 'dlg_1',
   paneId: 'w1:p3',
@@ -30,12 +31,17 @@ Widget wrap(Widget child) => MaterialApp(
 );
 
 void main() {
-  test('host titles in Latin-1 mojibake are repaired without touching clean text',
-      () {
-    expect(normalizeCardText('Ernesto terminÃ³'), 'Ernesto terminó');
-    expect(normalizeCardText('Ernesto terminó'), 'Ernesto terminó');
-    expect(normalizeCardText('Ana terminÃ³ la parte'), 'Ana terminó la parte');
-  });
+  test(
+    'host titles in Latin-1 mojibake are repaired without touching clean text',
+    () {
+      expect(normalizeCardText('Ernesto terminÃ³'), 'Ernesto terminó');
+      expect(normalizeCardText('Ernesto terminó'), 'Ernesto terminó');
+      expect(
+        normalizeCardText('Ana terminÃ³ la parte'),
+        'Ana terminó la parte',
+      );
+    },
+  );
 
   testWidgets('every delegation state paints its label and live affordances', (
     tester,

@@ -1,5 +1,103 @@
-use tokio::io::AsyncReadExt;
-use tokio::net::TcpStream;
+// Each test binary includes this module and uses only part of it.
+#![allow(dead_code)]
+
+use std::sync::{Arc, Mutex};
+
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
+
+pub struct Captured {
+    pub method: String,
+    pub target: String,
+    pub headers: String,
+    pub body: Vec<u8>,
+}
+
+/// A fake gateway on loopback that answers `responses` in order and records
+/// what it saw. Nothing leaves the machine.
+pub async fn spawn_server(
+    responses: Vec<(u16, &'static str)>,
+) -> (String, Arc<Mutex<Vec<Captured>>>) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let captured = Arc::new(Mutex::new(Vec::new()));
+    let server_captured = captured.clone();
+
+    tokio::spawn(async move {
+        for (status, body) in responses {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let (headers, request_body) = read_request(&mut socket).await;
+            let request_line = headers.lines().next().unwrap_or_default().to_string();
+            let mut parts = request_line.split(' ');
+            server_captured.lock().unwrap().push(Captured {
+                method: parts.next().unwrap_or_default().to_string(),
+                target: parts.next().unwrap_or_default().to_string(),
+                headers: headers.clone(),
+                body: request_body,
+            });
+            let response = format!(
+                "HTTP/1.1 {status} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                reason(status),
+                body.len()
+            );
+            socket.write_all(response.as_bytes()).await.unwrap();
+            let _ = socket.shutdown().await;
+        }
+    });
+
+    (format!("http://{address}"), captured)
+}
+
+/// A fake gateway that answers one request with `status`, its own `headers` (each line
+/// ending in CRLF) and a raw `body`, and records what it saw.
+pub async fn spawn_reply(
+    status: u16,
+    headers: &'static str,
+    body: &'static [u8],
+) -> (String, Arc<Mutex<Option<Captured>>>) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let captured = Arc::new(Mutex::new(None));
+    let server_captured = captured.clone();
+
+    tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let (head, request_body) = read_request(&mut socket).await;
+        let mut parts = head.lines().next().unwrap_or_default().split(' ');
+        let method = parts.next().unwrap_or_default().to_string();
+        let target = parts.next().unwrap_or_default().to_string();
+        *server_captured.lock().unwrap() = Some(Captured {
+            method,
+            target,
+            headers: head,
+            body: request_body,
+        });
+        let response = format!(
+            "HTTP/1.1 {status} {}\r\n{headers}Content-Length: {}\r\nConnection: close\r\n\r\n",
+            reason(status),
+            body.len()
+        );
+        socket.write_all(response.as_bytes()).await.unwrap();
+        socket.write_all(body).await.unwrap();
+        let _ = socket.shutdown().await;
+    });
+
+    (format!("http://{address}"), captured)
+}
+
+fn reason(status: u16) -> &'static str {
+    match status {
+        200 => "OK",
+        400 => "Bad Request",
+        403 => "Forbidden",
+        404 => "Not Found",
+        409 => "Conflict",
+        413 => "Payload Too Large",
+        422 => "Unprocessable Entity",
+        429 => "Too Many Requests",
+        _ => "Error",
+    }
+}
 
 /// Reads one HTTP request: the head plus exactly `Content-Length` body bytes.
 pub async fn read_request(socket: &mut TcpStream) -> (String, Vec<u8>) {

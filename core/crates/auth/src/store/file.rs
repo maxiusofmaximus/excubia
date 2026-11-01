@@ -153,3 +153,31 @@ pub fn write(path: &Path, file: &TrustFile) -> Result<(), StoreError> {
     hn_core_persist::write_json_atomic(path, file)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use hn_core_test_dir::TestDir;
+
+    use super::*;
+
+    /// A store written before the push endpoint was removed still loads: the old field
+    /// is ignored, and it is gone at the next save.
+    #[test]
+    fn a_record_with_an_old_push_endpoint_loads_and_drops_it_on_save() {
+        let dir = TestDir::new("auth-old-push-field");
+        let path = dir.join("devices.json");
+        let old = r#"{"version":1,"devices":[{"device_id":"dev-1","curve":"ed25519",
+            "public_key":"AAAA","push_endpoint":{"endpoint":"https://ntfy.sh/up-old"}}],
+            "codes":[]}"#;
+        fs::write(&path, old).expect("write the old store");
+
+        let file = read(&path).expect("an old store still loads");
+        assert_eq!(file.devices.len(), 1);
+        assert_eq!(file.devices[0].device_id, "dev-1");
+
+        write(&path, &file).expect("save");
+        let saved = fs::read_to_string(&path).expect("read back");
+        assert!(!saved.contains("push_endpoint"), "{saved}");
+        assert!(!saved.contains("ntfy.sh"), "{saved}");
+    }
+}

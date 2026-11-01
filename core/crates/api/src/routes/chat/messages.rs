@@ -17,12 +17,22 @@ use crate::error::ApiError;
 use crate::routes::parse_body;
 use crate::ApiContext;
 
-use super::support::{self, client_id, limit, message_text, read_seq, seq};
+use super::support::{self, client_id, limit, message_text_with_files, read_seq, seq};
 
 #[derive(Deserialize)]
 struct SendBody {
     client_id: String,
     text: String,
+    reply_to: Option<ReplyTo>,
+    /// Ready attachments of this conversation, 0 to 4. Absent for a client that predates them.
+    #[serde(default)]
+    attachments: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct ReplyTo {
+    kind: String,
+    id: String,
 }
 
 #[derive(Deserialize)]
@@ -94,14 +104,32 @@ pub async fn send(
     if let Err(error) = client_id(&payload.client_id) {
         return error.into_response();
     }
-    let text = match message_text(&payload.text) {
+    let text = match message_text_with_files(&payload.text, payload.attachments.len()) {
         Ok(text) => text,
         Err(error) => return error.into_response(),
     };
-    match ctx
-        .chat
-        .append_user_message(&conversation_id, &payload.client_id, &text)
-    {
+    // v1 replies only to messages; the store checks that the id is in this conversation.
+    let reply_to = match &payload.reply_to {
+        Some(reply) if reply.kind != "message" => {
+            return ApiError::invalid_field(
+                "unsupported_reply_kind",
+                "reply_to",
+                "reply_to.kind must be \"message\"",
+            )
+            .into_response();
+        }
+        reply => reply
+            .as_ref()
+            .map(|reply| (reply.kind.as_str(), reply.id.as_str())),
+    };
+    let attachments: Vec<&str> = payload.attachments.iter().map(String::as_str).collect();
+    match ctx.chat.append_user_message_with_attachments(
+        &conversation_id,
+        &payload.client_id,
+        &text,
+        reply_to,
+        &attachments,
+    ) {
         Ok(accepted) => accepted_response(&ctx, accepted),
         Err(error) => support::map_error(error).into_response(),
     }

@@ -91,6 +91,13 @@ fn a_429_keeps_its_retry_after() {
 }
 
 #[test]
+fn a_team_invalid_name_stays_a_team_refusal() {
+    let body = br#"{"detail":{"code":"invalid_name","field":"name","message":"x"}}"#;
+    let failure = status_failure(StatusCode::UNPROCESSABLE_ENTITY, body, None, true);
+    assert!(matches!(failure, ChatFailure::TeamRefused { .. }));
+}
+
+#[test]
 fn an_activity_frame_keeps_the_delegation_and_its_status() {
     let event = ChatEvent::from_frame(
         "chat.activity",
@@ -161,4 +168,111 @@ fn clearing_a_section_is_an_explicit_null() {
     let keep = ConversationPatch::default();
     let body: Value = serde_json::from_slice(&keep.to_body().unwrap()).unwrap();
     assert!(body.get("section_id").is_none());
+}
+
+#[test]
+fn turn_state_and_active_runs_are_optional_for_an_older_host() {
+    let old: Message = serde_json::from_value(serde_json::json!({
+        "id": "msg_1", "conversation_id": "cnv_1", "seq": 3,
+        "author_kind": "user", "body_md": "hola", "state": "complete"
+    }))
+    .unwrap();
+    assert!(old.turn_state.is_none());
+
+    let new: Message = serde_json::from_value(serde_json::json!({
+        "id": "msg_2", "conversation_id": "cnv_1", "seq": 4,
+        "author_kind": "user", "body_md": "hola", "state": "complete",
+        "turn_state": "running"
+    }))
+    .unwrap();
+    assert_eq!(new.turn_state.as_deref(), Some("running"));
+
+    let conversation: Conversation = serde_json::from_value(serde_json::json!({
+        "id": "cnv_1", "title": "Plan"
+    }))
+    .unwrap();
+    assert_eq!(conversation.active_runs, 0);
+}
+
+#[test]
+fn a_turn_frame_carries_its_state_and_no_message_state() {
+    let event = ChatEvent::from_frame(
+        "chat.message",
+        &serde_json::json!({
+            "revision": 71,
+            "conversation_id": "cnv_1",
+            "message_id": "msg_2",
+            "change": "updated",
+            "author_kind": "user",
+            "turn_state": "interrupted"
+        }),
+    );
+    assert_eq!(event.turn_state.as_deref(), Some("interrupted"));
+    assert_eq!(event.message_id.as_deref(), Some("msg_2"));
+    assert!(event.state.is_none());
+}
+
+#[test]
+fn suggestions_quote_and_the_filter_flags_are_optional_on_the_wire() {
+    let plain: TimelineEntry =
+        serde_json::from_value(serde_json::json!({"seq": 1, "kind": "message"})).unwrap();
+    assert!(plain.suggestions.is_empty());
+    assert!(plain.quote.is_none());
+
+    let rich: TimelineEntry = serde_json::from_value(serde_json::json!({
+        "seq": 2, "kind": "message", "suggestions": ["Sí, créalo"],
+        "quote": {"kind": "message", "id": "msg_1", "author_kind": "agent", "preview": "¿Qué nombre?"}
+    }))
+    .unwrap();
+    assert_eq!(rich.suggestions, ["Sí, créalo"]);
+    assert_eq!(
+        rich.quote.map(|quote| quote.preview).as_deref(),
+        Some("¿Qué nombre?")
+    );
+
+    assert_eq!(ListFilter::parse("working"), Some(ListFilter::Working));
+    assert_eq!(ListFilter::parse("0"), None);
+}
+
+#[test]
+fn the_progress_line_is_optional_on_the_conversation_and_absent_when_unset() {
+    let plain: Conversation =
+        serde_json::from_value(serde_json::json!({"id": "cnv_1", "title": "Plan"})).unwrap();
+    assert!(plain.progress.is_none());
+    let encoded = serde_json::to_value(&plain).unwrap();
+    assert!(encoded.get("progress").is_none());
+
+    let working: Conversation = serde_json::from_value(serde_json::json!({
+        "id": "cnv_1", "title": "Plan", "active_runs": 1,
+        "progress": "Revisando los borradores"
+    }))
+    .unwrap();
+    assert_eq!(
+        working.progress.as_deref(),
+        Some("Revisando los borradores")
+    );
+}
+
+#[test]
+fn a_progress_frame_keeps_its_run_and_line_and_a_close_has_no_line() {
+    let line = ChatEvent::from_frame(
+        "chat.progress",
+        &serde_json::json!({
+            "revision": 62, "conversation_id": "cnv_1",
+            "run_id": "run_1", "text": "Revisando los borradores"
+        }),
+    );
+    assert_eq!(line.event, "chat.progress");
+    assert_eq!(line.run_id.as_deref(), Some("run_1"));
+    assert_eq!(line.text.as_deref(), Some("Revisando los borradores"));
+
+    let close = ChatEvent::from_frame(
+        "chat.progress",
+        &serde_json::json!({
+            "revision": 63, "conversation_id": "cnv_1",
+            "run_id": "run_1", "text": null
+        }),
+    );
+    assert!(close.text.is_none());
+    assert_eq!(close.run_id.as_deref(), Some("run_1"));
 }

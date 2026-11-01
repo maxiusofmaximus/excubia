@@ -58,11 +58,58 @@ impl TeamService {
             }
             ToolCall::ApprovalDecide(decide) => self.decide_delegated(&grant.actor, decide),
             ToolCall::ApprovalPending => self.pending_approvals(&grant.actor),
-            ToolCall::Reply(_) | ToolCall::AskUser(_) => Err(ToolError::invalid(
+            ToolCall::StatusOverview => match grant.actor.role_id.as_str() {
+                "alfred" => self.status_overview(&grant.actor).await,
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "status.overview belongs to Alfred; a project seat reads its own panel",
+                )),
+            },
+            ToolCall::Mail(_) => Err(ToolError::invalid(
                 "scope_denied",
                 "tool",
-                "resident seats complete delegations, they do not reply to the chat",
+                "the mail tools belong to Alfred, not to a project seat",
             )),
+            ToolCall::Note(call) => match grant.actor.role_id.as_str() {
+                "alfred" => self.note_tool(&grant.actor, call).await,
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "the note tools belong to Alfred, not to a project seat",
+                )),
+            },
+            ToolCall::Contact(call) => match grant.actor.role_id.as_str() {
+                "alfred" => self.contact_tool(&grant.actor, call),
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "the contact tools belong to Alfred, not to a project seat",
+                )),
+            },
+            ToolCall::Calendar(call) => match grant.actor.role_id.as_str() {
+                "alfred" => self.calendar_tool(&grant.actor, call),
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "the calendar tools belong to Alfred, not to a project seat",
+                )),
+            },
+            ToolCall::Alert(call) => match grant.actor.role_id.as_str() {
+                "alfred" => self.alert_tool(&grant.actor, call),
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "the alert tools belong to Alfred, not to a project seat",
+                )),
+            },
+            ToolCall::Reply { .. } | ToolCall::AskUser(_) | ToolCall::Progress(_) => {
+                Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "resident seats complete delegations, they do not reply to the chat",
+                ))
+            }
         }
     }
 
@@ -74,7 +121,9 @@ impl TeamService {
         request: ToolRequest,
     ) -> Result<ToolReply, ToolError> {
         match call {
-            ToolCall::Reply(_) | ToolCall::AskUser(_) => self.alfred.tool(token, request).await,
+            ToolCall::Reply { .. } | ToolCall::AskUser(_) | ToolCall::Progress(_) => {
+                self.alfred.tool(token, request).await
+            }
             ToolCall::ProjectCreate(create) => self.create_project(&actor, create).await,
             ToolCall::AgentSpawn(spawn) => self.spawn_agent(&actor, spawn).await,
             ToolCall::DelegationAssign(assign) => self.assign(&actor, assign).await,
@@ -88,6 +137,12 @@ impl TeamService {
             }
             ToolCall::ApprovalDecide(decide) => self.decide_delegated(&actor, decide),
             ToolCall::ApprovalPending => self.pending_approvals(&actor),
+            ToolCall::StatusOverview => self.status_overview(&actor).await,
+            ToolCall::Mail(call) => self.mail.call(&actor, call).await,
+            ToolCall::Note(call) => self.note_tool(&actor, call).await,
+            ToolCall::Contact(call) => self.contact_tool(&actor, call),
+            ToolCall::Calendar(call) => self.calendar_tool(&actor, call),
+            ToolCall::Alert(call) => self.alert_tool(&actor, call),
         }
     }
 

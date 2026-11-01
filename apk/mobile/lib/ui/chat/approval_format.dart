@@ -45,10 +45,34 @@ String? levelLabel(String? level) => switch (level) {
   _ => null,
 };
 
-/// The lead seat that asked, found in the team. Specialists are not in the
-/// chat bootstrap, so they resolve to null and the card says «Un agente».
-ChatSeat? seatFor(String? seatId, List<ChatProject> projects) {
+/// Where a mail of the batch goes, in the card's words.
+String destLabel(String dest) => switch (dest) {
+  'junkemail' => 'No deseado',
+  'deleteditems' => 'Eliminados',
+  'inbox' => 'Bandeja de entrada',
+  _ => 'Destino desconocido',
+};
+
+/// The triage verdict of one mail. Clean means no automatic check found anything,
+/// never that the mail is safe.
+String? triageLabel(String? level) => switch (level) {
+  'phish_candidate' => 'posible phishing',
+  'suspicious' => 'sospechoso',
+  'bulk' => 'envío masivo',
+  'unknown' => 'sin datos de autenticación',
+  'clean' => 'sin señales automáticas',
+  _ => null,
+};
+
+/// The seat that asked: Alfred, or a lead found in the team. Specialists are not
+/// in the chat bootstrap, so they resolve to null and the card says «Un agente».
+ChatSeat? seatFor(
+  String? seatId,
+  List<ChatProject> projects,
+  ChatSeat? alfred,
+) {
   if (seatId == null) return null;
+  if (alfred != null && alfred.agentId == seatId) return alfred;
   for (final project in projects) {
     final lead = project.lead;
     if (lead != null && lead.agentId == seatId) return lead;
@@ -67,7 +91,16 @@ String? projectNameFor(String? seatId, List<ChatProject> projects) {
 }
 
 /// «Bob necesita permiso», or «Un agente» when the seat has no name.
-String agentTitle(String? seatId, List<ChatProject> projects) {
-  final name = seatFor(seatId, projects)?.name.trim() ?? '';
+String agentTitle(
+  String? seatId,
+  List<ChatProject> projects,
+  ChatSeat? alfred, {
+  String tool = '',
+}) {
+  // The host places a mail action on Alfred's behalf, with no seat of its own.
+  final asked = seatId == null && tool.startsWith('mail.')
+      ? alfred?.agentId
+      : seatId;
+  final name = seatFor(asked, projects, alfred)?.name.trim() ?? '';
   return name.isEmpty ? 'Un agente' : name;
 }

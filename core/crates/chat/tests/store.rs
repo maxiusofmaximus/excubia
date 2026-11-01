@@ -36,7 +36,7 @@ fn conversation(store: &ChatStore, title: &str) -> String {
 /// timeline while the run is still active.
 fn seed_agent_messages(store: &ChatStore, id: &str, texts: &[&str]) {
     let accepted = store
-        .append_user_message(id, "seed-messages", "inicio")
+        .append_user_message(id, "seed-messages", "inicio", None)
         .expect("seed message");
     for text in texts {
         store
@@ -52,6 +52,8 @@ fn all(store: &ChatStore) -> Vec<hn_core_chat::Conversation> {
             section_id: None,
             pinned: false,
             archived: false,
+            attention: false,
+            working: false,
             cursor: None,
             limit: 50,
         })
@@ -95,7 +97,10 @@ fn schema_and_migrations_are_idempotent() {
         let version: i64 = connection
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .expect("version");
-        assert_eq!(version, 6, "the approval mode tables are schema 6");
+        assert_eq!(
+            version, 21,
+            "the approval mode tables are schema 6; schema 7 adds the mail card table, schema 8 its expiry, schema 9 the hires, schema 10 the mail draft cards, schema 11 the reply fields of messages, schema 12 the progress line of runs, schema 13 the attachments, schema 14 the notes, schema 15 the contacts, schema 16 the origin of each address, schema 17 the app as a source of an address, schema 18 the calendar, schema 19 the recurrence of events, schema 20 the uid of an imported event, schema 21 the alert rules"
+        );
         assert_eq!(
             connection
                 .query_row(
@@ -114,11 +119,11 @@ fn client_id_is_idempotent() {
     let (store, _path, _dir) = store("idempotent");
     let id = conversation(&store, "Chat");
     let first = store
-        .append_user_message(&id, "client-1", "hola")
+        .append_user_message(&id, "client-1", "hola", None)
         .expect("first");
     let revision = store.revision().expect("revision");
     let second = store
-        .append_user_message(&id, "client-1", "hola")
+        .append_user_message(&id, "client-1", "hola", None)
         .expect("duplicate");
     assert!(!first.duplicate);
     assert!(second.duplicate);
@@ -196,6 +201,8 @@ fn search_finds_title_and_message_bodies() {
             section_id: None,
             pinned: false,
             archived: false,
+            attention: false,
+            working: false,
             cursor: None,
             limit: 10,
         })
@@ -208,6 +215,8 @@ fn search_finds_title_and_message_bodies() {
             section_id: None,
             pinned: false,
             archived: false,
+            attention: false,
+            working: false,
             cursor: None,
             limit: 10,
         })
@@ -220,6 +229,8 @@ fn search_finds_title_and_message_bodies() {
             section_id: None,
             pinned: false,
             archived: false,
+            attention: false,
+            working: false,
             cursor: None,
             limit: 10,
         })
@@ -275,6 +286,8 @@ fn metadata_survives_a_reopen() {
             section_id: Some(section.id),
             pinned: true,
             archived: true,
+            attention: false,
+            working: false,
             cursor: None,
             limit: 10,
         })
@@ -287,7 +300,7 @@ fn a_running_turn_is_interrupted_after_a_reopen() {
     let (store, path, _dir) = store("interrupted");
     let id = conversation(&store, "Chat");
     let accepted = store
-        .append_user_message(&id, "client-1", "sigue trabajando")
+        .append_user_message(&id, "client-1", "sigue trabajando", None)
         .expect("message");
     assert_eq!(accepted.turn.state, RunState::Queued);
     assert!(store.start_run(&accepted.turn.id).expect("start"));

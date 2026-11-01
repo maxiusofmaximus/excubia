@@ -30,7 +30,7 @@ void main() {
   });
 
   test('the working directory keeps its last two folders', () {
-    expect(shortCwd(r'C:\Users\Max\demo\api'), '…/demo/api');
+    expect(shortCwd(r'C:\Users\dev\demo\api'), '…/demo/api');
     expect(shortCwd('demo/api'), 'demo/api');
     expect(shortCwd('api'), 'api');
     expect(shortCwd('  '), isNull);
@@ -49,10 +49,36 @@ void main() {
   });
 
   test('the title names the lead seat, or falls back to "Un agente"', () {
-    expect(agentTitle('seat_bob', _projects), 'Bob');
-    expect(agentTitle('seat_ghost', _projects), 'Un agente');
-    expect(agentTitle(null, _projects), 'Un agente');
+    expect(agentTitle('seat_bob', _projects, null), 'Bob');
+    expect(agentTitle('seat_ghost', _projects, null), 'Un agente');
+    expect(agentTitle(null, _projects, null), 'Un agente');
     expect(projectNameFor('seat_bob', _projects), 'Demo');
     expect(projectNameFor('seat_ghost', _projects), isNull);
+  });
+
+  test('the title names Alfred by his seat, never by a project', () {
+    const alfred = ChatSeat(
+      agentId: 'seat_alfred',
+      name: 'Alfred',
+      status: 'working',
+    );
+    expect(agentTitle('seat_alfred', _projects, alfred), 'Alfred');
+    expect(agentTitle('seat_bob', _projects, alfred), 'Bob');
+    expect(agentTitle('seat_ghost', _projects, alfred), 'Un agente');
+    expect(agentTitle('seat_alfred', _projects, null), 'Un agente');
+    expect(agentTitle(null, _projects, alfred, tool: 'mail.move'), 'Alfred');
+    expect(agentTitle(null, _projects, alfred, tool: 'bash'), 'Un agente');
+    expect(projectNameFor('seat_alfred', _projects), isNull);
+  });
+
+  test('a mail destination and its triage verdict read as the card says', () {
+    expect(destLabel('junkemail'), 'No deseado');
+    expect(destLabel('deleteditems'), 'Eliminados');
+    expect(destLabel('inbox'), 'Bandeja de entrada');
+    expect(destLabel('archive'), 'Destino desconocido');
+    expect(triageLabel('phish_candidate'), 'posible phishing');
+    expect(triageLabel('clean'), 'sin señales automáticas');
+    expect(triageLabel('weird'), isNull);
+    expect(triageLabel(null), isNull);
   });
 }

@@ -50,6 +50,100 @@ export function isOperatorLevel(entry) {
   return entry.level === "user";
 }
 
+// A send the operator approves: the host adds its `details` for this device only.
+export function isMailSend(entry) {
+  return entry.tool === "mail.send";
+}
+
+// A batch of mails to move. Each mail is one item of the host's `details`.
+export function isMailMove(entry) {
+  return entry.tool === "mail.move";
+}
+
+// The batch as the host sent it, `excluded` marks included: a decided card shows
+// what was left out. A row without a message id cannot be answered, so it is dropped.
+export function moveItems(entry) {
+  const items = entry.details && Array.isArray(entry.details.items) ? entry.details.items : [];
+  return items
+    .filter((item) => item && typeof item.message_id === "string" && item.message_id !== "")
+    .map((item) => ({ ...item, excluded: Boolean(item.excluded) }));
+}
+
+const DEST_LABELS = new Map([
+  ["junkemail", "No deseado"],
+  ["deleteditems", "Eliminados"],
+  ["inbox", "Bandeja de entrada"],
+]);
+
+export function destLabel(dest) {
+  return DEST_LABELS.get(dest) || "Destino desconocido";
+}
+
+// The core's triage verdict for a mail (not the level that holds the approval).
+const TRIAGE_LABELS = new Map([
+  ["phish_candidate", "Posible phishing"],
+  ["suspicious", "Sospechoso"],
+  ["bulk", "Masivo"],
+  ["clean", "Limpio"],
+  ["unknown", "Sin evaluar"],
+]);
+
+export function triageLabel(level) {
+  return TRIAGE_LABELS.get(level) || "Sin evaluar";
+}
+
+const SUBJECT_MAX = 80;
+
+// The subject as the mail wrote it, trimmed to one short line.
+export function subjectText(subject) {
+  const text = String(subject || "").trim();
+  if (!text) return "(sin asunto)";
+  return text.length > SUBJECT_MAX ? `${text.slice(0, SUBJECT_MAX - 1)}…` : text;
+}
+
+// The mails the host still moves: the ones nobody left out.
+function liveItems(entry) {
+  return moveItems(entry).filter((item) => !item.excluded);
+}
+
+// How many of the mails still in the batch stay checked, out of how many.
+export function moveCounts(entry, unchecked = new Set()) {
+  const live = liveItems(entry);
+  const checked = live.filter((item) => !unchecked.has(item.message_id)).length;
+  return { checked, total: live.length };
+}
+
+export function canApproveMove(entry, unchecked = new Set()) {
+  return moveCounts(entry, unchecked).checked > 0;
+}
+
+export function moveTitle(entry) {
+  return `${moveItems(entry).length} correos a mover`;
+}
+
+export function moveApproveLabel(entry, unchecked = new Set()) {
+  const { checked, total } = moveCounts(entry, unchecked);
+  return `Mover los seleccionados (${checked} de ${total})`;
+}
+
+// A `mail.move` with mails in it earns the checklist; without them it is a plain card.
+export function isMoveBatch(entry) {
+  return isMailMove(entry) && moveItems(entry).length > 0;
+}
+
+// The ids the operator unchecked, as the host's `exclude` wants them: only mails of
+// this batch that the host has not already left out.
+export function excludeFor(entry, unchecked = new Set()) {
+  return liveItems(entry)
+    .filter((item) => unchecked.has(item.message_id))
+    .map((item) => item.message_id);
+}
+
+// A retry reuses its client id only for the same decision with the same mails left out.
+export function sameIds(a = [], b = []) {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
 export function remainingSeconds(expiresAt, now = Date.now()) {
   const until = Date.parse(expiresAt);
   if (Number.isNaN(until)) return null;

@@ -72,6 +72,10 @@ uv pip install --python .venv/Scripts/python.exe -e ".[dev]"
 PYTHONPATH=src .venv/Scripts/python.exe -m herdr_notify.cli dump --follow
 ```
 
+**Migración:** quien tenía la app Kotlin v0.1.x y actualiza a esta versión
+recibe la oferta «Usar / Emparejar de nuevo» con el equipo anterior. Detalle en
+[`docs/contracts/pairing.md`](docs/contracts/pairing.md) (APK11).
+
 ## Testing
 
 ```bash

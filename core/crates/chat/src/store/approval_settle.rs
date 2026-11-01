@@ -107,13 +107,16 @@ pub(super) fn route(
     now_ms: i64,
     expires_ms: i64,
 ) -> Result<(), ChatError> {
-    if placement.status == ApprovalStatus::Pending && !has_conversation {
+    // An approval the policy already sent to the operator keeps its reason: the
+    // reason says why it is theirs (`never_delegate`), not who was missing.
+    let waits_for_agent =
+        placement.status == ApprovalStatus::Pending && placement.level != ApprovalLevel::User;
+    if waits_for_agent && !has_conversation {
         // No conversation means no agent that can answer it: only the operator
         // sees it, so it waits at `user` where the inbox counts it.
         placement.level = ApprovalLevel::User;
         placement.reason = Some(DECIDER_UNAVAILABLE);
-    } else if placement.status == ApprovalStatus::Pending && placement.level == ApprovalLevel::Lead
-    {
+    } else if waits_for_agent && placement.level == ApprovalLevel::Lead {
         let reason = placement.reason.unwrap_or("no_rule");
         let from = placement.escalated_from.unwrap_or(ApprovalLevel::Policy);
         let climbed = hop(connection, from, project_id, now_ms, expires_ms, reason)?;
@@ -384,5 +387,11 @@ fn timeline_summary(connection: &Connection, approval: &Approval) -> Result<Stri
         ApprovalStatus::Expired => "expiró",
         _ => "resolvió",
     };
-    Ok(format!("{who} {verb}: {}", approval.summary))
+    let left_out = super::approval_exclusion::left_out(approval);
+    let tail = if left_out > 0 && approval.status == ApprovalStatus::Approved {
+        format!(" · dejaste fuera {left_out}")
+    } else {
+        String::new()
+    };
+    Ok(format!("{who} {verb}: {}{tail}", approval.summary))
 }

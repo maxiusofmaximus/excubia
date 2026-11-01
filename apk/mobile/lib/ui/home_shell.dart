@@ -6,7 +6,9 @@ import 'package:herdr_notify/src/rust/api/signing.dart';
 import '../core/api/gateway_client.dart';
 import '../core/state/approvals_controller.dart';
 import '../core/state/chat_controller.dart';
+import '../core/state/hires_controller.dart';
 import '../core/state/live_triage.dart';
+import '../core/state/voice_send_settings.dart';
 import '../core/storage/pairing_store.dart';
 import 'agents_screen.dart';
 import 'chat/chat_screen.dart';
@@ -28,6 +30,7 @@ class _HomeShellState extends State<HomeShell> {
   LiveTriage? _triage;
   ChatController? _chat;
   ApprovalsController? _approvals;
+  HiresController? _hires;
   bool _keyError = false;
   int _tab = 0;
 
@@ -41,29 +44,35 @@ class _HomeShellState extends State<HomeShell> {
       _keyError = true;
       return;
     }
-    final client = GatewayClient(
-      baseUrl: widget.pairing.baseUrl,
-      deviceId: widget.pairing.deviceId,
-      privateKeyBase64: widget.pairing.privateKey,
-      pins: widget.pairing.pins,
-    );
+    final client = GatewayClient.forPairing(widget.pairing);
     final triage = LiveTriage(client)..start();
     final approvals = ApprovalsController(
       transport: client,
       deviceId: widget.pairing.deviceId,
     );
-    final chat = ChatController(client, triage, approvals: approvals);
+    final voiceSend = VoiceSendSettings(SecureKeyValueStore());
+    unawaited(voiceSend.load());
+    final chat = ChatController(
+      client,
+      triage,
+      approvals: approvals,
+      voiceSend: voiceSend,
+    );
+    final hires = HiresController(transport: client);
     _triage = triage;
     _chat = chat;
     _approvals = approvals;
+    _hires = hires;
     chat.start();
     unawaited(approvals.refresh());
+    unawaited(hires.load());
   }
 
   @override
   void dispose() {
     _chat?.dispose();
     _approvals?.dispose();
+    _hires?.dispose();
     _triage?.dispose();
     super.dispose();
   }
@@ -115,11 +124,13 @@ class _HomeShellState extends State<HomeShell> {
         children: [
           ChatScreen(
             controller: chat,
+            hires: _hires!,
             onOpenTeam: () => setState(() => _tab = 1),
           ),
           AgentsScreen(
             triage: _triage!,
             chat: chat,
+            hires: _hires!,
             onUnpaired: widget.onUnpaired,
           ),
         ],

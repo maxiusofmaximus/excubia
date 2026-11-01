@@ -6,8 +6,8 @@ use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Row};
 use crate::error::ChatError;
 use crate::id;
 use crate::model::{
-    Conversation, ConversationDetail, ConversationFilter, ConversationPage, ConversationUpdate,
-    NewConversation, SeatSummary, SectionChange,
+    Conversation, ConversationCounts, ConversationDetail, ConversationFilter, ConversationPage,
+    ConversationUpdate, NewConversation, SeatSummary, SectionChange,
 };
 use crate::schema;
 
@@ -18,8 +18,31 @@ const SELECT: &str = "SELECT c.id, c.title, c.project_id, c.pinned, c.section_id
         COALESCE((SELECT MAX(m.seq) FROM message m WHERE m.conversation_id = c.id), 0) AS last_seq,
         (SELECT COUNT(*) FROM message m
           WHERE m.conversation_id = c.id AND m.author_kind = 'agent'
-            AND m.seq > c.last_read_seq) AS unread
+            AND m.seq > c.last_read_seq) AS unread,
+        (SELECT COUNT(*) FROM run r
+          WHERE r.state IN ('queued', 'running') AND (
+                r.message_id IN (SELECT m.id FROM message m WHERE m.conversation_id = c.id)
+                OR r.id IN (SELECT d.run_id FROM delegation d WHERE d.conversation_id = c.id)))
+          AS active_runs,
+        (SELECT r.progress FROM run r JOIN message m ON m.id = r.message_id
+          WHERE m.conversation_id = c.id AND r.state IN ('queued', 'running')
+            AND r.progress IS NOT NULL
+          ORDER BY r.started_at DESC LIMIT 1) AS progress
    FROM conversation c";
+
+/// An unread agent reply, or an approval that waits at the operator (the
+/// `pending_user_approvals` of the summary). Both filters and the counts use it.
+const ATTENTION: &str = "(EXISTS (SELECT 1 FROM message m
+          WHERE m.conversation_id = c.id AND m.author_kind = 'agent'
+            AND m.seq > c.last_read_seq)
+     OR EXISTS (SELECT 1 FROM approval a
+          WHERE a.conversation_id = c.id AND a.status = 'pending' AND a.level = 'user'))";
+
+/// A turn queued or running, its own or a delegation's: the rule of `active_runs`.
+const WORKING: &str = "EXISTS (SELECT 1 FROM run r
+          WHERE r.state IN ('queued', 'running') AND (
+                r.message_id IN (SELECT m.id FROM message m WHERE m.conversation_id = c.id)
+                OR r.id IN (SELECT d.run_id FROM delegation d WHERE d.conversation_id = c.id)))";
 
 impl super::ChatStore {
     pub fn list_conversations(
@@ -39,6 +62,14 @@ impl super::ChatStore {
         if let Some(section_id) = &filter.section_id {
             sql.push_str(" AND c.section_id = ?");
             values.push(Value::Text(section_id.clone()));
+        }
+        if filter.attention {
+            sql.push_str(" AND ");
+            sql.push_str(ATTENTION);
+        }
+        if filter.working {
+            sql.push_str(" AND ");
+            sql.push_str(WORKING);
         }
         if let Some(raw) = filter.q.as_deref().map(str::trim).filter(|q| !q.is_empty()) {
             match (self.search, fts_terms(raw)) {
@@ -90,6 +121,29 @@ impl super::ChatStore {
             conversations,
             next_cursor,
         })
+    }
+
+    /// The chip numbers, counted by the database in one statement.
+    pub fn conversation_counts(&self) -> Result<ConversationCounts, ChatError> {
+        let connection = self.lock();
+        let company = company_id(&connection)?;
+        let sql = format!(
+            "SELECT COUNT(CASE WHEN c.archived = 0 THEN 1 END),
+                    COUNT(CASE WHEN c.archived = 0 AND {ATTENTION} THEN 1 END),
+                    COUNT(CASE WHEN c.archived = 0 AND {WORKING} THEN 1 END),
+                    COUNT(CASE WHEN c.archived = 1 THEN 1 END)
+               FROM conversation c
+              WHERE c.company_id = ?1"
+        );
+        let counts = connection.query_row(&sql, [company], |row| {
+            Ok(ConversationCounts {
+                all: row.get::<_, i64>(0)? as u64,
+                attention: row.get::<_, i64>(1)? as u64,
+                working: row.get::<_, i64>(2)? as u64,
+                archived: row.get::<_, i64>(3)? as u64,
+            })
+        })?;
+        Ok(counts)
     }
 
     pub fn create_conversation(&self, new: NewConversation) -> Result<Conversation, ChatError> {
@@ -301,6 +355,8 @@ fn row_to_conversation(row: &Row<'_>) -> rusqlite::Result<Conversation> {
         updated_at: row.get(9)?,
         last_seq: row.get(10)?,
         unread: row.get::<_, i64>(11)?.max(0) as u64,
+        active_runs: row.get::<_, i64>(12)?.max(0) as u32,
+        progress: row.get(13)?,
     })
 }
 

@@ -55,6 +55,20 @@ pub struct PinnedReply {
     pub failure: Option<PinnedFailure>,
 }
 
+/// A binary answer, kept as the bytes the host sent.
+pub struct PinnedBytesResponse {
+    pub status: u16,
+    pub body: Vec<u8>,
+    pub retry_after: Option<u32>,
+    pub address: String,
+}
+
+/// Exactly one of `response` and `failure` is set.
+pub struct PinnedBytesReply {
+    pub response: Option<PinnedBytesResponse>,
+    pub failure: Option<PinnedFailure>,
+}
+
 /// Exactly one of `text` and `failure` is set; a failure is always the last item.
 pub struct PinnedLine {
     pub text: Option<String>,
@@ -114,18 +128,33 @@ pub fn pinned_request(
     headers: Vec<HeaderField>,
     body: Vec<u8>,
 ) -> PinnedReply {
+    let reply = pinned_request_bytes(endpoint, method, target, headers, body);
+    PinnedReply {
+        response: reply.response.map(text_response),
+        failure: reply.failure,
+    }
+}
+
+/// Like `pinned_request`, but the body is returned as the bytes the host sent.
+pub fn pinned_request_bytes(
+    endpoint: PinnedEndpoint,
+    method: String,
+    target: String,
+    headers: Vec<HeaderField>,
+    body: Vec<u8>,
+) -> PinnedBytesReply {
     let request = Request {
         method: &method,
         target: &target,
         headers: &headers,
         body: &body,
     };
-    match send(&endpoint, request) {
-        Ok(response) => PinnedReply {
+    match send_bytes(&endpoint, request) {
+        Ok(response) => PinnedBytesReply {
             response: Some(response),
             failure: None,
         },
-        Err(failure) => PinnedReply {
+        Err(failure) => PinnedBytesReply {
             response: None,
             failure: Some(failure),
         },
@@ -193,12 +222,24 @@ fn stop(failure: PinnedFailure) -> PinnedLine {
     }
 }
 
-fn send(endpoint: &PinnedEndpoint, request: Request<'_>) -> Result<PinnedResponse, PinnedFailure> {
+fn text_response(raw: PinnedBytesResponse) -> PinnedResponse {
+    PinnedResponse {
+        status: raw.status,
+        body: String::from_utf8_lossy(&raw.body).into_owned(),
+        retry_after: raw.retry_after,
+        address: raw.address,
+    }
+}
+
+fn send_bytes(
+    endpoint: &PinnedEndpoint,
+    request: Request<'_>,
+) -> Result<PinnedBytesResponse, PinnedFailure> {
     let mut exchange = transport::exchange(endpoint, request, REQUEST_TIMEOUT)?;
-    let bytes = read_capped(&mut exchange.body)?;
-    Ok(PinnedResponse {
+    let body = read_capped(&mut exchange.body)?;
+    Ok(PinnedBytesResponse {
         status: exchange.status,
-        body: String::from_utf8_lossy(&bytes).into_owned(),
+        body,
         retry_after: exchange.retry_after,
         address: exchange.address.to_string(),
     })

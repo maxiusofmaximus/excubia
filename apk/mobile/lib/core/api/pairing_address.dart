@@ -81,6 +81,6 @@ class PairingAddress {
     final uri = Uri.tryParse(url);
     if (uri == null || uri.scheme != 'http' || allowLoopback) return null;
     if (!_isPrivate(uri.host)) return null;
-    return 'Usa la dirección de la tailnet (100.x) o https';
+    return 'Usa https o la dirección de una VPN privada (100.x)';
   }
 }

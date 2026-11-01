@@ -9,12 +9,19 @@ import 'api/approvals/model.dart';
 import 'api/approvals/plan.dart';
 import 'api/approvals/reducer.dart';
 import 'api/catalog.dart';
+import 'api/chat/attach_model.dart';
+import 'api/chat/attach_plan.dart';
+import 'api/chat/attach_upload.dart';
 import 'api/chat/model.dart';
 import 'api/chat/model_team.dart';
 import 'api/chat/plan.dart';
 import 'api/chat/reducer.dart';
 import 'api/error.dart';
 import 'api/error/chat.dart';
+import 'api/mail.dart';
+import 'api/onboarding/error.dart';
+import 'api/onboarding/model.dart';
+import 'api/onboarding/plan.dart';
 import 'api/pinned.dart';
 import 'api/policy.dart';
 import 'api/signing.dart';
@@ -87,7 +94,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -2125115815;
+  int get rustContentHash => -570281874;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -133,6 +140,11 @@ abstract class RustLibApi extends BaseApi {
     required ChatEvent event,
   });
 
+  void crateApiChatReducerChatReducerAcceptConversations({
+    required ChatReducer that,
+    required List<ChatConversation> conversations,
+  });
+
   ChatEvent? crateApiChatReducerChatReducerAcceptEvent({
     required ChatReducer that,
     required String json,
@@ -170,7 +182,17 @@ abstract class RustLibApi extends BaseApi {
     required String clientId,
   });
 
+  String? crateApiChatReducerChatReducerProgressOf({
+    required ChatReducer that,
+    required String conversationId,
+  });
+
   void crateApiChatReducerChatReducerReset({required ChatReducer that});
+
+  void crateApiChatReducerChatReducerSettleTurn({
+    required ChatReducer that,
+    required String conversationId,
+  });
 
   ChatSnapshot crateApiChatReducerChatReducerSnapshot({
     required ChatReducer that,
@@ -190,6 +212,12 @@ abstract class RustLibApi extends BaseApi {
 
   String crateApiApprovalsErrorApprovalGrantCommand({required String deviceId});
 
+  Future<String?> crateApiChatAttachUploadAttachmentSha256({
+    required String path,
+  });
+
+  bool crateApiErrorChatChatCountsUnsupported({required int status});
+
   StopFailure crateApiErrorClassifyStopError({
     required int status,
     required String body,
@@ -203,11 +231,23 @@ abstract class RustLibApi extends BaseApi {
     required String deviceId,
   });
 
+  AttachmentFailure crateApiChatAttachModelExplainAttachmentError({
+    required int status,
+    required String body,
+    int? retryAfter,
+  });
+
   ChatFailure crateApiErrorChatExplainChatError({
     required int status,
     required String body,
     int? retryAfter,
     required WriteAction action,
+  });
+
+  ChatFailure crateApiErrorChatExplainChatStopError({
+    required int status,
+    required String body,
+    int? retryAfter,
   });
 
   ErrorInfo crateApiErrorExplainCreateError({
@@ -222,10 +262,20 @@ abstract class RustLibApi extends BaseApi {
     required WriteAction action,
   });
 
+  ErrorInfo crateApiOnboardingErrorExplainHireError({
+    required int status,
+    required String body,
+  });
+
   ErrorInfo crateApiErrorExplainHttpError({
     required int status,
     required String body,
     required WriteAction action,
+  });
+
+  ErrorInfo crateApiOnboardingErrorExplainOnboardingError({
+    required int status,
+    required String body,
   });
 
   ErrorInfo crateApiErrorExplainPairingError({required int status});
@@ -267,6 +317,18 @@ abstract class RustLibApi extends BaseApi {
     required String json,
   });
 
+  ChatAttachment? crateApiChatAttachModelParseAttachmentCompleted({
+    required String json,
+  });
+
+  String? crateApiChatAttachModelParseAttachmentCreated({required String json});
+
+  bool crateApiChatAttachModelParseAttachmentDeleted({required String json});
+
+  BigInt? crateApiChatAttachModelParseAttachmentNextOffset({
+    required String json,
+  });
+
   List<CatalogEntry>? crateApiCatalogParseCatalog({required String json});
 
   ChatBootstrap? crateApiChatModelParseChatBootstrap({required String json});
@@ -279,6 +341,8 @@ abstract class RustLibApi extends BaseApi {
     required String json,
   });
 
+  ChatCounts? crateApiChatModelParseChatCounts({required String json});
+
   ChatDelegation? crateApiChatModelParseChatDelegation({required String json});
 
   ChatEvent? crateApiChatModelParseChatEvent({required String json});
@@ -287,9 +351,21 @@ abstract class RustLibApi extends BaseApi {
 
   List<ChatSection>? crateApiChatModelParseChatSections({required String json});
 
+  bool? crateApiChatModelParseChatStop({required String json});
+
   CreatedWorkspace? crateApiWorkspaceParseCreated({required String json});
 
+  Hire? crateApiOnboardingModelParseHire({required String json});
+
+  HireList? crateApiOnboardingModelParseHires({required String json});
+
+  OnboardingAnswer? crateApiOnboardingModelParseOnboardingAnswer({
+    required String json,
+  });
+
   PairingLinkResult crateApiPinnedParsePairingLink({required String uri});
+
+  RoleCatalog? crateApiOnboardingModelParseRoleCatalog({required String json});
 
   StateSnapshot? crateApiStateParseState({required String json});
 
@@ -307,10 +383,19 @@ abstract class RustLibApi extends BaseApi {
     required List<int> body,
   });
 
+  Future<PinnedBytesReply> crateApiPinnedPinnedRequestBytes({
+    required PinnedEndpoint endpoint,
+    required String method,
+    required String target,
+    required List<HeaderField> headers,
+    required List<int> body,
+  });
+
   ChatPlan crateApiApprovalsPlanPlanApprovalDecision({
     required String approvalId,
     required bool approve,
     required String clientId,
+    required List<String> exclude,
   });
 
   ChatPlan crateApiApprovalsPlanPlanApprovalInbox({
@@ -318,14 +403,42 @@ abstract class RustLibApi extends BaseApi {
     String? status,
   });
 
-  ChatPlan crateApiApprovalsPlanPlanApprovalRead({required String approvalId});
-
   ChatPlan crateApiApprovalsPlanPlanApprovalSettingsRead();
 
   ChatPlan crateApiApprovalsPlanPlanApprovalSettingsWrite({
     required String mode,
     String? projectId,
     required String clientId,
+  });
+
+  ChatPlan crateApiChatAttachPlanPlanAttachmentChunk({
+    required String conversationId,
+    required String attachmentId,
+    required BigInt offset,
+    required List<int> data,
+  });
+
+  ChatPlan crateApiChatAttachPlanPlanAttachmentComplete({
+    required String conversationId,
+    required String attachmentId,
+  });
+
+  ChatPlan crateApiChatAttachPlanPlanAttachmentContent({
+    required String conversationId,
+    required String attachmentId,
+  });
+
+  ChatPlan crateApiChatAttachPlanPlanAttachmentCreate({
+    required String conversationId,
+    required String clientId,
+    required String name,
+    required BigInt size,
+    required String sha256,
+  });
+
+  ChatPlan crateApiChatAttachPlanPlanAttachmentDelete({
+    required String conversationId,
+    required String attachmentId,
   });
 
   ChatPlan crateApiChatPlanPlanChatArchiveConversation({
@@ -344,12 +457,20 @@ abstract class RustLibApi extends BaseApi {
     String? sectionId,
     bool? pinned,
     bool? archived,
+    required bool attention,
+    required bool working,
     String? cursor,
   });
+
+  ChatPlan crateApiChatPlanPlanChatCounts();
 
   ChatPlan crateApiChatPlanPlanChatCreateConversation({String? title});
 
   ChatPlan crateApiChatPlanPlanChatDelegation({required String delegationId});
+
+  ChatPlan crateApiChatPlanPlanChatDeleteConversation({
+    required String conversationId,
+  });
 
   ChatPlan crateApiChatPlanPlanChatMessages({
     required String conversationId,
@@ -388,7 +509,18 @@ abstract class RustLibApi extends BaseApi {
     required String conversationId,
     required String clientId,
     required String text,
+    String? replyToId,
   });
+
+  ChatPlan crateApiChatAttachPlanPlanChatSendWithAttachments({
+    required String conversationId,
+    required String clientId,
+    required String text,
+    String? replyToId,
+    required List<String> attachments,
+  });
+
+  ChatPlan crateApiChatPlanPlanChatStop({required String conversationId});
 
   ChatPlan crateApiChatPlanPlanChatTimeline({
     required String conversationId,
@@ -400,6 +532,54 @@ abstract class RustLibApi extends BaseApi {
     required String cwd,
     String? label,
   });
+
+  ChatPlan crateApiMailPlanDraftConfirm({
+    required String account,
+    required String draftId,
+    required String approvalId,
+  });
+
+  ChatPlan crateApiMailPlanDraftSend({
+    required String account,
+    required String draftId,
+  });
+
+  ChatPlan crateApiMailPlanDraftUpdate({
+    required String account,
+    required String draftId,
+    required List<String> to,
+    required List<String> cc,
+    required String subject,
+    required String body,
+  });
+
+  ChatPlan crateApiOnboardingPlanPlanHire({required String role});
+
+  ChatPlan crateApiOnboardingPlanPlanHireAvatar({
+    required String hireId,
+    String? avatar,
+  });
+
+  ChatPlan crateApiOnboardingPlanPlanHireDismiss({required String hireId});
+
+  ChatPlan crateApiOnboardingPlanPlanHireRename({
+    required String hireId,
+    required String name,
+  });
+
+  ChatPlan crateApiOnboardingPlanPlanHires({required bool includeRemoved});
+
+  ChatPlan crateApiOnboardingPlanPlanOnboardingContract({
+    required List<String> areas,
+    required String level,
+    required List<String> roles,
+  });
+
+  ChatPlan crateApiOnboardingPlanPlanOnboardingRead();
+
+  ChatPlan crateApiOnboardingPlanPlanOnboardingSkip();
+
+  ChatPlan crateApiOnboardingPlanPlanRoles();
 
   WritePlan crateApiWritePlanStop({required String paneId});
 
@@ -413,6 +593,22 @@ abstract class RustLibApi extends BaseApi {
     required String target,
     required List<int> body,
   });
+
+  UploadCursor crateApiChatAttachUploadUploadAccepted({
+    required UploadCursor cursor,
+    required BigInt nextOffset,
+  });
+
+  ChunkSpan? crateApiChatAttachUploadUploadNext({required UploadCursor cursor});
+
+  double crateApiChatAttachUploadUploadProgress({required UploadCursor cursor});
+
+  UploadCursor? crateApiChatAttachUploadUploadRefused({
+    required UploadCursor cursor,
+    required AttachmentFailure failure,
+  });
+
+  UploadCursor crateApiChatAttachUploadUploadStart({required BigInt size});
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApprovalReducer;
@@ -684,6 +880,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  void crateApiChatReducerChatReducerAcceptConversations({
+    required ChatReducer that,
+    required List<ChatConversation> conversations,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerChatReducer(
+            that,
+            serializer,
+          );
+          sse_encode_list_chat_conversation(conversations, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatReducerChatReducerAcceptConversationsConstMeta,
+        argValues: [that, conversations],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiChatReducerChatReducerAcceptConversationsConstMeta =>
+      const TaskConstMeta(
+        debugName: "ChatReducer_accept_conversations",
+        argNames: ["that", "conversations"],
+      );
+
+  @override
   ChatEvent? crateApiChatReducerChatReducerAcceptEvent({
     required ChatReducer that,
     required String json,
@@ -697,7 +927,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_event,
@@ -730,7 +960,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -765,7 +995,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
           sse_encode_String(clientId, serializer);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -798,7 +1028,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -833,7 +1063,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
           sse_encode_String(clientId, serializer);
           sse_encode_String(text, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -866,7 +1096,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(clientId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -899,7 +1129,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(clientId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -919,6 +1149,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  String? crateApiChatReducerChatReducerProgressOf({
+    required ChatReducer that,
+    required String conversationId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerChatReducer(
+            that,
+            serializer,
+          );
+          sse_encode_String(conversationId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatReducerChatReducerProgressOfConstMeta,
+        argValues: [that, conversationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatReducerChatReducerProgressOfConstMeta =>
+      const TaskConstMeta(
+        debugName: "ChatReducer_progress_of",
+        argNames: ["that", "conversationId"],
+      );
+
+  @override
   void crateApiChatReducerChatReducerReset({required ChatReducer that}) {
     return handler.executeSync(
       SyncTask(
@@ -928,7 +1191,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -945,6 +1208,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "ChatReducer_reset", argNames: ["that"]);
 
   @override
+  void crateApiChatReducerChatReducerSettleTurn({
+    required ChatReducer that,
+    required String conversationId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerChatReducer(
+            that,
+            serializer,
+          );
+          sse_encode_String(conversationId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatReducerChatReducerSettleTurnConstMeta,
+        argValues: [that, conversationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatReducerChatReducerSettleTurnConstMeta =>
+      const TaskConstMeta(
+        debugName: "ChatReducer_settle_turn",
+        argNames: ["that", "conversationId"],
+      );
+
+  @override
   ChatSnapshot crateApiChatReducerChatReducerSnapshot({
     required ChatReducer that,
   }) {
@@ -956,7 +1252,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_snapshot,
@@ -993,7 +1289,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(delegationId, serializer);
           sse_encode_String(status, serializer);
           sse_encode_String(summary, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1026,7 +1322,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(line, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_stream_event,
@@ -1054,7 +1350,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(deviceId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -1074,6 +1370,62 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<String?> crateApiChatAttachUploadAttachmentSha256({
+    required String path,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(path, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 23,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachUploadAttachmentSha256ConstMeta,
+        argValues: [path],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachUploadAttachmentSha256ConstMeta =>
+      const TaskConstMeta(debugName: "attachment_sha256", argNames: ["path"]);
+
+  @override
+  bool crateApiErrorChatChatCountsUnsupported({required int status}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_16(status, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiErrorChatChatCountsUnsupportedConstMeta,
+        argValues: [status],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiErrorChatChatCountsUnsupportedConstMeta =>
+      const TaskConstMeta(
+        debugName: "chat_counts_unsupported",
+        argNames: ["status"],
+      );
+
+  @override
   StopFailure crateApiErrorClassifyStopError({
     required int status,
     required String body,
@@ -1084,7 +1436,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_u_16(status, serializer);
           sse_encode_String(body, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_stop_failure,
@@ -1109,7 +1461,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -1138,7 +1490,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_u_16(status, serializer);
           sse_encode_String(body, serializer);
           sse_encode_String(deviceId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_approval_failure,
@@ -1158,6 +1510,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  AttachmentFailure crateApiChatAttachModelExplainAttachmentError({
+    required int status,
+    required String body,
+    int? retryAfter,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_16(status, serializer);
+          sse_encode_String(body, serializer);
+          sse_encode_opt_box_autoadd_u_32(retryAfter, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_attachment_failure,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachModelExplainAttachmentErrorConstMeta,
+        argValues: [status, body, retryAfter],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachModelExplainAttachmentErrorConstMeta =>
+      const TaskConstMeta(
+        debugName: "explain_attachment_error",
+        argNames: ["status", "body", "retryAfter"],
+      );
+
+  @override
   ChatFailure crateApiErrorChatExplainChatError({
     required int status,
     required String body,
@@ -1172,7 +1556,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(body, serializer);
           sse_encode_opt_box_autoadd_u_32(retryAfter, serializer);
           sse_encode_write_action(action, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_failure,
@@ -1192,6 +1576,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  ChatFailure crateApiErrorChatExplainChatStopError({
+    required int status,
+    required String body,
+    int? retryAfter,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_16(status, serializer);
+          sse_encode_String(body, serializer);
+          sse_encode_opt_box_autoadd_u_32(retryAfter, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_failure,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiErrorChatExplainChatStopErrorConstMeta,
+        argValues: [status, body, retryAfter],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiErrorChatExplainChatStopErrorConstMeta =>
+      const TaskConstMeta(
+        debugName: "explain_chat_stop_error",
+        argNames: ["status", "body", "retryAfter"],
+      );
+
+  @override
   ErrorInfo crateApiErrorExplainCreateError({
     required int status,
     required String body,
@@ -1202,7 +1618,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_u_16(status, serializer);
           sse_encode_String(body, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_error_info,
@@ -1236,7 +1652,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_opt_String(code, serializer);
           sse_encode_String(message, serializer);
           sse_encode_write_action(action, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_error_info,
@@ -1255,6 +1671,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  ErrorInfo crateApiOnboardingErrorExplainHireError({
+    required int status,
+    required String body,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_16(status, serializer);
+          sse_encode_String(body, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_error_info,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingErrorExplainHireErrorConstMeta,
+        argValues: [status, body],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingErrorExplainHireErrorConstMeta =>
+      const TaskConstMeta(
+        debugName: "explain_hire_error",
+        argNames: ["status", "body"],
+      );
+
+  @override
   ErrorInfo crateApiErrorExplainHttpError({
     required int status,
     required String body,
@@ -1267,7 +1713,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_u_16(status, serializer);
           sse_encode_String(body, serializer);
           sse_encode_write_action(action, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_error_info,
@@ -1287,13 +1733,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  ErrorInfo crateApiOnboardingErrorExplainOnboardingError({
+    required int status,
+    required String body,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_16(status, serializer);
+          sse_encode_String(body, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_error_info,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingErrorExplainOnboardingErrorConstMeta,
+        argValues: [status, body],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingErrorExplainOnboardingErrorConstMeta =>
+      const TaskConstMeta(
+        debugName: "explain_onboarding_error",
+        argNames: ["status", "body"],
+      );
+
+  @override
   ErrorInfo crateApiErrorExplainPairingError({required int status}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_u_16(status, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_error_info,
@@ -1321,7 +1797,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(privateKeyB64, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_String,
@@ -1346,7 +1822,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_device_key_material,
@@ -1371,7 +1847,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1396,7 +1872,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_error_info(error, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_failure,
@@ -1418,7 +1894,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1440,7 +1916,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 42)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -1463,7 +1939,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 43)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -1485,7 +1961,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 44)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -1508,7 +1984,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 45)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -1536,7 +2012,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(message, serializer);
           sse_encode_String(action, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 46)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_failure,
@@ -1564,7 +2040,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_list_chat_approval,
@@ -1592,7 +2068,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 48)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_approval,
@@ -1620,7 +2096,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 49)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_approval_settings,
@@ -1640,13 +2116,124 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  ChatAttachment? crateApiChatAttachModelParseAttachmentCompleted({
+    required String json,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_chat_attachment,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachModelParseAttachmentCompletedConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachModelParseAttachmentCompletedConstMeta =>
+      const TaskConstMeta(
+        debugName: "parse_attachment_completed",
+        argNames: ["json"],
+      );
+
+  @override
+  String? crateApiChatAttachModelParseAttachmentCreated({
+    required String json,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 51)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachModelParseAttachmentCreatedConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachModelParseAttachmentCreatedConstMeta =>
+      const TaskConstMeta(
+        debugName: "parse_attachment_created",
+        argNames: ["json"],
+      );
+
+  @override
+  bool crateApiChatAttachModelParseAttachmentDeleted({required String json}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachModelParseAttachmentDeletedConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachModelParseAttachmentDeletedConstMeta =>
+      const TaskConstMeta(
+        debugName: "parse_attachment_deleted",
+        argNames: ["json"],
+      );
+
+  @override
+  BigInt? crateApiChatAttachModelParseAttachmentNextOffset({
+    required String json,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 53)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_u_64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachModelParseAttachmentNextOffsetConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiChatAttachModelParseAttachmentNextOffsetConstMeta =>
+      const TaskConstMeta(
+        debugName: "parse_attachment_next_offset",
+        argNames: ["json"],
+      );
+
+  @override
   List<CatalogEntry>? crateApiCatalogParseCatalog({required String json}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_list_catalog_entry,
@@ -1669,7 +2256,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 42)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_bootstrap,
@@ -1697,7 +2284,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 43)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_conversation,
@@ -1725,7 +2312,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 44)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_conversation_page,
@@ -1745,13 +2332,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  ChatCounts? crateApiChatModelParseChatCounts({required String json}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_chat_counts,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatModelParseChatCountsConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatModelParseChatCountsConstMeta =>
+      const TaskConstMeta(debugName: "parse_chat_counts", argNames: ["json"]);
+
+  @override
   ChatDelegation? crateApiChatModelParseChatDelegation({required String json}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 45)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_delegation,
@@ -1777,7 +2387,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 46)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_event,
@@ -1800,7 +2410,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_chat_section,
@@ -1825,7 +2435,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 48)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 62)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_list_chat_section,
@@ -1842,13 +2452,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "parse_chat_sections", argNames: ["json"]);
 
   @override
+  bool? crateApiChatModelParseChatStop({required String json}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 63)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatModelParseChatStopConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatModelParseChatStopConstMeta =>
+      const TaskConstMeta(debugName: "parse_chat_stop", argNames: ["json"]);
+
+  @override
   CreatedWorkspace? crateApiWorkspaceParseCreated({required String json}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 49)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_created_workspace,
@@ -1865,13 +2498,87 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "parse_created", argNames: ["json"]);
 
   @override
+  Hire? crateApiOnboardingModelParseHire({required String json}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_hire,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingModelParseHireConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingModelParseHireConstMeta =>
+      const TaskConstMeta(debugName: "parse_hire", argNames: ["json"]);
+
+  @override
+  HireList? crateApiOnboardingModelParseHires({required String json}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_hire_list,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingModelParseHiresConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingModelParseHiresConstMeta =>
+      const TaskConstMeta(debugName: "parse_hires", argNames: ["json"]);
+
+  @override
+  OnboardingAnswer? crateApiOnboardingModelParseOnboardingAnswer({
+    required String json,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_onboarding_answer,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingModelParseOnboardingAnswerConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingModelParseOnboardingAnswerConstMeta =>
+      const TaskConstMeta(
+        debugName: "parse_onboarding_answer",
+        argNames: ["json"],
+      );
+
+  @override
   PairingLinkResult crateApiPinnedParsePairingLink({required String uri}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(uri, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_pairing_link_result,
@@ -1888,13 +2595,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "parse_pairing_link", argNames: ["uri"]);
 
   @override
+  RoleCatalog? crateApiOnboardingModelParseRoleCatalog({required String json}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(json, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_role_catalog,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingModelParseRoleCatalogConstMeta,
+        argValues: [json],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingModelParseRoleCatalogConstMeta =>
+      const TaskConstMeta(debugName: "parse_role_catalog", argNames: ["json"]);
+
+  @override
   StateSnapshot? crateApiStateParseState({required String json}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(json, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 51)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_state_snapshot,
@@ -1929,7 +2659,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 52,
+              funcId: 71,
               port: port_,
             );
           },
@@ -1972,7 +2702,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 72,
             port: port_,
           );
         },
@@ -1994,10 +2724,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<PinnedBytesReply> crateApiPinnedPinnedRequestBytes({
+    required PinnedEndpoint endpoint,
+    required String method,
+    required String target,
+    required List<HeaderField> headers,
+    required List<int> body,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pinned_endpoint(endpoint, serializer);
+          sse_encode_String(method, serializer);
+          sse_encode_String(target, serializer);
+          sse_encode_list_header_field(headers, serializer);
+          sse_encode_list_prim_u_8_loose(body, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 73,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pinned_bytes_reply,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPinnedPinnedRequestBytesConstMeta,
+        argValues: [endpoint, method, target, headers, body],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPinnedPinnedRequestBytesConstMeta =>
+      const TaskConstMeta(
+        debugName: "pinned_request_bytes",
+        argNames: ["endpoint", "method", "target", "headers", "body"],
+      );
+
+  @override
   ChatPlan crateApiApprovalsPlanPlanApprovalDecision({
     required String approvalId,
     required bool approve,
     required String clientId,
+    required List<String> exclude,
   }) {
     return handler.executeSync(
       SyncTask(
@@ -2006,14 +2778,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(approvalId, serializer);
           sse_encode_bool(approve, serializer);
           sse_encode_String(clientId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
+          sse_encode_list_String(exclude, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiApprovalsPlanPlanApprovalDecisionConstMeta,
-        argValues: [approvalId, approve, clientId],
+        argValues: [approvalId, approve, clientId, exclude],
         apiImpl: this,
       ),
     );
@@ -2022,7 +2795,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiApprovalsPlanPlanApprovalDecisionConstMeta =>
       const TaskConstMeta(
         debugName: "plan_approval_decision",
-        argNames: ["approvalId", "approve", "clientId"],
+        argNames: ["approvalId", "approve", "clientId", "exclude"],
       );
 
   @override
@@ -2036,7 +2809,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_opt_String(conversationId, serializer);
           sse_encode_opt_String(status, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2056,38 +2829,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  ChatPlan crateApiApprovalsPlanPlanApprovalRead({required String approvalId}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(approvalId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_chat_plan,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiApprovalsPlanPlanApprovalReadConstMeta,
-        argValues: [approvalId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiApprovalsPlanPlanApprovalReadConstMeta =>
-      const TaskConstMeta(
-        debugName: "plan_approval_read",
-        argNames: ["approvalId"],
-      );
-
-  @override
   ChatPlan crateApiApprovalsPlanPlanApprovalSettingsRead() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 76)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2119,7 +2866,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(mode, serializer);
           sse_encode_opt_String(projectId, serializer);
           sse_encode_String(clientId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 77)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2139,6 +2886,166 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  ChatPlan crateApiChatAttachPlanPlanAttachmentChunk({
+    required String conversationId,
+    required String attachmentId,
+    required BigInt offset,
+    required List<int> data,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          sse_encode_String(attachmentId, serializer);
+          sse_encode_u_64(offset, serializer);
+          sse_encode_list_prim_u_8_loose(data, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachPlanPlanAttachmentChunkConstMeta,
+        argValues: [conversationId, attachmentId, offset, data],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachPlanPlanAttachmentChunkConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_attachment_chunk",
+        argNames: ["conversationId", "attachmentId", "offset", "data"],
+      );
+
+  @override
+  ChatPlan crateApiChatAttachPlanPlanAttachmentComplete({
+    required String conversationId,
+    required String attachmentId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          sse_encode_String(attachmentId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 79)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachPlanPlanAttachmentCompleteConstMeta,
+        argValues: [conversationId, attachmentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachPlanPlanAttachmentCompleteConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_attachment_complete",
+        argNames: ["conversationId", "attachmentId"],
+      );
+
+  @override
+  ChatPlan crateApiChatAttachPlanPlanAttachmentContent({
+    required String conversationId,
+    required String attachmentId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          sse_encode_String(attachmentId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 80)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachPlanPlanAttachmentContentConstMeta,
+        argValues: [conversationId, attachmentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachPlanPlanAttachmentContentConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_attachment_content",
+        argNames: ["conversationId", "attachmentId"],
+      );
+
+  @override
+  ChatPlan crateApiChatAttachPlanPlanAttachmentCreate({
+    required String conversationId,
+    required String clientId,
+    required String name,
+    required BigInt size,
+    required String sha256,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          sse_encode_String(clientId, serializer);
+          sse_encode_String(name, serializer);
+          sse_encode_u_64(size, serializer);
+          sse_encode_String(sha256, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 81)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachPlanPlanAttachmentCreateConstMeta,
+        argValues: [conversationId, clientId, name, size, sha256],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachPlanPlanAttachmentCreateConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_attachment_create",
+        argNames: ["conversationId", "clientId", "name", "size", "sha256"],
+      );
+
+  @override
+  ChatPlan crateApiChatAttachPlanPlanAttachmentDelete({
+    required String conversationId,
+    required String attachmentId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          sse_encode_String(attachmentId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 82)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachPlanPlanAttachmentDeleteConstMeta,
+        argValues: [conversationId, attachmentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachPlanPlanAttachmentDeleteConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_attachment_delete",
+        argNames: ["conversationId", "attachmentId"],
+      );
+
+  @override
   ChatPlan crateApiChatPlanPlanChatArchiveConversation({
     required String conversationId,
     required bool archived,
@@ -2149,7 +3056,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(conversationId, serializer);
           sse_encode_bool(archived, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 83)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2174,7 +3081,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 84)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2199,7 +3106,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(delegationId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 85)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2224,6 +3131,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     String? sectionId,
     bool? pinned,
     bool? archived,
+    required bool attention,
+    required bool working,
     String? cursor,
   }) {
     return handler.executeSync(
@@ -2234,15 +3143,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_opt_String(sectionId, serializer);
           sse_encode_opt_box_autoadd_bool(pinned, serializer);
           sse_encode_opt_box_autoadd_bool(archived, serializer);
+          sse_encode_bool(attention, serializer);
+          sse_encode_bool(working, serializer);
           sse_encode_opt_String(cursor, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 62)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 86)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiChatPlanPlanChatConversationsConstMeta,
-        argValues: [query, sectionId, pinned, archived, cursor],
+        argValues: [
+          query,
+          sectionId,
+          pinned,
+          archived,
+          attention,
+          working,
+          cursor,
+        ],
         apiImpl: this,
       ),
     );
@@ -2251,8 +3170,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiChatPlanPlanChatConversationsConstMeta =>
       const TaskConstMeta(
         debugName: "plan_chat_conversations",
-        argNames: ["query", "sectionId", "pinned", "archived", "cursor"],
+        argNames: [
+          "query",
+          "sectionId",
+          "pinned",
+          "archived",
+          "attention",
+          "working",
+          "cursor",
+        ],
       );
+
+  @override
+  ChatPlan crateApiChatPlanPlanChatCounts() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 87)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatPlanPlanChatCountsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatPlanPlanChatCountsConstMeta =>
+      const TaskConstMeta(debugName: "plan_chat_counts", argNames: []);
 
   @override
   ChatPlan crateApiChatPlanPlanChatCreateConversation({String? title}) {
@@ -2261,7 +3210,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_opt_String(title, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 63)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 88)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2287,7 +3236,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(delegationId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 89)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2307,6 +3256,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  ChatPlan crateApiChatPlanPlanChatDeleteConversation({
+    required String conversationId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 90)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatPlanPlanChatDeleteConversationConstMeta,
+        argValues: [conversationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatPlanPlanChatDeleteConversationConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_chat_delete_conversation",
+        argNames: ["conversationId"],
+      );
+
+  @override
   ChatPlan crateApiChatPlanPlanChatMessages({
     required String conversationId,
     PlatformInt64? afterSeq,
@@ -2319,7 +3296,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(conversationId, serializer);
           sse_encode_opt_box_autoadd_i_64(afterSeq, serializer);
           sse_encode_opt_box_autoadd_i_64(beforeSeq, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 91)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2349,7 +3326,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(conversationId, serializer);
           sse_encode_opt_String(sectionId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 92)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2379,7 +3356,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(conversationId, serializer);
           sse_encode_bool(pinned, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 93)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2409,7 +3386,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(conversationId, serializer);
           sse_encode_i_64(lastSeq, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 94)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2439,7 +3416,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(conversationId, serializer);
           sse_encode_String(title, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 95)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2469,7 +3446,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_opt_String(sectionId, serializer);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 96)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2494,7 +3471,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 71)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 97)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2515,6 +3492,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String conversationId,
     required String clientId,
     required String text,
+    String? replyToId,
   }) {
     return handler.executeSync(
       SyncTask(
@@ -2523,14 +3501,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(conversationId, serializer);
           sse_encode_String(clientId, serializer);
           sse_encode_String(text, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72)!;
+          sse_encode_opt_String(replyToId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 98)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiChatPlanPlanChatSendConstMeta,
-        argValues: [conversationId, clientId, text],
+        argValues: [conversationId, clientId, text, replyToId],
         apiImpl: this,
       ),
     );
@@ -2539,7 +3518,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiChatPlanPlanChatSendConstMeta =>
       const TaskConstMeta(
         debugName: "plan_chat_send",
-        argNames: ["conversationId", "clientId", "text"],
+        argNames: ["conversationId", "clientId", "text", "replyToId"],
+      );
+
+  @override
+  ChatPlan crateApiChatAttachPlanPlanChatSendWithAttachments({
+    required String conversationId,
+    required String clientId,
+    required String text,
+    String? replyToId,
+    required List<String> attachments,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          sse_encode_String(clientId, serializer);
+          sse_encode_String(text, serializer);
+          sse_encode_opt_String(replyToId, serializer);
+          sse_encode_list_String(attachments, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 99)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachPlanPlanChatSendWithAttachmentsConstMeta,
+        argValues: [conversationId, clientId, text, replyToId, attachments],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiChatAttachPlanPlanChatSendWithAttachmentsConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_chat_send_with_attachments",
+        argNames: [
+          "conversationId",
+          "clientId",
+          "text",
+          "replyToId",
+          "attachments",
+        ],
+      );
+
+  @override
+  ChatPlan crateApiChatPlanPlanChatStop({required String conversationId}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 100,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatPlanPlanChatStopConstMeta,
+        argValues: [conversationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatPlanPlanChatStopConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_chat_stop",
+        argNames: ["conversationId"],
       );
 
   @override
@@ -2553,7 +3605,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(conversationId, serializer);
           sse_encode_opt_box_autoadd_i_64(beforeSeq, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 101,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_plan,
@@ -2585,7 +3641,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(agent, serializer);
           sse_encode_String(cwd, serializer);
           sse_encode_opt_String(label, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 102,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_write_plan,
@@ -2605,13 +3665,394 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  ChatPlan crateApiMailPlanDraftConfirm({
+    required String account,
+    required String draftId,
+    required String approvalId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(account, serializer);
+          sse_encode_String(draftId, serializer);
+          sse_encode_String(approvalId, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 103,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiMailPlanDraftConfirmConstMeta,
+        argValues: [account, draftId, approvalId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiMailPlanDraftConfirmConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_draft_confirm",
+        argNames: ["account", "draftId", "approvalId"],
+      );
+
+  @override
+  ChatPlan crateApiMailPlanDraftSend({
+    required String account,
+    required String draftId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(account, serializer);
+          sse_encode_String(draftId, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 104,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiMailPlanDraftSendConstMeta,
+        argValues: [account, draftId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiMailPlanDraftSendConstMeta => const TaskConstMeta(
+    debugName: "plan_draft_send",
+    argNames: ["account", "draftId"],
+  );
+
+  @override
+  ChatPlan crateApiMailPlanDraftUpdate({
+    required String account,
+    required String draftId,
+    required List<String> to,
+    required List<String> cc,
+    required String subject,
+    required String body,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(account, serializer);
+          sse_encode_String(draftId, serializer);
+          sse_encode_list_String(to, serializer);
+          sse_encode_list_String(cc, serializer);
+          sse_encode_String(subject, serializer);
+          sse_encode_String(body, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 105,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiMailPlanDraftUpdateConstMeta,
+        argValues: [account, draftId, to, cc, subject, body],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiMailPlanDraftUpdateConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_draft_update",
+        argNames: ["account", "draftId", "to", "cc", "subject", "body"],
+      );
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanHire({required String role}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(role, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 106,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanHireConstMeta,
+        argValues: [role],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanHireConstMeta =>
+      const TaskConstMeta(debugName: "plan_hire", argNames: ["role"]);
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanHireAvatar({
+    required String hireId,
+    String? avatar,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(hireId, serializer);
+          sse_encode_opt_String(avatar, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 107,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanHireAvatarConstMeta,
+        argValues: [hireId, avatar],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanHireAvatarConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_hire_avatar",
+        argNames: ["hireId", "avatar"],
+      );
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanHireDismiss({required String hireId}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(hireId, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 108,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanHireDismissConstMeta,
+        argValues: [hireId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanHireDismissConstMeta =>
+      const TaskConstMeta(debugName: "plan_hire_dismiss", argNames: ["hireId"]);
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanHireRename({
+    required String hireId,
+    required String name,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(hireId, serializer);
+          sse_encode_String(name, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 109,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanHireRenameConstMeta,
+        argValues: [hireId, name],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanHireRenameConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_hire_rename",
+        argNames: ["hireId", "name"],
+      );
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanHires({required bool includeRemoved}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(includeRemoved, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 110,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanHiresConstMeta,
+        argValues: [includeRemoved],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanHiresConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_hires",
+        argNames: ["includeRemoved"],
+      );
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanOnboardingContract({
+    required List<String> areas,
+    required String level,
+    required List<String> roles,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_String(areas, serializer);
+          sse_encode_String(level, serializer);
+          sse_encode_list_String(roles, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 111,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanOnboardingContractConstMeta,
+        argValues: [areas, level, roles],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanOnboardingContractConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_onboarding_contract",
+        argNames: ["areas", "level", "roles"],
+      );
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanOnboardingRead() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 112,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanOnboardingReadConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanOnboardingReadConstMeta =>
+      const TaskConstMeta(debugName: "plan_onboarding_read", argNames: []);
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanOnboardingSkip() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 113,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanOnboardingSkipConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanOnboardingSkipConstMeta =>
+      const TaskConstMeta(debugName: "plan_onboarding_skip", argNames: []);
+
+  @override
+  ChatPlan crateApiOnboardingPlanPlanRoles() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 114,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiOnboardingPlanPlanRolesConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOnboardingPlanPlanRolesConstMeta =>
+      const TaskConstMeta(debugName: "plan_roles", argNames: []);
+
+  @override
   WritePlan crateApiWritePlanStop({required String paneId}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(paneId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 115,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_write_plan,
@@ -2634,7 +4075,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_agent_action(action, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 76)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 116,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_write_plan,
@@ -2657,7 +4102,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(privateKeyB64, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 77)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 117,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_String,
@@ -2691,7 +4140,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(method, serializer);
           sse_encode_String(target, serializer);
           sse_encode_list_prim_u_8_loose(body, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 118,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_signed_headers,
@@ -2708,6 +4161,159 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     debugName: "sign_request",
     argNames: ["privateKeyB64", "method", "target", "body"],
   );
+
+  @override
+  UploadCursor crateApiChatAttachUploadUploadAccepted({
+    required UploadCursor cursor,
+    required BigInt nextOffset,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_upload_cursor(cursor, serializer);
+          sse_encode_u_64(nextOffset, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 119,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_upload_cursor,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachUploadUploadAcceptedConstMeta,
+        argValues: [cursor, nextOffset],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachUploadUploadAcceptedConstMeta =>
+      const TaskConstMeta(
+        debugName: "upload_accepted",
+        argNames: ["cursor", "nextOffset"],
+      );
+
+  @override
+  ChunkSpan? crateApiChatAttachUploadUploadNext({
+    required UploadCursor cursor,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_upload_cursor(cursor, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 120,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_chunk_span,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachUploadUploadNextConstMeta,
+        argValues: [cursor],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachUploadUploadNextConstMeta =>
+      const TaskConstMeta(debugName: "upload_next", argNames: ["cursor"]);
+
+  @override
+  double crateApiChatAttachUploadUploadProgress({
+    required UploadCursor cursor,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_upload_cursor(cursor, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 121,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_f_64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachUploadUploadProgressConstMeta,
+        argValues: [cursor],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachUploadUploadProgressConstMeta =>
+      const TaskConstMeta(debugName: "upload_progress", argNames: ["cursor"]);
+
+  @override
+  UploadCursor? crateApiChatAttachUploadUploadRefused({
+    required UploadCursor cursor,
+    required AttachmentFailure failure,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_upload_cursor(cursor, serializer);
+          sse_encode_box_autoadd_attachment_failure(failure, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 122,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_upload_cursor,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachUploadUploadRefusedConstMeta,
+        argValues: [cursor, failure],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachUploadUploadRefusedConstMeta =>
+      const TaskConstMeta(
+        debugName: "upload_refused",
+        argNames: ["cursor", "failure"],
+      );
+
+  @override
+  UploadCursor crateApiChatAttachUploadUploadStart({required BigInt size}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(size, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 123,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_upload_cursor,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiChatAttachUploadUploadStartConstMeta,
+        argValues: [size],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatAttachUploadUploadStartConstMeta =>
+      const TaskConstMeta(debugName: "upload_start", argNames: ["size"]);
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApprovalReducer => wire
@@ -2910,6 +4516,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ApprovalAttachment dco_decode_approval_attachment(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return ApprovalAttachment(
+      name: dco_decode_String(arr[0]),
+      size: dco_decode_i_64(arr[1]),
+      sha256: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
   ApprovalAudit dco_decode_approval_audit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2967,6 +4586,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AttachmentFailure dco_decode_attachment_failure(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return AttachmentFailure(
+      code: dco_decode_String(arr[0]),
+      status: dco_decode_u_16(arr[1]),
+      field: dco_decode_opt_String(arr[2]),
+      nextOffset: dco_decode_opt_box_autoadd_u_64(arr[3]),
+      retryAfter: dco_decode_opt_box_autoadd_u_32(arr[4]),
+    );
+  }
+
+  @protected
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
@@ -2985,6 +4619,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AttachmentFailure dco_decode_box_autoadd_attachment_failure(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_attachment_failure(raw);
+  }
+
+  @protected
   bool dco_decode_box_autoadd_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
@@ -2994,6 +4634,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatApproval dco_decode_box_autoadd_chat_approval(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_chat_approval(raw);
+  }
+
+  @protected
+  ChatAttachment dco_decode_box_autoadd_chat_attachment(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_chat_attachment(raw);
   }
 
   @protected
@@ -3017,6 +4663,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatCounts dco_decode_box_autoadd_chat_counts(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_chat_counts(raw);
+  }
+
+  @protected
   ChatDelegation dco_decode_box_autoadd_chat_delegation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_chat_delegation(raw);
@@ -3026,6 +4678,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatEvent dco_decode_box_autoadd_chat_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_chat_event(raw);
+  }
+
+  @protected
+  ChatQuote dco_decode_box_autoadd_chat_quote(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_chat_quote(raw);
   }
 
   @protected
@@ -3041,6 +4699,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChunkSpan dco_decode_box_autoadd_chunk_span(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_chunk_span(raw);
+  }
+
+  @protected
   CreatedWorkspace dco_decode_box_autoadd_created_workspace(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_created_workspace(raw);
@@ -3050,6 +4714,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ErrorInfo dco_decode_box_autoadd_error_info(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_error_info(raw);
+  }
+
+  @protected
+  Hire dco_decode_box_autoadd_hire(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_hire(raw);
+  }
+
+  @protected
+  HireList dco_decode_box_autoadd_hire_list(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_hire_list(raw);
   }
 
   @protected
@@ -3065,9 +4741,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MailAttachDetails dco_decode_box_autoadd_mail_attach_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_mail_attach_details(raw);
+  }
+
+  @protected
+  MailCard dco_decode_box_autoadd_mail_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_mail_card(raw);
+  }
+
+  @protected
+  MailDraftCard dco_decode_box_autoadd_mail_draft_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_mail_draft_card(raw);
+  }
+
+  @protected
+  MailMoveDetails dco_decode_box_autoadd_mail_move_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_mail_move_details(raw);
+  }
+
+  @protected
+  MailSendDetails dco_decode_box_autoadd_mail_send_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_mail_send_details(raw);
+  }
+
+  @protected
+  OnboardingAnswer dco_decode_box_autoadd_onboarding_answer(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_onboarding_answer(raw);
+  }
+
+  @protected
   PairingLinkInfo dco_decode_box_autoadd_pairing_link_info(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_pairing_link_info(raw);
+  }
+
+  @protected
+  PinnedBytesResponse dco_decode_box_autoadd_pinned_bytes_response(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pinned_bytes_response(raw);
   }
 
   @protected
@@ -3086,6 +4806,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PinnedResponse dco_decode_box_autoadd_pinned_response(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_pinned_response(raw);
+  }
+
+  @protected
+  RoleCatalog dco_decode_box_autoadd_role_catalog(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_role_catalog(raw);
   }
 
   @protected
@@ -3113,6 +4839,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_u_64(raw);
+  }
+
+  @protected
+  UploadCursor dco_decode_box_autoadd_upload_cursor(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_upload_cursor(raw);
+  }
+
+  @protected
   CatalogEntry dco_decode_catalog_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3126,11 +4864,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  CatalogRole dco_decode_catalog_role(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return CatalogRole(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      title: dco_decode_String(arr[2]),
+      area: dco_decode_String(arr[3]),
+      avatar: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
   ChatApproval dco_decode_chat_approval(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 20)
-      throw Exception('unexpected arr length: expect 20 but see ${arr.length}');
+    if (arr.length != 23)
+      throw Exception('unexpected arr length: expect 23 but see ${arr.length}');
     return ChatApproval(
       approvalId: dco_decode_String(arr[0]),
       conversationId: dco_decode_opt_String(arr[1]),
@@ -3143,15 +4896,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       risk: dco_decode_opt_String(arr[8]),
       command: dco_decode_opt_String(arr[9]),
       question: dco_decode_opt_String(arr[10]),
-      status: dco_decode_String(arr[11]),
-      level: dco_decode_opt_String(arr[12]),
-      escalatedFrom: dco_decode_opt_String(arr[13]),
-      deciderKind: dco_decode_opt_String(arr[14]),
-      deciderId: dco_decode_opt_String(arr[15]),
-      expiresAt: dco_decode_opt_String(arr[16]),
-      decidedAt: dco_decode_opt_String(arr[17]),
-      audit: dco_decode_list_approval_audit(arr[18]),
-      revision: dco_decode_i_64(arr[19]),
+      mailSend: dco_decode_opt_box_autoadd_mail_send_details(arr[11]),
+      mailAttach: dco_decode_opt_box_autoadd_mail_attach_details(arr[12]),
+      mailMove: dco_decode_opt_box_autoadd_mail_move_details(arr[13]),
+      status: dco_decode_String(arr[14]),
+      level: dco_decode_opt_String(arr[15]),
+      escalatedFrom: dco_decode_opt_String(arr[16]),
+      deciderKind: dco_decode_opt_String(arr[17]),
+      deciderId: dco_decode_opt_String(arr[18]),
+      expiresAt: dco_decode_opt_String(arr[19]),
+      decidedAt: dco_decode_opt_String(arr[20]),
+      audit: dco_decode_list_approval_audit(arr[21]),
+      revision: dco_decode_i_64(arr[22]),
+    );
+  }
+
+  @protected
+  ChatAttachment dco_decode_chat_attachment(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return ChatAttachment(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      mime: dco_decode_String(arr[2]),
+      size: dco_decode_u_64(arr[3]),
+      w: dco_decode_u_32(arr[4]),
+      h: dco_decode_u_32(arr[5]),
     );
   }
 
@@ -3159,16 +4931,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatBootstrap dco_decode_chat_bootstrap(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return ChatBootstrap(
       alfredName: dco_decode_String(arr[0]),
       alfredStatus: dco_decode_String(arr[1]),
-      unreadConversations: dco_decode_u_64(arr[2]),
-      unreadMessages: dco_decode_u_64(arr[3]),
-      pendingApprovals: dco_decode_u_64(arr[4]),
-      revision: dco_decode_i_64(arr[5]),
-      projects: dco_decode_list_chat_project(arr[6]),
+      alfredAgentId: dco_decode_opt_String(arr[2]),
+      unreadConversations: dco_decode_u_64(arr[3]),
+      unreadMessages: dco_decode_u_64(arr[4]),
+      pendingApprovals: dco_decode_u_64(arr[5]),
+      revision: dco_decode_i_64(arr[6]),
+      projects: dco_decode_list_chat_project(arr[7]),
     );
   }
 
@@ -3176,8 +4949,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatConversation dco_decode_chat_conversation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 14)
+      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
     return ChatConversation(
       id: dco_decode_String(arr[0]),
       title: dco_decode_String(arr[1]),
@@ -3189,8 +4962,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       lastSeq: dco_decode_i_64(arr[7]),
       lastReadSeq: dco_decode_i_64(arr[8]),
       unread: dco_decode_u_64(arr[9]),
-      createdAt: dco_decode_String(arr[10]),
-      updatedAt: dco_decode_String(arr[11]),
+      activeRuns: dco_decode_u_32(arr[10]),
+      progress: dco_decode_opt_String(arr[11]),
+      createdAt: dco_decode_String(arr[12]),
+      updatedAt: dco_decode_String(arr[13]),
     );
   }
 
@@ -3203,6 +4978,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ChatConversationPage(
       conversations: dco_decode_list_chat_conversation(arr[0]),
       nextCursor: dco_decode_opt_String(arr[1]),
+    );
+  }
+
+  @protected
+  ChatCounts dco_decode_chat_counts(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return ChatCounts(
+      all: dco_decode_u_64(arr[0]),
+      attention: dco_decode_u_64(arr[1]),
+      working: dco_decode_u_64(arr[2]),
     );
   }
 
@@ -3254,8 +5042,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatEntry dco_decode_chat_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 25)
-      throw Exception('unexpected arr length: expect 25 but see ${arr.length}');
+    if (arr.length != 31)
+      throw Exception('unexpected arr length: expect 31 but see ${arr.length}');
     return ChatEntry(
       seq: dco_decode_i_64(arr[0]),
       kind: dco_decode_String(arr[1]),
@@ -3273,15 +5061,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       body: dco_decode_String(arr[13]),
       preview: dco_decode_String(arr[14]),
       state: dco_decode_opt_String(arr[15]),
-      title: dco_decode_opt_String(arr[16]),
-      summary: dco_decode_opt_String(arr[17]),
-      status: dco_decode_opt_String(arr[18]),
-      approvalId: dco_decode_opt_String(arr[19]),
-      level: dco_decode_opt_String(arr[20]),
-      deciderKind: dco_decode_opt_String(arr[21]),
-      deciderId: dco_decode_opt_String(arr[22]),
-      createdAt: dco_decode_String(arr[23]),
-      local: dco_decode_bool(arr[24]),
+      turnState: dco_decode_opt_String(arr[16]),
+      title: dco_decode_opt_String(arr[17]),
+      summary: dco_decode_opt_String(arr[18]),
+      status: dco_decode_opt_String(arr[19]),
+      approvalId: dco_decode_opt_String(arr[20]),
+      level: dco_decode_opt_String(arr[21]),
+      deciderKind: dco_decode_opt_String(arr[22]),
+      deciderId: dco_decode_opt_String(arr[23]),
+      mail: dco_decode_opt_box_autoadd_mail_card(arr[24]),
+      mailDraft: dco_decode_opt_box_autoadd_mail_draft_card(arr[25]),
+      suggestions: dco_decode_list_String(arr[26]),
+      quote: dco_decode_opt_box_autoadd_chat_quote(arr[27]),
+      attachments: dco_decode_opt_list_chat_attachment(arr[28]),
+      createdAt: dco_decode_String(arr[29]),
+      local: dco_decode_bool(arr[30]),
     );
   }
 
@@ -3289,8 +5083,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatEvent dco_decode_chat_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 16)
-      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
+    if (arr.length != 18)
+      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
     return ChatEvent(
       event: dco_decode_String(arr[0]),
       conversationId: dco_decode_String(arr[1]),
@@ -3308,6 +5102,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       level: dco_decode_opt_String(arr[13]),
       escalatedFrom: dco_decode_opt_String(arr[14]),
       expiresAt: dco_decode_opt_String(arr[15]),
+      turnState: dco_decode_opt_String(arr[16]),
+      progress: dco_decode_opt_String(arr[17]),
     );
   }
 
@@ -3356,6 +5152,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatQuote dco_decode_chat_quote(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return ChatQuote(
+      kind: dco_decode_String(arr[0]),
+      id: dco_decode_String(arr[1]),
+      authorKind: dco_decode_String(arr[2]),
+      preview: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
   ChatSeat dco_decode_chat_seat(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3393,6 +5203,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       oldestSeq: dco_decode_opt_box_autoadd_i_64(arr[1]),
       lastSeq: dco_decode_i_64(arr[2]),
       hasMore: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  ChunkSpan dco_decode_chunk_span(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ChunkSpan(
+      offset: dco_decode_u_64(arr[0]),
+      len: dco_decode_u_64(arr[1]),
     );
   }
 
@@ -3435,6 +5257,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
   FailureKind dco_decode_failure_kind(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return FailureKind.values[raw as int];
@@ -3449,6 +5277,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return HeaderField(
       name: dco_decode_String(arr[0]),
       value: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  Hire dco_decode_hire(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return Hire(
+      id: dco_decode_String(arr[0]),
+      role: dco_decode_String(arr[1]),
+      area: dco_decode_String(arr[2]),
+      name: dco_decode_String(arr[3]),
+      avatar: dco_decode_opt_String(arr[4]),
+      status: dco_decode_String(arr[5]),
+      createdAt: dco_decode_String(arr[6]),
+    );
+  }
+
+  @protected
+  HireList dco_decode_hire_list(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return HireList(
+      hires: dco_decode_list_hire(arr[0]),
+      canHire: dco_decode_bool(arr[1]),
     );
   }
 
@@ -3490,6 +5347,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<ApprovalAttachment> dco_decode_list_approval_attachment(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_approval_attachment).toList();
+  }
+
+  @protected
   List<ApprovalAudit> dco_decode_list_approval_audit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_approval_audit).toList();
@@ -3510,9 +5373,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<CatalogRole> dco_decode_list_catalog_role(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_catalog_role).toList();
+  }
+
+  @protected
   List<ChatApproval> dco_decode_list_chat_approval(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_chat_approval).toList();
+  }
+
+  @protected
+  List<ChatAttachment> dco_decode_list_chat_attachment(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_chat_attachment).toList();
   }
 
   @protected
@@ -3554,6 +5429,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<Hire> dco_decode_list_hire(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_hire).toList();
+  }
+
+  @protected
+  List<MailMoveItem> dco_decode_list_mail_move_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_mail_move_item).toList();
+  }
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as List<int>;
@@ -3569,6 +5456,113 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<(String, int)> dco_decode_list_record_string_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_record_string_u_32).toList();
+  }
+
+  @protected
+  List<RoleArea> dco_decode_list_role_area(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_role_area).toList();
+  }
+
+  @protected
+  MailAttachDetails dco_decode_mail_attach_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return MailAttachDetails(
+      path: dco_decode_String(arr[0]),
+      size: dco_decode_i_64(arr[1]),
+      sha256: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
+  MailCard dco_decode_mail_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return MailCard(
+      account: dco_decode_String(arr[0]),
+      userCode: dco_decode_String(arr[1]),
+      verificationUri: dco_decode_String(arr[2]),
+      expiresAt: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  MailDraftCard dco_decode_mail_draft_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return MailDraftCard(
+      account: dco_decode_String(arr[0]),
+      draftId: dco_decode_String(arr[1]),
+      to: dco_decode_list_String(arr[2]),
+      subject: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  MailMoveDetails dco_decode_mail_move_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return MailMoveDetails(
+      account: dco_decode_String(arr[0]),
+      items: dco_decode_list_mail_move_item(arr[1]),
+    );
+  }
+
+  @protected
+  MailMoveItem dco_decode_mail_move_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return MailMoveItem(
+      messageId: dco_decode_String(arr[0]),
+      dest: dco_decode_String(arr[1]),
+      reason: dco_decode_String(arr[2]),
+      fromAddress: dco_decode_opt_String(arr[3]),
+      subject: dco_decode_String(arr[4]),
+      level: dco_decode_opt_String(arr[5]),
+      excluded: dco_decode_bool(arr[6]),
+    );
+  }
+
+  @protected
+  MailSendDetails dco_decode_mail_send_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return MailSendDetails(
+      account: dco_decode_String(arr[0]),
+      from: dco_decode_opt_String(arr[1]),
+      to: dco_decode_list_String(arr[2]),
+      cc: dco_decode_list_String(arr[3]),
+      subject: dco_decode_String(arr[4]),
+      bodyPreview: dco_decode_String(arr[5]),
+      attachments: dco_decode_list_approval_attachment(arr[6]),
+    );
+  }
+
+  @protected
+  OnboardingAnswer dco_decode_onboarding_answer(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return OnboardingAnswer(
+      done: dco_decode_bool(arr[0]),
+      areas: dco_decode_list_String(arr[1]),
+      hires: dco_decode_list_hire(arr[2]),
+      canHire: dco_decode_bool(arr[3]),
+    );
   }
 
   @protected
@@ -3596,6 +5590,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatAttachment? dco_decode_opt_box_autoadd_chat_attachment(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_chat_attachment(raw);
+  }
+
+  @protected
   ChatBootstrap? dco_decode_opt_box_autoadd_chat_bootstrap(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_chat_bootstrap(raw);
@@ -3618,6 +5618,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatCounts? dco_decode_opt_box_autoadd_chat_counts(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_chat_counts(raw);
+  }
+
+  @protected
   ChatDelegation? dco_decode_opt_box_autoadd_chat_delegation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_chat_delegation(raw);
@@ -3627,6 +5633,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatEvent? dco_decode_opt_box_autoadd_chat_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_chat_event(raw);
+  }
+
+  @protected
+  ChatQuote? dco_decode_opt_box_autoadd_chat_quote(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_chat_quote(raw);
   }
 
   @protected
@@ -3642,6 +5654,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChunkSpan? dco_decode_opt_box_autoadd_chunk_span(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_chunk_span(raw);
+  }
+
+  @protected
   CreatedWorkspace? dco_decode_opt_box_autoadd_created_workspace(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_created_workspace(raw);
@@ -3651,6 +5669,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ErrorInfo? dco_decode_opt_box_autoadd_error_info(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_error_info(raw);
+  }
+
+  @protected
+  Hire? dco_decode_opt_box_autoadd_hire(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_hire(raw);
+  }
+
+  @protected
+  HireList? dco_decode_opt_box_autoadd_hire_list(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_hire_list(raw);
   }
 
   @protected
@@ -3666,9 +5696,57 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MailAttachDetails? dco_decode_opt_box_autoadd_mail_attach_details(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_mail_attach_details(raw);
+  }
+
+  @protected
+  MailCard? dco_decode_opt_box_autoadd_mail_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_mail_card(raw);
+  }
+
+  @protected
+  MailDraftCard? dco_decode_opt_box_autoadd_mail_draft_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_mail_draft_card(raw);
+  }
+
+  @protected
+  MailMoveDetails? dco_decode_opt_box_autoadd_mail_move_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_mail_move_details(raw);
+  }
+
+  @protected
+  MailSendDetails? dco_decode_opt_box_autoadd_mail_send_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_mail_send_details(raw);
+  }
+
+  @protected
+  OnboardingAnswer? dco_decode_opt_box_autoadd_onboarding_answer(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_onboarding_answer(raw);
+  }
+
+  @protected
   PairingLinkInfo? dco_decode_opt_box_autoadd_pairing_link_info(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_pairing_link_info(raw);
+  }
+
+  @protected
+  PinnedBytesResponse? dco_decode_opt_box_autoadd_pinned_bytes_response(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_pinned_bytes_response(raw);
   }
 
   @protected
@@ -3681,6 +5759,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PinnedResponse? dco_decode_opt_box_autoadd_pinned_response(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_pinned_response(raw);
+  }
+
+  @protected
+  RoleCatalog? dco_decode_opt_box_autoadd_role_catalog(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_role_catalog(raw);
   }
 
   @protected
@@ -3708,6 +5792,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+  }
+
+  @protected
+  UploadCursor? dco_decode_opt_box_autoadd_upload_cursor(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_upload_cursor(raw);
+  }
+
+  @protected
   List<CatalogEntry>? dco_decode_opt_list_catalog_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_catalog_entry(raw);
@@ -3717,6 +5813,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<ChatApproval>? dco_decode_opt_list_chat_approval(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_chat_approval(raw);
+  }
+
+  @protected
+  List<ChatAttachment>? dco_decode_opt_list_chat_attachment(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_list_chat_attachment(raw);
   }
 
   @protected
@@ -3749,6 +5851,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return PairingLinkResult(
       link: dco_decode_opt_box_autoadd_pairing_link_info(arr[0]),
       failure: dco_decode_opt_box_autoadd_pinned_failure(arr[1]),
+    );
+  }
+
+  @protected
+  PinnedBytesReply dco_decode_pinned_bytes_reply(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PinnedBytesReply(
+      response: dco_decode_opt_box_autoadd_pinned_bytes_response(arr[0]),
+      failure: dco_decode_opt_box_autoadd_pinned_failure(arr[1]),
+    );
+  }
+
+  @protected
+  PinnedBytesResponse dco_decode_pinned_bytes_response(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return PinnedBytesResponse(
+      status: dco_decode_u_16(arr[0]),
+      body: dco_decode_list_prim_u_8_strict(arr[1]),
+      retryAfter: dco_decode_opt_box_autoadd_u_32(arr[2]),
+      address: dco_decode_String(arr[3]),
     );
   }
 
@@ -3831,6 +5959,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       throw Exception('Expected 2 elements, got ${arr.length}');
     }
     return (dco_decode_String(arr[0]), dco_decode_u_32(arr[1]));
+  }
+
+  @protected
+  RoleArea dco_decode_role_area(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return RoleArea(
+      id: dco_decode_String(arr[0]),
+      label: dco_decode_String(arr[1]),
+      roles: dco_decode_list_String(arr[2]),
+      personal: dco_decode_list_String(arr[3]),
+      profesional: dco_decode_list_String(arr[4]),
+      equipo: dco_decode_list_String(arr[5]),
+    );
+  }
+
+  @protected
+  RoleCatalog dco_decode_role_catalog(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return RoleCatalog(
+      areas: dco_decode_list_role_area(arr[0]),
+      roles: dco_decode_list_catalog_role(arr[1]),
+    );
   }
 
   @protected
@@ -3923,6 +6079,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void dco_decode_unit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return;
+  }
+
+  @protected
+  UploadCursor dco_decode_upload_cursor(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return UploadCursor(
+      size: dco_decode_u_64(arr[0]),
+      sent: dco_decode_u_64(arr[1]),
+      refusals: dco_decode_u_8(arr[2]),
+    );
   }
 
   @protected
@@ -4175,6 +6344,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ApprovalAttachment sse_decode_approval_attachment(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_size = sse_decode_i_64(deserializer);
+    var var_sha256 = sse_decode_String(deserializer);
+    return ApprovalAttachment(
+      name: var_name,
+      size: var_size,
+      sha256: var_sha256,
+    );
+  }
+
+  @protected
   ApprovalAudit sse_decode_approval_audit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_deviceId = sse_decode_opt_String(deserializer);
@@ -4233,6 +6417,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AttachmentFailure sse_decode_attachment_failure(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_code = sse_decode_String(deserializer);
+    var var_status = sse_decode_u_16(deserializer);
+    var var_field = sse_decode_opt_String(deserializer);
+    var var_nextOffset = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_retryAfter = sse_decode_opt_box_autoadd_u_32(deserializer);
+    return AttachmentFailure(
+      code: var_code,
+      status: var_status,
+      field: var_field,
+      nextOffset: var_nextOffset,
+      retryAfter: var_retryAfter,
+    );
+  }
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
@@ -4255,6 +6458,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AttachmentFailure sse_decode_box_autoadd_attachment_failure(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_attachment_failure(deserializer));
+  }
+
+  @protected
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bool(deserializer));
@@ -4266,6 +6477,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_chat_approval(deserializer));
+  }
+
+  @protected
+  ChatAttachment sse_decode_box_autoadd_chat_attachment(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_chat_attachment(deserializer));
   }
 
   @protected
@@ -4293,6 +6512,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatCounts sse_decode_box_autoadd_chat_counts(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_chat_counts(deserializer));
+  }
+
+  @protected
   ChatDelegation sse_decode_box_autoadd_chat_delegation(
     SseDeserializer deserializer,
   ) {
@@ -4304,6 +6529,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatEvent sse_decode_box_autoadd_chat_event(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_chat_event(deserializer));
+  }
+
+  @protected
+  ChatQuote sse_decode_box_autoadd_chat_quote(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_chat_quote(deserializer));
   }
 
   @protected
@@ -4321,6 +6552,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChunkSpan sse_decode_box_autoadd_chunk_span(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_chunk_span(deserializer));
+  }
+
+  @protected
   CreatedWorkspace sse_decode_box_autoadd_created_workspace(
     SseDeserializer deserializer,
   ) {
@@ -4332,6 +6569,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ErrorInfo sse_decode_box_autoadd_error_info(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_error_info(deserializer));
+  }
+
+  @protected
+  Hire sse_decode_box_autoadd_hire(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_hire(deserializer));
+  }
+
+  @protected
+  HireList sse_decode_box_autoadd_hire_list(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_hire_list(deserializer));
   }
 
   @protected
@@ -4347,11 +6596,65 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MailAttachDetails sse_decode_box_autoadd_mail_attach_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_mail_attach_details(deserializer));
+  }
+
+  @protected
+  MailCard sse_decode_box_autoadd_mail_card(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_mail_card(deserializer));
+  }
+
+  @protected
+  MailDraftCard sse_decode_box_autoadd_mail_draft_card(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_mail_draft_card(deserializer));
+  }
+
+  @protected
+  MailMoveDetails sse_decode_box_autoadd_mail_move_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_mail_move_details(deserializer));
+  }
+
+  @protected
+  MailSendDetails sse_decode_box_autoadd_mail_send_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_mail_send_details(deserializer));
+  }
+
+  @protected
+  OnboardingAnswer sse_decode_box_autoadd_onboarding_answer(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_onboarding_answer(deserializer));
+  }
+
+  @protected
   PairingLinkInfo sse_decode_box_autoadd_pairing_link_info(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_pairing_link_info(deserializer));
+  }
+
+  @protected
+  PinnedBytesResponse sse_decode_box_autoadd_pinned_bytes_response(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pinned_bytes_response(deserializer));
   }
 
   @protected
@@ -4376,6 +6679,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_pinned_response(deserializer));
+  }
+
+  @protected
+  RoleCatalog sse_decode_box_autoadd_role_catalog(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_role_catalog(deserializer));
   }
 
   @protected
@@ -4409,6 +6720,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_64(deserializer));
+  }
+
+  @protected
+  UploadCursor sse_decode_box_autoadd_upload_cursor(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_upload_cursor(deserializer));
+  }
+
+  @protected
   CatalogEntry sse_decode_catalog_entry(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_name = sse_decode_String(deserializer);
@@ -4418,6 +6743,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       name: var_name,
       available: var_available,
       label: var_label,
+    );
+  }
+
+  @protected
+  CatalogRole sse_decode_catalog_role(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_area = sse_decode_String(deserializer);
+    var var_avatar = sse_decode_opt_String(deserializer);
+    return CatalogRole(
+      id: var_id,
+      name: var_name,
+      title: var_title,
+      area: var_area,
+      avatar: var_avatar,
     );
   }
 
@@ -4435,6 +6777,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_risk = sse_decode_opt_String(deserializer);
     var var_command = sse_decode_opt_String(deserializer);
     var var_question = sse_decode_opt_String(deserializer);
+    var var_mailSend = sse_decode_opt_box_autoadd_mail_send_details(
+      deserializer,
+    );
+    var var_mailAttach = sse_decode_opt_box_autoadd_mail_attach_details(
+      deserializer,
+    );
+    var var_mailMove = sse_decode_opt_box_autoadd_mail_move_details(
+      deserializer,
+    );
     var var_status = sse_decode_String(deserializer);
     var var_level = sse_decode_opt_String(deserializer);
     var var_escalatedFrom = sse_decode_opt_String(deserializer);
@@ -4456,6 +6807,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       risk: var_risk,
       command: var_command,
       question: var_question,
+      mailSend: var_mailSend,
+      mailAttach: var_mailAttach,
+      mailMove: var_mailMove,
       status: var_status,
       level: var_level,
       escalatedFrom: var_escalatedFrom,
@@ -4469,10 +6823,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatAttachment sse_decode_chat_attachment(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_mime = sse_decode_String(deserializer);
+    var var_size = sse_decode_u_64(deserializer);
+    var var_w = sse_decode_u_32(deserializer);
+    var var_h = sse_decode_u_32(deserializer);
+    return ChatAttachment(
+      id: var_id,
+      name: var_name,
+      mime: var_mime,
+      size: var_size,
+      w: var_w,
+      h: var_h,
+    );
+  }
+
+  @protected
   ChatBootstrap sse_decode_chat_bootstrap(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_alfredName = sse_decode_String(deserializer);
     var var_alfredStatus = sse_decode_String(deserializer);
+    var var_alfredAgentId = sse_decode_opt_String(deserializer);
     var var_unreadConversations = sse_decode_u_64(deserializer);
     var var_unreadMessages = sse_decode_u_64(deserializer);
     var var_pendingApprovals = sse_decode_u_64(deserializer);
@@ -4481,6 +6855,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ChatBootstrap(
       alfredName: var_alfredName,
       alfredStatus: var_alfredStatus,
+      alfredAgentId: var_alfredAgentId,
       unreadConversations: var_unreadConversations,
       unreadMessages: var_unreadMessages,
       pendingApprovals: var_pendingApprovals,
@@ -4502,6 +6877,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_lastSeq = sse_decode_i_64(deserializer);
     var var_lastReadSeq = sse_decode_i_64(deserializer);
     var var_unread = sse_decode_u_64(deserializer);
+    var var_activeRuns = sse_decode_u_32(deserializer);
+    var var_progress = sse_decode_opt_String(deserializer);
     var var_createdAt = sse_decode_String(deserializer);
     var var_updatedAt = sse_decode_String(deserializer);
     return ChatConversation(
@@ -4515,6 +6892,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       lastSeq: var_lastSeq,
       lastReadSeq: var_lastReadSeq,
       unread: var_unread,
+      activeRuns: var_activeRuns,
+      progress: var_progress,
       createdAt: var_createdAt,
       updatedAt: var_updatedAt,
     );
@@ -4530,6 +6909,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ChatConversationPage(
       conversations: var_conversations,
       nextCursor: var_nextCursor,
+    );
+  }
+
+  @protected
+  ChatCounts sse_decode_chat_counts(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_all = sse_decode_u_64(deserializer);
+    var var_attention = sse_decode_u_64(deserializer);
+    var var_working = sse_decode_u_64(deserializer);
+    return ChatCounts(
+      all: var_all,
+      attention: var_attention,
+      working: var_working,
     );
   }
 
@@ -4616,6 +7008,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_body = sse_decode_String(deserializer);
     var var_preview = sse_decode_String(deserializer);
     var var_state = sse_decode_opt_String(deserializer);
+    var var_turnState = sse_decode_opt_String(deserializer);
     var var_title = sse_decode_opt_String(deserializer);
     var var_summary = sse_decode_opt_String(deserializer);
     var var_status = sse_decode_opt_String(deserializer);
@@ -4623,6 +7016,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_level = sse_decode_opt_String(deserializer);
     var var_deciderKind = sse_decode_opt_String(deserializer);
     var var_deciderId = sse_decode_opt_String(deserializer);
+    var var_mail = sse_decode_opt_box_autoadd_mail_card(deserializer);
+    var var_mailDraft = sse_decode_opt_box_autoadd_mail_draft_card(
+      deserializer,
+    );
+    var var_suggestions = sse_decode_list_String(deserializer);
+    var var_quote = sse_decode_opt_box_autoadd_chat_quote(deserializer);
+    var var_attachments = sse_decode_opt_list_chat_attachment(deserializer);
     var var_createdAt = sse_decode_String(deserializer);
     var var_local = sse_decode_bool(deserializer);
     return ChatEntry(
@@ -4642,6 +7042,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       body: var_body,
       preview: var_preview,
       state: var_state,
+      turnState: var_turnState,
       title: var_title,
       summary: var_summary,
       status: var_status,
@@ -4649,6 +7050,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       level: var_level,
       deciderKind: var_deciderKind,
       deciderId: var_deciderId,
+      mail: var_mail,
+      mailDraft: var_mailDraft,
+      suggestions: var_suggestions,
+      quote: var_quote,
+      attachments: var_attachments,
       createdAt: var_createdAt,
       local: var_local,
     );
@@ -4673,6 +7079,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_level = sse_decode_opt_String(deserializer);
     var var_escalatedFrom = sse_decode_opt_String(deserializer);
     var var_expiresAt = sse_decode_opt_String(deserializer);
+    var var_turnState = sse_decode_opt_String(deserializer);
+    var var_progress = sse_decode_opt_String(deserializer);
     return ChatEvent(
       event: var_event,
       conversationId: var_conversationId,
@@ -4690,6 +7098,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       level: var_level,
       escalatedFrom: var_escalatedFrom,
       expiresAt: var_expiresAt,
+      turnState: var_turnState,
+      progress: var_progress,
     );
   }
 
@@ -4740,6 +7150,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatQuote sse_decode_chat_quote(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_kind = sse_decode_String(deserializer);
+    var var_id = sse_decode_String(deserializer);
+    var var_authorKind = sse_decode_String(deserializer);
+    var var_preview = sse_decode_String(deserializer);
+    return ChatQuote(
+      kind: var_kind,
+      id: var_id,
+      authorKind: var_authorKind,
+      preview: var_preview,
+    );
+  }
+
+  @protected
   ChatSeat sse_decode_chat_seat(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_agentId = sse_decode_String(deserializer);
@@ -4779,6 +7204,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChunkSpan sse_decode_chunk_span(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_offset = sse_decode_u_64(deserializer);
+    var var_len = sse_decode_u_64(deserializer);
+    return ChunkSpan(offset: var_offset, len: var_len);
+  }
+
+  @protected
   CreatedWorkspace sse_decode_created_workspace(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_workspaceId = sse_decode_String(deserializer);
@@ -4811,6 +7244,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
+  }
+
+  @protected
   FailureKind sse_decode_failure_kind(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -4823,6 +7262,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_value = sse_decode_String(deserializer);
     return HeaderField(name: var_name, value: var_value);
+  }
+
+  @protected
+  Hire sse_decode_hire(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_role = sse_decode_String(deserializer);
+    var var_area = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_avatar = sse_decode_opt_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    return Hire(
+      id: var_id,
+      role: var_role,
+      area: var_area,
+      name: var_name,
+      avatar: var_avatar,
+      status: var_status,
+      createdAt: var_createdAt,
+    );
+  }
+
+  @protected
+  HireList sse_decode_hire_list(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_hires = sse_decode_list_hire(deserializer);
+    var var_canHire = sse_decode_bool(deserializer);
+    return HireList(hires: var_hires, canHire: var_canHire);
   }
 
   @protected
@@ -4871,6 +7339,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<ApprovalAttachment> sse_decode_list_approval_attachment(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ApprovalAttachment>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_approval_attachment(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<ApprovalAudit> sse_decode_list_approval_audit(
     SseDeserializer deserializer,
   ) {
@@ -4913,6 +7395,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<CatalogRole> sse_decode_list_catalog_role(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <CatalogRole>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_catalog_role(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<ChatApproval> sse_decode_list_chat_approval(
     SseDeserializer deserializer,
   ) {
@@ -4922,6 +7416,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <ChatApproval>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_chat_approval(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ChatAttachment> sse_decode_list_chat_attachment(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ChatAttachment>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_chat_attachment(deserializer));
     }
     return ans_;
   }
@@ -5003,6 +7511,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<Hire> sse_decode_list_hire(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <Hire>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_hire(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<MailMoveItem> sse_decode_list_mail_move_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <MailMoveItem>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_mail_move_item(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -5028,6 +7562,128 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       ans_.add(sse_decode_record_string_u_32(deserializer));
     }
     return ans_;
+  }
+
+  @protected
+  List<RoleArea> sse_decode_list_role_area(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <RoleArea>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_role_area(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  MailAttachDetails sse_decode_mail_attach_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_path = sse_decode_String(deserializer);
+    var var_size = sse_decode_i_64(deserializer);
+    var var_sha256 = sse_decode_String(deserializer);
+    return MailAttachDetails(
+      path: var_path,
+      size: var_size,
+      sha256: var_sha256,
+    );
+  }
+
+  @protected
+  MailCard sse_decode_mail_card(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_account = sse_decode_String(deserializer);
+    var var_userCode = sse_decode_String(deserializer);
+    var var_verificationUri = sse_decode_String(deserializer);
+    var var_expiresAt = sse_decode_String(deserializer);
+    return MailCard(
+      account: var_account,
+      userCode: var_userCode,
+      verificationUri: var_verificationUri,
+      expiresAt: var_expiresAt,
+    );
+  }
+
+  @protected
+  MailDraftCard sse_decode_mail_draft_card(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_account = sse_decode_String(deserializer);
+    var var_draftId = sse_decode_String(deserializer);
+    var var_to = sse_decode_list_String(deserializer);
+    var var_subject = sse_decode_String(deserializer);
+    return MailDraftCard(
+      account: var_account,
+      draftId: var_draftId,
+      to: var_to,
+      subject: var_subject,
+    );
+  }
+
+  @protected
+  MailMoveDetails sse_decode_mail_move_details(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_account = sse_decode_String(deserializer);
+    var var_items = sse_decode_list_mail_move_item(deserializer);
+    return MailMoveDetails(account: var_account, items: var_items);
+  }
+
+  @protected
+  MailMoveItem sse_decode_mail_move_item(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_messageId = sse_decode_String(deserializer);
+    var var_dest = sse_decode_String(deserializer);
+    var var_reason = sse_decode_String(deserializer);
+    var var_fromAddress = sse_decode_opt_String(deserializer);
+    var var_subject = sse_decode_String(deserializer);
+    var var_level = sse_decode_opt_String(deserializer);
+    var var_excluded = sse_decode_bool(deserializer);
+    return MailMoveItem(
+      messageId: var_messageId,
+      dest: var_dest,
+      reason: var_reason,
+      fromAddress: var_fromAddress,
+      subject: var_subject,
+      level: var_level,
+      excluded: var_excluded,
+    );
+  }
+
+  @protected
+  MailSendDetails sse_decode_mail_send_details(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_account = sse_decode_String(deserializer);
+    var var_from = sse_decode_opt_String(deserializer);
+    var var_to = sse_decode_list_String(deserializer);
+    var var_cc = sse_decode_list_String(deserializer);
+    var var_subject = sse_decode_String(deserializer);
+    var var_bodyPreview = sse_decode_String(deserializer);
+    var var_attachments = sse_decode_list_approval_attachment(deserializer);
+    return MailSendDetails(
+      account: var_account,
+      from: var_from,
+      to: var_to,
+      cc: var_cc,
+      subject: var_subject,
+      bodyPreview: var_bodyPreview,
+      attachments: var_attachments,
+    );
+  }
+
+  @protected
+  OnboardingAnswer sse_decode_onboarding_answer(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_done = sse_decode_bool(deserializer);
+    var var_areas = sse_decode_list_String(deserializer);
+    var var_hires = sse_decode_list_hire(deserializer);
+    var var_canHire = sse_decode_bool(deserializer);
+    return OnboardingAnswer(
+      done: var_done,
+      areas: var_areas,
+      hires: var_hires,
+      canHire: var_canHire,
+    );
   }
 
   @protected
@@ -5079,6 +7735,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatAttachment? sse_decode_opt_box_autoadd_chat_attachment(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_chat_attachment(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   ChatBootstrap? sse_decode_opt_box_autoadd_chat_bootstrap(
     SseDeserializer deserializer,
   ) {
@@ -5118,6 +7787,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatCounts? sse_decode_opt_box_autoadd_chat_counts(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_chat_counts(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   ChatDelegation? sse_decode_opt_box_autoadd_chat_delegation(
     SseDeserializer deserializer,
   ) {
@@ -5144,6 +7826,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChatQuote? sse_decode_opt_box_autoadd_chat_quote(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_chat_quote(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   ChatSeat? sse_decode_opt_box_autoadd_chat_seat(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5162,6 +7857,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_chat_section(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  ChunkSpan? sse_decode_opt_box_autoadd_chunk_span(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_chunk_span(deserializer));
     } else {
       return null;
     }
@@ -5194,6 +7902,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Hire? sse_decode_opt_box_autoadd_hire(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_hire(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  HireList? sse_decode_opt_box_autoadd_hire_list(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_hire_list(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   HttpCall? sse_decode_opt_box_autoadd_http_call(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5216,6 +7946,82 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MailAttachDetails? sse_decode_opt_box_autoadd_mail_attach_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_mail_attach_details(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  MailCard? sse_decode_opt_box_autoadd_mail_card(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_mail_card(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  MailDraftCard? sse_decode_opt_box_autoadd_mail_draft_card(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_mail_draft_card(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  MailMoveDetails? sse_decode_opt_box_autoadd_mail_move_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_mail_move_details(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  MailSendDetails? sse_decode_opt_box_autoadd_mail_send_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_mail_send_details(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  OnboardingAnswer? sse_decode_opt_box_autoadd_onboarding_answer(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_onboarding_answer(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   PairingLinkInfo? sse_decode_opt_box_autoadd_pairing_link_info(
     SseDeserializer deserializer,
   ) {
@@ -5223,6 +8029,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_pairing_link_info(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PinnedBytesResponse? sse_decode_opt_box_autoadd_pinned_bytes_response(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_pinned_bytes_response(deserializer));
     } else {
       return null;
     }
@@ -5249,6 +8068,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_pinned_response(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  RoleCatalog? sse_decode_opt_box_autoadd_role_catalog(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_role_catalog(deserializer));
     } else {
       return null;
     }
@@ -5305,6 +8137,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  UploadCursor? sse_decode_opt_box_autoadd_upload_cursor(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_upload_cursor(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   List<CatalogEntry>? sse_decode_opt_list_catalog_entry(
     SseDeserializer deserializer,
   ) {
@@ -5325,6 +8181,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_list_chat_approval(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  List<ChatAttachment>? sse_decode_opt_list_chat_attachment(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_list_chat_attachment(deserializer));
     } else {
       return null;
     }
@@ -5368,6 +8237,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_link = sse_decode_opt_box_autoadd_pairing_link_info(deserializer);
     var var_failure = sse_decode_opt_box_autoadd_pinned_failure(deserializer);
     return PairingLinkResult(link: var_link, failure: var_failure);
+  }
+
+  @protected
+  PinnedBytesReply sse_decode_pinned_bytes_reply(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_response = sse_decode_opt_box_autoadd_pinned_bytes_response(
+      deserializer,
+    );
+    var var_failure = sse_decode_opt_box_autoadd_pinned_failure(deserializer);
+    return PinnedBytesReply(response: var_response, failure: var_failure);
+  }
+
+  @protected
+  PinnedBytesResponse sse_decode_pinned_bytes_response(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_status = sse_decode_u_16(deserializer);
+    var var_body = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_retryAfter = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_address = sse_decode_String(deserializer);
+    return PinnedBytesResponse(
+      status: var_status,
+      body: var_body,
+      retryAfter: var_retryAfter,
+      address: var_address,
+    );
   }
 
   @protected
@@ -5444,6 +8340,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_field0 = sse_decode_String(deserializer);
     var var_field1 = sse_decode_u_32(deserializer);
     return (var_field0, var_field1);
+  }
+
+  @protected
+  RoleArea sse_decode_role_area(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_label = sse_decode_String(deserializer);
+    var var_roles = sse_decode_list_String(deserializer);
+    var var_personal = sse_decode_list_String(deserializer);
+    var var_profesional = sse_decode_list_String(deserializer);
+    var var_equipo = sse_decode_list_String(deserializer);
+    return RoleArea(
+      id: var_id,
+      label: var_label,
+      roles: var_roles,
+      personal: var_personal,
+      profesional: var_profesional,
+      equipo: var_equipo,
+    );
+  }
+
+  @protected
+  RoleCatalog sse_decode_role_catalog(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_areas = sse_decode_list_role_area(deserializer);
+    var var_roles = sse_decode_list_catalog_role(deserializer);
+    return RoleCatalog(areas: var_areas, roles: var_roles);
   }
 
   @protected
@@ -5537,6 +8460,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_decode_unit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  UploadCursor sse_decode_upload_cursor(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_size = sse_decode_u_64(deserializer);
+    var var_sent = sse_decode_u_64(deserializer);
+    var var_refusals = sse_decode_u_8(deserializer);
+    return UploadCursor(size: var_size, sent: var_sent, refusals: var_refusals);
   }
 
   @protected
@@ -5790,6 +8722,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_approval_attachment(
+    ApprovalAttachment self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_i_64(self.size, serializer);
+    sse_encode_String(self.sha256, serializer);
+  }
+
+  @protected
   void sse_encode_approval_audit(ApprovalAudit self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_String(self.deviceId, serializer);
@@ -5839,6 +8782,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_attachment_failure(
+    AttachmentFailure self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.code, serializer);
+    sse_encode_u_16(self.status, serializer);
+    sse_encode_opt_String(self.field, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.nextOffset, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.retryAfter, serializer);
+  }
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self ? 1 : 0);
@@ -5863,6 +8819,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_attachment_failure(
+    AttachmentFailure self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_attachment_failure(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self, serializer);
@@ -5875,6 +8840,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_chat_approval(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_chat_attachment(
+    ChatAttachment self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_chat_attachment(self, serializer);
   }
 
   @protected
@@ -5905,6 +8879,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_chat_counts(
+    ChatCounts self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_chat_counts(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_chat_delegation(
     ChatDelegation self,
     SseSerializer serializer,
@@ -5920,6 +8903,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_chat_event(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_chat_quote(
+    ChatQuote self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_chat_quote(self, serializer);
   }
 
   @protected
@@ -5941,6 +8933,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_chunk_span(
+    ChunkSpan self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_chunk_span(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_created_workspace(
     CreatedWorkspace self,
     SseSerializer serializer,
@@ -5956,6 +8957,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_error_info(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_hire(Hire self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_hire(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_hire_list(
+    HireList self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_hire_list(self, serializer);
   }
 
   @protected
@@ -5977,12 +8993,75 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_mail_attach_details(
+    MailAttachDetails self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_mail_attach_details(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_mail_card(
+    MailCard self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_mail_card(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_mail_draft_card(
+    MailDraftCard self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_mail_draft_card(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_mail_move_details(
+    MailMoveDetails self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_mail_move_details(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_mail_send_details(
+    MailSendDetails self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_mail_send_details(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_onboarding_answer(
+    OnboardingAnswer self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_onboarding_answer(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_pairing_link_info(
     PairingLinkInfo self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_pairing_link_info(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pinned_bytes_response(
+    PinnedBytesResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pinned_bytes_response(self, serializer);
   }
 
   @protected
@@ -6010,6 +9089,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_pinned_response(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_role_catalog(
+    RoleCatalog self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_role_catalog(self, serializer);
   }
 
   @protected
@@ -6046,11 +9134,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_upload_cursor(
+    UploadCursor self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_upload_cursor(self, serializer);
+  }
+
+  @protected
   void sse_encode_catalog_entry(CatalogEntry self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.name, serializer);
     sse_encode_bool(self.available, serializer);
     sse_encode_String(self.label, serializer);
+  }
+
+  @protected
+  void sse_encode_catalog_role(CatalogRole self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.area, serializer);
+    sse_encode_opt_String(self.avatar, serializer);
   }
 
   @protected
@@ -6067,6 +9180,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.risk, serializer);
     sse_encode_opt_String(self.command, serializer);
     sse_encode_opt_String(self.question, serializer);
+    sse_encode_opt_box_autoadd_mail_send_details(self.mailSend, serializer);
+    sse_encode_opt_box_autoadd_mail_attach_details(self.mailAttach, serializer);
+    sse_encode_opt_box_autoadd_mail_move_details(self.mailMove, serializer);
     sse_encode_String(self.status, serializer);
     sse_encode_opt_String(self.level, serializer);
     sse_encode_opt_String(self.escalatedFrom, serializer);
@@ -6079,10 +9195,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_chat_attachment(
+    ChatAttachment self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.mime, serializer);
+    sse_encode_u_64(self.size, serializer);
+    sse_encode_u_32(self.w, serializer);
+    sse_encode_u_32(self.h, serializer);
+  }
+
+  @protected
   void sse_encode_chat_bootstrap(ChatBootstrap self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.alfredName, serializer);
     sse_encode_String(self.alfredStatus, serializer);
+    sse_encode_opt_String(self.alfredAgentId, serializer);
     sse_encode_u_64(self.unreadConversations, serializer);
     sse_encode_u_64(self.unreadMessages, serializer);
     sse_encode_u_64(self.pendingApprovals, serializer);
@@ -6106,6 +9237,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.lastSeq, serializer);
     sse_encode_i_64(self.lastReadSeq, serializer);
     sse_encode_u_64(self.unread, serializer);
+    sse_encode_u_32(self.activeRuns, serializer);
+    sse_encode_opt_String(self.progress, serializer);
     sse_encode_String(self.createdAt, serializer);
     sse_encode_String(self.updatedAt, serializer);
   }
@@ -6118,6 +9251,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_chat_conversation(self.conversations, serializer);
     sse_encode_opt_String(self.nextCursor, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_counts(ChatCounts self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.all, serializer);
+    sse_encode_u_64(self.attention, serializer);
+    sse_encode_u_64(self.working, serializer);
   }
 
   @protected
@@ -6179,6 +9320,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.body, serializer);
     sse_encode_String(self.preview, serializer);
     sse_encode_opt_String(self.state, serializer);
+    sse_encode_opt_String(self.turnState, serializer);
     sse_encode_opt_String(self.title, serializer);
     sse_encode_opt_String(self.summary, serializer);
     sse_encode_opt_String(self.status, serializer);
@@ -6186,6 +9328,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.level, serializer);
     sse_encode_opt_String(self.deciderKind, serializer);
     sse_encode_opt_String(self.deciderId, serializer);
+    sse_encode_opt_box_autoadd_mail_card(self.mail, serializer);
+    sse_encode_opt_box_autoadd_mail_draft_card(self.mailDraft, serializer);
+    sse_encode_list_String(self.suggestions, serializer);
+    sse_encode_opt_box_autoadd_chat_quote(self.quote, serializer);
+    sse_encode_opt_list_chat_attachment(self.attachments, serializer);
     sse_encode_String(self.createdAt, serializer);
     sse_encode_bool(self.local, serializer);
   }
@@ -6209,6 +9356,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.level, serializer);
     sse_encode_opt_String(self.escalatedFrom, serializer);
     sse_encode_opt_String(self.expiresAt, serializer);
+    sse_encode_opt_String(self.turnState, serializer);
+    sse_encode_opt_String(self.progress, serializer);
   }
 
   @protected
@@ -6241,6 +9390,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_chat_quote(ChatQuote self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.kind, serializer);
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.authorKind, serializer);
+    sse_encode_String(self.preview, serializer);
+  }
+
+  @protected
   void sse_encode_chat_seat(ChatSeat self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.agentId, serializer);
@@ -6264,6 +9422,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_i_64(self.oldestSeq, serializer);
     sse_encode_i_64(self.lastSeq, serializer);
     sse_encode_bool(self.hasMore, serializer);
+  }
+
+  @protected
+  void sse_encode_chunk_span(ChunkSpan self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.offset, serializer);
+    sse_encode_u_64(self.len, serializer);
   }
 
   @protected
@@ -6296,6 +9461,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
+  }
+
+  @protected
   void sse_encode_failure_kind(FailureKind self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -6306,6 +9477,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.value, serializer);
+  }
+
+  @protected
+  void sse_encode_hire(Hire self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.role, serializer);
+    sse_encode_String(self.area, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.avatar, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_String(self.createdAt, serializer);
+  }
+
+  @protected
+  void sse_encode_hire_list(HireList self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_hire(self.hires, serializer);
+    sse_encode_bool(self.canHire, serializer);
   }
 
   @protected
@@ -6350,6 +9540,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_approval_attachment(
+    List<ApprovalAttachment> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_approval_attachment(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_approval_audit(
     List<ApprovalAudit> self,
     SseSerializer serializer,
@@ -6386,6 +9588,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_catalog_role(
+    List<CatalogRole> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_catalog_role(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_chat_approval(
     List<ChatApproval> self,
     SseSerializer serializer,
@@ -6394,6 +9608,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_chat_approval(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_chat_attachment(
+    List<ChatAttachment> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_chat_attachment(item, serializer);
     }
   }
 
@@ -6470,6 +9696,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_hire(List<Hire> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_hire(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_mail_move_item(
+    List<MailMoveItem> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_mail_move_item(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_u_8_loose(
     List<int> self,
     SseSerializer serializer,
@@ -6501,6 +9748,99 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     for (final item in self) {
       sse_encode_record_string_u_32(item, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_list_role_area(
+    List<RoleArea> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_role_area(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_mail_attach_details(
+    MailAttachDetails self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.path, serializer);
+    sse_encode_i_64(self.size, serializer);
+    sse_encode_String(self.sha256, serializer);
+  }
+
+  @protected
+  void sse_encode_mail_card(MailCard self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.account, serializer);
+    sse_encode_String(self.userCode, serializer);
+    sse_encode_String(self.verificationUri, serializer);
+    sse_encode_String(self.expiresAt, serializer);
+  }
+
+  @protected
+  void sse_encode_mail_draft_card(
+    MailDraftCard self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.account, serializer);
+    sse_encode_String(self.draftId, serializer);
+    sse_encode_list_String(self.to, serializer);
+    sse_encode_String(self.subject, serializer);
+  }
+
+  @protected
+  void sse_encode_mail_move_details(
+    MailMoveDetails self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.account, serializer);
+    sse_encode_list_mail_move_item(self.items, serializer);
+  }
+
+  @protected
+  void sse_encode_mail_move_item(MailMoveItem self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.messageId, serializer);
+    sse_encode_String(self.dest, serializer);
+    sse_encode_String(self.reason, serializer);
+    sse_encode_opt_String(self.fromAddress, serializer);
+    sse_encode_String(self.subject, serializer);
+    sse_encode_opt_String(self.level, serializer);
+    sse_encode_bool(self.excluded, serializer);
+  }
+
+  @protected
+  void sse_encode_mail_send_details(
+    MailSendDetails self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.account, serializer);
+    sse_encode_opt_String(self.from, serializer);
+    sse_encode_list_String(self.to, serializer);
+    sse_encode_list_String(self.cc, serializer);
+    sse_encode_String(self.subject, serializer);
+    sse_encode_String(self.bodyPreview, serializer);
+    sse_encode_list_approval_attachment(self.attachments, serializer);
+  }
+
+  @protected
+  void sse_encode_onboarding_answer(
+    OnboardingAnswer self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.done, serializer);
+    sse_encode_list_String(self.areas, serializer);
+    sse_encode_list_hire(self.hires, serializer);
+    sse_encode_bool(self.canHire, serializer);
   }
 
   @protected
@@ -6550,6 +9890,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_chat_attachment(
+    ChatAttachment? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_chat_attachment(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_chat_bootstrap(
     ChatBootstrap? self,
     SseSerializer serializer,
@@ -6589,6 +9942,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_chat_counts(
+    ChatCounts? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_chat_counts(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_chat_delegation(
     ChatDelegation? self,
     SseSerializer serializer,
@@ -6611,6 +9977,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_chat_event(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_chat_quote(
+    ChatQuote? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_chat_quote(self, serializer);
     }
   }
 
@@ -6641,6 +10020,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_chunk_span(
+    ChunkSpan? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_chunk_span(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_created_workspace(
     CreatedWorkspace? self,
     SseSerializer serializer,
@@ -6663,6 +10055,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_error_info(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_hire(Hire? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_hire(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_hire_list(
+    HireList? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_hire_list(self, serializer);
     }
   }
 
@@ -6693,6 +10108,84 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_mail_attach_details(
+    MailAttachDetails? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_mail_attach_details(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_card(
+    MailCard? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_mail_card(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_draft_card(
+    MailDraftCard? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_mail_draft_card(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_move_details(
+    MailMoveDetails? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_mail_move_details(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_send_details(
+    MailSendDetails? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_mail_send_details(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_onboarding_answer(
+    OnboardingAnswer? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_onboarding_answer(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_pairing_link_info(
     PairingLinkInfo? self,
     SseSerializer serializer,
@@ -6702,6 +10195,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_pairing_link_info(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_pinned_bytes_response(
+    PinnedBytesResponse? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_pinned_bytes_response(self, serializer);
     }
   }
 
@@ -6728,6 +10234,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_pinned_response(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_role_catalog(
+    RoleCatalog? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_role_catalog(self, serializer);
     }
   }
 
@@ -6781,6 +10300,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_upload_cursor(
+    UploadCursor? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_upload_cursor(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_list_catalog_entry(
     List<CatalogEntry>? self,
     SseSerializer serializer,
@@ -6803,6 +10345,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_list_chat_approval(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_list_chat_attachment(
+    List<ChatAttachment>? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_list_chat_attachment(self, serializer);
     }
   }
 
@@ -6840,6 +10395,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_box_autoadd_pairing_link_info(self.link, serializer);
     sse_encode_opt_box_autoadd_pinned_failure(self.failure, serializer);
+  }
+
+  @protected
+  void sse_encode_pinned_bytes_reply(
+    PinnedBytesReply self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_pinned_bytes_response(self.response, serializer);
+    sse_encode_opt_box_autoadd_pinned_failure(self.failure, serializer);
+  }
+
+  @protected
+  void sse_encode_pinned_bytes_response(
+    PinnedBytesResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_16(self.status, serializer);
+    sse_encode_list_prim_u_8_strict(self.body, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.retryAfter, serializer);
+    sse_encode_String(self.address, serializer);
   }
 
   @protected
@@ -6905,6 +10482,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.$1, serializer);
     sse_encode_u_32(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_role_area(RoleArea self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.label, serializer);
+    sse_encode_list_String(self.roles, serializer);
+    sse_encode_list_String(self.personal, serializer);
+    sse_encode_list_String(self.profesional, serializer);
+    sse_encode_list_String(self.equipo, serializer);
+  }
+
+  @protected
+  void sse_encode_role_catalog(RoleCatalog self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_role_area(self.areas, serializer);
+    sse_encode_list_catalog_role(self.roles, serializer);
   }
 
   @protected
@@ -6979,6 +10574,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  void sse_encode_upload_cursor(UploadCursor self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.size, serializer);
+    sse_encode_u_64(self.sent, serializer);
+    sse_encode_u_8(self.refusals, serializer);
   }
 
   @protected
@@ -7083,6 +10686,15 @@ class ChatReducerImpl extends RustOpaque implements ChatReducer {
   bool acceptChatEvent({required ChatEvent event}) => RustLib.instance.api
       .crateApiChatReducerChatReducerAcceptChatEvent(that: this, event: event);
 
+  /// A conversation listing. An open turn without a line in the listing clears
+  /// the line only on a repeat: a frame that beat the first listing is kept.
+  /// A closed turn clears it at once.
+  void acceptConversations({required List<ChatConversation> conversations}) =>
+      RustLib.instance.api.crateApiChatReducerChatReducerAcceptConversations(
+        that: this,
+        conversations: conversations,
+      );
+
   /// Parse a `chat.*` frame and apply the facts a body-less frame can carry:
   /// the state of a message already in the timeline. New rows still need a
   /// timeline refresh, which the controller does.
@@ -7126,8 +10738,22 @@ class ChatReducerImpl extends RustOpaque implements ChatReducer {
   void failSend({required String clientId}) => RustLib.instance.api
       .crateApiChatReducerChatReducerFailSend(that: this, clientId: clientId);
 
+  String? progressOf({required String conversationId}) =>
+      RustLib.instance.api.crateApiChatReducerChatReducerProgressOf(
+        that: this,
+        conversationId: conversationId,
+      );
+
   void reset() =>
       RustLib.instance.api.crateApiChatReducerChatReducerReset(that: this);
+
+  /// Clears the line once the timeline shows the turn over. It covers a lost
+  /// `chat.progress` null frame; a send still on its way does not count.
+  void settleTurn({required String conversationId}) =>
+      RustLib.instance.api.crateApiChatReducerChatReducerSettleTurn(
+        that: this,
+        conversationId: conversationId,
+      );
 
   ChatSnapshot snapshot() =>
       RustLib.instance.api.crateApiChatReducerChatReducerSnapshot(that: this);

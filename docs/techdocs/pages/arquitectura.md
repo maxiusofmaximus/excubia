@@ -37,6 +37,6 @@ README y su propio sistema de compilación.
 
 ## Piezas heredadas
 
-El gateway de Python (`gateway/`) está obsoleto y no recibe funciones nuevas. Sus dispositivos
+El gateway de Python (`gateway/`) está retirado del repositorio y ya no recibe cambios. Sus dispositivos
 se importan con `host devices import-gateway`. La tabla de equivalencias está en
 [paridad gateway → core](PARITY-GATEWAY.md).

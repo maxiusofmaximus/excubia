@@ -35,6 +35,11 @@ pub fn chat_db_path(data_dir: &Path) -> PathBuf {
     data_dir.join("chat.db")
 }
 
+/// The attachment files of the chat, one folder per conversation.
+pub fn attachments_dir(data_dir: &Path) -> PathBuf {
+    data_dir.join("chat").join("attachments")
+}
+
 /// The closed list of agents `POST /v1/workspaces` may start.
 pub fn agents_path(data_dir: &Path) -> PathBuf {
     data_dir.join("agents.toml")
@@ -69,5 +74,6 @@ mod tests {
         assert!(devices_path(dir).ends_with("devices.json"));
         assert!(counters_path(dir).ends_with("state.json"));
         assert!(chat_db_path(dir).ends_with("chat.db"));
+        assert!(attachments_dir(dir).ends_with(Path::new("chat").join("attachments")));
     }
 }

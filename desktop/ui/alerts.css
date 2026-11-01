@@ -1,0 +1,69 @@
+/* «Avisos»: the mode choice, the rule rows and the form beside them. Colours come from the
+   tokens in base.css, so both themes follow. */
+
+.alerts-mode {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.alerts-mode legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.alerts-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.alert-rule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.alert-sentence {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.alert-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.alert-ask {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.alerts-form {
+  display: grid;
+  gap: 12px;
+}
+
+.alerts-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .alert-rule {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

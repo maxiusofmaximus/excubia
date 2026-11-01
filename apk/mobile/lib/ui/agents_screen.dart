@@ -5,15 +5,23 @@ import 'package:herdr_notify/src/rust/api/error.dart';
 import 'package:herdr_notify/src/rust/api/state.dart';
 import 'package:herdr_notify/src/rust/api/workspace.dart';
 
+import '../core/api/connection_failure.dart';
+import '../core/api/connection_text.dart';
 import '../core/model/connection_state.dart';
 import '../core/state/chat_controller.dart';
+import '../core/state/hires_controller.dart';
 import '../core/state/live_triage.dart';
 import 'agent_detail_screen.dart';
 import 'new_conversation_screen.dart';
+import 'team/hires_section.dart';
 import 'team_projects.dart';
 import 'theme.dart';
 import 'widgets/agent_row.dart';
+import 'widgets/message_panel.dart';
 import 'widgets/status_dot.dart';
+
+part 'agents_screen_actions.dart';
+part 'agents_screen_shell.dart';
 
 enum _TeamFilter { all, working, blocked }
 
@@ -24,11 +32,13 @@ class AgentsScreen extends StatefulWidget {
     super.key,
     required this.triage,
     required this.chat,
+    required this.hires,
     required this.onUnpaired,
   });
 
   final LiveTriage triage;
   final ChatController chat;
+  final HiresController hires;
   final Future<void> Function() onUnpaired;
 
   @override
@@ -44,6 +54,7 @@ class _AgentsScreenState extends State<AgentsScreen>
 
   LiveTriage get _triage => widget.triage;
   ChatController get _chat => widget.chat;
+  HiresController get _hires => widget.hires;
 
   @override
   void initState() {
@@ -51,6 +62,7 @@ class _AgentsScreenState extends State<AgentsScreen>
     WidgetsBinding.instance.addObserver(this);
     _triage.addListener(_onChanged);
     _chat.addListener(_onChanged);
+    _hires.addListener(_onChanged);
   }
 
   @override
@@ -60,6 +72,7 @@ class _AgentsScreenState extends State<AgentsScreen>
     _search.dispose();
     _triage.removeListener(_onChanged);
     _chat.removeListener(_onChanged);
+    _hires.removeListener(_onChanged);
     super.dispose();
   }
 
@@ -67,6 +80,7 @@ class _AgentsScreenState extends State<AgentsScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _triage.refreshNow();
+      unawaited(_hires.refresh());
     }
   }
 
@@ -76,68 +90,6 @@ class _AgentsScreenState extends State<AgentsScreen>
     unawaited(_openPendingIfPresent());
   }
 
-  Future<void> _openNewConversation({String? cwd}) async {
-    final created = await Navigator.of(context).push<CreatedWorkspace>(
-      MaterialPageRoute<CreatedWorkspace>(
-        builder: (_) => NewConversationScreen(triage: _triage, initialCwd: cwd),
-      ),
-    );
-    if (created == null || !mounted) return;
-    _awaitPane(created.paneId);
-  }
-
-  void _awaitPane(String paneId) {
-    _pendingPane = paneId;
-    _pendingTimer?.cancel();
-    _pendingTimer = Timer(const Duration(seconds: 8), () {
-      if (!mounted || _pendingPane == null) return;
-      _pendingPane = null;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'La conversación se creó; aparecerá en la lista al conectarse.',
-          ),
-        ),
-      );
-    });
-    unawaited(_openPendingIfPresent());
-  }
-
-  Future<void> _openPendingIfPresent() async {
-    final paneId = _pendingPane;
-    if (paneId == null) return;
-    final state = _triage.currentState;
-    if (state == null || !state.agents.any((agent) => agent.paneId == paneId)) {
-      return;
-    }
-    _pendingPane = null;
-    _pendingTimer?.cancel();
-    await _openDetail(paneId);
-  }
-
-  Future<void> _openDetail(String paneId) async {
-    final result = await Navigator.of(context).push<AgentDetailResult>(
-      MaterialPageRoute<AgentDetailResult>(
-        builder: (_) => AgentDetailScreen(triage: _triage, paneId: paneId),
-      ),
-    );
-    if (!mounted || result == null) return;
-    switch (result) {
-      case AgentStopped(:final alreadyGone):
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              alreadyGone
-                  ? 'El agente ya había terminado.'
-                  : 'Agente detenido.',
-            ),
-          ),
-        );
-      case ConversationCreated(:final created):
-        _awaitPane(created.paneId);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final connection = _triage.connection;
@@ -145,7 +97,10 @@ class _AgentsScreenState extends State<AgentsScreen>
     final visible = _visibleAgents(state);
     return _Shell(
       subtitle: _subtitleFor(connection, state, visible.length),
-      onRefresh: () => _triage.refreshNow(),
+      onRefresh: () {
+        unawaited(_hires.refresh());
+        unawaited(_triage.refreshNow());
+      },
       onNewConversation: () => _openNewConversation(),
       child: _bodyFor(connection, state, visible),
     );
@@ -174,28 +129,41 @@ class _AgentsScreenState extends State<AgentsScreen>
     int visible,
   ) {
     final total = state?.agents.length ?? 0;
-    final count = visible == total
+    final hired = _hires.hires.length;
+    final count = hired > 0
+        ? teamCountLabel(hired: hired, active: total)
+        : visible == total
         ? _countLabel(total)
         : '$visible de ${_countLabel(total)}';
     return switch (connection) {
       Connecting() => 'Conectando con el equipo…',
       Live(:final updatedAt) => '$count · ${ageLabel(updatedAt)}',
-      Offline(:final updatedAt) =>
-        'Sin conexión · último estado ${ageLabel(updatedAt)}',
+      Offline(:final updatedAt, :final failure) =>
+        '${connectionLabel(failure)} · último estado ${ageLabel(updatedAt)}',
       Failed() => 'Sin conexión con el equipo',
+      AwaitingApproval() => 'Pendiente de aprobación',
     };
   }
 
   String _countLabel(int count) => count == 1 ? '1 agente' : '$count agentes';
+
+  /// One attempt, started by a tap: the loop is not restarted by a timer.
+  Future<void> _reconnect() async {
+    _triage.start();
+    await _triage.refreshNow();
+  }
 
   Widget _bodyFor(
     ConnectionState connection,
     StateSnapshot? state,
     List<AgentEntry> visible,
   ) {
+    if (connection is AwaitingApproval) {
+      return AwaitingApprovalPanel(onRetry: _reconnect);
+    }
     if (connection is Failed) {
       final repair = connection.kind == FailureKind.repair;
-      return _MessagePanel(
+      return MessagePanel(
         icon: repair ? Icons.link_off : Icons.error_outline,
         title: repair
             ? 'Este teléfono ya no está emparejado'
@@ -203,12 +171,7 @@ class _AgentsScreenState extends State<AgentsScreen>
         detail: connection.message,
         hint: connection.action,
         actionLabel: repair ? 'Volver a emparejar' : 'Reintentar',
-        onAction: repair
-            ? widget.onUnpaired
-            : () async {
-                _triage.start();
-                await _triage.refreshNow();
-              },
+        onAction: repair ? widget.onUnpaired : _reconnect,
       );
     }
 
@@ -223,7 +186,7 @@ class _AgentsScreenState extends State<AgentsScreen>
                 height: 28,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: context.colors.accent,
+                  color: context.colors.accentText,
                 ),
               ),
               const SizedBox(height: Spacing.md),
@@ -233,21 +196,39 @@ class _AgentsScreenState extends State<AgentsScreen>
         );
       }
       final offline = connection is Offline;
-      return _MessagePanel(
-        icon: Icons.inbox_outlined,
-        title: 'No hay agentes en herdr',
-        detail: offline
-            ? (state == null
-                  ? 'Sin conexión: no hay un estado guardado que mostrar.'
-                  : 'El último estado guardado no tenía agentes.')
-            : 'Cuando un agente se ejecute en herdr aparecerá aquí.',
-        actionLabel: 'Nueva conversación',
-        onAction: () => _openNewConversation(),
-        secondaryLabel: 'Reintentar',
-        onSecondary: () async {
-          _triage.start();
-          await _triage.refreshNow();
-        },
+      final failure = connection is Offline ? connection.failure : null;
+      // With people hired, "nobody is running" is the true state; the empty-list
+      // panel would read as if the team were gone.
+      final Widget empty = _hires.hires.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.all(Spacing.xl),
+              child: Text(
+                'Nadie trabajando ahora',
+                style: context.text.bodySecondary,
+                textAlign: TextAlign.center,
+              ),
+            )
+          : MessagePanel(
+              icon: Icons.inbox_outlined,
+              title: 'No hay agentes',
+              detail: offline
+                  ? (state == null
+                        ? failure == null
+                              ? 'Sin conexión: no hay un estado guardado que mostrar.'
+                              : connectionText(failure)
+                        : 'El último estado guardado no tenía agentes.')
+                  : 'Cuando un agente se ejecute aparecerá aquí.',
+              actionLabel: 'Nueva conversación',
+              onAction: () => _openNewConversation(),
+              secondaryLabel: 'Reintentar',
+              onSecondary: _reconnect,
+            );
+      return ListView(
+        padding: const EdgeInsets.only(bottom: Spacing.xl),
+        children: [
+          TeamHiresSection(hires: _hires),
+          empty,
+        ],
       );
     }
 
@@ -258,6 +239,7 @@ class _AgentsScreenState extends State<AgentsScreen>
         _OfflineBanner(
           reason: connection.reason,
           updatedAt: connection.updatedAt,
+          failure: connection.failure,
         ),
       );
     }
@@ -312,7 +294,11 @@ class _AgentsScreenState extends State<AgentsScreen>
     }
     return ListView(
       padding: const EdgeInsets.only(bottom: Spacing.xl),
-      children: [_header(), ...rows],
+      children: [
+        _header(),
+        TeamHiresSection(hires: _hires),
+        ...rows,
+      ],
     );
   }
 
@@ -363,169 +349,6 @@ class _AgentsScreenState extends State<AgentsScreen>
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Shell extends StatelessWidget {
-  const _Shell({
-    required this.subtitle,
-    required this.child,
-    this.onRefresh,
-    this.onNewConversation,
-  });
-
-  final String subtitle;
-  final Widget child;
-  final VoidCallback? onRefresh;
-  final VoidCallback? onNewConversation;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.colors.bg,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.lg,
-                Spacing.lg,
-                Spacing.sm,
-                Spacing.md,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Equipo', style: context.text.headline),
-                        const SizedBox(height: 2),
-                        Text(subtitle, style: context.text.small),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Nueva conversación',
-                    onPressed: onNewConversation,
-                    icon: const Icon(Icons.add_comment_outlined),
-                    color: context.colors.textSecondary,
-                  ),
-                  IconButton(
-                    tooltip: 'Actualizar',
-                    onPressed: onRefresh,
-                    icon: const Icon(Icons.refresh),
-                    color: context.colors.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-            Expanded(child: child),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OfflineBanner extends StatelessWidget {
-  const _OfflineBanner({required this.reason, required this.updatedAt});
-
-  final String? reason;
-  final DateTime? updatedAt;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.sm),
-      padding: const EdgeInsets.all(Spacing.md),
-      decoration: BoxDecoration(
-        color: context.colors.raised,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.colors.outlineSoft),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.cloud_off_outlined,
-            size: 18,
-            color: context.colors.textSecondary,
-          ),
-          const SizedBox(width: Spacing.sm),
-          Expanded(
-            child: Text(
-              'Sin conexión — '
-              '${reason == null || reason!.isEmpty ? 'mostrando el último estado' : reason} '
-              '(${ageLabel(updatedAt)}).',
-              style: context.text.small,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MessagePanel extends StatelessWidget {
-  const _MessagePanel({
-    required this.icon,
-    required this.title,
-    required this.detail,
-    required this.actionLabel,
-    required this.onAction,
-    this.hint,
-    this.secondaryLabel,
-    this.onSecondary,
-  });
-
-  final IconData icon;
-  final String title;
-  final String detail;
-  final String? hint;
-  final String actionLabel;
-  final VoidCallback onAction;
-  final String? secondaryLabel;
-  final VoidCallback? onSecondary;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(Spacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 40, color: context.colors.textMuted),
-            const SizedBox(height: Spacing.md),
-            Text(title, style: context.text.title, textAlign: TextAlign.center),
-            const SizedBox(height: Spacing.sm),
-            Text(
-              detail,
-              style: context.text.bodySecondary,
-              textAlign: TextAlign.center,
-            ),
-            if (hint != null) ...[
-              const SizedBox(height: Spacing.sm),
-              Text(
-                hint!,
-                style: context.text.small,
-                textAlign: TextAlign.center,
-              ),
-            ],
-            const SizedBox(height: Spacing.lg),
-            FilledButton(onPressed: onAction, child: Text(actionLabel)),
-            if (secondaryLabel != null && onSecondary != null) ...[
-              const SizedBox(height: Spacing.sm),
-              OutlinedButton(
-                onPressed: onSecondary,
-                child: Text(secondaryLabel!),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

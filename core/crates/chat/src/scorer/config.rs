@@ -167,7 +167,7 @@ impl RawScorer {
 
 /// `http://127.0.0.1:<port>` or `http://localhost:<port>`, with no path: the
 /// local backend appends its own route.
-fn local_endpoint(endpoint: &str) -> Option<(String, u16)> {
+pub fn local_endpoint(endpoint: &str) -> Option<(String, u16)> {
     let rest = endpoint.strip_prefix("http://")?;
     let authority = rest.strip_suffix('/').unwrap_or(rest);
     if authority.contains('/') {

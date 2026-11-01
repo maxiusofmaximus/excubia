@@ -1,21 +1,28 @@
+/* Palette «azul noche» (dark) and «pergamino» (light): the same tokens as the
+   APK's HerdrColors in apk/mobile/lib/ui/theme.dart. Text and icons in brass use
+   --accent-text (darker on paper); --accent is only for fills. */
 :root {
-  --bg: #0e1116;
-  --surface: #161b22;
-  --raised: #1c2430;
-  --raised-2: #232d3b;
-  --line: #2a3340;
-  --line-strong: #3a4657;
-  --text: #ece9f5;
-  --text-2: #b3aec2;
-  --muted: #8b8699;
-  --accent: #8b7cf6;
-  --accent-soft: #221d40;
-  --blocked: #ff7b7b;
-  --working: #8b7cf6;
-  --done: #3fb950;
-  --idle: #6e7681;
-  --unknown: #8b949e;
-  --warning: #d29922;
+  --bg: #0b1426;
+  --surface: #14213d;
+  --raised: #1a2a4d;
+  --raised-2: #213462;
+  --line: #253456;
+  --line-strong: #6f84b3;
+  --text: #f3e3c0;
+  --text-2: #e0d5bc;
+  --muted: #a7b0c4;
+  --accent: #f2a93b;
+  --accent-text: #f2a93b;
+  --accent-rgb: 242, 169, 59;
+  --accent-soft: #3a2e17;
+  --on-accent: #0b1426;
+  --on-attention: #0b1426;
+  --blocked: #ff7a62;
+  --working: #8fb4e8;
+  --done: #6fcf97;
+  --idle: #a7b0c4;
+  --unknown: #e0d5bc;
+  --warning: #f2a93b;
   --radius: 16px;
   --radius-sm: 10px;
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -35,8 +42,8 @@ body {
 
 body {
   background:
-    radial-gradient(900px 460px at 18% -8%, rgba(139, 124, 246, 0.1), transparent 62%),
-    radial-gradient(700px 420px at 100% 0%, rgba(63, 185, 80, 0.035), transparent 58%),
+    radial-gradient(900px 460px at 18% -8%, rgba(var(--accent-rgb), 0.1), transparent 62%),
+    radial-gradient(700px 420px at 100% 0%, rgba(111, 207, 151, 0.035), transparent 58%),
     var(--bg);
   color: var(--text);
   font-family: var(--font);
@@ -85,29 +92,32 @@ textarea {
 }
 
 .linkish:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
+/* Size and character colours come from ui/avatar.js (--avatar-px, --avatar-bg/fg). */
 .avatar {
   display: grid;
   place-items: center;
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: var(--avatar-px, 34px);
+  height: var(--avatar-px, 34px);
+  overflow: hidden;
   border-radius: 50%;
-  background: linear-gradient(160deg, var(--accent-soft), var(--raised-2));
+  background: var(--avatar-bg, var(--accent-soft));
   border: 1px solid var(--line-strong);
-  color: var(--text);
-  font-size: 13px;
+  color: var(--avatar-fg, var(--accent-text));
+  font-size: calc(var(--avatar-px, 34px) * 0.44);
   font-weight: 650;
 }
 
-.avatar.small {
-  width: 30px;
-  height: 30px;
-  font-size: 12px;
+.avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 button {
@@ -115,7 +125,7 @@ button {
 }
 
 ::selection {
-  background: rgba(139, 124, 246, 0.35);
+  background: rgba(var(--accent-rgb), 0.35);
 }
 
 ::-webkit-scrollbar {
@@ -183,7 +193,7 @@ h1 {
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 14px rgba(76, 141, 255, 0.75);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.75);
 }
 
 .card {
@@ -211,7 +221,7 @@ input {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   color: var(--text);
-  caret-color: var(--accent);
+  caret-color: var(--accent-text);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -227,8 +237,8 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(139, 124, 246, 0.18);
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 
 select {
@@ -279,7 +289,7 @@ select {
 .btn:focus-visible,
 .icon-btn:focus-visible,
 summary:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -295,11 +305,11 @@ summary:focus-visible {
 
 .btn.primary {
   background: var(--accent);
-  color: #0b0620;
+  color: var(--on-accent);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: #a99cf9;
+  filter: brightness(1.06);
 }
 
 .btn.secondary {
@@ -360,29 +370,33 @@ summary:focus-visible {
    dark, so these variables are the whole switch. */
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f6f4ee;
-    --surface: #fffdf8;
-    --raised: #f0ece3;
-    --raised-2: #e8e2d7;
-    --line: #e4ded3;
-    --line-strong: #cec5b7;
-    --text: #221f1b;
-    --text-2: #5b544b;
-    --muted: #7b736a;
-    --accent: #6d5ae6;
-    --accent-soft: #ece8fc;
-    --blocked: #c43c3c;
-    --working: #5a4bd6;
-    --done: #2f8f4e;
-    --idle: #8a8078;
-    --unknown: #7b736a;
-    --warning: #9a6b00;
+    --bg: #f7f4ec;
+    --surface: #ffffff;
+    --raised: #efeadf;
+    --raised-2: #e6e0d2;
+    --line: #e3dccb;
+    --line-strong: #7a7265;
+    --text: #14213d;
+    --text-2: #34405e;
+    --muted: #56607a;
+    --accent: #f2a93b;
+    --accent-text: #8a5208;
+    --accent-rgb: 242, 169, 59;
+    --accent-soft: #f6e4be;
+    --on-accent: #14213d;
+    --on-attention: #ffffff;
+    --blocked: #b03420;
+    --working: #2f5c9e;
+    --done: #276b4e;
+    --idle: #56607a;
+    --unknown: #34405e;
+    --warning: #8a5208;
   }
 
   body {
     background:
-      radial-gradient(900px 460px at 18% -8%, rgba(109, 90, 230, 0.08), transparent 62%),
-      radial-gradient(700px 420px at 100% 0%, rgba(47, 143, 78, 0.04), transparent 58%),
+      radial-gradient(900px 460px at 18% -8%, rgba(var(--accent-rgb), 0.08), transparent 62%),
+      radial-gradient(700px 420px at 100% 0%, rgba(39, 107, 78, 0.04), transparent 58%),
       var(--bg);
   }
 
@@ -395,9 +409,6 @@ summary:focus-visible {
     box-shadow: 0 16px 40px rgba(70, 58, 40, 0.18);
   }
 
-  .btn.primary {
-    color: #fff;
-  }
 }
 
 @media (max-width: 680px) {

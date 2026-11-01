@@ -57,6 +57,16 @@ Color delegationStatusColor(BuildContext context, String? status) {
   };
 }
 
+/// Text takes the status colour, except blocked states: coral is only a fill or
+/// an icon, so waiting and failed read in neutral ink.
+Color delegationStatusTextColor(BuildContext context, String? status) {
+  final c = context.colors;
+  return switch (status) {
+    'waiting' || 'failed' => c.textPrimary,
+    _ => delegationStatusColor(context, status),
+  };
+}
+
 IconData delegationStatusIcon(String? status) => switch (status) {
   'queued' => Icons.schedule,
   'running' => Icons.autorenew,
@@ -91,7 +101,7 @@ Future<bool> confirmDelegationCancel(
           onPressed: () => Navigator.of(context).pop(true),
           style: FilledButton.styleFrom(
             backgroundColor: context.colors.statusBlocked,
-            foregroundColor: context.colors.onAccent,
+            foregroundColor: context.colors.onAttention,
           ),
           child: const Text('Cancelar delegación'),
         ),
@@ -192,12 +202,7 @@ class DelegationCard extends StatelessWidget {
                       color: c.statusBlocked,
                     ),
                     const SizedBox(width: Spacing.xs),
-                    Text(
-                      'Requiere tu atención',
-                      style: context.text.small.copyWith(
-                        color: c.statusBlocked,
-                      ),
-                    ),
+                    Text('Requiere tu atención', style: context.text.small),
                   ],
                 ),
               ],
@@ -228,7 +233,7 @@ class DelegationCard extends StatelessWidget {
                       onPressed: () => onCancel(entry),
                       style: TextButton.styleFrom(
                         minimumSize: const Size(48, 48),
-                        foregroundColor: c.statusBlocked,
+                        foregroundColor: c.textPrimary,
                       ),
                       icon: const Icon(Icons.stop_circle_outlined, size: 18),
                       label: const Text('Cancelar'),
@@ -266,7 +271,10 @@ class _StatusPill extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             delegationStatusLabel(status),
-            style: context.text.label.copyWith(color: color, fontSize: 11),
+            style: context.text.label.copyWith(
+              color: delegationStatusTextColor(context, status),
+              fontSize: 11,
+            ),
           ),
         ],
       ),

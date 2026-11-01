@@ -3,17 +3,11 @@
 //! arguments, so a caller cannot widen its own scope, and it decides nothing.
 
 use hn_core_chat::{ToolError, ToolRequest};
-use serde::Deserialize;
 
-use super::{invalid_arguments, ToolCall};
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct PendingArgs {}
+use super::{no_arguments, ToolCall};
 
 pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
-    let _: PendingArgs = serde_json::from_value(request.arguments.clone())
-        .map_err(|error| invalid_arguments("arguments", error))?;
+    no_arguments(request)?;
     Ok(ToolCall::ApprovalPending)
 }
 

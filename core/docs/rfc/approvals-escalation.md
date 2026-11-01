@@ -1,9 +1,9 @@
 # RFC — Aprobaciones escaladas (política → scorer opcional → lead → CTO → usuario)
 
-**Estado:** aprobado por el propietario del producto (5 decisiones), 2026-10-22; añadido el nivel 1.5 opcional
+**Estado:** aprobado por el Master (5 decisiones), 2026-10-22; añadido el nivel 1.5 opcional · **Build · DeepSeek V4.1 Flash**
 **Alcance:** solo documentación; no cambia código, contratos ni datos. Las listas de §7 son el trabajo de CORE9.
-**Base:** `contracts/{api,auth,errors,state,pairing}.md`.
-**Decisión del propietario del producto:** modo delegado por defecto (política → lead → CTO → usuario), lista de nunca delegar, interruptor «pedirme siempre a mí» y tarjeta compacta en el chat en lugar del modal.
+**Base:** `docs/rfc/orchestrator-chat.md` §5, `CORE8-RESULT.md`, `CORE8B-RESULT.md`, `docs/contracts/{api,auth,errors,state,pairing}.md`.
+**Decisión del Master:** modo delegado por defecto (política → lead → CTO → usuario), lista de nunca delegar, interruptor «pedirme siempre a mí» y tarjeta compacta en el chat en lugar del modal wf51.
 **Decisiones cerradas (2026-10-22):** TTL 120 s por defecto/300 s máximo con 40 s por nivel agente; `always_user` también para lecturas/tests; la petición del lead la decide el CTO y la del CTO el usuario; cambiar el modo exige `APPROVE` (no basta `ADMIN`); reglas de `approvals.toml` en solo lectura en el MVP.
 
 ## 1. Niveles y estados
@@ -76,7 +76,7 @@ command_matches = "^git (reset --hard|clean -fd|checkout -- \\*)"
 
 **Defaults conservadores si no hay fichero:** permitir `read`, `test` y `build` con `cwd` dentro del proyecto; denegar `git reset --hard`/`git clean -fd`; `git push` cae en `publish` y va al usuario; todo lo demás escala al scorer si está activo (con `backend=none`, directo al lead). `edit` dentro del proyecto no se permite por defecto en el MVP: lo decide el lead (una regla explícita o `auto_ok_if_low` pueden permitirlo).
 
-**Categorías y nunca delegar:** `read`, `edit`, `test`, `build`, `command`, `network`, `vcs`, `credentials`, `money`, `delete_user_data`, `publish`, `outside_workspace`. Son `never_delegate` (siempre `user`): `money` (gastar dinero real), `delete_user_data` (borrar datos del usuario), `publish` (push/publicar), `credentials` (tocar credenciales o claves) y `outside_workspace` (salir de `workspaces_root`). Las reglas `allow` no pueden cubrir estas categorías; una regla `deny` sí puede endurecer cualquier otra.
+**Categorías y nunca delegar:** `read`, `edit`, `test`, `build`, `command`, `network`, `vcs`, `credentials`, `money`, `delete_user_data`, `publish`, `outside_workspace`, `mail_send`, `mail_organize`. Son `never_delegate` (siempre `user`): `money` (gastar dinero real), `delete_user_data` (borrar datos del usuario), `publish` (push/publicar), `credentials` (tocar credenciales o claves) y `outside_workspace` (salir de `workspaces_root`), `mail_send` (enviar un correo) y `mail_organize` (mover un lote de correos). Las reglas `allow` no pueden cubrir estas categorías; una regla `deny` sí puede endurecer cualquier otra.
 
 **Riesgo:** el host calcula `risk` (`low|medium|high`). `high` nunca se permite en `policy`; como mínimo va al lead, y si toca una categoría `never_delegate` va al usuario.
 
@@ -183,7 +183,7 @@ mode = "always_user"               # override por proyecto
 | `docs/contracts/errors.md` | `403 approval_scope_denied` (agente fuera de ámbito), `409 approval_level_mismatch` (nivel que no le toca), `409 approval_not_delegable` (`never_delegate` intentado por agente), `409 approval_self_approval`, `409 approval_budget` (seis decisiones por hora), `422 invalid_mode`, `422 invalid_scorer_config`; el fallo del scorer no es error de cara al usuario (fail-closed, sigue al lead); contrato del hook intacto (0/2/1) |
 | `docs/contracts/state.md` | `chat.approval` gana `level`, `escalated_from`, `decider_kind` (incluye `scorer`), `risk_score`, `scorer_version` y `change: created\|escalated\|decided\|consumed`; `pending_approvals` sigue contando todo; `pending_user_approvals` es el nuevo contador de la bandeja del usuario; la entrada de timeline `kind=approval` gana la línea de decisión |
 | `docs/contracts/pairing.md` | Sin cambios: no hay grants nuevos al emparejar y `APPROVE` sigue siendo un grant del host |
-| el RFC del chat del orquestador (no publicado) | §5 queda sustituida por este RFC cuando el propietario del producto lo apruebe; §3.2 y §5.2 se actualizan en la misma tarea que el código |
+| `docs/rfc/orchestrator-chat.md` | §5 queda sustituida por este RFC cuando el Master lo apruebe; §3.2 y §5.2 se actualizan en la misma tarea que el código |
 
 **Aprobación escalada (respuesta de `GET /v1/chat/approvals` y de `decision`):**
 
@@ -232,17 +232,17 @@ Con el scorer activo, `escalated_from` sería `scorer` y `risk_score`/`scorer_ve
 | **Elevación de privilegios** | El modo y las reglas solo los cambia un dispositivo con `APPROVE`; ningún agente tiene herramienta de ajustes; `decider_kind`/`decider_id` los pone el host, no el cuerpo |
 | **Hook** | `hn-uac-hook` y su contrato no cambian: `0` solo tras `approved` + `consumed`; `2` denegado, expirado o sin respuesta; `1` solo invocación inválida. La aprobación automática de la política pasa por el mismo `approved → consumed`, así que el hook no necesita lógica nueva |
 
-**Riesgo residual:** un CLI que ignore su hook/plugin sigue pudiendo ejecutar sin aprobación (limitación ya documentada en el RFC del chat del orquestador §5.2 (no publicado)); el host no puede impedirlo y la UI lo marca como degradado. La escalada no arregla esa capa.
+**Riesgo residual:** un CLI que ignore su hook/plugin sigue pudiendo ejecutar sin aprobación (limitación ya documentada en `orchestrator-chat.md` §5.2); el host no puede impedirlo y la UI lo marca como degradado. La escalada no arregla esa capa.
 
 ## 9. UI (texto, sin HTML)
 
 **El usuario solo ve lo que le llega (nivel `user`):**
 - **Tarjeta compacta dentro del chat**, en el timeline, no un modal ni una pantalla completa: una línea de título («Bob necesita permiso»), proyecto y agente, comando o herramienta en monoespaciado, `cwd` como etiqueta corta (`demo/…`), chip de riesgo, chip de nivel («te lo pasa Alfred»), digest corto y cuenta atrás del TTL. Si viene por falta de información, la pregunta concreta ocupa el sitio del comando. Botones pequeños **Permitir una vez** / **Denegar**; sin «Permitir siempre».
-- **Nada de toast de un toque:** el toast «Permitir» de una pulsación desaparece; aprobar sin ver el comando deja de existir.
+- **Nada de toast de un toque:** el toast «Permitir» de wf51 desaparece; aprobar sin ver el comando deja de existir.
 - **Línea de timeline para lo resuelto por debajo:** «Política aprobó: `pnpm test`», «Ernesto aprobó: `cargo test`», «Alfred aprobó: tocar el proyecto B». Es una línea, no una tarjeta; al tocarla se abre el detalle con la cadena de niveles y la auditoría. No genera push ni badge.
 - **Ajustes → Aprobaciones:** interruptor global «Pedirme siempre a mí» y una excepción por proyecto; texto de ayuda de una línea sobre los niveles; en el MVP las reglas de `approvals.toml` se muestran en solo lectura.
 
-**Qué cambia respecto al diseño anterior:** la hoja UAC anterior era a pantalla completa (pendiente / expirada / sin `APPROVE`); su variante pendiente queda **obsoleta** como pantalla completa y pasa a tarjeta compacta, mientras que sus estados expirado y 403 sin `APPROVE` sobreviven como estados de esa misma tarjeta (el 403 conserva el comando canónico `host devices grant … --permission approve`). Del diseño del chat de escritorio con tarjetas de delegación, bandeja UAC, modal y aviso) quedan obsoletos el **modal** y el **toast de un toque**; las tarjetas de delegación y la bandeja como vista secundaria se mantienen. La bandeja UAC sigue siendo la misma entidad que la tarjeta, pero la decisión se toma en la tarjeta del chat. El push urgente se reserva a `level=user`; las decisiones de lead/CTO no despiertan al teléfono.
+**Qué cambia respecto a wf43/wf51:** wf43 es la hoja UAC a pantalla completa (pendiente / expirada / sin `APPROVE`); su variante pendiente queda **obsoleta** como pantalla completa y pasa a tarjeta compacta, mientras que sus estados expirado y 403 sin `APPROVE` sobreviven como estados de esa misma tarjeta (el 403 conserva el comando canónico `host devices grant … --permission approve`). De wf51 (chat de escritorio con tarjetas de delegación, bandeja UAC, modal y aviso) quedan obsoletos el **modal** y el **toast de un toque**; las tarjetas de delegación y la bandeja como vista secundaria se mantienen. La bandeja UAC sigue siendo la misma entidad que la tarjeta, pero la decisión se toma en la tarjeta del chat. El push urgente se reserva a `level=user`; las decisiones de lead/CTO no despiertan al teléfono.
 
 ## 10. Plan de implementación por fases
 

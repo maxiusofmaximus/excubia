@@ -10,6 +10,7 @@ use serde_json::json;
 const AGENT_BUSY_RETRY_AFTER_SECONDS: u64 = 5;
 
 use hn_core_auth::{AuthzReason, Permission};
+use hn_core_chat::HireError;
 
 /// An API failure, already shaped for the wire.
 #[derive(Debug)]
@@ -133,8 +134,13 @@ impl ApiError {
 
     /// An action failure, `400` with a stable code from `errors.md`.
     pub fn action(code: &str, message: impl Into<String>) -> Self {
+        Self::coded(StatusCode::BAD_REQUEST, code, message)
+    }
+
+    /// A stable `code` and a short message, at the status the rule needs.
+    pub fn coded(status: StatusCode, code: &str, message: impl Into<String>) -> Self {
         Self {
-            status: StatusCode::BAD_REQUEST,
+            status,
             body: json!({"detail": {"code": code, "message": message.into()}}),
             retry_after: None,
         }
@@ -186,6 +192,32 @@ impl ApiError {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             body: json!({"detail": "internal error"}),
             retry_after: None,
+        }
+    }
+}
+
+/// The hire rules of ONBOARD-T3 (`errors.md`). Whatever the store cannot
+/// explain is an internal failure: its text stays in the log, not on the wire.
+impl From<HireError> for ApiError {
+    fn from(error: HireError) -> Self {
+        match error {
+            HireError::AreaFull(_) => Self::coded(
+                StatusCode::CONFLICT,
+                "area_full",
+                "the area already has the maximum of active hires",
+            ),
+            HireError::NoSuchHire(_) => {
+                Self::coded(StatusCode::NOT_FOUND, "no_such_hire", "no such hire")
+            }
+            HireError::HireNotActive(_) => Self::coded(
+                StatusCode::CONFLICT,
+                "hire_not_active",
+                "the hire was dismissed",
+            ),
+            HireError::InvalidName(name) => {
+                Self::invalid_field("invalid_name", "name", name.to_string())
+            }
+            other => Self::internal(other),
         }
     }
 }

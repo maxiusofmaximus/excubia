@@ -66,7 +66,7 @@ void main() {
   test('a foreign scheme is refused', () {
     expect(
       reason('https://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=C&v=1'),
-      contains('herdr notify'),
+      contains('Excubia'),
     );
   });
 

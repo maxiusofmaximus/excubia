@@ -4,6 +4,9 @@ use reqwest::{Response, StatusCode};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
+use super::agenda::agenda_refusal;
+use super::attachments::attachment_refusal;
+use super::error_text::{approval_text, delegation_text, team_refusal};
 use crate::client::status_error;
 use crate::error::{CoreError, WriteAction};
 
@@ -53,9 +56,45 @@ pub enum ChatFailure {
         code: String,
         message: String,
     },
+    /// A refusal of the team (`area_full`, `invalid_name`, …). The code is kept
+    /// so the dialog can name the rule; the message is already in Spanish.
+    TeamRefused {
+        code: String,
+        message: String,
+    },
     Invalid {
         message: String,
         field: Option<String>,
+    },
+    /// A refusal of the agenda (`address_taken`, `invalid_address`, …). The
+    /// screen words the code; `message` is the host's English detail.
+    AgendaRefused {
+        code: String,
+        field: Option<String>,
+        message: String,
+    },
+    /// A coded refusal of the attachment routes; the UI words it by `code`.
+    /// `next_offset` is set only by `offset_mismatch`, where a chunk resumes.
+    AttachmentRefused {
+        code: String,
+        field: Option<String>,
+        next_offset: Option<u64>,
+    },
+    /// `reply_to` names a message this conversation does not have. Nothing was
+    /// stored; the shell drops the quote and keeps the text.
+    UnknownReplyTo {
+        message: String,
+    },
+    /// A `.ics` file the device could not take in or put out: `too_large` (over the
+    /// host's limit, nothing was sent), `read_failed` or `write_failed`. The screen words the code.
+    FileRefused {
+        code: String,
+    },
+    /// A refusal of an alert rule (`rule_exists`, `rule_limit`, `not_found`). The message is
+    /// already in Spanish.
+    AlertRefused {
+        code: String,
+        message: String,
     },
     Gateway {
         message: String,
@@ -110,6 +149,9 @@ impl ChatFailure {
                         message: format!("El host rechazó la petición: {other}"),
                         status: *status,
                     },
+                },
+                422 if code == Some("unknown_reply_to") => ChatFailure::UnknownReplyTo {
+                    message: "Ese mensaje ya no está en la conversación.".to_string(),
                 },
                 422 => {
                     let info = error.describe(action);
@@ -184,6 +226,15 @@ pub(super) fn status_failure(
     retry_after_secs: Option<u64>,
     write: bool,
 ) -> ChatFailure {
+    if let Some((code, message)) = team_refusal(body) {
+        return ChatFailure::TeamRefused { code, message };
+    }
+    if let Some(failure) = agenda_refusal(body) {
+        return failure;
+    }
+    if let Some(failure) = attachment_refusal(body) {
+        return failure;
+    }
     let detail = detail_code(body);
     if status == StatusCode::FORBIDDEN {
         let info = CoreError::Forbidden.describe(if write {
@@ -242,56 +293,7 @@ pub(super) fn status_failure(
     ChatFailure::from_core(&status_error(status, body), write)
 }
 
-/// The rule behind a delegation refusal, in the language of the operator. A
-/// `None` means the code is not a delegation rule at all.
-pub fn delegation_text(code: &str) -> Option<&'static str> {
-    Some(match code {
-        "delegation_cancelled" => "La delegación ya había terminado o estaba cancelada.",
-        "depth_exceeded" => {
-            "La delegación supera la profundidad permitida (Alfred → lead → especialista)."
-        }
-        "pane_limit" => "El host ya tiene seis paneles vivos; no se puede abrir otro.",
-        "cycle_detected" => {
-            "La delegación repite un encargo reciente; se detuvo para evitar un ciclo."
-        }
-        "turn_budget" => "Este turno ya hizo doce delegaciones; no se permiten más.",
-        "hour_budget" => "Este asiento ya hizo sesenta delegaciones en la última hora.",
-        "seat_limit" => "El proyecto ya tiene ocho asientos; no cabe otro.",
-        "scope_denied" => "Ese asiento no puede hacer esta delegación.",
-        "lead_exists" => "El proyecto ya tiene un lead.",
-        "project_exists" => "Ya existe un proyecto con ese nombre.",
-        "not_your_delegation" => "Esa delegación pertenece a otro asiento.",
-        "unknown_project" => "Ese proyecto no existe en el host.",
-        "unknown_agent" => "Ese asiento no existe en el host.",
-        "no_such_delegation" => "Esa delegación ya no existe en el host.",
-        "delegation_timeout" => "El turno de la delegación agotó el tiempo de espera.",
-        "pane_gone" => "El panel del asignado desapareció antes de terminar.",
-        "host_restart" => "El host se reinició y la delegación quedó interrumpida.",
-        "conversation_cancelled" => "Se canceló el equipo de esta conversación.",
-        "user_cancelled" => "La delegación se canceló desde el escritorio.",
-        _ => return None,
-    })
-}
-
-/// What an approval conflict means to the operator. A `None` means the code is
-/// not an approval rule at all.
-pub fn approval_text(code: &str) -> Option<&'static str> {
-    Some(match code {
-        "approval_already_decided" => {
-            "Otro dispositivo ya decidió esta aprobación. La tarjeta se ha actualizado."
-        }
-        "approval_expired" => "Se agotó el tiempo de esta aprobación: no se ejecutó.",
-        "approval_digest_reused" => {
-            "Esa acción ya se pidió antes: el host no abre otra aprobación."
-        }
-        "approval_mismatch" => "La acción cambió después de pedir permiso: no se ejecutó.",
-        "approval_not_approved" => "Esta aprobación no está permitida: no se puede usar.",
-        "approval_limit" => "La conversación ya tiene cuatro aprobaciones esperando.",
-        _ => return None,
-    })
-}
-
-fn detail_code(body: &[u8]) -> Option<String> {
+pub(super) fn detail_code(body: &[u8]) -> Option<String> {
     let value: Value = serde_json::from_slice(body).ok()?;
     match value.get("detail") {
         Some(Value::String(text)) => Some(text.clone()),

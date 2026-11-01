@@ -10,29 +10,29 @@ import '../write.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `get`, `object`, `post`, `problem`
+// These functions are ignored because they are not marked as `pub`: `exclusions_allowed`, `get`, `object`, `post`, `problem`
 
 /// The inbox of the operator: pending by default, any lifecycle state on request.
+/// A device has no read of one approval by id (`GET /v1/chat/approvals/{id}` is
+/// a hook route): it finds one here, by status, as `findApproval` does in Dart.
 ChatPlan planApprovalInbox({String? conversationId, String? status}) =>
     RustLib.instance.api.crateApiApprovalsPlanPlanApprovalInbox(
       conversationId: conversationId,
       status: status,
     );
 
-/// The state and the deadline of one approval, never its payload.
-ChatPlan planApprovalRead({required String approvalId}) => RustLib.instance.api
-    .crateApiApprovalsPlanPlanApprovalRead(approvalId: approvalId);
-
 /// One answer to one approval. `client_id` makes a retry safe: the host gives
-/// the same answer to the same id.
+/// the same answer to the same id. `exclude` leaves mails out of a `mail.move`.
 ChatPlan planApprovalDecision({
   required String approvalId,
   required bool approve,
   required String clientId,
+  required List<String> exclude,
 }) => RustLib.instance.api.crateApiApprovalsPlanPlanApprovalDecision(
   approvalId: approvalId,
   approve: approve,
   clientId: clientId,
+  exclude: exclude,
 );
 
 ChatPlan planApprovalSettingsRead() =>

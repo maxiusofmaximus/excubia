@@ -180,10 +180,10 @@ mod tests {
             })
             .expect("conversation");
         let accepted = store
-            .append_user_message(&conversation.id, "client-unread", "hola")
+            .append_user_message(&conversation.id, "client-unread", "hola", None)
             .expect("message");
         store
-            .complete_run_with_reply(&accepted.turn.id, "hola")
+            .complete_run_with_reply(&accepted.turn.id, "hola", &[])
             .expect("reply");
         let bootstrap = store.bootstrap().expect("bootstrap");
         assert_eq!(bootstrap.unread.conversations, 1);

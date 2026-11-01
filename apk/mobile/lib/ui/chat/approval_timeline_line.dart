@@ -17,12 +17,14 @@ class ApprovalTimelineLine extends StatelessWidget {
     required this.controller,
     required this.conversationId,
     required this.projects,
+    this.alfred,
   });
 
   final ChatEntry entry;
   final ApprovalsController? controller;
   final String? conversationId;
   final List<ChatProject> projects;
+  final ChatSeat? alfred;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class ApprovalTimelineLine extends StatelessWidget {
         controller: controller,
         conversationId: conversationId,
         projects: projects,
+        alfred: alfred,
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 48),
@@ -81,6 +84,7 @@ Future<void> showApprovalDetail(
   required ApprovalsController? controller,
   required String? conversationId,
   required List<ChatProject> projects,
+  ChatSeat? alfred,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -91,6 +95,7 @@ Future<void> showApprovalDetail(
       controller: controller,
       conversationId: conversationId,
       projects: projects,
+      alfred: alfred,
     ),
   );
 }
@@ -109,12 +114,14 @@ class _ApprovalDetail extends StatefulWidget {
     required this.controller,
     required this.conversationId,
     required this.projects,
+    this.alfred,
   });
 
   final ChatEntry entry;
   final ApprovalsController? controller;
   final String? conversationId;
   final List<ChatProject> projects;
+  final ChatSeat? alfred;
 
   @override
   State<_ApprovalDetail> createState() => _ApprovalDetailState();
@@ -219,6 +226,6 @@ class _ApprovalDetailState extends State<_ApprovalDetail> {
       return 'tú';
     }
     if (id == null) return 'alguien';
-    return seatFor(id, widget.projects)?.name ?? id;
+    return seatFor(id, widget.projects, widget.alfred)?.name ?? id;
   }
 }

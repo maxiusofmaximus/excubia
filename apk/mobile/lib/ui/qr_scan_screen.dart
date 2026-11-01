@@ -88,7 +88,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
                         height: 240,
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: context.colors.accent,
+                            color: context.colors.accentText,
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(16),
@@ -112,7 +112,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
                     const SizedBox(height: Spacing.sm),
                     Text(
                       _error!,
-                      style: TextStyle(color: context.colors.statusBlocked),
+                      style: context.text.bodySecondary,
                       textAlign: TextAlign.center,
                     ),
                   ],

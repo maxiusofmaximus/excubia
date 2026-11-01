@@ -1,8 +1,9 @@
 //! `hn-mcp`: a tiny MCP stdio server, one process per run.
 //!
-//! It exposes only `chat.reply` and `chat.ask_user`, validates their arguments
-//! and forwards them to the host over a loopback HTTP listener with the
-//! per-run token. It has no filesystem, shell or network tools of its own.
+//! It exposes only the chat tools (`chat.reply`, `chat.ask_user`,
+//! `chat.progress`), validates their arguments and forwards them to the host
+//! over a loopback HTTP listener with the per-run token. It has no filesystem,
+//! shell or network tools of its own.
 
 use std::time::Duration;
 

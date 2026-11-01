@@ -7,7 +7,10 @@ use axum::response::IntoResponse;
 use serde::Deserialize;
 
 pub use hn_core_chat::MAX_MESSAGE_BYTES;
-use hn_core_chat::{message_text as validate_text, ChatError, TextError};
+use hn_core_chat::{
+    message_text as validate_text, AttachmentError, ChatError, TextError, ATTACHMENT_ONLY_TEXT,
+    MAX_ATTACHMENTS_PER_MESSAGE,
+};
 
 use crate::error::ApiError;
 
@@ -19,7 +22,28 @@ pub fn map_error(error: ChatError) -> ApiError {
     match error {
         ChatError::NoSuchConversation => ApiError::not_found("no_such_conversation"),
         ChatError::ConversationArchived => ApiError::refused("conversation_archived"),
+        ChatError::ConversationBusy => ApiError::refused("conversation_busy"),
         ChatError::NoSuchRun(_) | ChatError::RunNotActive(_) => ApiError::refused("run_closed"),
+        ChatError::NoteLimit => ApiError::refused("note_limit"),
+        ChatError::AlertRuleLimit => ApiError::refused("rule_limit"),
+        ChatError::AlertRuleExists => ApiError::refused("rule_exists"),
+        ChatError::AlertRuleNotFound(_) => ApiError::not_found("not_found"),
+        ChatError::NoteNotFound(_) | ChatError::ContactNotFound(_) => {
+            ApiError::not_found("not_found")
+        }
+        ChatError::ContactLimit => ApiError::refused("contact_limit"),
+        ChatError::AddressLimit => ApiError::refused("address_limit"),
+        ChatError::AliasLimit => ApiError::refused("alias_limit"),
+        ChatError::AddressTaken(_) => ApiError::refused("address_taken"),
+        ChatError::AliasTaken => ApiError::refused("alias_taken"),
+        ChatError::InvalidAddress => ApiError::invalid_field(
+            "invalid_address",
+            "addresses",
+            "an address must be one local@domain.tld without spaces",
+        ),
+        ChatError::NoSuchMessage(_) => {
+            ApiError::invalid_field("unknown_message", "message_id", "no such message")
+        }
         ChatError::NoSuchSeat(agent_id) => ApiError::invalid_field(
             "unknown_agent",
             "agent_id",
@@ -32,6 +56,7 @@ pub fn map_error(error: ChatError) -> ApiError {
         ChatError::ApprovalAlreadyDecided => ApiError::refused("approval_already_decided"),
         ChatError::ApprovalMismatch => ApiError::refused("approval_mismatch"),
         ChatError::ApprovalDigestReused => ApiError::refused("approval_digest_reused"),
+        ChatError::ApprovalDigestRefused => ApiError::refused("approval_digest_refused"),
         ChatError::ApprovalNotApproved => ApiError::refused("approval_not_approved"),
         ChatError::ApprovalLimit => ApiError::refused("approval_limit"),
         ChatError::ApprovalRaced => ApiError::refused("approval_raced"),
@@ -63,10 +88,43 @@ pub fn map_error(error: ChatError) -> ApiError {
         ChatError::InvalidCursor(cursor) => {
             ApiError::action("invalid_cursor", format!("invalid cursor {cursor:?}"))
         }
+        ChatError::InvalidReplyTo(message_id) => ApiError::invalid_field(
+            "unknown_reply_to",
+            "reply_to",
+            format!("no message {message_id:?} in this conversation"),
+        ),
+        ChatError::InvalidSuggestions(reason) => {
+            ApiError::invalid_field("invalid_suggestions", "suggestions", reason)
+        }
+        ChatError::InvalidExclusion(reason) => {
+            ApiError::invalid_field("invalid_exclusion", "exclude", reason)
+        }
+        ChatError::Attachment(error) => map_attachment(*error),
         ChatError::NotInitialised => ApiError::internal("chat database is not initialised"),
         ChatError::Inconsistent(detail) => ApiError::internal(detail),
         ChatError::Database(error) => ApiError::internal(error),
         ChatError::StoredEvent(error) => ApiError::internal(error),
+        ChatError::Random(error) => ApiError::internal(error),
+    }
+}
+
+/// The refusals of the files a message names. The attachment routes map the rest
+/// of `AttachmentError` on their own.
+fn map_attachment(error: AttachmentError) -> ApiError {
+    match error {
+        AttachmentError::UnknownAttachment
+        | AttachmentError::NotReady
+        | AttachmentError::AlreadyLinked => ApiError::invalid_field(
+            "unknown_attachment",
+            "attachments",
+            "an attachment is not in this conversation, not ready or already sent",
+        ),
+        AttachmentError::TooManyAttachments => ApiError::invalid_field(
+            "too_many_attachments",
+            "attachments",
+            format!("a message takes at most {MAX_ATTACHMENTS_PER_MESSAGE} attachments"),
+        ),
+        other => ApiError::internal(other),
     }
 }
 
@@ -230,6 +288,15 @@ pub fn message_text(raw: &str) -> Result<String, ApiError> {
     })
 }
 
+/// The text a message stores. A message with files may have no words: it then
+/// stores the fixed label, so no listing or notification sees an empty body.
+pub fn message_text_with_files(raw: &str, files: usize) -> Result<String, ApiError> {
+    if files > 0 && raw.trim().is_empty() {
+        return Ok(ATTACHMENT_ONLY_TEXT.to_string());
+    }
+    message_text(raw)
+}
+
 pub fn read_seq(raw: i64) -> Result<i64, ApiError> {
     if raw < 0 {
         return Err(ApiError::invalid_field(
@@ -272,6 +339,25 @@ mod tests {
         let error = message_text(&long).expect_err("too long");
         assert_eq!(error.status, StatusCode::UNPROCESSABLE_ENTITY);
         assert_eq!(error.body["detail"]["field"], "text");
+    }
+
+    #[test]
+    fn a_message_with_files_may_have_no_words() {
+        assert!(message_text_with_files("", 0).is_err());
+        assert_eq!(
+            message_text_with_files("   ", 1).expect("files only"),
+            ATTACHMENT_ONLY_TEXT
+        );
+        assert_eq!(message_text_with_files("mira", 2).expect("text"), "mira");
+    }
+
+    #[test]
+    fn the_refusals_of_the_files_name_the_field() {
+        let unknown = map_attachment(AttachmentError::NotReady);
+        assert_eq!(unknown.body["detail"]["code"], "unknown_attachment");
+        let many = map_attachment(AttachmentError::TooManyAttachments);
+        assert_eq!(many.body["detail"]["code"], "too_many_attachments");
+        assert_eq!(many.status, StatusCode::UNPROCESSABLE_ENTITY);
     }
 
     #[test]

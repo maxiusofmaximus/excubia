@@ -1,4 +1,5 @@
 # Contract: error model
+_(gateway retirado; ver README)_
 
 Authoritative code: `gateway/src/herdr_notify/api/{app,actions,ratelimit}.py`.
 
@@ -27,6 +28,7 @@ Authoritative code: `gateway/src/herdr_notify/api/{app,actions,ratelimit}.py`.
 | `403` | `{ "code": "pairing_rejected", "message": … }` | no code was supplied and the source IP is not the host's tailnet owner; Tailscale unavailable |
 | `413` | `"body too large"` | body > 8 KiB |
 | `429` | `"slow down"` | per-source-IP limit (`Retry-After`) |
+| `500` | `"internal error"` | the host's OS random source failed (the code is not spent) |
 
 For a **supplied code**, `pairing_rejected` is **uniform**: the caller is never
 told which code or which check failed, the same oracle reasoning as the uniform
@@ -161,6 +163,7 @@ is affected.
 | `404` | `"no_such_conversation"` | the id is unknown to this host or belongs to another company |
 | `404` | `"no_such_delegation"` | the delegation id is unknown to this host |
 | `409` | `"conversation_archived"` | writing a message to an archived conversation |
+| `409` | `"conversation_busy"` | deleting a conversation with a turn, a delegation or an approval still open |
 | `409` | `"seat_unavailable"` | no supported CLI adapter is installed, or the seat is stopped; the turn is not delivered and its message is not kept in the conversation |
 | `409` | `"agent_busy"` + `Retry-After: 5` | the seat's pending queue is full; the turn is not delivered and its message is not kept: send the same text again with the same `client_id` after `Retry-After` seconds |
 | `409` | `"delegation_cancelled"` | the delegation is not active (already done, failed or cancelled) |
@@ -249,6 +252,24 @@ those into an `isError` tool result. The CORE7 tools add these codes:
 already), `seat_unavailable` (no panel for the seat) and `not_your_delegation`
 (a seat completing a delegation that is not its own).
 
+## Attachment errors (ATT4/ATT5, `…/attachments`)
+
+The attachment routes use the shapes of the chat surface: coded refusals are
+`{"detail":{"code","message"}}`, a refused field is `422` with `{code, field,
+message}`, and the `404`s are `{"detail":"no_such_attachment"}`. The full table,
+with the case of each code, is in `api.md` (Attachments). By status:
+
+- `404`: `no_such_attachment`, `no_such_conversation`.
+- `409`: `not_uploading`, `offset_mismatch` (with `detail.next_offset`),
+  `not_ready`, `already_linked`, `conversation_archived`.
+- `413`: `file_too_large`, `chunk_too_large`, `conversation_quota`, `host_quota`.
+- `422` with `field`: `invalid_name`, `invalid_sha256`, `invalid_base64`,
+  `size_mismatch`, `hash_mismatch`, `unknown_attachment`, `too_many_attachments`;
+  and with `field: "file"`, the image refusals `unsupported_type`,
+  `invalid_image`, `image_too_large`, `dimensions_too_large`, `input_too_large`,
+  `timeout`.
+- `500`: `"internal error"`. The worker's `worker_failed` is logged, never sent.
+
 ## Approval delegation (CORE9-B)
 
 The MCP tool `approval.decide` lets a lead decide the approvals of its project's
@@ -275,6 +296,58 @@ The MCP tool `approval.pending` takes no arguments and answers
 `{"approvals": […]}`: the approvals waiting at the caller's level. A lead gets
 its project's, Alfred the company's, and the caller's own requests are never
 listed. A seat with no such level is refused with `403 approval_scope_denied`.
+
+## Mail send errors (MAIL2A)
+
+Los códigos de envío viven en `mail.md` («Códigos de error»). Su respuesta HTTP:
+
+| `code` | Status | Notes |
+|--------|--------|-------|
+| `mail_send_not_enabled` | `400` | the account has no send consent (`host mail enable-send`) |
+| `mail_approval_stale` | `400` | the approval was spent, or the draft changed after it was approved |
+| `mail_approval_denied` | `400` | denied, or expired after 120 s; the answer for a spent `approval_id` |
+| `mail_draft_refused` | `400` | a new send question for content the owner denied: the draft must change before it is asked again (`el borrador fue rechazado; cámbialo para pedirlo de nuevo`) |
+| `mail_send_rate_limited` | `429` | the hourly limit; carries `Retry-After` |
+| `mail_invalid_input` | `400` | unknown send or approval id |
+
+Every mail refusal is an action error (`400`) with its stable code, except the
+hourly limit, which is `429`. A send that is not the owner's draft is
+`mail_unknown_draft`, as for the other draft routes; no request reaches Graph.
+
+## Hire and onboarding errors (ONBOARD-T3)
+
+The 422 answers carry `{"detail": {"code", "field", "message"}}`. The 404 and
+409 answers carry `{"detail": {"code", "message"}}`. Both are stable codes; the
+app renders its own text.
+
+| `code` | Status | `field` | Meaning |
+|--------|--------|---------|---------|
+| `unknown_role` | `422` | `role`, or `roles` in an onboarding | Not in the role catalogue. Alfred is never hireable |
+| `unknown_area` | `422` | `areas` | Not an area of the catalogue |
+| `invalid_field` | `422` | `avatar`, `roles` or `areas` | The avatar is not one of the 8 characters; a role is outside the chosen areas; no area was chosen |
+| `invalid_name` | `422` | `name` | Blank, longer than 40 characters, or with a control character |
+| `area_full` | `409` | — | The area already has 8 active hires; nothing of the request is kept |
+| `hire_not_active` | `409` | — | The hire was dismissed, so it cannot be renamed or change avatar |
+| `no_such_hire` | `404` | — | No hire has that id |
+
+An unknown `level` in `POST /v1/onboarding` is the generic `422 invalid_body`.
+
+## Voice errors (VOZ2)
+
+`POST /v1/voice/transcribe`. The 400, 413, 429 and 503 answers carry
+`{"detail": {"code", "message"}}`; the 413 body cap and the 500 keep the generic
+shapes above.
+
+| Status | `detail` / `code` | When |
+|--------|-------------------|------|
+| `400` | `{ "code": "unsupported_type", … }` | `Content-Type` is not `audio/ogg`, `audio/wav` or `audio/x-wav` |
+| `400` | `{ "code": "invalid_audio", … }` | the bytes are not an Ogg Opus stream |
+| `400` | `{ "code": "unsupported_audio", … }` | the WAV is not 16-bit mono PCM at 16 000 Hz, or its `data` is truncated, odd or empty |
+| `413` | `"body too large"` | the body is over 2 MiB; refused before the signature is checked |
+| `413` | `{ "code": "audio_too_long", … }` | the decoded audio is over 120 s |
+| `429` | `{ "code": "voice_busy", … }` + `Retry-After: 2` | another voice note is being transcribed; send it again later |
+| `503` | `{ "code": "voice_unavailable", … }` | no speech engine configured, no CUDA, the worker is down or timed out, or three starts failed in a row (until the host restarts) |
+| `500` | `"internal error"` | the engine reported an error; its text stays in the host |
 
 ## Deliberately not distinguished
 

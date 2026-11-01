@@ -84,7 +84,7 @@ class AdvancedPairingSection extends StatelessWidget {
             ),
             decoration: const InputDecoration(
               labelText: 'URL del gateway',
-              hintText: 'pc.tailnet.ts.net:8788',
+              hintText: '192.168.1.20:47443',
             ),
           ),
           const SizedBox(height: Spacing.md),

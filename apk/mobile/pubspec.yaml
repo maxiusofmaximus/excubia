@@ -1,7 +1,7 @@
 name: herdr_notify
 description: "herdr-notify Android client: Flutter UI over the Rust contract core."
 publish_to: 'none'
-version: 1.0.1+12
+version: 1.0.2+13
 
 environment:
   sdk: ^3.13.5
@@ -14,6 +14,13 @@ dependencies:
     path: rust_builder
   flutter_secure_storage: ^11.2.0
   mobile_scanner: ^7.4.2
+  path_provider: ^2.1.6
+  image_picker: ^1.2.4
+  record: 7.1.2
+  # Time zone data (BSD-2-Clause, free): the company's zone is IANA, and Dart has none.
+  timezone: ^0.11.2
+  # System file dialogs (MIT): pick a .ics and save one, with the bytes in memory.
+  file_picker: ^13.3.0
 
 dev_dependencies:
   flutter_test:
@@ -22,3 +29,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/agents/
+    # Animated heads (WebP, 128 and 64 px). Flutter does not register nested
+    # folders on its own, so every character directory is listed here.
+    - assets/agents_anim/alfred/
+    - assets/agents_anim/bob/
+    - assets/agents_anim/conan/
+    - assets/agents_anim/dani/
+    - assets/agents_anim/ernesto/
+    - assets/agents_anim/hugo/
+    - assets/agents_anim/ines/
+    - assets/agents_anim/nicole/
+    - assets/agents_anim/sami/

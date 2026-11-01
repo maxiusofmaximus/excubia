@@ -4,8 +4,10 @@
 use serde_json::json;
 
 use crate::api::error::{action_problem, ErrorInfo, FailureKind};
-use crate::api::validate::{self, TextProblem};
+use crate::api::validate;
 use crate::api::write::HttpCall;
+
+use super::attach_plan::plan_chat_send_with_attachments;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChatPlan {
@@ -24,6 +26,8 @@ pub fn plan_chat_conversations(
     section_id: Option<String>,
     pinned: Option<bool>,
     archived: Option<bool>,
+    attention: bool,
+    working: bool,
     cursor: Option<String>,
 ) -> ChatPlan {
     let mut params: Vec<(&str, String)> = Vec::new();
@@ -44,6 +48,13 @@ pub fn plan_chat_conversations(
     if let Some(archived) = archived {
         params.push(("archived", archived.to_string()));
     }
+    // The host answers 422 to `0` and `false`, so a filter that is off is omitted.
+    if attention {
+        params.push(("attention", "1".to_string()));
+    }
+    if working {
+        params.push(("working", "1".to_string()));
+    }
     if let Some(cursor) = cursor {
         if !validate::identifier(&cursor) {
             return problem("invalid_cursor");
@@ -57,6 +68,12 @@ pub fn plan_chat_conversations(
         .collect::<Vec<_>>()
         .join("&");
     get(format!("/v1/chat/conversations?{query}"))
+}
+
+/// The chip numbers in one aggregate. A host before this route answers 404 or 405.
+#[flutter_rust_bridge::frb(sync)]
+pub fn plan_chat_counts() -> ChatPlan {
+    get("/v1/chat/conversations/counts".to_string())
 }
 
 #[flutter_rust_bridge::frb(sync)]
@@ -165,26 +182,13 @@ pub fn plan_chat_messages(
 }
 
 #[flutter_rust_bridge::frb(sync)]
-pub fn plan_chat_send(conversation_id: String, client_id: String, text: String) -> ChatPlan {
-    if !validate::identifier(&conversation_id) {
-        return problem("bad_conversation");
-    }
-    if !validate::client_id(&client_id) {
-        return problem("bad_client_id");
-    }
-    let text = match validate::message_text(&text) {
-        Ok(text) => text,
-        Err(TextProblem::Empty) => return problem("empty_message"),
-        Err(TextProblem::ControlCharacters) => return problem("control_characters"),
-        Err(TextProblem::TooLong) => return problem("message_too_long"),
-    };
-    post(
-        format!("/v1/chat/conversations/{conversation_id}/messages"),
-        json!({ "client_id": client_id, "text": text })
-            .as_object()
-            .cloned()
-            .unwrap_or_default(),
-    )
+pub fn plan_chat_send(
+    conversation_id: String,
+    client_id: String,
+    text: String,
+    reply_to_id: Option<String>,
+) -> ChatPlan {
+    plan_chat_send_with_attachments(conversation_id, client_id, text, reply_to_id, Vec::new())
 }
 
 #[flutter_rust_bridge::frb(sync)]
@@ -247,6 +251,31 @@ pub fn plan_chat_cancel_delegation(delegation_id: String) -> ChatPlan {
     )
 }
 
+/// The stop route takes no body; the answer says whether a turn was open.
+#[flutter_rust_bridge::frb(sync)]
+pub fn plan_chat_stop(conversation_id: String) -> ChatPlan {
+    if !validate::identifier(&conversation_id) {
+        return problem("bad_conversation");
+    }
+    bodiless(
+        "POST",
+        format!("/v1/chat/conversations/{conversation_id}/stop"),
+    )
+}
+
+/// Deletes for good; a conversation with an open turn, delegation or approval
+/// is refused with `409 conversation_busy`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn plan_chat_delete_conversation(conversation_id: String) -> ChatPlan {
+    if !validate::identifier(&conversation_id) {
+        return problem("bad_conversation");
+    }
+    bodiless(
+        "DELETE",
+        format!("/v1/chat/conversations/{conversation_id}"),
+    )
+}
+
 /// One opaque id per send attempt. A transport failure reuses it (the host may
 /// have stored the message); an HTTP refusal that stored nothing gets a new one.
 #[flutter_rust_bridge::frb(sync)]
@@ -261,7 +290,7 @@ pub fn new_chat_client_id() -> String {
     format!("c-{nanos:x}-{counter:x}-{:x}", std::process::id())
 }
 
-fn get(target: String) -> ChatPlan {
+pub(crate) fn get(target: String) -> ChatPlan {
     ChatPlan {
         request: Some(HttpCall {
             method: "GET".to_string(),
@@ -272,7 +301,18 @@ fn get(target: String) -> ChatPlan {
     }
 }
 
-fn post(target: String, body: serde_json::Map<String, serde_json::Value>) -> ChatPlan {
+pub(crate) fn bodiless(method: &str, target: String) -> ChatPlan {
+    ChatPlan {
+        request: Some(HttpCall {
+            method: method.to_string(),
+            target,
+            body: Vec::new(),
+        }),
+        problem: None,
+    }
+}
+
+pub(crate) fn post(target: String, body: serde_json::Map<String, serde_json::Value>) -> ChatPlan {
     match serde_json::to_vec(&serde_json::Value::Object(body)) {
         Ok(bytes) => ChatPlan {
             request: Some(HttpCall {
@@ -294,7 +334,7 @@ fn update(conversation_id: String, patch: serde_json::Value) -> ChatPlan {
     )
 }
 
-fn problem(code: &str) -> ChatPlan {
+pub(crate) fn problem(code: &str) -> ChatPlan {
     let info = action_problem(code).unwrap_or(ErrorInfo {
         message: "La petición no es válida.".to_string(),
         action: None,
@@ -351,6 +391,8 @@ mod tests {
             Some("sec_1".to_string()),
             Some(true),
             Some(false),
+            false,
+            false,
             None,
         ));
         assert_eq!(request.method, "GET");
@@ -359,6 +401,29 @@ mod tests {
             "/v1/chat/conversations?q=plan%20de%20la%20api&section_id=sec_1&pinned=true&archived=false&limit=100"
         );
         assert!(request.body.is_empty());
+    }
+
+    #[test]
+    fn attention_and_working_are_sent_only_when_set_and_counts_is_its_own_route() {
+        let attention = call(plan_chat_conversations(
+            None, None, None, None, true, false, None,
+        ));
+        assert_eq!(
+            attention.target,
+            "/v1/chat/conversations?attention=1&limit=100"
+        );
+        let working = call(plan_chat_conversations(
+            None, None, None, None, false, true, None,
+        ));
+        assert_eq!(working.target, "/v1/chat/conversations?working=1&limit=100");
+        let plain = call(plan_chat_conversations(
+            None, None, None, None, false, false, None,
+        ));
+        assert_eq!(plain.target, "/v1/chat/conversations?limit=100");
+        assert_eq!(
+            call(plan_chat_counts()).target,
+            "/v1/chat/conversations/counts"
+        );
     }
 
     #[test]
@@ -406,11 +471,32 @@ mod tests {
     }
 
     #[test]
+    fn stop_posts_an_empty_body_to_the_open_turn() {
+        let request = call(plan_chat_stop("cnv_1".into()));
+        assert_eq!(request.method, "POST");
+        assert_eq!(request.target, "/v1/chat/conversations/cnv_1/stop");
+        assert!(request.body.is_empty());
+        assert!(plan_chat_stop("../cnv_1".into()).problem.is_some());
+    }
+
+    #[test]
+    fn delete_is_a_bodiless_delete_of_the_conversation() {
+        let request = call(plan_chat_delete_conversation("cnv_1".into()));
+        assert_eq!(request.method, "DELETE");
+        assert_eq!(request.target, "/v1/chat/conversations/cnv_1");
+        assert!(request.body.is_empty());
+        assert!(plan_chat_delete_conversation("../cnv_1".into())
+            .problem
+            .is_some());
+    }
+
+    #[test]
     fn send_is_idempotent_and_validated_locally() {
         let request = call(plan_chat_send(
             "cnv_1".into(),
             "c-1".into(),
             "  hola  ".into(),
+            None,
         ));
         assert_eq!(request.target, "/v1/chat/conversations/cnv_1/messages");
         assert_eq!(
@@ -419,29 +505,55 @@ mod tests {
         );
 
         assert_eq!(
-            plan_chat_send("cnv_1".into(), "c-1".into(), "   ".into())
+            plan_chat_send("cnv_1".into(), "c-1".into(), "   ".into(), None)
                 .problem
                 .unwrap()
                 .message,
             "El mensaje está vacío."
         );
         assert_eq!(
-            plan_chat_send("cnv_1".into(), "c-1".into(), "a\u{7}".into())
+            plan_chat_send("cnv_1".into(), "c-1".into(), "a\u{7}".into(), None)
                 .problem
                 .unwrap()
                 .message,
             "El mensaje contiene caracteres de control."
         );
         assert!(
-            plan_chat_send("cnv/../x".into(), "c-1".into(), "hola".into())
+            plan_chat_send("cnv/../x".into(), "c-1".into(), "hola".into(), None)
                 .problem
                 .is_some()
         );
         assert!(
-            plan_chat_send("cnv_1".into(), "bad\nid".into(), "hola".into())
+            plan_chat_send("cnv_1".into(), "bad\nid".into(), "hola".into(), None)
                 .problem
                 .is_some()
         );
+    }
+
+    #[test]
+    fn a_reply_adds_reply_to_and_a_plain_send_does_not() {
+        let reply = call(plan_chat_send(
+            "cnv_1".into(),
+            "c-2".into(),
+            "Sí, créalo".into(),
+            Some("msg_01K".into()),
+        ));
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&reply.body).unwrap(),
+            json!({
+                "client_id": "c-2",
+                "text": "Sí, créalo",
+                "reply_to": {"kind": "message", "id": "msg_01K"}
+            })
+        );
+        assert!(plan_chat_send(
+            "cnv_1".into(),
+            "c-2".into(),
+            "hola".into(),
+            Some("bad\nid".into())
+        )
+        .problem
+        .is_some());
     }
 
     #[test]

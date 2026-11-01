@@ -217,8 +217,8 @@
   margin: 30px 0 18px;
   border-radius: 16px;
   background: var(--accent-soft);
-  border: 1px solid rgba(76, 141, 255, 0.35);
-  color: #8fbaff;
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  color: var(--accent-text);
 }
 
 .view-recovery h1 {

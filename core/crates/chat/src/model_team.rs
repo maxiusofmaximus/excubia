@@ -143,6 +143,17 @@ impl Card {
             links: Some(self.links.clone()),
             decider_kind: None,
             decider_id: None,
+            user_code: None,
+            verification_uri: None,
+            account: None,
+            expires_at: None,
+            draft_id: None,
+            to: None,
+            subject: None,
+            turn_state: None,
+            suggestions: Vec::new(),
+            attachments: Vec::new(),
+            quote: None,
             created_at: self.created_at.clone(),
         }
     }

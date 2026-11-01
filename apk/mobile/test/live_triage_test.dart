@@ -76,6 +76,20 @@ void main() {
     });
   });
 
+  group('awaiting approval', () {
+    test('only a 403 means the device is not granted read_state yet', () {
+      expect(awaitsApproval(const GatewayError(403, '{"detail":"forbidden"}')),
+          isTrue);
+      for (final status in [0, 401, 404, 409, 500, 503]) {
+        expect(
+          awaitsApproval(GatewayError(status, 'x')),
+          isFalse,
+          reason: 'status $status must keep its own failure',
+        );
+      }
+    });
+  });
+
   group('TailnetCleartext', () {
     test('cleartext is allowed only for tailnet-ish hosts', () {
       expect(

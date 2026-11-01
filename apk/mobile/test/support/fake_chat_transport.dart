@@ -1,10 +1,19 @@
 import 'dart:convert';
 
 import 'package:herdr_notify/core/api/chat_transport.dart';
+import 'package:herdr_notify/core/api/gateway_client.dart';
 
 /// Routes canned chat responses by path, ignoring the query. Tests assert the
 /// routes the controller asks for without a socket or a signed key.
 class FakeChatTransport implements ChatTransport {
+  @override
+  Future<String> postBytes(String target, List<int> body, String contentType) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<int>> callBytes(String method, String target) =>
+      throw UnimplementedError();
+
   FakeChatTransport(this.routes);
 
   final Map<String, String> routes;
@@ -39,6 +48,33 @@ String conversationsJson({
   'conversations': conversations,
   'next_cursor': ?nextCursor,
 });
+
+String countsJson({int all = 0, int attention = 0, int working = 0}) =>
+    jsonEncode({
+      'ok': true,
+      'all': all,
+      'attention': attention,
+      'working': working,
+      'archived': 0,
+    });
+
+/// A host from before the counts route: it answers 404 to it, as the real one does.
+class OldHostChatTransport extends FakeChatTransport {
+  OldHostChatTransport(super.routes);
+
+  @override
+  Future<String> call(
+    String method,
+    String target, [
+    List<int> body = const [],
+  ]) async {
+    if (target.endsWith('/counts')) {
+      calls.add('$method $target');
+      throw const GatewayError(404, '{"detail":"Not Found"}');
+    }
+    return super.call(method, target, body);
+  }
+}
 
 String conversationJson({required String id, String title = 'Nuevo chat'}) =>
     jsonEncode({
@@ -100,6 +136,7 @@ Map<String, Object?> timelineMessage({
   required String preview,
   String author = 'user',
   String state = 'complete',
+  String? turnState,
 }) => {
   'seq': seq,
   'kind': 'message',
@@ -107,6 +144,7 @@ Map<String, Object?> timelineMessage({
   'author_kind': author,
   'preview': preview,
   'state': state,
+  'turn_state': ?turnState,
   'created_at': '2026-10-22T10:00:00.000Z',
 };
 

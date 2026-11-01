@@ -1,7 +1,7 @@
-# herdr-notify
+# Excubia
 
-Push notifications and a secure control plane for
-[herdr](https://github.com/herdrdev/herdr) coding agents.
+Excubia (repository: `herdr-notify`) is push notifications and a secure control
+plane for [herdr](https://github.com/herdrdev/herdr) coding agents.
 
 When an agent running in herdr needs you — it hit an approval dialog, or it
 finished a task you asked for — your phone buzzes, and tapping it takes you

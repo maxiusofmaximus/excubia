@@ -17,6 +17,7 @@ ChatEntry _entry({
 }) => ChatEntry(
   seq: 5,
   kind: 'approval',
+  suggestions: const [],
   body: '',
   preview: summary,
   summary: summary,

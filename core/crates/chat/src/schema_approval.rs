@@ -145,7 +145,7 @@ pub fn add_policy_columns(connection: &Connection) -> Result<(), rusqlite::Error
     Ok(())
 }
 
-fn add_column_once(
+pub(crate) fn add_column_once(
     connection: &Connection,
     table: &str,
     column: &str,

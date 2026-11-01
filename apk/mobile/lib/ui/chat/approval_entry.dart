@@ -11,6 +11,7 @@ void openApprovalSettings(
   required ApprovalsController approvals,
   required String? conversationId,
   required List<ChatProject> projects,
+  ChatSeat? alfred,
 }) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -18,6 +19,7 @@ void openApprovalSettings(
         approvals: approvals,
         conversationId: conversationId,
         projects: projects,
+        alfred: alfred,
       ),
     ),
   );

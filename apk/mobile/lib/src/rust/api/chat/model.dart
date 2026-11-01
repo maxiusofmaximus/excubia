@@ -4,12 +4,13 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../../frb_generated.dart';
+import 'attach_model.dart';
 import 'model_team.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `conversation_from`, `count`, `entry_from`, `message_entry_from`, `parse_chat_event_value`, `preview`, `text`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `conversation_from`, `count`, `entry_from`, `mail_card_from`, `mail_draft_card_from`, `message_entry_from`, `parse_chat_event_value`, `preview`, `progress_text`, `quote_from`, `suggestions_from`, `text`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 ChatConversationPage? parseChatConversations({required String json}) =>
     RustLib.instance.api.crateApiChatModelParseChatConversations(json: json);
@@ -17,11 +18,18 @@ ChatConversationPage? parseChatConversations({required String json}) =>
 ChatConversation? parseChatConversation({required String json}) =>
     RustLib.instance.api.crateApiChatModelParseChatConversation(json: json);
 
+ChatCounts? parseChatCounts({required String json}) =>
+    RustLib.instance.api.crateApiChatModelParseChatCounts(json: json);
+
 ChatSection? parseChatSection({required String json}) =>
     RustLib.instance.api.crateApiChatModelParseChatSection(json: json);
 
 ChatDelegation? parseChatDelegation({required String json}) =>
     RustLib.instance.api.crateApiChatModelParseChatDelegation(json: json);
+
+/// `stopped` is false when no turn was open: a second stop is not an error.
+bool? parseChatStop({required String json}) =>
+    RustLib.instance.api.crateApiChatModelParseChatStop(json: json);
 
 ChatBootstrap? parseChatBootstrap({required String json}) =>
     RustLib.instance.api.crateApiChatModelParseChatBootstrap(json: json);
@@ -35,6 +43,10 @@ ChatEvent? parseChatEvent({required String json}) =>
 class ChatBootstrap {
   final String alfredName;
   final String alfredStatus;
+
+  /// Alfred's agent id, the `seat_id` of the approvals he asks for; None when
+  /// the host sends none.
+  final String? alfredAgentId;
   final BigInt unreadConversations;
   final BigInt unreadMessages;
   final BigInt pendingApprovals;
@@ -44,6 +56,7 @@ class ChatBootstrap {
   const ChatBootstrap({
     required this.alfredName,
     required this.alfredStatus,
+    this.alfredAgentId,
     required this.unreadConversations,
     required this.unreadMessages,
     required this.pendingApprovals,
@@ -55,6 +68,7 @@ class ChatBootstrap {
   int get hashCode =>
       alfredName.hashCode ^
       alfredStatus.hashCode ^
+      alfredAgentId.hashCode ^
       unreadConversations.hashCode ^
       unreadMessages.hashCode ^
       pendingApprovals.hashCode ^
@@ -68,6 +82,7 @@ class ChatBootstrap {
           runtimeType == other.runtimeType &&
           alfredName == other.alfredName &&
           alfredStatus == other.alfredStatus &&
+          alfredAgentId == other.alfredAgentId &&
           unreadConversations == other.unreadConversations &&
           unreadMessages == other.unreadMessages &&
           pendingApprovals == other.pendingApprovals &&
@@ -86,6 +101,13 @@ class ChatConversation {
   final PlatformInt64 lastSeq;
   final PlatformInt64 lastReadSeq;
   final BigInt unread;
+
+  /// Turns of this conversation that are `queued` or `running`; 0 when the host
+  /// omits it.
+  final int activeRuns;
+
+  /// The step Alfred set on the open turn, as one plain line (`progress_text`).
+  final String? progress;
   final String createdAt;
   final String updatedAt;
 
@@ -100,6 +122,8 @@ class ChatConversation {
     required this.lastSeq,
     required this.lastReadSeq,
     required this.unread,
+    required this.activeRuns,
+    this.progress,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -116,6 +140,8 @@ class ChatConversation {
       lastSeq.hashCode ^
       lastReadSeq.hashCode ^
       unread.hashCode ^
+      activeRuns.hashCode ^
+      progress.hashCode ^
       createdAt.hashCode ^
       updatedAt.hashCode;
 
@@ -134,6 +160,8 @@ class ChatConversation {
           lastSeq == other.lastSeq &&
           lastReadSeq == other.lastReadSeq &&
           unread == other.unread &&
+          activeRuns == other.activeRuns &&
+          progress == other.progress &&
           createdAt == other.createdAt &&
           updatedAt == other.updatedAt;
 }
@@ -156,6 +184,32 @@ class ChatConversationPage {
           nextCursor == other.nextCursor;
 }
 
+/// The numbers of the history chips. `all` and `attention` and `working` skip
+/// archived chats, as the default list does.
+class ChatCounts {
+  final BigInt all;
+  final BigInt attention;
+  final BigInt working;
+
+  const ChatCounts({
+    required this.all,
+    required this.attention,
+    required this.working,
+  });
+
+  @override
+  int get hashCode => all.hashCode ^ attention.hashCode ^ working.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChatCounts &&
+          runtimeType == other.runtimeType &&
+          all == other.all &&
+          attention == other.attention &&
+          working == other.working;
+}
+
 /// One row of the timeline as the screen renders it. `body` is filled from the
 /// raw message sync; `preview` is the bounded one-line contract field.
 class ChatEntry {
@@ -175,6 +229,10 @@ class ChatEntry {
   final String body;
   final String preview;
   final String? state;
+
+  /// Set only on a user message that has a turn: `queued`, `running`,
+  /// `completed`, `failed` or `interrupted`.
+  final String? turnState;
   final String? title;
   final String? summary;
   final String? status;
@@ -182,6 +240,22 @@ class ChatEntry {
   final String? level;
   final String? deciderKind;
   final String? deciderId;
+
+  /// Set only on a sign-in card: a card without `user_code` is a delegation.
+  final MailCard? mail;
+
+  /// Set only on a `mail_draft` row.
+  final MailDraftCard? mailDraft;
+
+  /// Agent messages only: up to four one-line replies Alfred offers.
+  final List<String> suggestions;
+
+  /// Set only on a user message that answers another message.
+  final ChatQuote? quote;
+
+  /// Set only when the timeline row has an `attachments` key; the raw message
+  /// sync never carries it, so a body refresh keeps the files already shown.
+  final List<ChatAttachment>? attachments;
   final String createdAt;
   final bool local;
 
@@ -202,6 +276,7 @@ class ChatEntry {
     required this.body,
     required this.preview,
     this.state,
+    this.turnState,
     this.title,
     this.summary,
     this.status,
@@ -209,6 +284,11 @@ class ChatEntry {
     this.level,
     this.deciderKind,
     this.deciderId,
+    this.mail,
+    this.mailDraft,
+    required this.suggestions,
+    this.quote,
+    this.attachments,
     required this.createdAt,
     required this.local,
   });
@@ -231,6 +311,7 @@ class ChatEntry {
       body.hashCode ^
       preview.hashCode ^
       state.hashCode ^
+      turnState.hashCode ^
       title.hashCode ^
       summary.hashCode ^
       status.hashCode ^
@@ -238,6 +319,11 @@ class ChatEntry {
       level.hashCode ^
       deciderKind.hashCode ^
       deciderId.hashCode ^
+      mail.hashCode ^
+      mailDraft.hashCode ^
+      suggestions.hashCode ^
+      quote.hashCode ^
+      attachments.hashCode ^
       createdAt.hashCode ^
       local.hashCode;
 
@@ -262,6 +348,7 @@ class ChatEntry {
           body == other.body &&
           preview == other.preview &&
           state == other.state &&
+          turnState == other.turnState &&
           title == other.title &&
           summary == other.summary &&
           status == other.status &&
@@ -269,6 +356,11 @@ class ChatEntry {
           level == other.level &&
           deciderKind == other.deciderKind &&
           deciderId == other.deciderId &&
+          mail == other.mail &&
+          mailDraft == other.mailDraft &&
+          suggestions == other.suggestions &&
+          quote == other.quote &&
+          attachments == other.attachments &&
           createdAt == other.createdAt &&
           local == other.local;
 }
@@ -292,6 +384,10 @@ class ChatEvent {
   final String? level;
   final String? escalatedFrom;
   final String? expiresAt;
+  final String? turnState;
+
+  /// The line of a `chat.progress` frame; `None` when it closes the run.
+  final String? progress;
 
   const ChatEvent({
     required this.event,
@@ -310,6 +406,8 @@ class ChatEvent {
     this.level,
     this.escalatedFrom,
     this.expiresAt,
+    this.turnState,
+    this.progress,
   });
 
   @override
@@ -329,7 +427,9 @@ class ChatEvent {
       approvalId.hashCode ^
       level.hashCode ^
       escalatedFrom.hashCode ^
-      expiresAt.hashCode;
+      expiresAt.hashCode ^
+      turnState.hashCode ^
+      progress.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -351,7 +451,38 @@ class ChatEvent {
           approvalId == other.approvalId &&
           level == other.level &&
           escalatedFrom == other.escalatedFrom &&
-          expiresAt == other.expiresAt;
+          expiresAt == other.expiresAt &&
+          turnState == other.turnState &&
+          progress == other.progress;
+}
+
+/// The message a reply answers, resolved by the host when the page was read.
+class ChatQuote {
+  final String kind;
+  final String id;
+  final String authorKind;
+  final String preview;
+
+  const ChatQuote({
+    required this.kind,
+    required this.id,
+    required this.authorKind,
+    required this.preview,
+  });
+
+  @override
+  int get hashCode =>
+      kind.hashCode ^ id.hashCode ^ authorKind.hashCode ^ preview.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChatQuote &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          id == other.id &&
+          authorKind == other.authorKind &&
+          preview == other.preview;
 }
 
 class ChatSection {
@@ -376,4 +507,70 @@ class ChatSection {
           id == other.id &&
           name == other.name &&
           order == other.order;
+}
+
+/// The «Conecta tu correo» card of a mail sign-in (contract `mail.md`, «Tarjeta de
+/// inicio de sesión»). It carries the code and the page only; the host removes
+/// the card before it publishes the final state.
+class MailCard {
+  final String account;
+  final String userCode;
+  final String verificationUri;
+
+  /// ISO-8601 UTC with milliseconds; empty when the host sent none.
+  final String expiresAt;
+
+  const MailCard({
+    required this.account,
+    required this.userCode,
+    required this.verificationUri,
+    required this.expiresAt,
+  });
+
+  @override
+  int get hashCode =>
+      account.hashCode ^
+      userCode.hashCode ^
+      verificationUri.hashCode ^
+      expiresAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MailCard &&
+          runtimeType == other.runtimeType &&
+          account == other.account &&
+          userCode == other.userCode &&
+          verificationUri == other.verificationUri &&
+          expiresAt == other.expiresAt;
+}
+
+/// The «Revisar borrador» card of a draft Alfred wrote (`kind: mail_draft`). The
+/// host sends one per `draft_id`; a newer one for the same draft replaces it.
+class MailDraftCard {
+  final String account;
+  final String draftId;
+  final List<String> to;
+  final String subject;
+
+  const MailDraftCard({
+    required this.account,
+    required this.draftId,
+    required this.to,
+    required this.subject,
+  });
+
+  @override
+  int get hashCode =>
+      account.hashCode ^ draftId.hashCode ^ to.hashCode ^ subject.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MailDraftCard &&
+          runtimeType == other.runtimeType &&
+          account == other.account &&
+          draftId == other.draftId &&
+          to == other.to &&
+          subject == other.subject;
 }

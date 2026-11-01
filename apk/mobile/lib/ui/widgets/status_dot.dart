@@ -3,8 +3,8 @@ import 'package:herdr_notify/src/rust/api/state.dart';
 
 import '../theme.dart';
 
-/// The status dot, sized by urgency: only the blocked agent grows, so a single
-/// thing pulls the eye.
+/// The status glyph, sized by urgency: only the blocked agent grows, so a single
+/// thing pulls the eye. Each state has its own shape, not just its own colour.
 class StatusDot extends StatelessWidget {
   const StatusDot({super.key, required this.status});
 
@@ -12,13 +12,46 @@ class StatusDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = status == AgentStatus.blocked ? 12.0 : 10.0;
-    return Container(
-      width: size,
-      height: size,
+    final c = context.colors;
+    return Icon(
+      c.iconForStatus(status),
+      size: status == AgentStatus.blocked ? 20 : 18,
+      color: c.forStatus(status),
+    );
+  }
+}
+
+/// The status word as a tag. Blocked is the one filled tag (coral fill, dark
+/// text); the other states are plain coloured text.
+class StatusChip extends StatelessWidget {
+  const StatusChip({super.key, required this.status});
+
+  final AgentStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final word = c.statusLabel(status);
+    if (status != AgentStatus.blocked) {
+      return Text(
+        word,
+        style: context.text.label.copyWith(color: c.labelForStatus(status)),
+      );
+    }
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: context.colors.forStatus(status),
-        shape: BoxShape.circle,
+        color: c.statusBlocked,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.sm,
+          vertical: 2,
+        ),
+        child: Text(
+          word,
+          style: context.text.label.copyWith(color: c.onAttention),
+        ),
       ),
     );
   }

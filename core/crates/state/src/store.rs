@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use tokio::sync::{broadcast, Mutex};
 
-use crate::frame::{Frame, SharedFrame, EVENT_CLOSED, EVENT_CREATED, EVENT_STATUS, EVENT_UPDATED};
+use crate::frame::{
+    Frame, SharedFrame, EVENT_ALERT, EVENT_CLOSED, EVENT_CREATED, EVENT_STATUS, EVENT_UPDATED,
+};
 use crate::payload::{counts, rank, StatePayload, TriageRow};
 use crate::persist;
 use crate::record::AgentRecord;
@@ -330,6 +332,15 @@ impl StateStore {
 
     pub fn receiver(&self) -> broadcast::Receiver<SharedFrame> {
         self.tx.subscribe()
+    }
+
+    /// Sends an `alert` frame to the live streams. An alert is not state: nothing keeps it,
+    /// and a stream that is not listening misses it.
+    pub fn publish_alert(&self, body: serde_json::Value) {
+        let _ = self.tx.send(Arc::new(Frame {
+            event: EVENT_ALERT.to_string(),
+            body,
+        }));
     }
 }
 

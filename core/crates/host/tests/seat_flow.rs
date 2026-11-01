@@ -439,3 +439,61 @@ async fn the_internal_tool_endpoint_rejects_missing_and_wrong_tokens() {
         .expect("public request");
     assert_ne!(public.status(), 200);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_stopped_turn_is_killed_closes_interrupted_and_leaves_no_card() {
+    let (host, client) = paired_host(
+        "seat-stop",
+        SeatKind::Cli {
+            turn_timeout: CLI_TIMEOUT,
+        },
+    )
+    .await;
+    let conversation_id = conversation(&client).await;
+    let stop_path = format!("/v1/chat/conversations/{conversation_id}/stop");
+    let accepted = client
+        .chat_send(&conversation_id, "client-stop", "[[fake:hang]]")
+        .await
+        .expect("send");
+    let run_id = accepted["turn"]["id"].as_str().expect("run id").to_string();
+    wait_for_state(&host, &run_id, RunState::Running, CLI_TIMEOUT).await;
+
+    let (status, body) = client
+        .request("POST", &stop_path, None)
+        .await
+        .expect("stop");
+    assert_eq!(status, 200, "{body}");
+    let stopped: Value = serde_json::from_str(&body).expect("json");
+    assert_eq!(stopped["stopped"], true);
+    assert_eq!(stopped["runs"], 1);
+    assert_eq!(
+        host.chat.run_state(&run_id).expect("run state"),
+        Some(RunState::Interrupted)
+    );
+
+    // The seat is free again (a new conversation: the hang marker stays in the
+    // context of the first one), and the stopped conversation has no failure card.
+    let other = conversation(&client).await;
+    let next = client
+        .chat_send(&other, "client-after-stop", "tras parar")
+        .await
+        .expect("send after stop");
+    let next_run = next["turn"]["id"].as_str().expect("run id").to_string();
+    wait_for_state(&host, &next_run, RunState::Completed, CLI_TIMEOUT).await;
+    let timeline = client
+        .chat_timeline(&conversation_id, &[("limit", "20")])
+        .await
+        .expect("timeline");
+    let entries = timeline["entries"].as_array().expect("entries");
+    assert_eq!(entries.len(), 1, "only the user message: {timeline}");
+    assert_eq!(entries[0]["turn_state"], "interrupted");
+
+    let (status, again) = client
+        .request("POST", &stop_path, None)
+        .await
+        .expect("second stop");
+    assert_eq!(status, 200, "{again}");
+    let stopped_again: Value = serde_json::from_str(&again).expect("json");
+    assert_eq!(stopped_again["stopped"], false);
+    assert_eq!(stopped_again["runs"], 0);
+}

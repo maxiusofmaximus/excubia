@@ -2,11 +2,25 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- QR pairing is the fast path; the camera is used for nothing else. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Voice notes: recorded only while the person holds the mic; the app asks first. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Agenda import only: the phone's contacts, read after the person taps Importar. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Local alerts that say something changed; the app asks at runtime from Ajustes. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Alerts service (spike): its foreground type is set per build, see build.gradle.kts. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.${alertsFgsPermission}" />
+    <uses-permission android:name="android.permission.${alertsFgsExtraPermission}" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:label="Excubia"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
@@ -30,6 +44,22 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Keeps the stream to the PC open while the app is closed (the switch in Ajustes → Avisos). -->
+        <service
+            android:name=".AlertService"
+            android:exported="false"
+            android:foregroundServiceType="${alertsFgsType}">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Mantiene la conexión con el PC para avisar de aprobaciones y tareas terminadas" />
+        </service>
+        <receiver
+            android:name=".AlertBoot"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -46,5 +76,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- The phone's autostart screen is looked up by package name (Android 11+ visibility). -->
+        <package android:name="com.transsion.phonemaster" />
     </queries>
 </manifest>

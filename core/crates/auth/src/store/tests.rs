@@ -1,5 +1,6 @@
 ﻿//! Store tests: enrollment lifecycle, revocation, permissions, persistence.
 use super::*;
+use crate::curve::Curve;
 use hn_core_test_dir::TestDir;
 
 /// The store, its file and the scratch directory that holds both.

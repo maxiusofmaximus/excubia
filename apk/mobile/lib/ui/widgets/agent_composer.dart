@@ -72,7 +72,7 @@ class AgentComposer extends StatelessWidget {
           FilledButton(
             onPressed: ready ? onRespond : null,
             child: sending
-                ? const Row(
+                ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SizedBox(
@@ -80,11 +80,11 @@ class AgentComposer extends StatelessWidget {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.colors.onAccent,
                         ),
                       ),
-                      SizedBox(width: Spacing.sm),
-                      Text('Enviando…'),
+                      const SizedBox(width: Spacing.sm),
+                      const Text('Enviando…'),
                     ],
                   )
                 : const Text('Enviar'),
@@ -125,7 +125,7 @@ class AgentComposer extends StatelessWidget {
                     style: context.text.small.copyWith(
                       color: resultOk
                           ? context.colors.statusDone
-                          : context.colors.statusBlocked,
+                          : context.colors.textPrimary,
                     ),
                   ),
                 ),
@@ -154,7 +154,7 @@ class AgentComposer extends StatelessWidget {
                     ),
               label: Text(stopping ? 'Deteniendo…' : 'Detener agente'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.statusBlocked,
+                foregroundColor: context.colors.textPrimary,
                 side: BorderSide(
                   color: context.colors.statusBlocked.withValues(alpha: 0.6),
                 ),

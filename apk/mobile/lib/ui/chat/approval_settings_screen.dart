@@ -14,11 +14,13 @@ class ApprovalSettingsScreen extends StatefulWidget {
     required this.approvals,
     required this.conversationId,
     required this.projects,
+    this.alfred,
   });
 
   final ApprovalsController approvals;
   final String? conversationId;
   final List<ChatProject> projects;
+  final ChatSeat? alfred;
 
   @override
   State<ApprovalSettingsScreen> createState() => _ApprovalSettingsScreenState();
@@ -95,6 +97,7 @@ class _ApprovalSettingsScreenState extends State<ApprovalSettingsScreen> {
                       controller: approvals,
                       approvalId: approval.approvalId,
                       projects: widget.projects,
+                      alfred: widget.alfred,
                     ),
                   ),
               ],

@@ -11,22 +11,47 @@
 
 mod actions;
 mod agents;
+pub mod alert_policy;
+mod alerts;
+pub mod calendar_reminders;
 pub mod cli;
 mod hook_token;
 pub mod import_report;
+pub mod mail_api;
+pub mod mail_approval;
+pub mod mail_cli;
+pub(crate) mod mail_folders;
+pub(crate) mod mail_move;
+pub(crate) mod mail_move_apply;
+pub(crate) mod mail_move_auto;
+pub(crate) mod mail_move_pick;
+pub(crate) mod mail_organize;
+pub(crate) mod mail_read;
+pub mod mail_routes;
+pub mod mail_send;
+pub mod mail_shadow;
+pub mod mail_sidecar;
+pub mod mail_tools;
+pub(crate) mod mail_triage;
 pub mod paths;
 mod session;
 mod snapshot;
 pub mod team;
+mod team_alerts;
 mod team_approvals;
+mod team_calendar;
+mod team_contacts;
 mod team_delegations;
 mod team_errors;
+mod team_notes;
 mod team_paths;
+mod team_status;
 mod team_tools;
 mod term_size;
 pub mod tls_slots;
 
 pub use agents::{default_catalog, load_or_create as load_agents};
+pub use alerts::spawn as spawn_alerts;
 pub use hook_token::load_or_create as load_hook_token;
 
 use std::collections::HashMap;
@@ -38,7 +63,7 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use hn_core_detect::{identify_program, Detector, TitleTracker};
 use hn_core_pty::{CommandSpec, PtySession, PtySize};
-use hn_core_state::{NewAgent, StateStore};
+use hn_core_state::{NewAgent, StatePayload, StateStore};
 use tokio::sync::Notify;
 
 use session::{Monitor, Session, SCROLLBACK_LINES};
@@ -335,6 +360,11 @@ impl AgentHost {
         let mut payload = text.as_bytes().to_vec();
         payload.push(b'\r');
         session.write(&payload)
+    }
+
+    /// The state read model `GET /v1/state` serves, for the host's own readers.
+    pub async fn state_payload(&self) -> StatePayload {
+        self.store.payload().await
     }
 
     /// How many panels are live (restored records are not processes).

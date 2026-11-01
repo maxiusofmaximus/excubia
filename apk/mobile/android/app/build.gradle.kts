@@ -27,6 +27,19 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseKey = keystoreProperties.getProperty("storeFile") != null
 
+// Type of the alerts foreground service, set per build to measure it (RFC-PUSH-PROPIO §6):
+// `-PalertsFgsType=connectedDevice` or `dataSync`. specialUse is the default.
+val alertsFgsType = providers.gradleProperty("alertsFgsType").orNull ?: "specialUse"
+val alertsFgsPermission = when (alertsFgsType) {
+    "specialUse" -> "FOREGROUND_SERVICE_SPECIAL_USE"
+    "connectedDevice" -> "FOREGROUND_SERVICE_CONNECTED_DEVICE"
+    "dataSync" -> "FOREGROUND_SERVICE_DATA_SYNC"
+    else -> error("alertsFgsType must be specialUse, connectedDevice or dataSync, not $alertsFgsType")
+}
+// connectedDevice starts only with one of the CHANGE_*_STATE permissions. The other types
+// repeat ACCESS_NETWORK_STATE, which the network callback needs anyway.
+val alertsFgsExtraPermission = if (alertsFgsType == "connectedDevice") "CHANGE_WIFI_STATE" else "ACCESS_NETWORK_STATE"
+
 android {
     namespace = "dev.herdrnotify.herdr_notify"
     compileSdk = flutter.compileSdkVersion
@@ -49,6 +62,14 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["alertsFgsType"] = alertsFgsType
+        manifestPlaceholders["alertsFgsPermission"] = alertsFgsPermission
+        manifestPlaceholders["alertsFgsExtraPermission"] = alertsFgsExtraPermission
+        buildConfigField("String", "ALERTS_FGS_TYPE", "\"$alertsFgsType\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     signingConfigs {
@@ -84,6 +105,24 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+// Two tink artifacts carry the same classes and fail the debug dex merge: keep tink-android,
+// which flutter_secure_storage brings.
+configurations.all {
+    exclude(group = "com.google.crypto.tink", module = "tink")
+}
+
+dependencies {
+    // Read-only access to the Kotlin v1 pairing files for the migration offer.
+    // Same versions as the Kotlin v1 app, which wrote those files.
+    implementation("androidx.datastore:datastore-preferences:1.1.3")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Watchdog every 15 minutes (Apache-2.0, free): restarts the alerts service if it stopped.
+    implementation("androidx.work:work-runtime:2.10.0")
+
+    testImplementation("junit:junit:4.13.2")
 }
 
 flutter {

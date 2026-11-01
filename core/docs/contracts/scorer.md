@@ -25,10 +25,10 @@ high_from = 0.7                          # score >= high_from → high; medio en
   el fichero entero y se conserva la última política buena.
 - `deny_unknown_fields`: una clave mal escrita en `[scorer]` rechaza el fichero.
 - `auto_ok_if_low` no admite `never_delegate` (`money`, `publish`, `credentials`,
-  `delete_user_data`, `outside_workspace`).
+  `delete_user_data`, `outside_workspace`, `mail_send`, `mail_organize`).
 - `endpoint` de `local_http` es la base; el backend añade `/v1/chat/completions`.
   El RFC proponía `/score`; se usa la interfaz OpenAI-compatible de las
-  decisiones del propietario del producto.
+  decisiones del Master.
 - `cloud` exige `https://` y `api_key_env`, que es el **nombre** de una variable
   de entorno, nunca la clave. En esta build no hay cliente TLS: el backend existe
   en el esquema y siempre falla cerrado.

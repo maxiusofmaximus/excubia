@@ -72,3 +72,5 @@ graphify-out/
 
 # Sidecar del núcleo: artefacto de build (scripts/build-host.ps1).
 /src-tauri/binaries/
+/target-test/
+/evidence-agenda/

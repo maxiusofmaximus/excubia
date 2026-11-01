@@ -1,4 +1,5 @@
 # Contract: request authentication and authorization
+_(gateway retirado; ver README)_
 
 Every request except `GET /v1/health` must carry a signature over the exact
 request. There is no bearer token and no shared secret to leak: a device is a
@@ -198,6 +199,7 @@ endpoint cannot start life implicitly authorized.
 | `POST` | `/v1/chat/conversations` | `401` | `403` | `200` |
 | `GET` | `/v1/chat/conversations/{id}` | `401` | `403` | `200` |
 | `POST` | `/v1/chat/conversations/{id}/update` | `401` | `403` | `200` |
+| `DELETE` | `/v1/chat/conversations/{id}` | `401` | `403` | `200` |
 | `GET` | `/v1/chat/conversations/{id}/timeline` | `401` | `403` | `200` |
 | `GET` | `/v1/chat/conversations/{id}/messages` | `401` | `403` | `200` |
 | `POST` | `/v1/chat/conversations/{id}/messages` | `401` | `403` | `200` |
@@ -208,7 +210,47 @@ endpoint cannot start life implicitly authorized.
 | `POST` | `/v1/chat/approvals/{id}/decision` | `401` | `403` | `200` (`APPROVE`) |
 | `GET` | `/v1/chat/approvals/settings` | `401` | `403` | `200` |
 | `POST` | `/v1/chat/approvals/settings` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/roles` | `401` | `403` | `200` |
+| `GET` | `/v1/hires` | `401` | `403` | `200` |
+| `POST` | `/v1/hires` | `401` | `403` | `200` (`APPROVE`) |
+| `POST` | `/v1/hires/{id}/update` | `401` | `403` | `200` (`APPROVE`) |
+| `POST` | `/v1/hires/{id}/dismiss` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/onboarding` | `401` | `403` | `200` |
+| `POST` | `/v1/onboarding` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/notes` | `401` | `403` | `200` |
+| `GET` | `/v1/notes/{id}` | `401` | `403` | `200` |
+| `POST` | `/v1/notes` | `401` | `403` | `200` |
+| `POST` | `/v1/notes/{id}/update` | `401` | `403` | `200` |
+| `POST` | `/v1/notes/{id}/delete` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/contacts` | `401` | `403` | `200` |
+| `GET` | `/v1/contacts/{id}` | `401` | `403` | `200` |
+| `POST` | `/v1/contacts` | `401` | `403` | `200` |
+| `POST` | `/v1/contacts/{id}/update` | `401` | `403` | `200` |
+| `POST` | `/v1/contacts/{id}/delete` | `401` | `403` | `200` (`APPROVE`) |
+| `POST` | `/v1/contacts/import` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/calendar/events` | `401` | `403` | `200` |
+| `GET` | `/v1/calendar/events/{id}` | `401` | `403` | `200` |
+| `POST` | `/v1/calendar/events` | `401` | `403` | `200` |
+| `POST` | `/v1/calendar/events/{id}/update` | `401` | `403` | `200` |
+| `POST` | `/v1/calendar/events/{id}/delete` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/company/timezone` | `401` | `403` | `200` |
+| `POST` | `/v1/company/timezone` | `401` | `403` | `200` (`APPROVE`) |
 | any | endpoint with no rule | `401`/`404` | `403` | `403` |
+
+The team routes (ONBOARD-T3) change who the user is hiring, so every write needs
+`APPROVE`. An agent holds `RESPOND` at most, and a device with only `RESPOND`
+gets the `403` above. A hook or agent credential presented on a device route
+has no device signature, so it gets the uniform `401`.
+
+The agenda routes (AGENDA-REST) follow the same split: reads need `READ_STATE`,
+creating and editing a note or contact needs `RESPOND`, and deleting one or
+importing the phone book needs `APPROVE`. A device with only `RESPOND` can keep
+notes and contacts but cannot delete them or import.
+
+The calendar routes (CALENDARIO-F4) follow the same split: reads need `READ_STATE`,
+creating and editing an event needs `RESPOND`, and deleting one needs `APPROVE`. The
+company's time zone is read with `READ_STATE` and fixed with `APPROVE`, because it can
+be set only once.
 
 `POST /v1/pair` is the **only unauthenticated write** (Fase 2(c)): the pairing
 code, a recovery code, or the tailnet-owner check is the authorisation, never a

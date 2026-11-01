@@ -34,6 +34,18 @@ pub(super) fn tool_chat_error(error: ChatError) -> ToolError {
         ChatError::ApprovalNotDelegable => ToolError::conflict("approval_not_delegable", message),
         ChatError::ApprovalSelfApproval => ToolError::conflict("approval_self_approval", message),
         ChatError::ApprovalBudget => ToolError::conflict("approval_budget", message),
+        ChatError::NoteLimit => ToolError::conflict("note_limit", message),
+        ChatError::NoteNotFound(_) => ToolError::invalid("not_found", "id", message),
+        ChatError::ContactLimit => ToolError::conflict("contact_limit", message),
+        ChatError::AddressLimit => ToolError::conflict("address_limit", message),
+        ChatError::AliasLimit => ToolError::conflict("alias_limit", message),
+        ChatError::InvalidAddress => ToolError::invalid("invalid_address", "addresses", message),
+        ChatError::AddressTaken(_) => ToolError::conflict("address_taken", message),
+        ChatError::AliasTaken => ToolError::conflict("alias_taken", message),
+        ChatError::ContactNotFound(_) => ToolError::invalid("not_found", "id", message),
+        ChatError::AlertRuleLimit => ToolError::conflict("rule_limit", message),
+        ChatError::AlertRuleExists => ToolError::conflict("rule_exists", message),
+        ChatError::AlertRuleNotFound(_) => ToolError::invalid("not_found", "id", message),
         _ => ToolError::conflict("chat_unavailable", message),
     }
 }

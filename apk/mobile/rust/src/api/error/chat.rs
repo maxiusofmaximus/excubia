@@ -128,6 +128,14 @@ pub fn explain_chat_error(
             FailureKind::Retry,
             None,
         ),
+        409 if says(&code, &message, "conversation_busy") => ChatFailure::new(
+            "conversation_busy",
+            "Esta conversación tiene algo en marcha (un turno, una tarea o una aprobación). \
+             Páralo o resuélvelo antes de borrarla.",
+            None,
+            FailureKind::Retry,
+            None,
+        ),
         409 if says(&code, &message, "delegation_cancelled") => ChatFailure::new(
             "delegation_cancelled",
             "La delegación ya terminó o fue cancelada.",
@@ -227,6 +235,13 @@ pub fn explain_chat_error(
             FailureKind::Retry,
             None,
         ),
+        422 if says(&code, &message, "unknown_reply_to") => ChatFailure::new(
+            "unknown_reply_to",
+            "Ese mensaje ya no está en la conversación.",
+            Some("Se quitó la cita; tu texto sigue escrito.".to_string()),
+            FailureKind::Retry,
+            None,
+        ),
         422 => {
             let field = validation_field(&body);
             let (text, hint) = match field.as_deref() {
@@ -266,6 +281,50 @@ pub fn explain_chat_error(
             ChatFailure::new("http", info.message, info.action, info.kind, retry_after)
         }
     }
+}
+
+/// A refused stop has its own wording. A conversation the host does not know
+/// keeps the chat's wording; a 404 or 405 without that code means an old host
+/// that has no stop route.
+#[flutter_rust_bridge::frb(sync)]
+pub fn explain_chat_stop_error(status: u16, body: String, retry_after: Option<u32>) -> ChatFailure {
+    let (code, message) = parse_error_body(&body);
+    let code = code.unwrap_or_default();
+    match status {
+        403 => {
+            let grant = explain_chat_error(status, body, retry_after, WriteAction::Respond);
+            ChatFailure::new(
+                "forbidden",
+                "No tienes permiso para detener esto desde este dispositivo.",
+                grant.action,
+                FailureKind::Permission,
+                None,
+            )
+        }
+        404 if says(&code, &message, "no_such_conversation") => {
+            explain_chat_error(status, body, retry_after, WriteAction::Respond)
+        }
+        404 | 405 => ChatFailure::new(
+            "unsupported_host",
+            "Este equipo no admite detener todavía.",
+            Some("Actualiza el equipo para poder detener el turno.".to_string()),
+            FailureKind::Retry,
+            None,
+        ),
+        _ => ChatFailure::new(
+            "stop_failed",
+            "No se pudo detener. Inténtalo de nuevo.",
+            None,
+            FailureKind::Retry,
+            None,
+        ),
+    }
+}
+
+/// A host without the counts route answers 404 or 405: the new chips stay hidden.
+#[flutter_rust_bridge::frb(sync)]
+pub fn chat_counts_unsupported(status: u16) -> bool {
+    matches!(status, 404 | 405)
 }
 
 /// Map a locally refused plan (no host call was made) to the same failure
@@ -356,6 +415,22 @@ mod tests {
             r#"{"detail":{"code":"unknown_section","field":"section_id","message":"x"}}"#,
         );
         assert!(section.message.contains("sección"));
+
+        let quote = explain(
+            422,
+            r#"{"detail":{"code":"unknown_reply_to","field":"reply_to","message":"x"}}"#,
+        );
+        assert_eq!(quote.code, "unknown_reply_to");
+        assert!(!quote.shown_in_timeline && !quote.kept_by_host);
+    }
+
+    #[test]
+    fn a_busy_conversation_says_what_to_stop_before_deleting() {
+        let busy = explain(409, r#"{"detail":"conversation_busy"}"#);
+        assert_eq!(busy.code, "conversation_busy");
+        assert!(busy.message.ends_with("antes de borrarla."));
+        assert!(busy.action.is_none());
+        assert!(!busy.shown_in_timeline && !busy.kept_by_host);
     }
 
     #[test]
@@ -389,6 +464,37 @@ mod tests {
         let missing = explain(404, r#"{"detail":"no_such_delegation"}"#);
         assert_eq!(missing.code, "no_such_delegation");
         assert!(missing.action.unwrap().contains("timeline"));
+    }
+
+    #[test]
+    fn a_refused_stop_says_why_and_an_old_host_is_named() {
+        let stop = |status, body: &str| explain_chat_stop_error(status, body.to_string(), None);
+
+        let denied = stop(403, r#"{"detail":"forbidden"}"#);
+        assert_eq!(denied.code, "forbidden");
+        assert_eq!(denied.kind, FailureKind::Permission);
+        assert!(denied.message.contains("detener"));
+        assert!(denied.action.unwrap().contains("--permission respond"));
+
+        let missing = stop(404, r#"{"detail":"no_such_conversation"}"#);
+        assert_eq!(missing.code, "no_such_conversation");
+
+        for status in [404, 405] {
+            let old = stop(status, r#"{"detail":"Not Found"}"#);
+            assert_eq!(old.code, "unsupported_host");
+        }
+
+        let red = stop(0, "");
+        assert_eq!(red.code, "stop_failed");
+        assert_eq!(red.message, "No se pudo detener. Inténtalo de nuevo.");
+    }
+
+    #[test]
+    fn an_old_host_without_the_counts_route_is_recognised() {
+        assert!(chat_counts_unsupported(404));
+        assert!(chat_counts_unsupported(405));
+        assert!(!chat_counts_unsupported(403));
+        assert!(!chat_counts_unsupported(500));
     }
 
     #[test]

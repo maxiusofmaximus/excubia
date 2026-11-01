@@ -9,3 +9,6 @@ pub mod reducer;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod tests_move;

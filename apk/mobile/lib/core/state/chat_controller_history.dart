@@ -58,6 +58,37 @@ extension ChatControllerHistory on ChatController {
     return failure;
   }
 
+  /// Deletes for good. A host that no longer has the conversation (404) counts
+  /// as deleted; a busy one (409) keeps it and its refusal says what to stop.
+  Future<ChatProblem?> deleteConversation(ChatConversation conversation) async {
+    try {
+      await _execute(
+        planChatDeleteConversation(conversationId: conversation.id),
+      );
+    } catch (error) {
+      final gone = error is GatewayError && error.status == 404;
+      if (!gone) {
+        final failure = _explain(error, WriteAction.respond);
+        _failures.add(failure);
+        return failure;
+      }
+    }
+    _forgetConversation(conversation.id);
+    await _loadCounts();
+    return null;
+  }
+
+  /// Takes a conversation out of the list and, when it is open, out of the
+  /// timeline. The counts are read again by the caller.
+  void _forgetConversation(String id) {
+    _conversations = _conversations.where((chat) => chat.id != id).toList();
+    if (_current?.id == id) {
+      _current = null;
+      _reducer.reset();
+    }
+    _notify();
+  }
+
   Future<ChatSection?> createSection(String name) async {
     final plan = planChatSection(name: name);
     try {
@@ -93,15 +124,23 @@ extension ChatControllerHistory on ChatController {
       query: _query,
       pinned: pinned,
       archived: archived,
+      attention: _filter == HistoryFilter.attention,
+      working: _filter == HistoryFilter.working,
     );
     try {
       final body = await _execute(plan);
       final page = parseChatConversations(json: body);
       if (page == null) return;
       _conversations = page.conversations;
+      _reducer.acceptConversations(conversations: page.conversations);
       if (_current != null) {
         final updated = _conversationFor(_current!.id);
         if (updated != null) _current = updated;
+      }
+      // The list shows no open run but our newest message still reads as
+      // in flight: its frame was lost, so the timeline is read once more.
+      if (_current?.activeRuns == 0 && turnInFlight) {
+        unawaited(_refreshCurrent());
       }
       _lastSync = DateTime.now();
       if (!silent) _notify();
@@ -121,6 +160,32 @@ extension ChatControllerHistory on ChatController {
     } catch (_) {
       // Counts are decoration; keep the last known values.
     }
+    await _loadChipCounts();
+  }
+
+  /// The chip numbers in one request, also after each chat event. A host
+  /// without the route hides the new chips and drops a filter it cannot answer.
+  Future<void> _loadChipCounts() async {
+    try {
+      final counts = parseChatCounts(json: await _execute(planChatCounts()));
+      if (counts == null) return;
+      _counts = counts;
+      _countsSupported = true;
+      _notify();
+    } catch (error) {
+      if (error is! GatewayError ||
+          !chatCountsUnsupported(status: error.status)) {
+        return;
+      }
+      _countsSupported = false;
+      _counts = null;
+      if (_filter == HistoryFilter.attention ||
+          _filter == HistoryFilter.working) {
+        _filter = HistoryFilter.all;
+        unawaited(_refreshConversations());
+      }
+      _notify();
+    }
   }
 
   /// Every conversation that matches, following `next_cursor` page by page. The
@@ -134,6 +199,8 @@ extension ChatControllerHistory on ChatController {
           planChatConversations(
             pinned: pinned,
             archived: archived,
+            attention: false,
+            working: false,
             cursor: cursor,
           ),
         ),

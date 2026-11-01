@@ -1,3 +1,5 @@
+import '../app_info.dart';
+
 /// The text a pairing QR carries, once it has been read and trusted to be ours.
 ///
 /// Only two facts survive parsing: where the gateway is and the short code that
@@ -25,7 +27,7 @@ class PairingQrPayload {
     if (uri == null) return _invalid('El código QR no se pudo leer.');
 
     if (uri.scheme.toLowerCase() != scheme) {
-      return _invalid('Este código QR no es de Excubia.');
+      return _invalid('Este código QR no es de $appName.');
     }
     if ((uri.host).toLowerCase() != host) {
       return _invalid('Este código QR no es de emparejamiento.');

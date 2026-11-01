@@ -4,18 +4,37 @@
 //! failures the screen draws. This module only keeps the patch model and the
 //! identifier validation both sides share.
 
+mod agenda;
+mod agenda_model;
+mod alerts;
+mod alerts_model;
 mod approvals;
+mod attachments;
+mod calendar;
+mod calendar_ics;
+mod calendar_model;
 mod client;
 mod error;
+mod error_text;
+mod hires;
+mod mail_draft;
 mod model;
 mod team;
 #[cfg(test)]
 mod tests;
 
+pub use agenda_model::*;
+pub use alerts_model::*;
 pub use approvals::*;
+pub use attachments::*;
+pub use calendar_ics::*;
+pub use calendar_model::*;
 pub use client::CHAT_PAGE_LIMIT;
 pub(crate) use error::protocol;
-pub use error::{delegation_text, ChatFailure, ChatResult};
+pub use error::{ChatFailure, ChatResult};
+pub use error_text::{delegation_text, team_text};
+pub use hires::*;
+pub use mail_draft::*;
 pub use model::*;
 pub use team::*;
 

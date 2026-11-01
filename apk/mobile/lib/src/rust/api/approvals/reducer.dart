@@ -9,7 +9,7 @@ import 'model.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `fold`, `merge`, `rank`, `replace_some`
+// These functions are ignored because they are not marked as `pub`: `fill_missing`, `fold`, `merge`, `rank`, `replace_some`
 
 ApprovalReducer newApprovalReducer() =>
     RustLib.instance.api.crateApiApprovalsReducerNewApprovalReducer();

@@ -1,116 +1,25 @@
 import { $ } from "./core.js";
+import { paintAvatar } from "./avatar.js";
 import { formatTime } from "./chatlist.js";
 import { renderApprovalEntry, renderApprovalLine } from "./approval-card.js";
 import { conversationContext, isOperatorLevel, supersededIndexes } from "./approval-model.js";
 import { setThreadApprovals } from "./approval-inbox.js";
 import { renderDelegationCard } from "./delegations.js";
 import { stripTestMarkers } from "./format.js";
+import { isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
+import { quickRepliesDisabled, quoteLabel, suggestionsAt } from "./chat-reply-model.js";
+import { announcement, openStep } from "./chat-progress-model.js";
+import { action, element } from "./chatdom.js";
+import { renderFailure } from "./chatfailure.js";
+import { bubbleBody } from "./chatattach-model.js";
+import { attachmentsNode } from "./chatattach-view.js";
+import { draftCardNode } from "./chatdraft.js";
 
-const FAILURE_TITLES = {
-  offline: "Sin conexión con el host",
-  unauthorized: "El host ya no confía en este equipo",
-  forbidden: "Falta el permiso RESPOND",
-  seatUnavailable: "Alfred no pudo arrancar",
-  delegationRefused: "La delegación no se pudo completar",
-  agentBusy: "La cola de Alfred está llena",
-  archived: "La conversación está archivada",
-  notFound: "La conversación ya no existe",
-  invalid: "El mensaje no es válido",
-  gateway: "El host rechazó la petición",
-  protocol: "Respuesta inesperada del host",
-};
-
-function element(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
-function action(label, data, className = "btn ghost btn-small") {
-  const button = element("button", className, label);
-  button.type = "button";
-  for (const [name, value] of Object.entries(data)) {
-    button.dataset[name] = value;
-  }
-  return button;
-}
-
-function grantCommand(text) {
-  const marker = "Concédelo en el host: ";
-  if (!text || !text.includes(marker)) return null;
-  return text.slice(text.indexOf(marker) + marker.length).trim();
-}
-
-export function renderFailure(failure, context = {}) {
-  const kind = failure && failure.kind ? failure.kind : "gateway";
-  const card = element("div", "error-card");
-  card.dataset.failure = kind;
-
-  const icon = element("span", "error-icon", "!");
-  icon.setAttribute("aria-hidden", "true");
-  const body = element("div", "error-body");
-  const title = element("h3", null, FAILURE_TITLES[kind] || FAILURE_TITLES.gateway);
-  const message = element("p", null, failure && failure.message ? failure.message : "No se pudo completar la operación.");
-  body.append(title, message);
-
-  const command = grantCommand(failure ? failure.action : "");
-  if (command) {
-    const code = element("code", null, command);
-    body.append(code);
-  } else if (failure && failure.action && kind !== "forbidden") {
-    const hint = element("p", null, failure.action);
-    body.append(hint);
-  }
-  if (failure && failure.code) {
-    body.append(element("code", null, failure.code));
-  }
-
-  const actions = element("div", "error-actions");
-  if (kind === "offline") {
-    actions.append(action("Reconectar", { action: "reconnect" }, "btn primary btn-small"));
-  } else if (kind === "unauthorized") {
-    actions.append(action("Abrir ajustes", { action: "settings" }, "btn secondary btn-small"));
-  } else if (kind === "seatUnavailable") {
-    actions.append(
-      action("Revisar equipo", { action: "open-team" }, "btn secondary btn-small"),
-      action("Reintentar", { retryPending: context.pendingId || "" }, "btn primary btn-small"),
-    );
-  } else if (kind === "agentBusy") {
-    const left = context.retrySeconds || 0;
-    const retry = action(
-      left > 0 ? `Reintentar en ${left} s` : "Reintentar",
-      { retryPending: context.pendingId || "" },
-      "btn primary btn-small",
-    );
-    retry.disabled = left > 0;
-    actions.append(retry, action("Ver cola", { action: "open-team" }, "btn ghost btn-small"));
-  } else if (kind === "archived") {
-    actions.append(
-      action("Desarchivar", { action: "unarchive" }, "btn secondary btn-small"),
-    );
-  } else if (kind === "invalid" || kind === "notFound") {
-    actions.append(action("Ver historial", { action: "history" }, "btn ghost btn-small"));
-  } else if (kind === "forbidden") {
-    actions.append(action("Reintentar", { retryPending: context.pendingId || "" }, "btn ghost btn-small"));
-  } else {
-    actions.append(
-      action("Reintentar", { retryPending: context.pendingId || "" }, "btn secondary btn-small"),
-    );
-  }
-  if (actions.childElementCount) body.append(actions);
-
-  if (context.meta) {
-    body.append(element("p", "error-meta", context.meta));
-  }
-  card.append(icon, body);
-  return card;
-}
-
-function messageNode(message, alfredName) {
+function messageNode(message, alfredName, line = null, detail = null) {
   const user = message.author_kind === "user";
   const wrapper = element("article", `msg ${user ? "user" : "agent"}`);
   wrapper.dataset.seq = String(message.seq);
+  if (message.id) wrapper.dataset.messageId = message.id;
 
   if (!user) {
     const avatar = element("span", "msg-avatar", (alfredName || "A").slice(0, 1).toUpperCase());
@@ -126,19 +35,57 @@ function messageNode(message, alfredName) {
     author.textContent = alfredName || "Alfred";
   }
 
-  const body = stripTestMarkers(message.body_md);
+  const body = stripTestMarkers(bubbleBody(message));
   const bubble = element("div", "msg-bubble", body);
   if (!body) bubble.classList.add("is-empty");
+  if (message.quote) {
+    // The quoted line leads the bubble; a click scrolls to the original when it is loaded.
+    const quote = element("button", "msg-quote", quoteLabel(message.quote, alfredName));
+    quote.type = "button";
+    quote.dataset.quoteId = message.quote.id;
+    bubble.prepend(quote);
+  }
   const meta = element("div", "msg-meta");
   meta.append(element("span", null, formatTime(message.created_at)));
-  if (message.state === "failed" || message.state === "interrupted") {
+  if (!user && (message.state === "failed" || message.state === "interrupted")) {
     meta.append(element("span", "failed", message.state === "interrupted" ? "interrumpido" : "falló"));
-  } else if (user && message.state === "complete") {
-    meta.append(element("span", "ok", "enviado"));
   }
-  column.append(author, bubble, meta);
+  if (message.id) {
+    const reply = element("button", "msg-reply", "Responder");
+    reply.type = "button";
+    reply.dataset.replyId = message.id;
+    meta.append(reply);
+  }
+  const parts = [author, bubble];
+  if (message.attachments && message.attachments.length) {
+    parts.push(attachmentsNode(message.conversation_id, message.attachments));
+  }
+  if (line) parts.push(element("div", line.failed ? "msg-status is-failed" : "msg-status", line.text));
+  if (detail) {
+    const step = element("div", "msg-progress", detail.text);
+    step.setAttribute("aria-live", detail.live);
+    parts.push(step);
+  }
+  parts.push(meta);
+  column.append(...parts);
   wrapper.append(column);
   return wrapper;
+}
+
+// Plain text only: the host's words are never read as markup.
+function quickRepliesNode(items, disabled) {
+  const row = element("div", "quick-replies");
+  row.setAttribute("role", "group");
+  row.setAttribute("aria-label", "Respuestas rápidas");
+  for (const text of items) {
+    const button = element("button", "quick-reply", text);
+    button.type = "button";
+    button.dataset.quickReply = text;
+    button.setAttribute("aria-label", `Responder: ${text}`);
+    button.disabled = disabled;
+    row.append(button);
+  }
+  return row;
 }
 
 function failedTurnNode(message, alfredName) {
@@ -195,17 +142,23 @@ function pendingNode(pending, alfredName) {
   meta.replaceChildren();
   meta.append(element("span", null, formatTime(new Date(pending.createdAt).toISOString())));
   if (pending.state === "sending") {
-    meta.append(element("span", null, "enviando…"));
+    meta.append(element("span", null, "Enviando…"));
   } else if (pending.state === "failed") {
-    meta.append(element("span", "failed", "falló"));
+    meta.append(element("span", "failed", "Falló"));
     const retry = element("button", "inline-retry", "Reintentar");
     retry.type = "button";
     retry.dataset.retryPending = pending.clientId;
     meta.append(retry);
-  } else {
-    meta.append(element("span", "ok", "enviado"));
   }
   return wrapper;
+}
+
+// The step under the last own message, only while its turn is in flight. The live
+// reading is decided here, once per render that shows the line.
+function stepDetail(chat) {
+  const text = openStep(chat);
+  if (!text) return null;
+  return { text, live: announcement(chat.progress[chat.conversation.id], Date.now()) };
 }
 
 export function busySeconds(pending) {
@@ -218,6 +171,7 @@ export function renderThread(chat) {
   const timeline = $("chat-timeline");
   const empty = $("chat-empty");
   const alfredName = chat.home && chat.home.bootstrap ? chat.home.bootstrap.alfred.name : "Alfred";
+  paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 68 });
   const previousScroll = timeline.scrollTop;
   const nearBottom =
     timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 140 || chat.forceScroll;
@@ -254,6 +208,13 @@ export function renderThread(chat) {
 
   const cards = (chat.approvals || []).filter(isOperatorLevel);
   const superseded = supersededIndexes(chat.entries, new Set(cards.map((approval) => approval.id)));
+  // Only the operator's last message shows the step of its turn.
+  let lastOwn = -1;
+  chat.entries.forEach((entry, index) => {
+    if (entry.kind === "message" && isOwn(entry)) lastOwn = index;
+  });
+  const quick = suggestionsAt(chat.entries);
+  const sending = quickRepliesDisabled(chat.pending);
   for (const [index, entry] of chat.entries.entries()) {
     if (superseded.has(index)) continue;
     if (entry.kind === "message") {
@@ -265,8 +226,18 @@ export function renderThread(chat) {
       ) {
         timeline.append(failedTurnNode(message, alfredName));
       } else {
-        timeline.append(messageNode(message, alfredName));
+        const turn = isOwn(entry) ? turnOf(message, chat.turns) : null;
+        const isLast = index === lastOwn;
+        timeline.append(
+          messageNode(
+            message,
+            alfredName,
+            turnStatusLine(turn, alfredName, isLast),
+            isLast ? stepDetail(chat) : null,
+          ),
+        );
       }
+      if (quick && quick.index === index) timeline.append(quickRepliesNode(quick.items, sending));
     } else if (entry.kind === "card") {
       timeline.append(
         renderDelegationCard(entry.entry, { cancelTarget: chat.cancelTarget }),
@@ -274,6 +245,8 @@ export function renderThread(chat) {
     } else if (entry.kind === "approval") {
       const node = renderApprovalLine(entry.entry);
       if (node) timeline.append(node);
+    } else if (entry.kind === "mailDraft") {
+      timeline.append(draftCardNode(entry.entry));
     } else {
       timeline.append(noteNode(entry.entry));
     }
@@ -328,7 +301,8 @@ export function renderThread(chat) {
     const waiting = element("div", "waiting");
     const dots = element("span", "dots");
     for (let index = 0; index < 3; index += 1) dots.append(element("span"));
-    waiting.append(dots, element("span", null, `${alfredName} está trabajando…`));
+    const step = openStep(chat);
+    waiting.append(dots, element("span", null, step ? `${alfredName} · ${step}` : `${alfredName} está trabajando…`));
     timeline.append(waiting);
   }
 

@@ -1,4 +1,5 @@
 # Contract: state model and triage
+_(gateway retirado; ver README)_
 
 `herdr` events are reduced on the host into a read model. The app renders that
 model; it does not re-derive it. Authoritative code:

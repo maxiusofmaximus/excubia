@@ -26,6 +26,21 @@ class PinnedAnswer {
   final int? retryAfter;
 }
 
+/// A binary answer, byte for byte as the host sent it.
+class PinnedBytesAnswer {
+  const PinnedBytesAnswer({
+    required this.status,
+    required this.bytes,
+    required this.address,
+    this.retryAfter,
+  });
+
+  final int status;
+  final List<int> bytes;
+  final String address;
+  final int? retryAfter;
+}
+
 /// A pinned exchange that did not complete. [kind] is what the UI branches on;
 /// [detail] is the technical text, shown folded.
 class PinnedException implements Exception {
@@ -75,6 +90,15 @@ abstract interface class PinnedClient {
     required List<int> body,
   });
 
+  Future<PinnedBytesAnswer> requestBytes({
+    required List<String> addresses,
+    required HostPins pins,
+    required String method,
+    required String target,
+    required Map<String, String> headers,
+    required List<int> body,
+  });
+
   Stream<String> eventLines({
     required List<String> addresses,
     required HostPins pins,
@@ -109,6 +133,32 @@ class RustPinnedClient implements PinnedClient {
     return PinnedAnswer(
       status: response.status,
       body: response.body,
+      address: response.address,
+      retryAfter: response.retryAfter,
+    );
+  }
+
+  @override
+  Future<PinnedBytesAnswer> requestBytes({
+    required List<String> addresses,
+    required HostPins pins,
+    required String method,
+    required String target,
+    required Map<String, String> headers,
+    required List<int> body,
+  }) async {
+    final reply = await rust.pinnedRequestBytes(
+      endpoint: _endpoint(addresses, pins),
+      method: method,
+      target: target,
+      headers: _fields(headers),
+      body: body,
+    );
+    final response = reply.response;
+    if (response == null) throw _failed(reply.failure);
+    return PinnedBytesAnswer(
+      status: response.status,
+      bytes: response.body,
       address: response.address,
       retryAfter: response.retryAfter,
     );

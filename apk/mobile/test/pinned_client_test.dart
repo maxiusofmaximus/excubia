@@ -158,6 +158,83 @@ void main() {
         expect(fake.headers.single.keys, contains('X-HN-Signature'));
       },
     );
+
+    GatewayClient pinnedClientOn(PinnedClient pinned) => GatewayClient(
+      baseUrl: 'https://127.0.0.1:8443',
+      deviceId: 'hn-7',
+      privateKeyBase64: generateDeviceKey().privateKeyB64,
+      pins: HostPins(primary: testPin),
+      pinned: pinned,
+    );
+
+    test(
+      'a pinned binary answer comes back as the bytes the host sent',
+      () async {
+        final fake = FakePinnedClient(
+          bytesAnswer: const PinnedBytesAnswer(
+            status: 200,
+            bytes: [0x52, 0x49, 0xFF, 0x80],
+            address: '127.0.0.1:8443',
+          ),
+        );
+
+        expect(
+          await pinnedClientOn(fake).callBytes(
+            'GET',
+            '/v1/chat/conversations/c1/attachments/a1/content',
+          ),
+          [0x52, 0x49, 0xFF, 0x80],
+        );
+        expect(fake.targets, [
+          '/v1/chat/conversations/c1/attachments/a1/content',
+        ]);
+      },
+    );
+
+    test('a pinned binary refusal is a GatewayError with its status', () async {
+      final notFound = pinnedClientOn(
+        FakePinnedClient(
+          bytesAnswer: const PinnedBytesAnswer(
+            status: 404,
+            bytes: [0x7B, 0x7D],
+            address: '127.0.0.1:8443',
+          ),
+        ),
+      );
+      final limited = pinnedClientOn(
+        FakePinnedClient(
+          bytesAnswer: const PinnedBytesAnswer(
+            status: 429,
+            bytes: [],
+            address: '127.0.0.1:8443',
+            retryAfter: 7,
+          ),
+        ),
+      );
+
+      await expectLater(
+        notFound.callBytes(
+          'GET',
+          '/v1/chat/conversations/c1/attachments/a1/content',
+        ),
+        throwsA(
+          isA<GatewayError>()
+              .having((e) => e.status, 'status', 404)
+              .having((e) => e.body, 'body', '{}'),
+        ),
+      );
+      await expectLater(
+        limited.callBytes(
+          'GET',
+          '/v1/chat/conversations/c1/attachments/a1/content',
+        ),
+        throwsA(
+          isA<GatewayError>()
+              .having((e) => e.status, 'status', 429)
+              .having((e) => e.retryAfter, 'retryAfter', 7),
+        ),
+      );
+    });
   });
 
   group('pairing store pins', () {

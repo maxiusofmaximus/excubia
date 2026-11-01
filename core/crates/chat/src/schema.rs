@@ -12,11 +12,18 @@ use rusqlite::{params, Connection};
 
 use crate::error::ChatError;
 use crate::id;
+use crate::schema_agenda::AGENDA_SCHEMA;
 use crate::schema_approval::{add_policy_columns, APPROVAL_SCHEMA, HOOK_TOKEN_SCHEMA, MODE_SCHEMA};
+use crate::schema_attachment::ATTACHMENT_SCHEMA;
 use crate::schema_base::BASE_SCHEMA;
+use crate::schema_contact::{add_source_column, admit_app_source, CONTACT_SCHEMA};
+use crate::schema_hire::{add_hire_columns, HIRE_SCHEMA};
+use crate::schema_mail::{MAIL_CARD_EXPIRY_SCHEMA, MAIL_DRAFT_SCHEMA, MAIL_SCHEMA};
+use crate::schema_progress::RUN_PROGRESS_SCHEMA;
+use crate::schema_reply::MESSAGE_REPLY_SCHEMA;
 use crate::schema_team::TEAM_SCHEMA;
 
-pub const SCHEMA_VERSION: i64 = 6;
+pub const SCHEMA_VERSION: i64 = 21;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SearchMode {
@@ -51,7 +58,7 @@ fn initialise(mut connection: Connection) -> Result<(Connection, SearchMode), Ch
     let _: String = connection.query_row("PRAGMA journal_mode=WAL", [], |row| row.get(0))?;
     migrate(&mut connection)?;
     let search = ensure_search(&connection)?;
-    mark_interrupted(&connection)?;
+    mark_interrupted(&mut connection)?;
     Ok((connection, search))
 }
 
@@ -94,8 +101,87 @@ fn migrate(connection: &mut Connection) -> Result<(), ChatError> {
     if version < 6 {
         let transaction = connection.transaction()?;
         transaction.execute_batch(MODE_SCHEMA)?;
-        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.pragma_update(None, "user_version", 6)?;
         transaction.commit()?;
+    }
+    if version < 7 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(MAIL_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 7)?;
+        transaction.commit()?;
+    }
+    if version < 8 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(MAIL_CARD_EXPIRY_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 8)?;
+        transaction.commit()?;
+    }
+    if version < 9 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(HIRE_SCHEMA)?;
+        add_hire_columns(&transaction)?;
+        transaction.pragma_update(None, "user_version", 9)?;
+        transaction.commit()?;
+    }
+    if version < 10 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(MAIL_DRAFT_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 10)?;
+        transaction.commit()?;
+    }
+    if version < 11 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(MESSAGE_REPLY_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 11)?;
+        transaction.commit()?;
+    }
+    if version < 12 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(RUN_PROGRESS_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 12)?;
+        transaction.commit()?;
+    }
+    if version < 13 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(ATTACHMENT_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 13)?;
+        transaction.commit()?;
+    }
+    if version < 14 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(AGENDA_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 14)?;
+        transaction.commit()?;
+    }
+    if version < 15 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(CONTACT_SCHEMA)?;
+        transaction.pragma_update(None, "user_version", 15)?;
+        transaction.commit()?;
+    }
+    if version < 16 {
+        let transaction = connection.transaction()?;
+        add_source_column(&transaction)?;
+        transaction.pragma_update(None, "user_version", 16)?;
+        transaction.commit()?;
+    }
+    if version < 17 {
+        let transaction = connection.transaction()?;
+        admit_app_source(&transaction)?;
+        transaction.pragma_update(None, "user_version", 17)?;
+        transaction.commit()?;
+    }
+    if version < 18 {
+        crate::schema_calendar::migrate_to_18(connection)?;
+    }
+    if version < 19 {
+        crate::schema_recurrence::migrate_to_19(connection)?;
+    }
+    if version < 20 {
+        crate::schema_ics::migrate_to_20(connection)?;
+    }
+    if version < 21 {
+        crate::schema_alert::migrate_to_21(connection)?;
     }
     Ok(())
 }
@@ -206,38 +292,43 @@ pub fn reindex(connection: &Connection, conversation_id: &str) -> Result<(), Cha
 ///
 /// The pending approvals are not closed here: they expire through the store,
 /// which audits them as the host's own decision (`ChatStore::open`).
-fn mark_interrupted(connection: &Connection) -> Result<(), ChatError> {
-    let now = now(connection)?;
-    connection.execute(
+fn mark_interrupted(connection: &mut Connection) -> Result<(), ChatError> {
+    let transaction = connection.transaction()?;
+    let now = now(&transaction)?;
+    // The user turns that were open journal their `updated` frame with the close.
+    let run_ids = crate::store::open_run_ids(&transaction)?;
+    transaction.execute(
         "UPDATE run
             SET state = 'interrupted', finished_at = ?1, reason = 'host_restart'
           WHERE state IN ('running', 'queued')",
         [&now],
     )?;
-    connection.execute(
+    crate::store::journal_turns(&transaction, run_ids.iter().map(String::as_str))?;
+    transaction.execute(
         "UPDATE delegation
             SET state = 'interrupted', finished_at = ?1, updated_at = ?1,
                 reason = 'host_restart'
           WHERE state IN ('running', 'waiting')",
         [&now],
     )?;
-    connection.execute(
+    transaction.execute(
         "UPDATE timeline_card
             SET status = 'interrupted', pane_id = NULL, updated_at = ?1
           WHERE status IN ('running', 'waiting')",
         [&now],
     )?;
-    connection.execute(
+    transaction.execute(
         "UPDATE agent_seat
             SET pane_id = NULL, status = 'stopped'
           WHERE role_id != 'alfred' AND pane_id IS NOT NULL",
         [],
     )?;
     // No token outlives the process that owned its run or panel.
-    connection.execute(
+    transaction.execute(
         "UPDATE hook_token SET revoked_at = ?1 WHERE revoked_at IS NULL",
         [&now],
     )?;
+    transaction.commit()?;
     Ok(())
 }
 
@@ -267,84 +358,5 @@ pub fn set_meta(connection: &Connection, key: &str, value: &str) -> Result<(), C
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use hn_core_test_dir::TestDir;
-
-    #[test]
-    fn migrations_run_once_and_keep_the_seed() {
-        let (mut connection, _) = open_in_memory().expect("open");
-        let version: i64 = connection
-            .query_row("PRAGMA user_version", [], |row| row.get(0))
-            .expect("version");
-        assert_eq!(version, SCHEMA_VERSION);
-        let companies: i64 = connection
-            .query_row("SELECT COUNT(*) FROM company", [], |row| row.get(0))
-            .expect("companies");
-        assert_eq!(companies, 1);
-        migrate(&mut connection).expect("re-run");
-        let seats: i64 = connection
-            .query_row("SELECT COUNT(*) FROM agent_seat", [], |row| row.get(0))
-            .expect("seats");
-        assert_eq!(seats, 2, "Alfred and Ernesto are seeded once");
-    }
-
-    /// A database written before the policy (schema 4) keeps its approvals and
-    /// gains the new columns empty; running the columns again changes nothing.
-    #[test]
-    fn a_version_four_database_gains_the_policy_columns_and_keeps_its_rows() {
-        let dir = TestDir::new("schema-v4");
-        let path = dir.join("chat.db");
-        {
-            let legacy = Connection::open(&path).expect("legacy database");
-            legacy.execute_batch(BASE_SCHEMA).expect("base");
-            legacy.execute_batch(TEAM_SCHEMA).expect("team");
-            legacy.execute_batch(APPROVAL_SCHEMA).expect("approval");
-            legacy
-                .execute_batch(HOOK_TOKEN_SCHEMA)
-                .expect("hook tokens");
-            legacy
-                .execute_batch(
-                    "INSERT INTO company (id, name, created_at)
-                        VALUES ('co_1', 'Legacy', '2026-10-22T09:00:00.000Z');
-                     INSERT INTO approval
-                        (id, company_id, kind, tool, summary, risk, action_digest, status,
-                         expires_at, created_at, updated_at)
-                     VALUES ('apr_old', 'co_1', 'command', 'bash', 'cargo test', 'high',
-                             'sha256:old', 'approved', '2026-10-22T10:00:00.000Z',
-                             '2026-10-22T09:58:00.000Z', '2026-10-22T09:58:00.000Z');",
-                )
-                .expect("old approval");
-            legacy
-                .pragma_update(None, "user_version", 4)
-                .expect("version four");
-        }
-
-        let (connection, _) = open(&path).expect("migrated");
-        let version: i64 = connection
-            .query_row("PRAGMA user_version", [], |row| row.get(0))
-            .expect("version");
-        assert_eq!(version, SCHEMA_VERSION);
-        let (level, status): (Option<String>, String) = connection
-            .query_row(
-                "SELECT level, status FROM approval WHERE id = 'apr_old'",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .expect("old row");
-        assert_eq!(level, None, "old rows keep NULL in the new columns");
-        assert_eq!(status, "approved");
-        add_policy_columns(&connection).expect("the columns can be added again");
-        drop(connection);
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn search_capability_is_recorded() {
-        let (connection, mode) = open_in_memory().expect("open");
-        let recorded = meta_value(&connection, "search_mode")
-            .expect("meta")
-            .expect("mode");
-        assert_eq!(recorded, mode.label());
-    }
-}
+#[path = "schema_tests.rs"]
+mod tests;

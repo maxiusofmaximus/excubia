@@ -6,7 +6,8 @@
 use std::path::PathBuf;
 
 use hn_core_chat::{
-    ChatError, ChatStore, Delegation, NewConversation, NewDelegation, NewProject, NewSeat,
+    Approval, ApprovalStatus, ChatError, ChatStore, Decision, Delegation, NewConversation,
+    NewDelegation, NewProject, NewSeat, SeatActor,
 };
 use hn_core_test_dir::TestDir;
 
@@ -82,6 +83,55 @@ pub fn team(name: &str) -> Team {
         project: project.id,
         dir,
     }
+}
+
+/// A seat of the team, as the store sees the one that decides.
+pub fn actor(agent_id: &str, role_id: &str, project_id: Option<&str>, team: &Team) -> SeatActor {
+    SeatActor {
+        agent_id: agent_id.to_string(),
+        role_id: role_id.to_string(),
+        project_id: project_id.map(str::to_string),
+        conversation_id: team.conversation.clone(),
+        run_id: String::new(),
+    }
+}
+
+/// An approval the operator's device alone can decide: pending at `user`, with
+/// the never-delegate reason.
+pub fn assert_for_the_operator_alone(approval: &Approval) {
+    assert_eq!(approval.status, ApprovalStatus::Pending);
+    assert_eq!(approval.level.as_deref(), Some("user"));
+    assert_eq!(approval.reason.as_deref(), Some("never_delegate"));
+}
+
+/// No seat of the team decides `approval`: neither the lead, the CTO nor a
+/// worker, and the CTO's inbox does not list it.
+pub fn assert_no_agent_decides(team: &Team, approval: &Approval) {
+    let lead = actor(&team.lead, "lead", Some(&team.project), team);
+    let alfred = actor(&team.alfred, "alfred", None, team);
+    let worker = actor(&team.specialist, "specialist", Some(&team.project), team);
+    for decider in [&lead, &alfred] {
+        let refused = team
+            .store
+            .decide_delegated(decider, &approval.id, Decision::Approve, None);
+        assert!(
+            matches!(refused, Err(ChatError::ApprovalNotDelegable)),
+            "{} decided the question: {refused:?}",
+            decider.role_id
+        );
+    }
+    let refused = team
+        .store
+        .decide_delegated(&worker, &approval.id, Decision::Approve, None);
+    assert!(refused.is_err(), "a worker decided the question");
+    let listed = team
+        .store
+        .pending_for_approver(&alfred)
+        .expect("the CTO's inbox");
+    assert!(
+        listed.iter().all(|item| item.id != approval.id),
+        "the CTO's inbox lists the question"
+    );
 }
 
 impl Team {

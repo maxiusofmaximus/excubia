@@ -16,7 +16,9 @@ mod record;
 mod status;
 mod store;
 
-pub use frame::{Frame, SharedFrame, EVENT_CLOSED, EVENT_CREATED, EVENT_STATUS, EVENT_UPDATED};
+pub use frame::{
+    Frame, SharedFrame, EVENT_ALERT, EVENT_CLOSED, EVENT_CREATED, EVENT_STATUS, EVENT_UPDATED,
+};
 pub use payload::{StatePayload, TriageRow};
 pub use record::AgentRecord;
 pub use status::Status;

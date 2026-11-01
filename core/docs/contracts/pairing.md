@@ -1,4 +1,5 @@
 # Contract: device identity, pairing, revocation
+_(gateway retirado; ver README)_
 
 Authoritative code: `gateway/src/herdr_notify/api/auth/devices.py`,
 `gateway/src/herdr_notify/cli.py` (`add-device`, `enroll`, `devices`),
@@ -161,7 +162,7 @@ host devices grant <device_id> --permission <read_state|respond|send_key|approve
 The line above is the **canonical grant hint**: it is exactly the nucleus CLI
 (`crates/host/src/cli.rs`, `GRANT_HINT`), and a test keeps it equal to the
 command the CLI accepts. Clients that show the operator what to run must quote
-it verbatim (Desktop and APK copy it from this file).
+it verbatim (Desktop and APK copy it from `CORE4-RESULT.md`).
 
 - `host devices list` shows each device and its permissions.
 - A record without a `permissions` field (pre-M2) loads with `[READ_STATE]`,

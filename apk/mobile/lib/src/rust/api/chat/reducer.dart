@@ -4,13 +4,14 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../../frb_generated.dart';
+import 'attach_model.dart';
 import 'model.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `apply_event`, `merge_card`, `object`, `outgoing_entry`, `set_card_status`, `terminal_card_state`, `upsert`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Outgoing`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `advance_turn`, `apply_event`, `listed`, `merge_card`, `move_progress`, `object`, `outgoing_entry`, `set_card_status`, `terminal_card_state`, `turn_finished`, `turn_rank`, `upsert`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Outgoing`, `ProgressLine`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`
 
 ChatReducer newChatReducer() =>
     RustLib.instance.api.crateApiChatReducerNewChatReducer();
@@ -20,6 +21,11 @@ abstract class ChatReducer implements RustOpaqueInterface {
   /// The same reduction for a frame already decoded by the stream. Keeping
   /// one `apply_event` means the socket path and the JSON path cannot drift.
   bool acceptChatEvent({required ChatEvent event});
+
+  /// A conversation listing. An open turn without a line in the listing clears
+  /// the line only on a repeat: a frame that beat the first listing is kept.
+  /// A closed turn clears it at once.
+  void acceptConversations({required List<ChatConversation> conversations});
 
   /// Parse a `chat.*` frame and apply the facts a body-less frame can carry:
   /// the state of a message already in the timeline. New rows still need a
@@ -46,7 +52,13 @@ abstract class ChatReducer implements RustOpaqueInterface {
 
   void failSend({required String clientId});
 
+  String? progressOf({required String conversationId});
+
   void reset();
+
+  /// Clears the line once the timeline shows the turn over. It covers a lost
+  /// `chat.progress` null frame; a send still on its way does not count.
+  void settleTurn({required String conversationId});
 
   ChatSnapshot snapshot();
 

@@ -1,6 +1,6 @@
 # Paridad funcional: gateway Python → core Rust
 
-Auditoría de solo lectura. El gateway (`gateway/`) queda obsoleto y no se modifica.
+> Gateway retirado el 2026-10-28; código en el historial de git (commit anterior a este).
 Este documento no cambia código: lista qué hace el gateway y qué hace el core.
 
 Leyenda:
@@ -30,7 +30,7 @@ Prioridad (P1 bloquea la migración de usuarios, P2 mejora, P3 herramienta de op
 | peers (lista de pares de la tailnet) | — | ✖ | P2 | Sin ruta en `crates/`. Depende de la decisión de transporte: si la lista de pares se descarta, pasa a ➖ [NV]. |
 | focus | — | ✖ | P2 | Significado sin herdr [NV]. |
 | image | — | ✖ | P2 | Significado sin herdr [NV]. |
-| fcm-token | — | ✖ | P1 | Ligado a push FCM. Ver *Notificaciones*. |
+| fcm-token → push-endpoint | — (retirado) | ➖ | — | Retirado 2026-10-30: el core ya no registra ni envía Web Push (`hn-core-push` borrado). Los avisos en vivo salen por el flujo SSE (frame `alert`, `contracts/api.md`). |
 
 Solo en el core (sin equivalente en el gateway): `POST /v1/chat/*` (conversaciones,
 mensajes, delegaciones, aprobaciones), `GET /v1/catalog`, `POST /v1/agents/{pane_id}/stop`,
@@ -41,8 +41,8 @@ son la pieza que el gateway no tenía.
 
 | Gateway | Core | Estado | Prio | Nota |
 |---|---|---|---|---|
-| `notify/policy.py` (cuándo notificar, cooldown) | — | ✖ | P1 | Decisión abierta 1: ¿el core necesita push? Antes de implementar. |
-| `notify/fcm.py` (envío a FCM) | — | ✖ | P1 | Mismo bloqueo. La ruta M3 de FCM no está validada en dispositivo físico `[NV]`. |
+| `notify/policy.py` (cuándo notificar, cooldown) | `alert_policy` (host) | ✔ | P1 | Frenos portados en `crates/host/src/alert_policy.rs`; el resultado sale por el frame `alert` (SSE). |
+| `notify/fcm.py` (envío a FCM) | — | ✖ | P1 | Sin envío desde el core. La ruta M3 de FCM no está validada en dispositivo físico `[NV]`. |
 | `notify/dpapi.py` (credenciales cifradas con DPAPI) | — | ✖ | P1 | Solo tiene sentido si hay FCM. |
 
 ## Atención y estado
@@ -91,7 +91,7 @@ son la pieza que el gateway no tenía.
 
 ## Decisiones abiertas
 
-1. ¿El core necesita push (`policy.py`, `fcm.py`, `dpapi.py`)? Bloquea P1.
+1. ¿El core necesita push (`policy.py`, `fcm.py`, `dpapi.py`)? Resuelta 2026-10-30: el core no envía Web Push; los avisos en vivo salen por SSE. `fcm.py` sigue abierta `[NV]`.
 2. Re-emparejo de la migración: el teléfono necesita el pin TLS de la LAN; hay que definir cómo llega sin un emparejamiento nuevo `[NV]`.
 3. Significado de `focus` e `image` sin herdr.
 4. ¿Se descarta la lista de pares (`peers`) bajo la independencia de transporte? RFC pendiente.

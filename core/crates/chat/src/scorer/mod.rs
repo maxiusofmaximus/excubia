@@ -18,6 +18,7 @@ use serde_json::{json, Value};
 use crate::model_approval::Risk;
 use crate::policy::Category;
 
+pub use config::local_endpoint;
 pub(crate) use config::{RawScorer, ScorerConfig};
 
 /// Bumped when the question the scorer is asked changes, so an audit row

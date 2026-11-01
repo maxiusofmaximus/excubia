@@ -34,6 +34,23 @@ ChatFailure explainChatError({
   action: action,
 );
 
+/// A refused stop has its own wording. A conversation the host does not know
+/// keeps the chat's wording; a 404 or 405 without that code means an old host
+/// that has no stop route.
+ChatFailure explainChatStopError({
+  required int status,
+  required String body,
+  int? retryAfter,
+}) => RustLib.instance.api.crateApiErrorChatExplainChatStopError(
+  status: status,
+  body: body,
+  retryAfter: retryAfter,
+);
+
+/// A host without the counts route answers 404 or 405: the new chips stay hidden.
+bool chatCountsUnsupported({required int status}) =>
+    RustLib.instance.api.crateApiErrorChatChatCountsUnsupported(status: status);
+
 /// Map a locally refused plan (no host call was made) to the same failure
 /// shape the screen renders for host refusals.
 ChatFailure localChatFailure({required ErrorInfo error}) =>

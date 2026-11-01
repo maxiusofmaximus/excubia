@@ -9,7 +9,7 @@ import '../write.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `clean_section_name`, `clean_title`, `encode`, `get`, `post`, `problem`, `update`
+// These functions are ignored because they are not marked as `pub`: `bodiless`, `clean_section_name`, `clean_title`, `encode`, `get`, `post`, `problem`, `update`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `eq`, `fmt`
 
 ChatPlan planChatBootstrap() =>
@@ -20,14 +20,22 @@ ChatPlan planChatConversations({
   String? sectionId,
   bool? pinned,
   bool? archived,
+  required bool attention,
+  required bool working,
   String? cursor,
 }) => RustLib.instance.api.crateApiChatPlanPlanChatConversations(
   query: query,
   sectionId: sectionId,
   pinned: pinned,
   archived: archived,
+  attention: attention,
+  working: working,
   cursor: cursor,
 );
+
+/// The chip numbers in one aggregate. A host before this route answers 404 or 405.
+ChatPlan planChatCounts() =>
+    RustLib.instance.api.crateApiChatPlanPlanChatCounts();
 
 ChatPlan planChatCreateConversation({String? title}) => RustLib.instance.api
     .crateApiChatPlanPlanChatCreateConversation(title: title);
@@ -86,10 +94,12 @@ ChatPlan planChatSend({
   required String conversationId,
   required String clientId,
   required String text,
+  String? replyToId,
 }) => RustLib.instance.api.crateApiChatPlanPlanChatSend(
   conversationId: conversationId,
   clientId: clientId,
   text: text,
+  replyToId: replyToId,
 );
 
 ChatPlan planChatRead({
@@ -117,6 +127,17 @@ ChatPlan planChatCancelDelegation({required String delegationId}) => RustLib
     .instance
     .api
     .crateApiChatPlanPlanChatCancelDelegation(delegationId: delegationId);
+
+/// The stop route takes no body; the answer says whether a turn was open.
+ChatPlan planChatStop({required String conversationId}) => RustLib.instance.api
+    .crateApiChatPlanPlanChatStop(conversationId: conversationId);
+
+/// Deletes for good; a conversation with an open turn, delegation or approval
+/// is refused with `409 conversation_busy`.
+ChatPlan planChatDeleteConversation({required String conversationId}) => RustLib
+    .instance
+    .api
+    .crateApiChatPlanPlanChatDeleteConversation(conversationId: conversationId);
 
 /// One opaque id per send attempt. A transport failure reuses it (the host may
 /// have stored the message); an HTTP refusal that stored nothing gets a new one.

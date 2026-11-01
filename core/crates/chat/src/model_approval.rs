@@ -7,16 +7,33 @@
 //! reads the whole record with its audit.
 
 use serde::Serialize;
+use serde_json::Value;
+
+use crate::policy::Category;
 
 /// The TTL of an approval when nobody asks for another one.
 pub const DEFAULT_TTL_SECONDS: u32 = 120;
 /// The longest TTL the host accepts.
 pub const MAX_TTL_SECONDS: u32 = 300;
+/// The longest TTL of a batch of mail moves (F2b-1): the operator may take longer
+/// over a batch than over a single decision. Only `mail_organize` gets it.
+pub const MAIL_ORGANIZE_MAX_TTL_SECONDS: u32 = 1800;
 /// How many approvals may wait for a decision in the same conversation.
 pub const MAX_PENDING_PER_CONVERSATION: usize = 4;
 /// The consumer recorded in the audit when the agent's own hook burns the
 /// approval: it is not a device.
 pub const HOOK_CONSUMER: &str = "hook";
+/// The actions the mail tools file. Their payload is what the owner reads before
+/// answering (the recipients, the file), so it is only ever shown to a device.
+pub const MAIL_ACTIONS: [&str; 3] = ["mail.send", "mail.attach_path", "mail.move"];
+
+/// The longest TTL a question of `category` may wait for its decision.
+pub fn max_ttl_seconds(category: Option<Category>) -> u32 {
+    match category {
+        Some(Category::MailOrganize) => MAIL_ORGANIZE_MAX_TTL_SECONDS,
+        _ => MAX_TTL_SECONDS,
+    }
+}
 
 /// The lifecycle of an approval. `pending` is the only open state; every
 /// other one is final and the action never runs again.
@@ -221,6 +238,33 @@ pub struct Approval {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload_redacted: Option<serde_json::Value>,
     pub audit: Vec<ApprovalAudit>,
+}
+
+/// Who reads an approval record. Only a device with `APPROVE` decides, and only
+/// it reads the details of a mail action; every other reader gets the record
+/// without them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reader {
+    Operator,
+    Other,
+}
+
+impl Approval {
+    /// The record as `reader` sees it. The payload of a mail action leaves the
+    /// wire under `details`, and only for the operator.
+    pub fn view(&self, reader: Reader) -> Value {
+        let mut value = serde_json::to_value(self).unwrap_or(Value::Null);
+        if !MAIL_ACTIONS.contains(&self.tool.as_str()) {
+            return value;
+        }
+        if let Value::Object(fields) = &mut value {
+            let payload = fields.remove("payload_redacted");
+            if let (Reader::Operator, Some(details)) = (reader, payload) {
+                fields.insert("details".to_owned(), details);
+            }
+        }
+        value
+    }
 }
 
 /// The approval as the hook sees it: the status and when it dies, nothing

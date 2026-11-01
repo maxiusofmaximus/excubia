@@ -13,6 +13,11 @@ use std::path::{Path, PathBuf};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+pub mod credential;
+mod random;
+
+pub use random::{fill_random, RandomError};
+
 /// Write `bytes` to `path` atomically.
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     write_via_tmp(path, bytes, fs::OpenOptions::new())

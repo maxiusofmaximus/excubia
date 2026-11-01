@@ -11,6 +11,7 @@ import 'package:herdr_notify/src/rust/api/stream.dart';
 import 'package:herdr_notify/src/rust/api/workspace.dart';
 import 'package:herdr_notify/src/rust/api/write.dart';
 
+import '../api/connection_failure.dart';
 import '../api/gateway_client.dart';
 import '../model/connection_state.dart';
 import 'reconciler.dart';
@@ -21,6 +22,11 @@ import 'reconciler.dart';
 /// request with a fresh nonce, never a resumption. Framing, JSON and the
 /// `state_change_seq` continuity live in Rust; this class owns the socket loop,
 /// the backoff and the UI state.
+/// The host answers `403` to a device that is paired but lacks `read_state`.
+/// Its body is always the same `forbidden` (the reason stays in the host log),
+/// so the status alone is the signal.
+bool awaitsApproval(GatewayError error) => error.status == 403;
+
 class LiveTriage extends ChangeNotifier {
   LiveTriage(
     this._client, {
@@ -54,6 +60,11 @@ class LiveTriage extends ChangeNotifier {
   /// `/v1/state` poll.
   Stream<ChatEvent> get chatSignals => _chatSignals.stream;
 
+  ConnectionFailure? get connectionFailure => switch (_connection) {
+    Offline(:final failure) => failure,
+    _ => null,
+  };
+
   void start() {
     if (_running) return;
     _running = true;
@@ -73,6 +84,10 @@ class LiveTriage extends ChangeNotifier {
     try {
       await _refresh();
     } on GatewayError catch (e) {
+      if (awaitsApproval(e)) {
+        _set(const AwaitingApproval());
+        return;
+      }
       final info = _explain(e);
       if (info.kind != FailureKind.retry) {
         _publish(info);
@@ -112,6 +127,12 @@ class LiveTriage extends ChangeNotifier {
         );
         attempt = 0;
       } on GatewayError catch (e) {
+        if (awaitsApproval(e)) {
+          // The loop ends here on purpose: a retry is a person's tap, not a timer.
+          _set(const AwaitingApproval());
+          _running = false;
+          return;
+        }
         final info = _explain(e);
         if (info.kind != FailureKind.retry) {
           _publish(info);
@@ -122,6 +143,7 @@ class LiveTriage extends ChangeNotifier {
             reconciler.lastGood,
             reason: info.message,
             updatedAt: _lastGoodAt,
+            failure: e.failure,
           ),
         );
       } on IOException catch (e) {
@@ -130,6 +152,7 @@ class LiveTriage extends ChangeNotifier {
             reconciler.lastGood,
             reason: _explainTransport(e),
             updatedAt: _lastGoodAt,
+            failure: ConnectionFailure.noRoute,
           ),
         );
       } catch (e) {

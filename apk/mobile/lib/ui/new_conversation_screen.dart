@@ -157,7 +157,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
           FilledButton(
             onPressed: canCreate ? _create : null,
             child: _creating
-                ? const Row(
+                ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SizedBox(
@@ -165,11 +165,11 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.colors.onAccent,
                         ),
                       ),
-                      SizedBox(width: Spacing.sm),
-                      Text('Creando…'),
+                      const SizedBox(width: Spacing.sm),
+                      const Text('Creando…'),
                     ],
                   )
                 : const Text('Crear conversación'),
@@ -190,7 +190,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: context.colors.accent,
+                color: context.colors.accentText,
               ),
             ),
             SizedBox(width: Spacing.md),
@@ -249,7 +249,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
                     RadioListTile<String>(
                       value: entry.name,
                       contentPadding: EdgeInsets.zero,
-                      activeColor: context.colors.accent,
+                      activeColor: context.colors.accentText,
                       title: Text(entry.label, style: context.text.body),
                       subtitle: entry.label == entry.name
                           ? null

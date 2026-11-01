@@ -88,7 +88,7 @@ impl DeviceIdentity {
     /// Public key material, for callers that verify their own signatures
     /// (tests) or publish the identity.
     pub fn verifying_key(&self) -> VerifyingKey {
-        self.signing_key.verifying_key().clone()
+        *self.signing_key.verifying_key()
     }
 
     /// Uncompressed SEC1 point, 65 bytes, base64: what the gateway verifies.
@@ -157,7 +157,7 @@ pub fn random_device_id() -> String {
     format!("dev-{}", hex::encode(bytes))
 }
 
-/// A sensible name for this machine: "Escritorio `<host>`", or "Escritorio" when
+/// A sensible name for this machine: "Escritorio <host>", or "Escritorio" when
 /// the host name is not available.
 pub fn default_device_label() -> String {
     let host = std::env::var("COMPUTERNAME")

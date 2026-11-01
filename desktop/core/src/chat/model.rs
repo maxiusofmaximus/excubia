@@ -4,6 +4,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::attachments::Attachment;
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ChatEvent {
     pub event: String,
@@ -19,6 +21,8 @@ pub struct ChatEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub delegation_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub card_id: Option<String>,
@@ -28,6 +32,12 @@ pub struct ChatEvent {
     pub status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    /// `chat.progress`: the run the line belongs to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+    /// `chat.progress`: the line, absent when the run closed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
 }
 
 impl ChatEvent {
@@ -41,11 +51,14 @@ impl ChatEvent {
             seq: value.get("seq").and_then(Value::as_i64),
             change: text("change"),
             state: text("state"),
+            turn_state: text("turn_state"),
             delegation_id: text("delegation_id"),
             card_id: text("card_id"),
             pane_id: text("pane_id"),
             status: text("status"),
             summary: text("summary"),
+            run_id: text("run_id"),
+            text: text("text"),
         }
     }
 }
@@ -137,6 +150,12 @@ pub struct Conversation {
     pub last_read_seq: i64,
     #[serde(default)]
     pub unread: u64,
+    /// Turns of the conversation still `queued` or `running`; absent is 0.
+    #[serde(default)]
+    pub active_runs: u32,
+    /// The step of the open turn (`chat.progress`); absent when no turn shows one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress: Option<String>,
     #[serde(default)]
     pub created_at: String,
     #[serde(default)]
@@ -171,8 +190,67 @@ pub struct Message {
     pub body_md: String,
     #[serde(default)]
     pub state: String,
+    /// Only user messages carry it; absent (an older host) means no turn line.
+    #[serde(default)]
+    pub turn_state: Option<String>,
+    /// Agent messages only: up to four replies the operator can send as they are.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub suggestions: Vec<String>,
+    /// The message this one answers; the timeline resolves it, absent when missing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quote: Option<Quote>,
+    /// User messages only: the images sent with the text, in send order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attachments: Vec<Attachment>,
     #[serde(default)]
     pub created_at: String,
+}
+
+/// The message a reply answers. `preview` is at most 120 characters.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Quote {
+    pub id: String,
+    #[serde(default)]
+    pub author_kind: String,
+    #[serde(default)]
+    pub preview: String,
+}
+
+/// The two history chips the host filters itself (`attention=1`, `working=1`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ListFilter {
+    Attention,
+    Working,
+}
+
+impl ListFilter {
+    pub fn parse(name: &str) -> Option<Self> {
+        match name {
+            "attention" => Some(Self::Attention),
+            "working" => Some(Self::Working),
+            _ => None,
+        }
+    }
+
+    pub fn param(self) -> &'static str {
+        match self {
+            Self::Attention => "attention",
+            Self::Working => "working",
+        }
+    }
+}
+
+/// `GET …/conversations/counts`: the numbers of the filter chips.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ChatCounts {
+    #[serde(default)]
+    pub all: u64,
+    #[serde(default)]
+    pub attention: u64,
+    #[serde(default)]
+    pub working: u64,
+    #[serde(default)]
+    pub archived: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -207,6 +285,18 @@ pub struct TimelineEntry {
     pub preview: Option<String>,
     #[serde(default)]
     pub state: Option<String>,
+    /// User messages only; the feed keeps the furthest state the shell has seen.
+    #[serde(default)]
+    pub turn_state: Option<String>,
+    /// Agent message rows: the replies offered under it (see `Message`).
+    #[serde(default)]
+    pub suggestions: Vec<String>,
+    /// User message rows: the message this one answers.
+    #[serde(default)]
+    pub quote: Option<Quote>,
+    /// User message rows: the images sent with the text, in send order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attachments: Vec<Attachment>,
     #[serde(default)]
     pub card_id: Option<String>,
     #[serde(default)]
@@ -227,6 +317,15 @@ pub struct TimelineEntry {
     pub attention: Option<i64>,
     #[serde(default)]
     pub links: Option<CardLinks>,
+    /// `mail_draft` rows: the account and the draft the card opens.
+    #[serde(default)]
+    pub account: Option<String>,
+    #[serde(default)]
+    pub draft_id: Option<String>,
+    #[serde(default)]
+    pub to: Vec<String>,
+    #[serde(default)]
+    pub subject: Option<String>,
     #[serde(default)]
     pub created_at: String,
 }
@@ -252,6 +351,15 @@ pub struct Turn {
 pub struct SendAccepted {
     pub message: Message,
     pub turn: Turn,
+}
+
+/// `POST …/stop`: `stopped` is false when no turn was open, which is not an error.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct StopOutcome {
+    #[serde(default)]
+    pub stopped: bool,
+    #[serde(default)]
+    pub runs: u32,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

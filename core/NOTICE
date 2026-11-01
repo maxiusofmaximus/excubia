@@ -41,9 +41,16 @@ Además, código adaptado del cliente de escritorio (MIT):
     (`demo-client`). Es una dependencia de desarrollo (`publish = false`), no
     forma parte de ningún artefacto del producto, y la canonicalización no se
     duplica: reutiliza `hn_core_auth::canonical_string`. Fijado contra los
-    mismos vectores dorados del gateway
-    (`gateway/tests/vectors/signing_vectors.json`).
+    mismos vectores dorados del gateway retirado
+    (`docs/contracts/vectors/signing_vectors.json`).
 
 - docs/core/evidence/desktop-compat/ (herramienta de evidencia, fuera del
   workspace): usa `desktop/core` como dependencia para comprobar el cliente
   real contra el núcleo. No se copia código.
+
+Modelo de voz (no se distribuye con el repo; el usuario lo descarga):
+
+- Dictado: NVIDIA Canary-1B-v2 (https://huggingface.co/nvidia/canary-1b-v2),
+  licencia CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), usado en
+  su conversión a ONNX mediante `onnx-asr`. El host solo lo ejecuta en el
+  worker `crates/asr/worker/asr_worker.py`; no se modifica el modelo.

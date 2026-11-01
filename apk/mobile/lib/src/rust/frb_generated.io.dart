@@ -9,12 +9,19 @@ import 'api/approvals/model.dart';
 import 'api/approvals/plan.dart';
 import 'api/approvals/reducer.dart';
 import 'api/catalog.dart';
+import 'api/chat/attach_model.dart';
+import 'api/chat/attach_plan.dart';
+import 'api/chat/attach_upload.dart';
 import 'api/chat/model.dart';
 import 'api/chat/model_team.dart';
 import 'api/chat/plan.dart';
 import 'api/chat/reducer.dart';
 import 'api/error.dart';
 import 'api/error/chat.dart';
+import 'api/mail.dart';
+import 'api/onboarding/error.dart';
+import 'api/onboarding/model.dart';
+import 'api/onboarding/plan.dart';
 import 'api/pinned.dart';
 import 'api/policy.dart';
 import 'api/signing.dart';
@@ -142,6 +149,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AgentStatus dco_decode_agent_status(dynamic raw);
 
   @protected
+  ApprovalAttachment dco_decode_approval_attachment(dynamic raw);
+
+  @protected
   ApprovalAudit dco_decode_approval_audit(dynamic raw);
 
   @protected
@@ -157,6 +167,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApprovalSettings dco_decode_approval_settings(dynamic raw);
 
   @protected
+  AttachmentFailure dco_decode_attachment_failure(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
@@ -166,10 +179,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApprovalSettings dco_decode_box_autoadd_approval_settings(dynamic raw);
 
   @protected
+  AttachmentFailure dco_decode_box_autoadd_attachment_failure(dynamic raw);
+
+  @protected
   bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
   ChatApproval dco_decode_box_autoadd_chat_approval(dynamic raw);
+
+  @protected
+  ChatAttachment dco_decode_box_autoadd_chat_attachment(dynamic raw);
 
   @protected
   ChatBootstrap dco_decode_box_autoadd_chat_bootstrap(dynamic raw);
@@ -183,10 +202,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ChatCounts dco_decode_box_autoadd_chat_counts(dynamic raw);
+
+  @protected
   ChatDelegation dco_decode_box_autoadd_chat_delegation(dynamic raw);
 
   @protected
   ChatEvent dco_decode_box_autoadd_chat_event(dynamic raw);
+
+  @protected
+  ChatQuote dco_decode_box_autoadd_chat_quote(dynamic raw);
 
   @protected
   ChatSeat dco_decode_box_autoadd_chat_seat(dynamic raw);
@@ -195,10 +220,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatSection dco_decode_box_autoadd_chat_section(dynamic raw);
 
   @protected
+  ChunkSpan dco_decode_box_autoadd_chunk_span(dynamic raw);
+
+  @protected
   CreatedWorkspace dco_decode_box_autoadd_created_workspace(dynamic raw);
 
   @protected
   ErrorInfo dco_decode_box_autoadd_error_info(dynamic raw);
+
+  @protected
+  Hire dco_decode_box_autoadd_hire(dynamic raw);
+
+  @protected
+  HireList dco_decode_box_autoadd_hire_list(dynamic raw);
 
   @protected
   HttpCall dco_decode_box_autoadd_http_call(dynamic raw);
@@ -207,7 +241,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
+  MailAttachDetails dco_decode_box_autoadd_mail_attach_details(dynamic raw);
+
+  @protected
+  MailCard dco_decode_box_autoadd_mail_card(dynamic raw);
+
+  @protected
+  MailDraftCard dco_decode_box_autoadd_mail_draft_card(dynamic raw);
+
+  @protected
+  MailMoveDetails dco_decode_box_autoadd_mail_move_details(dynamic raw);
+
+  @protected
+  MailSendDetails dco_decode_box_autoadd_mail_send_details(dynamic raw);
+
+  @protected
+  OnboardingAnswer dco_decode_box_autoadd_onboarding_answer(dynamic raw);
+
+  @protected
   PairingLinkInfo dco_decode_box_autoadd_pairing_link_info(dynamic raw);
+
+  @protected
+  PinnedBytesResponse dco_decode_box_autoadd_pinned_bytes_response(dynamic raw);
 
   @protected
   PinnedEndpoint dco_decode_box_autoadd_pinned_endpoint(dynamic raw);
@@ -217,6 +272,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PinnedResponse dco_decode_box_autoadd_pinned_response(dynamic raw);
+
+  @protected
+  RoleCatalog dco_decode_box_autoadd_role_catalog(dynamic raw);
 
   @protected
   SignedHeaders dco_decode_box_autoadd_signed_headers(dynamic raw);
@@ -231,10 +289,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_u_32(dynamic raw);
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  UploadCursor dco_decode_box_autoadd_upload_cursor(dynamic raw);
+
+  @protected
   CatalogEntry dco_decode_catalog_entry(dynamic raw);
 
   @protected
+  CatalogRole dco_decode_catalog_role(dynamic raw);
+
+  @protected
   ChatApproval dco_decode_chat_approval(dynamic raw);
+
+  @protected
+  ChatAttachment dco_decode_chat_attachment(dynamic raw);
 
   @protected
   ChatBootstrap dco_decode_chat_bootstrap(dynamic raw);
@@ -244,6 +314,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChatConversationPage dco_decode_chat_conversation_page(dynamic raw);
+
+  @protected
+  ChatCounts dco_decode_chat_counts(dynamic raw);
 
   @protected
   ChatDelegation dco_decode_chat_delegation(dynamic raw);
@@ -267,6 +340,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatProject dco_decode_chat_project(dynamic raw);
 
   @protected
+  ChatQuote dco_decode_chat_quote(dynamic raw);
+
+  @protected
   ChatSeat dco_decode_chat_seat(dynamic raw);
 
   @protected
@@ -274,6 +350,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChatSnapshot dco_decode_chat_snapshot(dynamic raw);
+
+  @protected
+  ChunkSpan dco_decode_chunk_span(dynamic raw);
 
   @protected
   CreatedWorkspace dco_decode_created_workspace(dynamic raw);
@@ -285,10 +364,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ErrorInfo dco_decode_error_info(dynamic raw);
 
   @protected
+  double dco_decode_f_64(dynamic raw);
+
+  @protected
   FailureKind dco_decode_failure_kind(dynamic raw);
 
   @protected
   HeaderField dco_decode_header_field(dynamic raw);
+
+  @protected
+  Hire dco_decode_hire(dynamic raw);
+
+  @protected
+  HireList dco_decode_hire_list(dynamic raw);
 
   @protected
   HttpCall dco_decode_http_call(dynamic raw);
@@ -306,6 +394,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<AgentEntry> dco_decode_list_agent_entry(dynamic raw);
 
   @protected
+  List<ApprovalAttachment> dco_decode_list_approval_attachment(dynamic raw);
+
+  @protected
   List<ApprovalAudit> dco_decode_list_approval_audit(dynamic raw);
 
   @protected
@@ -315,7 +406,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<CatalogEntry> dco_decode_list_catalog_entry(dynamic raw);
 
   @protected
+  List<CatalogRole> dco_decode_list_catalog_role(dynamic raw);
+
+  @protected
   List<ChatApproval> dco_decode_list_chat_approval(dynamic raw);
+
+  @protected
+  List<ChatAttachment> dco_decode_list_chat_attachment(dynamic raw);
 
   @protected
   List<ChatConversation> dco_decode_list_chat_conversation(dynamic raw);
@@ -336,6 +433,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<HeaderField> dco_decode_list_header_field(dynamic raw);
 
   @protected
+  List<Hire> dco_decode_list_hire(dynamic raw);
+
+  @protected
+  List<MailMoveItem> dco_decode_list_mail_move_item(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
 
   @protected
@@ -343,6 +446,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<(String, int)> dco_decode_list_record_string_u_32(dynamic raw);
+
+  @protected
+  List<RoleArea> dco_decode_list_role_area(dynamic raw);
+
+  @protected
+  MailAttachDetails dco_decode_mail_attach_details(dynamic raw);
+
+  @protected
+  MailCard dco_decode_mail_card(dynamic raw);
+
+  @protected
+  MailDraftCard dco_decode_mail_draft_card(dynamic raw);
+
+  @protected
+  MailMoveDetails dco_decode_mail_move_details(dynamic raw);
+
+  @protected
+  MailMoveItem dco_decode_mail_move_item(dynamic raw);
+
+  @protected
+  MailSendDetails dco_decode_mail_send_details(dynamic raw);
+
+  @protected
+  OnboardingAnswer dco_decode_onboarding_answer(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -357,6 +484,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatApproval? dco_decode_opt_box_autoadd_chat_approval(dynamic raw);
 
   @protected
+  ChatAttachment? dco_decode_opt_box_autoadd_chat_attachment(dynamic raw);
+
+  @protected
   ChatBootstrap? dco_decode_opt_box_autoadd_chat_bootstrap(dynamic raw);
 
   @protected
@@ -368,10 +498,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ChatCounts? dco_decode_opt_box_autoadd_chat_counts(dynamic raw);
+
+  @protected
   ChatDelegation? dco_decode_opt_box_autoadd_chat_delegation(dynamic raw);
 
   @protected
   ChatEvent? dco_decode_opt_box_autoadd_chat_event(dynamic raw);
+
+  @protected
+  ChatQuote? dco_decode_opt_box_autoadd_chat_quote(dynamic raw);
 
   @protected
   ChatSeat? dco_decode_opt_box_autoadd_chat_seat(dynamic raw);
@@ -380,10 +516,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatSection? dco_decode_opt_box_autoadd_chat_section(dynamic raw);
 
   @protected
+  ChunkSpan? dco_decode_opt_box_autoadd_chunk_span(dynamic raw);
+
+  @protected
   CreatedWorkspace? dco_decode_opt_box_autoadd_created_workspace(dynamic raw);
 
   @protected
   ErrorInfo? dco_decode_opt_box_autoadd_error_info(dynamic raw);
+
+  @protected
+  Hire? dco_decode_opt_box_autoadd_hire(dynamic raw);
+
+  @protected
+  HireList? dco_decode_opt_box_autoadd_hire_list(dynamic raw);
 
   @protected
   HttpCall? dco_decode_opt_box_autoadd_http_call(dynamic raw);
@@ -392,13 +537,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
+  MailAttachDetails? dco_decode_opt_box_autoadd_mail_attach_details(
+    dynamic raw,
+  );
+
+  @protected
+  MailCard? dco_decode_opt_box_autoadd_mail_card(dynamic raw);
+
+  @protected
+  MailDraftCard? dco_decode_opt_box_autoadd_mail_draft_card(dynamic raw);
+
+  @protected
+  MailMoveDetails? dco_decode_opt_box_autoadd_mail_move_details(dynamic raw);
+
+  @protected
+  MailSendDetails? dco_decode_opt_box_autoadd_mail_send_details(dynamic raw);
+
+  @protected
+  OnboardingAnswer? dco_decode_opt_box_autoadd_onboarding_answer(dynamic raw);
+
+  @protected
   PairingLinkInfo? dco_decode_opt_box_autoadd_pairing_link_info(dynamic raw);
+
+  @protected
+  PinnedBytesResponse? dco_decode_opt_box_autoadd_pinned_bytes_response(
+    dynamic raw,
+  );
 
   @protected
   PinnedFailure? dco_decode_opt_box_autoadd_pinned_failure(dynamic raw);
 
   @protected
   PinnedResponse? dco_decode_opt_box_autoadd_pinned_response(dynamic raw);
+
+  @protected
+  RoleCatalog? dco_decode_opt_box_autoadd_role_catalog(dynamic raw);
 
   @protected
   SignedHeaders? dco_decode_opt_box_autoadd_signed_headers(dynamic raw);
@@ -413,10 +586,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  UploadCursor? dco_decode_opt_box_autoadd_upload_cursor(dynamic raw);
+
+  @protected
   List<CatalogEntry>? dco_decode_opt_list_catalog_entry(dynamic raw);
 
   @protected
   List<ChatApproval>? dco_decode_opt_list_chat_approval(dynamic raw);
+
+  @protected
+  List<ChatAttachment>? dco_decode_opt_list_chat_attachment(dynamic raw);
 
   @protected
   List<ChatSection>? dco_decode_opt_list_chat_section(dynamic raw);
@@ -426,6 +608,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PairingLinkResult dco_decode_pairing_link_result(dynamic raw);
+
+  @protected
+  PinnedBytesReply dco_decode_pinned_bytes_reply(dynamic raw);
+
+  @protected
+  PinnedBytesResponse dco_decode_pinned_bytes_response(dynamic raw);
 
   @protected
   PinnedEndpoint dco_decode_pinned_endpoint(dynamic raw);
@@ -447,6 +635,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   (String, int) dco_decode_record_string_u_32(dynamic raw);
+
+  @protected
+  RoleArea dco_decode_role_area(dynamic raw);
+
+  @protected
+  RoleCatalog dco_decode_role_catalog(dynamic raw);
 
   @protected
   SignedHeaders dco_decode_signed_headers(dynamic raw);
@@ -477,6 +671,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void dco_decode_unit(dynamic raw);
+
+  @protected
+  UploadCursor dco_decode_upload_cursor(dynamic raw);
 
   @protected
   BigInt dco_decode_usize(dynamic raw);
@@ -582,6 +779,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AgentStatus sse_decode_agent_status(SseDeserializer deserializer);
 
   @protected
+  ApprovalAttachment sse_decode_approval_attachment(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ApprovalAudit sse_decode_approval_audit(SseDeserializer deserializer);
 
   @protected
@@ -601,6 +803,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApprovalSettings sse_decode_approval_settings(SseDeserializer deserializer);
 
   @protected
+  AttachmentFailure sse_decode_attachment_failure(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
@@ -612,10 +817,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  AttachmentFailure sse_decode_box_autoadd_attachment_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
   ChatApproval sse_decode_box_autoadd_chat_approval(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ChatAttachment sse_decode_box_autoadd_chat_attachment(
     SseDeserializer deserializer,
   );
 
@@ -635,6 +850,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ChatCounts sse_decode_box_autoadd_chat_counts(SseDeserializer deserializer);
+
+  @protected
   ChatDelegation sse_decode_box_autoadd_chat_delegation(
     SseDeserializer deserializer,
   );
@@ -643,10 +861,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatEvent sse_decode_box_autoadd_chat_event(SseDeserializer deserializer);
 
   @protected
+  ChatQuote sse_decode_box_autoadd_chat_quote(SseDeserializer deserializer);
+
+  @protected
   ChatSeat sse_decode_box_autoadd_chat_seat(SseDeserializer deserializer);
 
   @protected
   ChatSection sse_decode_box_autoadd_chat_section(SseDeserializer deserializer);
+
+  @protected
+  ChunkSpan sse_decode_box_autoadd_chunk_span(SseDeserializer deserializer);
 
   @protected
   CreatedWorkspace sse_decode_box_autoadd_created_workspace(
@@ -657,13 +881,52 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ErrorInfo sse_decode_box_autoadd_error_info(SseDeserializer deserializer);
 
   @protected
+  Hire sse_decode_box_autoadd_hire(SseDeserializer deserializer);
+
+  @protected
+  HireList sse_decode_box_autoadd_hire_list(SseDeserializer deserializer);
+
+  @protected
   HttpCall sse_decode_box_autoadd_http_call(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
+  MailAttachDetails sse_decode_box_autoadd_mail_attach_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MailCard sse_decode_box_autoadd_mail_card(SseDeserializer deserializer);
+
+  @protected
+  MailDraftCard sse_decode_box_autoadd_mail_draft_card(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MailMoveDetails sse_decode_box_autoadd_mail_move_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MailSendDetails sse_decode_box_autoadd_mail_send_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OnboardingAnswer sse_decode_box_autoadd_onboarding_answer(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PairingLinkInfo sse_decode_box_autoadd_pairing_link_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PinnedBytesResponse sse_decode_box_autoadd_pinned_bytes_response(
     SseDeserializer deserializer,
   );
 
@@ -683,6 +946,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RoleCatalog sse_decode_box_autoadd_role_catalog(SseDeserializer deserializer);
+
+  @protected
   SignedHeaders sse_decode_box_autoadd_signed_headers(
     SseDeserializer deserializer,
   );
@@ -699,10 +965,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  UploadCursor sse_decode_box_autoadd_upload_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CatalogEntry sse_decode_catalog_entry(SseDeserializer deserializer);
 
   @protected
+  CatalogRole sse_decode_catalog_role(SseDeserializer deserializer);
+
+  @protected
   ChatApproval sse_decode_chat_approval(SseDeserializer deserializer);
+
+  @protected
+  ChatAttachment sse_decode_chat_attachment(SseDeserializer deserializer);
 
   @protected
   ChatBootstrap sse_decode_chat_bootstrap(SseDeserializer deserializer);
@@ -714,6 +994,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatConversationPage sse_decode_chat_conversation_page(
     SseDeserializer deserializer,
   );
+
+  @protected
+  ChatCounts sse_decode_chat_counts(SseDeserializer deserializer);
 
   @protected
   ChatDelegation sse_decode_chat_delegation(SseDeserializer deserializer);
@@ -739,6 +1022,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatProject sse_decode_chat_project(SseDeserializer deserializer);
 
   @protected
+  ChatQuote sse_decode_chat_quote(SseDeserializer deserializer);
+
+  @protected
   ChatSeat sse_decode_chat_seat(SseDeserializer deserializer);
 
   @protected
@@ -746,6 +1032,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChatSnapshot sse_decode_chat_snapshot(SseDeserializer deserializer);
+
+  @protected
+  ChunkSpan sse_decode_chunk_span(SseDeserializer deserializer);
 
   @protected
   CreatedWorkspace sse_decode_created_workspace(SseDeserializer deserializer);
@@ -759,10 +1048,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ErrorInfo sse_decode_error_info(SseDeserializer deserializer);
 
   @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
+
+  @protected
   FailureKind sse_decode_failure_kind(SseDeserializer deserializer);
 
   @protected
   HeaderField sse_decode_header_field(SseDeserializer deserializer);
+
+  @protected
+  Hire sse_decode_hire(SseDeserializer deserializer);
+
+  @protected
+  HireList sse_decode_hire_list(SseDeserializer deserializer);
 
   @protected
   HttpCall sse_decode_http_call(SseDeserializer deserializer);
@@ -780,6 +1078,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<AgentEntry> sse_decode_list_agent_entry(SseDeserializer deserializer);
 
   @protected
+  List<ApprovalAttachment> sse_decode_list_approval_attachment(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<ApprovalAudit> sse_decode_list_approval_audit(
     SseDeserializer deserializer,
   );
@@ -795,7 +1098,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<CatalogRole> sse_decode_list_catalog_role(SseDeserializer deserializer);
+
+  @protected
   List<ChatApproval> sse_decode_list_chat_approval(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ChatAttachment> sse_decode_list_chat_attachment(
     SseDeserializer deserializer,
   );
 
@@ -822,6 +1133,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<HeaderField> sse_decode_list_header_field(SseDeserializer deserializer);
 
   @protected
+  List<Hire> sse_decode_list_hire(SseDeserializer deserializer);
+
+  @protected
+  List<MailMoveItem> sse_decode_list_mail_move_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
   @protected
@@ -831,6 +1150,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<(String, int)> sse_decode_list_record_string_u_32(
     SseDeserializer deserializer,
   );
+
+  @protected
+  List<RoleArea> sse_decode_list_role_area(SseDeserializer deserializer);
+
+  @protected
+  MailAttachDetails sse_decode_mail_attach_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MailCard sse_decode_mail_card(SseDeserializer deserializer);
+
+  @protected
+  MailDraftCard sse_decode_mail_draft_card(SseDeserializer deserializer);
+
+  @protected
+  MailMoveDetails sse_decode_mail_move_details(SseDeserializer deserializer);
+
+  @protected
+  MailMoveItem sse_decode_mail_move_item(SseDeserializer deserializer);
+
+  @protected
+  MailSendDetails sse_decode_mail_send_details(SseDeserializer deserializer);
+
+  @protected
+  OnboardingAnswer sse_decode_onboarding_answer(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -845,6 +1190,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChatApproval? sse_decode_opt_box_autoadd_chat_approval(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ChatAttachment? sse_decode_opt_box_autoadd_chat_attachment(
     SseDeserializer deserializer,
   );
 
@@ -864,6 +1214,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ChatCounts? sse_decode_opt_box_autoadd_chat_counts(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ChatDelegation? sse_decode_opt_box_autoadd_chat_delegation(
     SseDeserializer deserializer,
   );
@@ -874,10 +1229,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ChatQuote? sse_decode_opt_box_autoadd_chat_quote(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ChatSeat? sse_decode_opt_box_autoadd_chat_seat(SseDeserializer deserializer);
 
   @protected
   ChatSection? sse_decode_opt_box_autoadd_chat_section(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ChunkSpan? sse_decode_opt_box_autoadd_chunk_span(
     SseDeserializer deserializer,
   );
 
@@ -892,13 +1257,52 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  Hire? sse_decode_opt_box_autoadd_hire(SseDeserializer deserializer);
+
+  @protected
+  HireList? sse_decode_opt_box_autoadd_hire_list(SseDeserializer deserializer);
+
+  @protected
   HttpCall? sse_decode_opt_box_autoadd_http_call(SseDeserializer deserializer);
 
   @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
+  MailAttachDetails? sse_decode_opt_box_autoadd_mail_attach_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MailCard? sse_decode_opt_box_autoadd_mail_card(SseDeserializer deserializer);
+
+  @protected
+  MailDraftCard? sse_decode_opt_box_autoadd_mail_draft_card(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MailMoveDetails? sse_decode_opt_box_autoadd_mail_move_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MailSendDetails? sse_decode_opt_box_autoadd_mail_send_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OnboardingAnswer? sse_decode_opt_box_autoadd_onboarding_answer(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PairingLinkInfo? sse_decode_opt_box_autoadd_pairing_link_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PinnedBytesResponse? sse_decode_opt_box_autoadd_pinned_bytes_response(
     SseDeserializer deserializer,
   );
 
@@ -909,6 +1313,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PinnedResponse? sse_decode_opt_box_autoadd_pinned_response(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RoleCatalog? sse_decode_opt_box_autoadd_role_catalog(
     SseDeserializer deserializer,
   );
 
@@ -931,12 +1340,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  UploadCursor? sse_decode_opt_box_autoadd_upload_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<CatalogEntry>? sse_decode_opt_list_catalog_entry(
     SseDeserializer deserializer,
   );
 
   @protected
   List<ChatApproval>? sse_decode_opt_list_chat_approval(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ChatAttachment>? sse_decode_opt_list_chat_attachment(
     SseDeserializer deserializer,
   );
 
@@ -950,6 +1372,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PairingLinkResult sse_decode_pairing_link_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PinnedBytesReply sse_decode_pinned_bytes_reply(SseDeserializer deserializer);
+
+  @protected
+  PinnedBytesResponse sse_decode_pinned_bytes_response(
     SseDeserializer deserializer,
   );
 
@@ -975,6 +1405,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   (String, int) sse_decode_record_string_u_32(SseDeserializer deserializer);
+
+  @protected
+  RoleArea sse_decode_role_area(SseDeserializer deserializer);
+
+  @protected
+  RoleCatalog sse_decode_role_catalog(SseDeserializer deserializer);
 
   @protected
   SignedHeaders sse_decode_signed_headers(SseDeserializer deserializer);
@@ -1005,6 +1441,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
+
+  @protected
+  UploadCursor sse_decode_upload_cursor(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer);
@@ -1129,6 +1568,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_agent_status(AgentStatus self, SseSerializer serializer);
 
   @protected
+  void sse_encode_approval_attachment(
+    ApprovalAttachment self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_approval_audit(ApprovalAudit self, SseSerializer serializer);
 
   @protected
@@ -1156,6 +1601,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_attachment_failure(
+    AttachmentFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
@@ -1171,11 +1622,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_attachment_failure(
+    AttachmentFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_chat_approval(
     ChatApproval self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_chat_attachment(
+    ChatAttachment self,
     SseSerializer serializer,
   );
 
@@ -1198,6 +1661,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_chat_counts(
+    ChatCounts self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_chat_delegation(
     ChatDelegation self,
     SseSerializer serializer,
@@ -1206,6 +1675,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_chat_event(
     ChatEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_chat_quote(
+    ChatQuote self,
     SseSerializer serializer,
   );
 
@@ -1222,6 +1697,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_chunk_span(
+    ChunkSpan self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_created_workspace(
     CreatedWorkspace self,
     SseSerializer serializer,
@@ -1230,6 +1711,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_error_info(
     ErrorInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_hire(Hire self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_hire_list(
+    HireList self,
     SseSerializer serializer,
   );
 
@@ -1246,8 +1736,50 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_mail_attach_details(
+    MailAttachDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_mail_card(
+    MailCard self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_mail_draft_card(
+    MailDraftCard self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_mail_move_details(
+    MailMoveDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_mail_send_details(
+    MailSendDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_onboarding_answer(
+    OnboardingAnswer self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_pairing_link_info(
     PairingLinkInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pinned_bytes_response(
+    PinnedBytesResponse self,
     SseSerializer serializer,
   );
 
@@ -1266,6 +1798,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_pinned_response(
     PinnedResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_role_catalog(
+    RoleCatalog self,
     SseSerializer serializer,
   );
 
@@ -1291,10 +1829,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_upload_cursor(
+    UploadCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_catalog_entry(CatalogEntry self, SseSerializer serializer);
 
   @protected
+  void sse_encode_catalog_role(CatalogRole self, SseSerializer serializer);
+
+  @protected
   void sse_encode_chat_approval(ChatApproval self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chat_attachment(
+    ChatAttachment self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_chat_bootstrap(ChatBootstrap self, SseSerializer serializer);
@@ -1310,6 +1866,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     ChatConversationPage self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_chat_counts(ChatCounts self, SseSerializer serializer);
 
   @protected
   void sse_encode_chat_delegation(
@@ -1339,6 +1898,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_chat_project(ChatProject self, SseSerializer serializer);
 
   @protected
+  void sse_encode_chat_quote(ChatQuote self, SseSerializer serializer);
+
+  @protected
   void sse_encode_chat_seat(ChatSeat self, SseSerializer serializer);
 
   @protected
@@ -1346,6 +1908,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_chat_snapshot(ChatSnapshot self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chunk_span(ChunkSpan self, SseSerializer serializer);
 
   @protected
   void sse_encode_created_workspace(
@@ -1363,10 +1928,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_error_info(ErrorInfo self, SseSerializer serializer);
 
   @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
+
+  @protected
   void sse_encode_failure_kind(FailureKind self, SseSerializer serializer);
 
   @protected
   void sse_encode_header_field(HeaderField self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_hire(Hire self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_hire_list(HireList self, SseSerializer serializer);
 
   @protected
   void sse_encode_http_call(HttpCall self, SseSerializer serializer);
@@ -1383,6 +1957,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_agent_entry(
     List<AgentEntry> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_approval_attachment(
+    List<ApprovalAttachment> self,
     SseSerializer serializer,
   );
 
@@ -1405,8 +1985,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_catalog_role(
+    List<CatalogRole> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_chat_approval(
     List<ChatApproval> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_chat_attachment(
+    List<ChatAttachment> self,
     SseSerializer serializer,
   );
 
@@ -1447,6 +2039,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_hire(List<Hire> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_mail_move_item(
+    List<MailMoveItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
 
   @protected
@@ -1458,6 +2059,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_record_string_u_32(
     List<(String, int)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_role_area(List<RoleArea> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mail_attach_details(
+    MailAttachDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_mail_card(MailCard self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mail_draft_card(MailDraftCard self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mail_move_details(
+    MailMoveDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_mail_move_item(MailMoveItem self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mail_send_details(
+    MailSendDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_onboarding_answer(
+    OnboardingAnswer self,
     SseSerializer serializer,
   );
 
@@ -1480,6 +2117,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_chat_attachment(
+    ChatAttachment? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_chat_bootstrap(
     ChatBootstrap? self,
     SseSerializer serializer,
@@ -1498,6 +2141,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_chat_counts(
+    ChatCounts? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_chat_delegation(
     ChatDelegation? self,
     SseSerializer serializer,
@@ -1506,6 +2155,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_chat_event(
     ChatEvent? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_chat_quote(
+    ChatQuote? self,
     SseSerializer serializer,
   );
 
@@ -1522,6 +2177,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_chunk_span(
+    ChunkSpan? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_created_workspace(
     CreatedWorkspace? self,
     SseSerializer serializer,
@@ -1530,6 +2191,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_error_info(
     ErrorInfo? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_hire(Hire? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_hire_list(
+    HireList? self,
     SseSerializer serializer,
   );
 
@@ -1546,8 +2216,50 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_mail_attach_details(
+    MailAttachDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_card(
+    MailCard? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_draft_card(
+    MailDraftCard? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_move_details(
+    MailMoveDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_mail_send_details(
+    MailSendDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_onboarding_answer(
+    OnboardingAnswer? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_pairing_link_info(
     PairingLinkInfo? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_pinned_bytes_response(
+    PinnedBytesResponse? self,
     SseSerializer serializer,
   );
 
@@ -1560,6 +2272,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_pinned_response(
     PinnedResponse? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_role_catalog(
+    RoleCatalog? self,
     SseSerializer serializer,
   );
 
@@ -1585,6 +2303,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_upload_cursor(
+    UploadCursor? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_list_catalog_entry(
     List<CatalogEntry>? self,
     SseSerializer serializer,
@@ -1593,6 +2320,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_list_chat_approval(
     List<ChatApproval>? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_list_chat_attachment(
+    List<ChatAttachment>? self,
     SseSerializer serializer,
   );
 
@@ -1611,6 +2344,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_pairing_link_result(
     PairingLinkResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pinned_bytes_reply(
+    PinnedBytesReply self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pinned_bytes_response(
+    PinnedBytesResponse self,
     SseSerializer serializer,
   );
 
@@ -1648,6 +2393,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_role_area(RoleArea self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_role_catalog(RoleCatalog self, SseSerializer serializer);
+
+  @protected
   void sse_encode_signed_headers(SignedHeaders self, SseSerializer serializer);
 
   @protected
@@ -1679,6 +2430,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_upload_cursor(UploadCursor self, SseSerializer serializer);
 
   @protected
   void sse_encode_usize(BigInt self, SseSerializer serializer);

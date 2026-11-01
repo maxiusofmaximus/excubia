@@ -39,6 +39,10 @@ impl ManualClock {
     pub fn advance_secs(&self, seconds: i64) {
         self.now.fetch_add(seconds * 1000, Ordering::SeqCst);
     }
+
+    pub fn set(&self, now_ms: i64) {
+        self.now.store(now_ms, Ordering::SeqCst);
+    }
 }
 
 impl Clock for ManualClock {

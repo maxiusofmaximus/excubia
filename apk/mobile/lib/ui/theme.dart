@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:herdr_notify/src/rust/api/state.dart';
 
-/// The approved "warm studio" palette from the wf40–wf46 wireframes. Every
-/// screen reads it through `context.colors`; the light and dark values are the
-/// two columns of `ui-analysis/index.html` §23.
+/// The approved palette: "azul noche" in dark and "pergamino" in light, from
+/// the PALETA1 tokens. Every screen reads it through `context.colors`; the text
+/// and component pairs are checked in `test/theme_contrast_test.dart`.
 @immutable
 class HerdrColors extends ThemeExtension<HerdrColors> {
   const HerdrColors({
@@ -18,8 +18,10 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     required this.textSecondary,
     required this.textMuted,
     required this.accent,
+    required this.accentText,
     required this.accentSoft,
     required this.onAccent,
+    required this.onAttention,
     required this.statusBlocked,
     required this.statusWorking,
     required this.statusDone,
@@ -37,8 +39,10 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
   final Color textSecondary;
   final Color textMuted;
   final Color accent;
+  final Color accentText;
   final Color accentSoft;
   final Color onAccent;
+  final Color onAttention;
   final Color statusBlocked;
   final Color statusWorking;
   final Color statusDone;
@@ -46,43 +50,47 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
   final Color statusUnknown;
 
   static const HerdrColors dark = HerdrColors(
-    bg: Color(0xFF1B1612),
-    surface: Color(0xFF251E18),
-    raised: Color(0xFF2A221B),
-    surface3: Color(0xFF342A21),
-    outlineSoft: Color(0xFF41362B),
-    outlineStrong: Color(0xFF5A4B3B),
-    textPrimary: Color(0xFFF3EBDF),
-    textSecondary: Color(0xFFCDBFAE),
-    textMuted: Color(0xFFA39583),
-    accent: Color(0xFF7566B0),
-    accentSoft: Color(0xFF2D2644),
-    onAccent: Color(0xFFFFFFFF),
-    statusBlocked: Color(0xFFD9795C),
-    statusWorking: Color(0xFFB9AAE6),
-    statusDone: Color(0xFF8FC48F),
-    statusIdle: Color(0xFFA39583),
-    statusUnknown: Color(0xFFCDBFAE),
+    bg: Color(0xFF0B1426),
+    surface: Color(0xFF14213D),
+    raised: Color(0xFF1A2A4D),
+    surface3: Color(0xFF213462),
+    outlineSoft: Color(0xFF253456),
+    outlineStrong: Color(0xFF6F84B3),
+    textPrimary: Color(0xFFF3E3C0),
+    textSecondary: Color(0xFFE0D5BC),
+    textMuted: Color(0xFFA7B0C4),
+    accent: Color(0xFFF2A93B),
+    accentText: Color(0xFFF2A93B),
+    accentSoft: Color(0xFF3A2E17),
+    onAccent: Color(0xFF0B1426),
+    onAttention: Color(0xFF0B1426),
+    statusBlocked: Color(0xFFFF7A62),
+    statusWorking: Color(0xFF8FB4E8),
+    statusDone: Color(0xFF6FCF97),
+    statusIdle: Color(0xFFA7B0C4),
+    statusUnknown: Color(0xFFE0D5BC),
   );
 
   static const HerdrColors light = HerdrColors(
-    bg: Color(0xFFF6F0E6),
-    surface: Color(0xFFFFFAF2),
-    raised: Color(0xFFEEE5D6),
-    surface3: Color(0xFFE3D8C6),
-    outlineSoft: Color(0xFFD8CBB6),
-    outlineStrong: Color(0xFFB7A58D),
-    textPrimary: Color(0xFF2B2118),
-    textSecondary: Color(0xFF5A4C3E),
-    textMuted: Color(0xFF6F6254),
-    accent: Color(0xFF6B5A9E),
-    accentSoft: Color(0xFFE9E2F3),
-    onAccent: Color(0xFFFFFFFF),
-    statusBlocked: Color(0xFFA8452B),
-    statusWorking: Color(0xFF5A4A8C),
-    statusDone: Color(0xFF3B7343),
-    statusIdle: Color(0xFF6F6254),
-    statusUnknown: Color(0xFF5A4C3E),
+    bg: Color(0xFFF7F4EC),
+    surface: Color(0xFFFFFFFF),
+    raised: Color(0xFFEFEADF),
+    surface3: Color(0xFFE6E0D2),
+    outlineSoft: Color(0xFFE3DCCB),
+    outlineStrong: Color(0xFF7A7265),
+    textPrimary: Color(0xFF14213D),
+    textSecondary: Color(0xFF34405E),
+    textMuted: Color(0xFF56607A),
+    accent: Color(0xFFF2A93B),
+    accentText: Color(0xFF8A5208),
+    accentSoft: Color(0xFFF6E4BE),
+    onAccent: Color(0xFF14213D),
+    onAttention: Color(0xFFFFFFFF),
+    statusBlocked: Color(0xFFB8381F),
+    statusWorking: Color(0xFF2F5C9E),
+    statusDone: Color(0xFF276B4E),
+    statusIdle: Color(0xFF56607A),
+    statusUnknown: Color(0xFF34405E),
   );
 
   Color forStatus(AgentStatus status) => switch (status) {
@@ -93,8 +101,22 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     AgentStatus.unknown => statusUnknown,
   };
 
-  Color labelForStatus(AgentStatus status) =>
-      status == AgentStatus.idle ? textMuted : forStatus(status);
+  /// Colour of the status word. Blocked never takes coloured text: it is the
+  /// filled chip in `StatusChip`, so the word itself stays neutral.
+  Color labelForStatus(AgentStatus status) => switch (status) {
+    AgentStatus.blocked => textPrimary,
+    AgentStatus.idle => textMuted,
+    _ => forStatus(status),
+  };
+
+  /// A distinct shape per state, so the status never rests on colour alone.
+  IconData iconForStatus(AgentStatus status) => switch (status) {
+    AgentStatus.blocked => Icons.warning_amber_rounded,
+    AgentStatus.working => Icons.incomplete_circle,
+    AgentStatus.done => Icons.check_circle,
+    AgentStatus.idle => Icons.radio_button_unchecked,
+    AgentStatus.unknown => Icons.help_outline,
+  };
 
   String statusLabel(AgentStatus status) => switch (status) {
     AgentStatus.blocked => 'bloqueado',
@@ -116,8 +138,10 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     Color? textSecondary,
     Color? textMuted,
     Color? accent,
+    Color? accentText,
     Color? accentSoft,
     Color? onAccent,
+    Color? onAttention,
     Color? statusBlocked,
     Color? statusWorking,
     Color? statusDone,
@@ -134,8 +158,10 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     textSecondary: textSecondary ?? this.textSecondary,
     textMuted: textMuted ?? this.textMuted,
     accent: accent ?? this.accent,
+    accentText: accentText ?? this.accentText,
     accentSoft: accentSoft ?? this.accentSoft,
     onAccent: onAccent ?? this.onAccent,
+    onAttention: onAttention ?? this.onAttention,
     statusBlocked: statusBlocked ?? this.statusBlocked,
     statusWorking: statusWorking ?? this.statusWorking,
     statusDone: statusDone ?? this.statusDone,
@@ -157,8 +183,10 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textMuted: Color.lerp(textMuted, other.textMuted, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
+      accentText: Color.lerp(accentText, other.accentText, t)!,
       accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
       onAccent: Color.lerp(onAccent, other.onAccent, t)!,
+      onAttention: Color.lerp(onAttention, other.onAttention, t)!,
       statusBlocked: Color.lerp(statusBlocked, other.statusBlocked, t)!,
       statusWorking: Color.lerp(statusWorking, other.statusWorking, t)!,
       statusDone: Color.lerp(statusDone, other.statusDone, t)!,
@@ -255,9 +283,9 @@ ThemeData buildTheme([Brightness brightness = Brightness.dark]) {
       secondaryContainer: c.raised,
       onSecondaryContainer: c.textPrimary,
       tertiary: c.statusWorking,
-      onTertiary: c.onAccent,
+      onTertiary: c.surface,
       error: c.statusBlocked,
-      onError: c.onAccent,
+      onError: c.onAttention,
       surface: c.surface,
       onSurface: c.textPrimary,
       surfaceContainerHighest: c.surface3,
@@ -316,7 +344,7 @@ ThemeData buildTheme([Brightness brightness = Brightness.dark]) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: c.accent),
+        borderSide: BorderSide(color: c.accentText),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -337,6 +365,9 @@ ThemeData buildTheme([Brightness brightness = Brightness.dark]) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: c.accentText),
+    ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: c.raised,
       contentTextStyle: TextStyle(color: c.textPrimary),
@@ -348,9 +379,9 @@ ThemeData buildTheme([Brightness brightness = Brightness.dark]) {
       contentTextStyle: text.bodySecondary,
     ),
     textSelectionTheme: TextSelectionThemeData(
-      cursorColor: c.accent,
+      cursorColor: c.accentText,
       selectionColor: c.accentSoft,
-      selectionHandleColor: c.accent,
+      selectionHandleColor: c.accentText,
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: c.raised,
@@ -358,6 +389,6 @@ ThemeData buildTheme([Brightness brightness = Brightness.dark]) {
       labelTextStyle: WidgetStatePropertyAll(text.label),
       iconTheme: WidgetStatePropertyAll(IconThemeData(color: c.textSecondary)),
     ),
-    progressIndicatorTheme: ProgressIndicatorThemeData(color: c.accent),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: c.accentText),
   );
 }

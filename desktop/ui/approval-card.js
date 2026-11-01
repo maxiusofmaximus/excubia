@@ -2,19 +2,26 @@
 // for what was decided below him. Everything the agent wrote goes in as text.
 
 import {
+  canApproveMove,
   CHECKING_TEXT,
   commandText,
   currentDeviceId,
   cwdLabel,
   grantCommand,
   isChecking,
+  isMailSend,
+  isMoveBatch,
   isOperatorLevel,
   localFor,
+  moveApproveLabel,
+  moveTitle,
   riskLabel,
   seatName,
   shortDigest,
   statusMeta,
 } from "./approval-model.js";
+import { moveBatch } from "./approval-move.js";
+import { digestRows } from "./mail-model.js";
 
 // Each card remembers its approval and its context so a decision can redraw it
 // in place.
@@ -46,17 +53,33 @@ function actionButton(label, action, id, className, disabled) {
   return button;
 }
 
+// A batch says how many mails stay checked, and needs one of them to move.
+function approveButton(entry, open, unchecked) {
+  const className = "btn primary btn-small approval-btn";
+  if (!isMoveBatch(entry)) return actionButton("Permitir una vez", "approve", entry.id, className, !open);
+  const label = moveApproveLabel(entry, unchecked);
+  return actionButton(label, "approve", entry.id, className, !open || !canApproveMove(entry, unchecked));
+}
+
 // A 403 keeps the buttons open: the operator may have just been granted APPROVE,
 // and a retry is the only way to find out. The note says what is missing.
 function actionsRow(entry, status, mine) {
   const row = element("div", "approval-actions");
   const open = status === "pending" && !mine.busy;
-  const id = entry.id;
   row.append(
-    actionButton("Permitir una vez", "approve", id, "btn primary btn-small approval-btn", !open),
-    actionButton("Denegar", "deny", id, "btn ghost btn-small approval-btn", !open),
+    approveButton(entry, open, mine.unchecked),
+    actionButton("Denegar", "deny", entry.id, "btn ghost btn-small approval-btn", !open),
   );
   return row;
+}
+
+// What the operator reads before a send: the host's `details`, as text only.
+function mailDigest(details) {
+  const list = element("dl", "mail-digest");
+  for (const [label, value] of digestRows(details)) {
+    list.append(element("dt", null, label), element("dd", null, value));
+  }
+  return list;
 }
 
 function forbiddenNote() {
@@ -81,17 +104,19 @@ export function renderApprovalCard(entry, now = Date.now(), context = "") {
   cardEntries.set(card, { entry, context });
 
   const head = element("div", "approval-head");
+  const batch = isMoveBatch(entry);
   const titleWrap = element("div", "approval-title-wrap");
   titleWrap.append(
     element("p", "approval-kicker", "PERMISO"),
-    element("h3", "approval-title", `${seatName(entry)} necesita permiso`),
+    element("h3", "approval-title", batch ? moveTitle(entry) : `${seatName(entry)} necesita permiso`),
   );
   head.append(titleWrap, chip(meta.label, `status tone-${meta.tone}`));
   card.append(head);
 
   if (context) card.append(element("p", "approval-where", context));
-  // A request for lack of information asks its question where the command goes.
-  if (entry.question) card.append(element("p", "approval-question", entry.question));
+  // A batch lists its mails in place of the command; a request for lack of information asks its question there.
+  if (batch) card.append(moveBatch(entry, status, mine.unchecked));
+  else if (entry.question) card.append(element("p", "approval-question", entry.question));
   else card.append(element("pre", "approval-command", commandText(entry) || "Sin comando"));
 
   const chips = element("div", "approval-chips");
@@ -103,6 +128,7 @@ export function renderApprovalCard(entry, now = Date.now(), context = "") {
   chips.append(chip(riskLabel(entry.risk), `risk risk-${entry.risk || "unknown"}`));
   if (entry.escalated_from) chips.append(chip("te lo pasa Alfred", "level"));
   card.append(chips);
+  if (isMailSend(entry) && entry.details) card.append(mailDigest(entry.details));
 
   const footer = element("div", "approval-footer");
   const digest = element("code", "approval-digest", shortDigest(entry.action_digest));

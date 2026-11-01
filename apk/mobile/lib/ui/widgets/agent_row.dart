@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:herdr_notify/src/rust/api/state.dart';
 
 import '../theme.dart';
-import 'status_dot.dart';
+import 'agent_avatar.dart';
 
 /// One agent: project and task, one line each, the whole row tappable.
 class AgentRow extends StatelessWidget {
@@ -47,7 +47,12 @@ class AgentRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                StatusDot(status: agent.status),
+                AgentAvatar(
+                  name: agentNameOf(agent),
+                  status: agent.status,
+                  size: 40,
+                  ringed: true,
+                ),
                 const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Column(

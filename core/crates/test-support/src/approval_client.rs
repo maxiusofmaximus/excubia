@@ -21,10 +21,23 @@ impl SignedClient {
         decision: &str,
         client_id: &str,
     ) -> Result<Value, HttpError> {
+        self.chat_decide_approval_excluding(approval_id, decision, client_id, &[])
+            .await
+    }
+
+    /// The operator's answer, leaving out the messages `exclude` names of a mail batch.
+    pub async fn chat_decide_approval_excluding(
+        &self,
+        approval_id: &str,
+        decision: &str,
+        client_id: &str,
+        exclude: &[&str],
+    ) -> Result<Value, HttpError> {
         let body = serde_json::to_vec(&json!({
             "decision": decision,
             "scope": "once",
             "client_id": client_id,
+            "exclude": exclude,
         }))
         .expect("json");
         self.expect_ok(

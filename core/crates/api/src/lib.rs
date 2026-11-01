@@ -5,16 +5,28 @@
 //! The caller binds the listener; this crate only serves it. Binding loopback
 //! by default is the host's job.
 
+mod agenda_api;
+mod alert_api;
 mod catalog;
+mod contact_api;
 mod error;
+mod hire_api;
+mod mail;
 mod middleware;
+mod note_api;
+pub mod role_catalog;
 mod routes;
 mod sse;
 mod tls;
 mod validate;
+pub mod voice;
 
 pub use catalog::{AgentCatalog, AgentSpec};
 pub use error::ApiError;
+pub use mail::{
+    DraftEdit, MailAccount, MailActions, MailDraft, MailDraftAttachment, MailFailure,
+    MailLoginStart, MailLoginStatus, SendAnswer, SendFailure, SendStatus,
+};
 pub use tls::TlsListener;
 pub use validate::{clamp_read_lines, validate_keys, validate_pane_id, validate_prompt};
 
@@ -112,6 +124,9 @@ pub struct ApiContext {
     pub seat: Arc<dyn ChatSeat>,
     /// The host token hooks authenticate with (loopback only).
     pub hook_token: Arc<String>,
+    /// The mail logins and accounts the host keeps (MAIL1D §1).
+    pub mail: Arc<dyn MailActions>,
+    pub voice: Arc<voice::VoiceService>,
     /// In-process revocation notifications, so a revoke closes open streams
     /// immediately instead of on their next tick.
     pub revocations: broadcast::Sender<String>,
@@ -126,6 +141,8 @@ pub struct ApiConfig {
     pub chat: Arc<ChatStore>,
     pub seat: Arc<dyn ChatSeat>,
     pub hook_token: Arc<String>,
+    pub mail: Arc<dyn MailActions>,
+    pub voice: Arc<voice::VoiceService>,
 }
 
 impl ApiContext {
@@ -142,6 +159,8 @@ impl ApiContext {
             chat: config.chat,
             seat: config.seat,
             hook_token: config.hook_token,
+            mail: config.mail,
+            voice: config.voice,
             revocations,
         }
     }
@@ -159,6 +178,17 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route("/v1/agents/{pane_id}/seen", post(routes::seen))
         .route("/v1/agents/{pane_id}/stop", post(routes::stop))
         .route("/v1/catalog", get(routes::catalog))
+        .route("/v1/roles", get(routes::role_catalog))
+        .route(
+            "/v1/hires",
+            get(routes::list_hires).post(routes::create_hire),
+        )
+        .route("/v1/hires/{hire_id}/update", post(routes::update_hire))
+        .route("/v1/hires/{hire_id}/dismiss", post(routes::dismiss_hire))
+        .route(
+            "/v1/onboarding",
+            get(routes::onboarding_state).post(routes::complete_onboarding),
+        )
         .route("/v1/workspaces", post(routes::create_workspace))
         .route("/v1/chat/bootstrap", get(routes::chat_bootstrap))
         .route(
@@ -183,12 +213,20 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             post(routes::chat_cancel_conversation),
         )
         .route(
+            "/v1/chat/conversations/{conversation_id}/stop",
+            post(routes::chat_stop_conversation),
+        )
+        .route(
             "/v1/chat/conversations",
             get(routes::chat_conversations).post(routes::chat_create_conversation),
         )
         .route(
+            "/v1/chat/conversations/counts",
+            get(routes::chat_conversation_counts),
+        )
+        .route(
             "/v1/chat/conversations/{conversation_id}",
-            get(routes::chat_conversation),
+            get(routes::chat_conversation).delete(routes::chat_delete_conversation),
         )
         .route(
             "/v1/chat/conversations/{conversation_id}/update",
@@ -207,6 +245,26 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             post(routes::chat_read),
         )
         .route(
+            "/v1/chat/conversations/{conversation_id}/attachments",
+            post(routes::chat_create_attachment),
+        )
+        .route(
+            "/v1/chat/conversations/{conversation_id}/attachments/{attachment_id}",
+            get(routes::chat_attachment).delete(routes::chat_delete_attachment),
+        )
+        .route(
+            "/v1/chat/conversations/{conversation_id}/attachments/{attachment_id}/chunks",
+            post(routes::chat_upload_chunk),
+        )
+        .route(
+            "/v1/chat/conversations/{conversation_id}/attachments/{attachment_id}/complete",
+            post(routes::chat_complete_attachment),
+        )
+        .route(
+            "/v1/chat/conversations/{conversation_id}/attachments/{attachment_id}/content",
+            get(routes::chat_attachment_content),
+        )
+        .route(
             "/v1/chat/sections",
             get(routes::chat_sections).post(routes::chat_upsert_section),
         )
@@ -215,6 +273,31 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             "/v1/devices/{device_id}/revoke",
             post(routes::revoke_device),
         )
+        .route("/v1/mail/login/start", post(routes::mail_login_start))
+        .route("/v1/mail/login/status", get(routes::mail_login_status))
+        .route("/v1/mail/accounts", get(routes::mail_accounts))
+        .route("/v1/mail/drafts/{draft_id}", get(routes::mail_draft_review))
+        .route(
+            "/v1/mail/drafts/{draft_id}/update",
+            post(routes::mail_draft_update),
+        )
+        .route(
+            "/v1/mail/drafts/{draft_id}/send",
+            post(routes::mail_send_draft),
+        )
+        .route("/v1/mail/sends/{send_id}", get(routes::mail_send_status))
+        .route(
+            "/v1/mail/sends/{send_id}/cancel",
+            post(routes::mail_send_cancel),
+        )
+        .route("/v1/mail/send/enable", post(routes::mail_send_enable_start))
+        .route(
+            "/v1/mail/send/enable/status",
+            get(routes::mail_send_enable_status),
+        )
+        .route("/v1/mail/send/disable", post(routes::mail_send_disable))
+        .route(voice::TRANSCRIBE_PATH, post(routes::transcribe_voice))
+        .merge(routes::agenda_routes())
         .route_layer(axum_middleware::from_fn_with_state(
             ctx.clone(),
             middleware::authenticate,

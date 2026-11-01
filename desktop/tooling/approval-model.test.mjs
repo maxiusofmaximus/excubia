@@ -3,21 +3,33 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  canApproveMove,
   commandText,
+  conversationContext,
   countdownText,
   cwdLabel,
-  conversationContext,
+  destLabel,
+  excludeFor,
   grantCommand,
   isChecking,
+  isMailMove,
+  isMoveBatch,
   isOperatorLevel,
   levelChain,
   localFor,
+  moveApproveLabel,
+  moveCounts,
+  moveItems,
+  triageLabel,
+  moveTitle,
   patchLocal,
   remainingSeconds,
+  sameIds,
   seatName,
   setBootstrap,
   shortDigest,
   statusMeta,
+  subjectText,
   supersededIndexes,
 } from "../ui/approval-model.js";
 
@@ -127,4 +139,78 @@ test("a pending card at zero asks the host; the host still decides", () => {
   assert.equal(isChecking({ status: "pending", expires_at: "2026-10-23T09:59:59.000Z" }, now), true);
   assert.equal(isChecking({ status: "pending", expires_at: "2026-10-23T10:01:00.000Z" }, now), false);
   assert.equal(isChecking({ status: "expired", expires_at: "2026-10-23T09:59:59.000Z" }, now), false);
+});
+
+const batch = {
+  tool: "mail.move",
+  details: {
+    account: "trabajo",
+    items: [
+      { message_id: "m1", dest: "junkemail", from_address: "ofertas@tienda.invalid", subject: "Oferta", level: "lead" },
+      { message_id: "m2", dest: "inbox", subject: "Factura", level: "lead", excluded: true },
+      { message_id: "m3", dest: "deleteditems", subject: "Boletín", level: "lead" },
+    ],
+  },
+};
+
+test("a mail.move with mails earns the checklist, anything else does not", () => {
+  assert.equal(isMailMove({ tool: "mail.send" }), false);
+  assert.equal(isMoveBatch(batch), true);
+  assert.equal(isMoveBatch({ tool: "mail.move" }), false);
+  assert.equal(isMoveBatch({ tool: "mail.move", details: { items: [] } }), false);
+});
+
+test("the batch keeps the host's excluded marks and drops rows that cannot be answered", () => {
+  const items = moveItems({
+    tool: "mail.move",
+    details: { items: [{ message_id: "m1" }, { subject: "sin id" }, null, { message_id: 7 }, { message_id: "m2", excluded: 1 }] },
+  });
+  assert.deepEqual(items.map((item) => item.message_id), ["m1", "m2"]);
+  assert.deepEqual(items.map((item) => item.excluded), [false, true]);
+  assert.deepEqual(moveItems({ details: { items: "no es una lista" } }), []);
+  assert.deepEqual(moveItems({}), []);
+});
+
+test("a destination reads in Spanish and an unknown one never shows raw", () => {
+  assert.equal(destLabel("junkemail"), "No deseado");
+  assert.equal(destLabel("deleteditems"), "Eliminados");
+  assert.equal(destLabel("inbox"), "Bandeja de entrada");
+  assert.equal(destLabel("constructor"), "Destino desconocido");
+  assert.equal(triageLabel("bulk"), "Masivo");
+  assert.equal(triageLabel("lead"), "Sin evaluar");
+  assert.equal(triageLabel("constructor"), "Sin evaluar");
+});
+
+test("a long subject is trimmed to one short line, and an empty one says so", () => {
+  assert.equal(subjectText("  Hola  "), "Hola");
+  assert.equal(subjectText(""), "(sin asunto)");
+  assert.equal(subjectText(undefined), "(sin asunto)");
+  assert.equal(subjectText("x".repeat(100)).length, 80);
+  assert.ok(subjectText("x".repeat(100)).endsWith("…"));
+});
+
+test("the unchecked mails are the ones the operator leaves out of this batch", () => {
+  const unchecked = new Set(["m1", "m9"]);
+  assert.deepEqual(excludeFor(batch, unchecked), ["m1"]);
+  assert.deepEqual(excludeFor(batch), []);
+  assert.deepEqual(excludeFor({}, unchecked), []);
+});
+
+test("the count and the label say how many mails stay checked", () => {
+  assert.deepEqual(moveCounts(batch, new Set()), { checked: 2, total: 2 });
+  assert.deepEqual(moveCounts(batch, new Set(["m1"])), { checked: 1, total: 2 });
+  assert.equal(moveApproveLabel(batch, new Set(["m1"])), "Mover los seleccionados (1 de 2)");
+  assert.equal(moveTitle(batch), "3 correos a mover");
+});
+
+test("the approval cannot go ahead with every mail unchecked", () => {
+  assert.equal(canApproveMove(batch, new Set()), true);
+  assert.equal(canApproveMove(batch, new Set(["m1", "m3"])), false);
+  assert.equal(canApproveMove({ tool: "mail.move", details: { items: [] } }), false);
+});
+
+test("a retry reuses its id only for the same list of mails left out", () => {
+  assert.equal(sameIds(["m1"], ["m1"]), true);
+  assert.equal(sameIds(["m1"], ["m1", "m2"]), false);
+  assert.equal(sameIds(undefined, []), true);
 });

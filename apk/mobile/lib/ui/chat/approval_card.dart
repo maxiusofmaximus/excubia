@@ -4,10 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:herdr_notify/src/rust/api/approvals/error.dart';
 import 'package:herdr_notify/src/rust/api/approvals/model.dart';
 import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
+import 'package:herdr_notify/src/rust/api/state.dart';
 
+import '../../core/state/approval_move.dart';
 import '../../core/state/approvals_controller.dart';
+import '../mail/mail_facts.dart';
 import '../theme.dart';
+import '../widgets/agent_avatar.dart';
 import 'approval_format.dart';
+
+part 'approval_card_widgets.dart';
+part 'approval_move_widgets.dart';
 
 /// The card bound to the controller: it reads the current view of one approval,
 /// so a frame, a 409 re-read or a new answer always reaches the screen.
@@ -17,11 +24,13 @@ class ApprovalCardHost extends StatelessWidget {
     required this.controller,
     required this.approvalId,
     required this.projects,
+    this.alfred,
   });
 
   final ApprovalsController controller;
   final String approvalId;
   final List<ChatProject> projects;
+  final ChatSeat? alfred;
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +41,21 @@ class ApprovalCardHost extends StatelessWidget {
         if (approval == null) return const SizedBox.shrink();
         return ApprovalCard(
           approval: approval,
-          agentName: agentTitle(approval.seatId, projects),
+          agentName: agentTitle(
+            approval.seatId,
+            projects,
+            alfred,
+            tool: approval.tool ?? '',
+          ),
           projectName: projectNameFor(approval.seatId, projects),
           busy: controller.isBusy(approvalId),
           failure: controller.failureOf(approvalId),
+          unchecked: controller.uncheckedOf(approvalId),
+          onMoveToggle: (messageId, checked) => controller.setMailChecked(
+            approvalId,
+            messageId,
+            checked: checked,
+          ),
           onDecide: (approve) =>
               controller.decide(approvalId, approve: approve),
           onRecheckGrant: () => unawaited(controller.recheckGrant()),
@@ -58,6 +78,8 @@ class ApprovalCard extends StatefulWidget {
     required this.onDecide,
     this.onRecheckGrant,
     this.projectName,
+    this.unchecked = const <String>{},
+    this.onMoveToggle,
   });
 
   final ChatApproval approval;
@@ -67,6 +89,10 @@ class ApprovalCard extends StatefulWidget {
   final ApprovalFailure? failure;
   final ValueChanged<bool> onDecide;
   final VoidCallback? onRecheckGrant;
+
+  /// The mails of a `mail.move` batch the operator has unchecked.
+  final Set<String> unchecked;
+  final void Function(String messageId, bool checked)? onMoveToggle;
 
   @override
   State<ApprovalCard> createState() => _ApprovalCardState();
@@ -133,16 +159,15 @@ class _ApprovalCardState extends State<ApprovalCard> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.shield_outlined,
-                size: 20,
-                color: colors.accent,
-                semanticLabel: 'Permiso',
+              AgentAvatar(
+                name: widget.agentName,
+                status: AgentStatus.blocked,
+                size: 32,
               ),
               const SizedBox(width: Spacing.sm),
               Expanded(
                 child: Text(
-                  '${widget.agentName} necesita permiso',
+                  '${widget.agentName} ${_askLine(approval)}',
                   style: text.title,
                 ),
               ),
@@ -153,13 +178,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
             Text(place, style: text.small),
           ],
           const SizedBox(height: Spacing.md),
-          _CommandBox(line: line, plain: approval.question != null),
-          if (detail != null &&
-              approval.summary.isNotEmpty &&
-              approval.summary != line) ...[
-            const SizedBox(height: Spacing.xs),
-            Text(approval.summary, style: text.bodySecondary),
-          ],
+          ..._facts(context, line, detail, open: closed == null),
           const SizedBox(height: Spacing.sm),
           Wrap(
             spacing: Spacing.sm,
@@ -181,6 +200,83 @@ class _ApprovalCardState extends State<ApprovalCard> {
       ),
     );
   }
+
+  /// What the operator reads before answering. A mail action shows its facts
+  /// instead of a command; the host's generic summary is never the detail.
+  List<Widget> _facts(
+    BuildContext context,
+    String line,
+    String? detail, {
+    required bool open,
+  }) {
+    final approval = widget.approval;
+    if (approval.mailSend case final send?) {
+      return [MailSendFacts(details: send)];
+    }
+    if (approval.mailAttach case final attach?) {
+      return [MailAttachFacts(details: attach)];
+    }
+    if (approval.mailMove case final move?) {
+      return [
+        _MoveBatch(
+          items: move.items,
+          unchecked: widget.unchecked,
+          onToggle: open ? widget.onMoveToggle : null,
+        ),
+      ];
+    }
+    if (_mailFactsMissing) {
+      return [
+        Text(
+          'No llegaron los datos del correo. Revísalos en la bandeja antes de decidir.',
+          style: context.text.bodySecondary,
+        ),
+      ];
+    }
+    return [
+      _CommandBox(line: line, plain: approval.question != null),
+      if (detail != null &&
+          approval.summary.isNotEmpty &&
+          approval.summary != line) ...[
+        const SizedBox(height: Spacing.xs),
+        Text(approval.summary, style: context.text.bodySecondary),
+      ],
+    ];
+  }
+
+  /// A mail action whose facts have not arrived. The operator must not approve
+  /// what the card does not show, so «Permitir una vez» waits for them.
+  bool get _mailFactsMissing {
+    final approval = widget.approval;
+    return (approval.tool ?? '').startsWith('mail.') &&
+        approval.mailSend == null &&
+        approval.mailAttach == null &&
+        approval.mailMove == null;
+  }
+
+  /// A mail batch approves only while one of its mails stays checked.
+  bool get _approvable {
+    final approval = widget.approval;
+    return approval.mailMove == null ||
+        canApproveMove(approval, widget.unchecked);
+  }
+
+  /// The label of the approve button: a batch says how many mails it moves.
+  String get _approveLabel {
+    final approval = widget.approval;
+    if (approval.mailMove == null) return 'Permitir una vez';
+    final total = moveItems(approval).length;
+    return 'Mover los seleccionados '
+        '(${checkedCount(approval, widget.unchecked)} de $total)';
+  }
+
+  /// The request in the title, after the agent's name.
+  String _askLine(ChatApproval approval) => switch (approval.tool) {
+    'mail.send' => 'quiere enviar un correo',
+    'mail.attach_path' => 'quiere adjuntar un archivo',
+    'mail.move' => 'quiere mover correos',
+    _ => 'necesita permiso',
+  };
 
   /// A status that ends the card, or null while the answer is still open.
   String? _closedStatus(int? left) {
@@ -231,10 +327,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (failure != null) ...[
-          Text(
-            'No se pudo enviar. Vuelve a intentarlo.',
-            style: text.small.copyWith(color: colors.statusBlocked),
-          ),
+          Text('No se pudo enviar. Vuelve a intentarlo.', style: text.small),
           const SizedBox(height: Spacing.sm),
         ],
         Row(
@@ -242,13 +335,15 @@ class _ApprovalCardState extends State<ApprovalCard> {
             Expanded(
               child: FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-                onPressed: widget.busy ? null : () => widget.onDecide(true),
+                onPressed: widget.busy || _mailFactsMissing || !_approvable
+                    ? null
+                    : () => widget.onDecide(true),
                 child: widget.busy
                     ? const SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Permitir una vez'),
+                    : Text(_approveLabel),
               ),
             ),
             const SizedBox(width: Spacing.sm),
@@ -262,105 +357,6 @@ class _ApprovalCardState extends State<ApprovalCard> {
           ],
         ),
       ],
-    );
-  }
-}
-
-/// The monospaced command, or the host's question in body text when it asked.
-class _CommandBox extends StatelessWidget {
-  const _CommandBox({required this.line, required this.plain});
-
-  final String line;
-  final bool plain;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.md,
-        vertical: Spacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(line, style: plain ? context.text.body : context.text.mono),
-    );
-  }
-}
-
-/// The 403 without `APPROVE`: the canonical host line, selectable to copy, and
-/// the recheck for a grant made since.
-class _GrantNotice extends StatelessWidget {
-  const _GrantNotice({required this.command, this.onRecheck});
-
-  final String command;
-  final VoidCallback? onRecheck;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = context.text;
-    final colors = context.colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Este dispositivo no puede aprobar. En el host, ejecuta:',
-          style: text.bodySecondary,
-        ),
-        const SizedBox(height: Spacing.xs),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(Spacing.sm),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: SelectableText(command, style: text.mono),
-        ),
-        if (onRecheck != null) ...[
-          const SizedBox(height: Spacing.sm),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
-            onPressed: onRecheck,
-            child: const Text('Ya lo he concedido'),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, this.icon});
-
-  final String label;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.sm,
-        vertical: Spacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: colors.surface3,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: colors.textSecondary),
-            const SizedBox(width: Spacing.xs),
-          ],
-          Text(label, style: context.text.label),
-        ],
-      ),
     );
   }
 }

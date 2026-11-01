@@ -10,12 +10,15 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use hn_core_chat::{SeatActor, ToolError, ToolReply};
+use hn_core_chat::{
+    action_digest, new_ulid, ApprovalKind, NewApproval, Reader, SeatActor, ToolError, ToolReply,
+    DEFAULT_TTL_SECONDS,
+};
 use hn_core_seat::{
     approval_for, approval_result, canary_plan, run_canary, ApprovalAsk, ApprovalDecide,
     ApprovalRequest, CliProfile, UacState,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 
 use super::team::TeamService;
 use super::team_errors::tool_chat_error;
@@ -129,8 +132,49 @@ impl TeamService {
             )
             .map_err(tool_chat_error)?;
         Ok(ToolReply {
-            result: json!({ "approval": approval }),
+            result: json!({ "approval": approval.view(Reader::Other) }),
         })
+    }
+
+    /// Opens the question for a delete the user must approve, and answers at once: the
+    /// object goes only when the user approves it in the chat, never on the agent's
+    /// word. A question already waiting for the object is the one answered, so asking
+    /// twice never opens two.
+    pub(super) fn open_delete(
+        &self,
+        actor: &SeatActor,
+        tool: &str,
+        id_key: &str,
+        object_id: &str,
+        summary: String,
+    ) -> Result<Value, ToolError> {
+        // A fresh request id keeps each question its own: a denied one can be asked again.
+        let args = json!({ (id_key): object_id, "request": new_ulid() });
+        let approval = self
+            .chat
+            .create_delete_approval(NewApproval {
+                conversation_id: Some(actor.conversation_id.clone()).filter(|id| !id.is_empty()),
+                seat_id: None,
+                agent_label: None,
+                run_id: None,
+                pane_id: None,
+                kind: ApprovalKind::Tool,
+                tool: tool.to_string(),
+                summary,
+                cwd: None,
+                paths: Vec::new(),
+                risk: None,
+                action_digest: action_digest("tool", tool, &args, "", &[]),
+                payload_redacted: Some(json!({ (id_key): object_id })),
+                ttl_seconds: DEFAULT_TTL_SECONDS,
+            })
+            .map_err(tool_chat_error)?;
+        Ok(json!({
+            "id": object_id,
+            "deleted": false,
+            "reason": "pending_approval",
+            "approval_id": approval.id,
+        }))
     }
 
     /// The approvals waiting at the level of this seat, in the shape the
@@ -140,8 +184,12 @@ impl TeamService {
             .chat
             .pending_for_approver(actor)
             .map_err(tool_chat_error)?;
+        let views: Vec<Value> = approvals
+            .iter()
+            .map(|approval| approval.view(Reader::Other))
+            .collect();
         Ok(ToolReply {
-            result: json!({ "approvals": approvals }),
+            result: json!({ "approvals": views }),
         })
     }
 }

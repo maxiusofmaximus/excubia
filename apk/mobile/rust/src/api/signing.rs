@@ -137,7 +137,7 @@ mod tests {
 
     const VECTORS: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../gateway/tests/vectors/signing_vectors.json"
+        "/../../../core/docs/contracts/vectors/signing_vectors.json"
     ));
 
     #[test]

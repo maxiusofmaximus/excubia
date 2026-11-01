@@ -238,4 +238,137 @@ void main() {
     expect(find.text('command Bash'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
+
+  group('a mail.move batch', () {
+    ChatApproval moveRecord({
+      String status = 'pending',
+      List<Map<String, Object?>>? items,
+    }) => parseApprovalRecord(
+      json: recordJson(moveRow(status: status, items: items)),
+    )!;
+
+    Widget moveCard(
+      ChatApproval approval, {
+      Set<String> unchecked = const <String>{},
+      void Function(String messageId, bool checked)? onToggle,
+    }) => MaterialApp(
+      theme: buildTheme(Brightness.light),
+      home: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ApprovalCard(
+            approval: approval,
+            agentName: 'Bob',
+            busy: false,
+            failure: null,
+            onDecide: (_) {},
+            unchecked: unchecked,
+            onMoveToggle: onToggle ?? (_, _) {},
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('one checkbox per mail, counted in the button', (tester) async {
+      await tester.pumpWidget(moveCard(moveRecord()));
+      expect(find.text('Bob quiere mover correos'), findsOneWidget);
+      expect(find.text('2 correos a mover'), findsOneWidget);
+      expect(find.byType(CheckboxListTile), findsNWidgets(2));
+      expect(
+        find.widgetWithText(FilledButton, 'Mover los seleccionados (2 de 2)'),
+        findsOneWidget,
+      );
+      expect(
+        tester.getSize(find.byType(CheckboxListTile).first).height,
+        greaterThanOrEqualTo(48),
+      );
+    });
+
+    testWidgets('an unchecked mail lowers the count; none left disables it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(moveCard(moveRecord(), unchecked: {'m1'}));
+      expect(
+        find.widgetWithText(FilledButton, 'Mover los seleccionados (1 de 2)'),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(moveCard(moveRecord(), unchecked: {'m1', 'm2'}));
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+      expect(find.text('Mover los seleccionados (0 de 2)'), findsOneWidget);
+    });
+
+    testWidgets('tapping a checkbox reports the mail and its new state', (
+      tester,
+    ) async {
+      String? toggled;
+      bool? checked;
+      await tester.pumpWidget(
+        moveCard(
+          moveRecord(),
+          onToggle: (messageId, value) {
+            toggled = messageId;
+            checked = value;
+          },
+        ),
+      );
+      await tester.tap(find.byType(CheckboxListTile).first);
+      expect(toggled, 'm1');
+      expect(checked, isFalse);
+    });
+
+    testWidgets('hostile mail text is shown as plain text', (tester) async {
+      const subject = '<b>Gana</b>\nahora mismo';
+      final reason = 'x' * 500;
+      await tester.pumpWidget(
+        moveCard(
+          moveRecord(
+            items: [
+              moveItem('m1', subject: subject, reason: reason),
+              moveItem('m2'),
+            ],
+          ),
+        ),
+      );
+      expect(find.text(subject), findsOneWidget);
+      expect(find.text(reason), findsOneWidget);
+    });
+
+    testWidgets(
+      'a decided batch shows no checkboxes and marks the mails left out',
+      (tester) async {
+        await tester.pumpWidget(
+          moveCard(
+            moveRecord(
+              status: 'approved',
+              items: [moveItem('m1'), moveItem('m2', excluded: true)],
+            ),
+          ),
+        );
+        expect(find.byType(CheckboxListTile), findsNothing);
+        expect(find.text('no se mueve'), findsOneWidget);
+        expect(find.text('Permitida una vez'), findsOneWidget);
+      },
+    );
+
+    testWidgets('a batch without its items asks to read the mail first', (
+      tester,
+    ) async {
+      final bare = parseApprovalRecord(
+        json: recordJson(approvalRow(tool: 'mail.move')),
+      )!;
+      await tester.pumpWidget(moveCard(bare));
+      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(
+        find.textContaining('No llegaron los datos del correo'),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+    });
+  });
 }

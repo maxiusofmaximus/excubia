@@ -1,72 +1,57 @@
 # herdr-notify
 
-Push notifications and a secure control plane for
+Live agent alerts and a secure control plane for
 [herdr](https://github.com/herdrdev/herdr) coding agents.
 
 When an agent running in herdr needs you — it hit an approval dialog, or it
 finished a task you asked for — your phone buzzes, and tapping it takes you
 straight to the answer. No terminal hunting, no pane-by-pane archaeology.
 
-## Status
+## Estado
 
-| Phase | What exists | Gate |
-|-------|-------------|------|
-| **F1** herdr client | Async client, gap-free bootstrap, live stream | 32 unit tests + 3 live tests green |
-| **F2** real-time state | `events.subscribe`, stream rotation, authoritative reducer | idempotent under replay; rolls up per workspace |
-| F3 Firebase | FCM HTTP v1 sender, push policy, dedup/cooldown | pending |
-| F4 control plane | HTTPS API + SSE, device tokens, Tailscale | pending |
-| F5 Android app | Compose app, FCM receiver, notifications | pending |
-| F6 GUI | Triage grid, agent detail, design system | pending |
-| F7 actions | Approve / respond via `agent.send_keys` and `agent.prompt` | pending |
-| F8 E2E | Deterministic ADB-driven tests on a real phone | pending |
-| F9 security | Audit with `cloudflare/security-audit-skill` | pending |
+Hitos y verificaciones: [`docs/roadmap.md`](docs/roadmap.md). Paridad con el
+gateway Python retirado: [`docs/PARITY-GATEWAY.md`](docs/PARITY-GATEWAY.md).
+
+| Crate | Qué hace |
+|-------|----------|
+| `hn-core-host` (bin `host`) | Hospeda agentes CLI: un pty por agente, detector y API local |
+| `hn-core-api` | API local HTTP + SSE con peticiones firmadas (contratos en `docs/contracts/`) |
+| `hn-core-auth` | Emparejamiento, verificación de firmas P-256 / Ed25519 y autorización |
+| `hn-core-state` | Estado autoritativo de los agentes |
+| `hn-core-detect` | Estado de cada agente a partir de manifiestos |
+| `hn-core-pty` | Pseudoterminal por agente |
+| `hn-core-pin` | Identidad TLS del host y la regla de pin que verifican los dispositivos |
+| `hn-core-chat`, `hn-core-mail`, `hn-core-asr`, `hn-core-seat`, `hn-core-media`, `hn-core-persist` | Chat persistente, borradores de Microsoft 365, voz a texto local, adaptador de CLIs reales, validación de imágenes, escritura atómica y secretos del Administrador de credenciales |
 
 ## Architecture
 
 ```
-herdr server  ──NDJSON──▶  gateway (Python, runs beside herdr)
-                                │
-                                ├─ herdr client     subscribe + request/response
-                                ├─ state store      authoritative reduced session
-                                ├─ attention ranker blocked ▸ done ▸ working ▸ idle
-                                ├─ push policy      dedup, cooldown, budget
-                                └─ HTTP API         127.0.0.1 only
-                                       │
-                        ┌──────────────┴───────────────┐
-                    FCM HTTP v1                  Tailscale serve
-                        │                              │
-                        └──────────▶ 📱 Android ◀──────┘
-                                   push + live SSE
+agentes CLI ──pty──▶ hn-core-host ──detect──▶ hn-core-state
+                          │
+          ┌───────────────┴────────────────┐
+     hn-core-api
+  HTTP + SSE firmado
+          │
+     clientes (android/)
 ```
 
-**No port is exposed to the internet.** The gateway binds loopback; Tailscale
-publishes it over TLS inside the tailnet. Interactive SSH, when wanted, is
-Tailscale SSH — Ed25519 keys, no `sshd` install, no forwarded port.
+La identidad TLS del host y su pin viven en `hn-core-pin`; el rechazo de
+direcciones comodín en `--bind` está en `crates/host/src/cli/run.rs`.
 
 ## Layout
 
 ```
-gateway/     Python 3.13 · herdr client, state store, (soon) push + API
-android/     Kotlin · Jetpack Compose app
-e2e/         Deterministic ADB-driven end-to-end scenarios
-tooling/     Firebase bootstrap, wireless-device pairing
-docs/        Protocol notes, threat model, setup guides
-security/    Audit artefacts (coverage ledger, findings, report)
+crates/      núcleo Rust: workspace de 15 crates
+android/     app Kotlin · Jetpack Compose (cliente)
+tooling/     scripts PowerShell y plugin de UAC para opencode
+docs/        contratos (docs/contracts/), RFC, roadmap, notas del núcleo
 ```
 
 ## Quick start
 
 ```bash
-cd gateway
-uv venv --python 3.13 .venv
-uv pip install --python .venv/Scripts/python.exe -e ".[dev]"
-
-# Does the herdr endpoint resolve, and is the server answering?
-.venv/Scripts/python.exe -m herdr_notify.cli doctor --ping
-
-# What does herdr look like right now?
-.venv/Scripts/python.exe -m herdr_notify.cli dump
-PYTHONPATH=src .venv/Scripts/python.exe -m herdr_notify.cli dump --follow
+cargo build --workspace
+cargo run -p hn-core-host --bin host -- --help   # imprime el uso
 ```
 
 ## Migrar desde el gateway Python
@@ -86,17 +71,13 @@ host devices import-gateway /ruta/a/devices.json --force   # reemplaza claves en
 ## Testing
 
 ```bash
-cd gateway
-.venv/Scripts/python.exe -m pytest              # 32 unit tests, hermetic
-.venv/Scripts/python.exe -m pytest -m integration   # 3 tests, needs a running herdr
-.venv/Scripts/python.exe -m ruff check src tests
-.venv/Scripts/python.exe -m mypy src
+cargo fmt --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
 ```
 
-Unit tests drive a scriptable in-process fake of herdr's API rather than a live
-session, because the behaviour worth testing — subscribe-before-snapshot,
-rotation without losing an event, idempotence under replay — is timing behaviour,
-and mutating a real coding session to exercise it is not an acceptable trade.
+Los vectores dorados de firma viven en `docs/contracts/vectors/signing_vectors.json`
+y los comprueba `hn-core-test-support`.
 
 JavaScript del worktree: pnpm o vp; no npm.
 
@@ -110,12 +91,15 @@ request per connection, subscription sets are frozen at subscribe time,
 read/write position plus `CloseHandle` deadlock are both real and both fail
 confusingly.
 
+(El cliente Python que implementaba esa lógica está retirado con el gateway.)
+
 ## Seguridad
 
-Sin token estático: cada dispositivo es una clave pública P-256 que el host
-registra y firma cada petición; el host puede revocarla y los permisos son por
-dispositivo. El gateway rechaza direcciones comodín (`0.0.0.0`, `::`) y corre
-solo dentro de Tailscale (más loopback). Ver `docs/contracts/auth.md`.
+Sin token estático: cada dispositivo se identifica con una clave pública
+(P-256 o Ed25519, `crates/auth/src/curve.rs`) y firma sus peticiones; el host
+guarda solo el hash del código de recuperación (`crates/auth/src/store/file.rs`).
+`--bind` rechaza direcciones comodín (`0.0.0.0`, `::`)
+(`crates/host/src/cli/run.rs`). Contratos: `docs/contracts/auth.md`.
 
 Configuración local (no versionada): copia `android/local.properties` con
 `gatewayUrl=http://<tu-ip-tailscale>:8788` y `tailnetHosts=<tu-ip-tailscale>`.
@@ -123,16 +107,15 @@ Sin ese fichero la app compila con placeholders inocuos.
 
 ## Security posture
 
-The gateway is the crown jewel: it holds a socket that can drive any coding agent
-on the machine. Design rules already in place:
+El host supervisa los ptys de los agentes, así que es la parte sensible:
 
-- The client may only ask for **typed actions**. It can never name a herdr
-  method, so there is no arbitrary-invocation surface.
-- The resolved herdr endpoint is pinned inside herdr's config directory, so a
-  tampered `HERDR_SOCKET_PATH` cannot redirect the control plane.
-- Event payloads are treated as untrusted; an unrecognised status or event name
-  is dropped rather than stored.
-- Secrets are gitignored, and the FCM service account is referenced by path, not
-  embedded.
+- Las acciones sobre agentes son un trait tipado, `AgentActions`
+  (`crates/api/src/lib.rs`), implementado por el host (`crates/host/src/actions.rs`).
+- Las imágenes subidas se validan por su cabecera real y se recodifican a WebP,
+  solo píxeles (`crates/media`).
+- Los dispositivos verifican la identidad TLS del host por pin (`crates/pin`).
+- Secretos fuera de git: `service-account*.json` y `google-services.json`
+  (`.gitignore`).
 
-Formal audit: phase F9.
+Revisión de seguridad previa: [`docs/security-review.md`](docs/security-review.md)
+(su alcance es el gateway retirado).

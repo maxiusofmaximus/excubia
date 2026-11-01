@@ -1,4 +1,7 @@
 import { $ } from "./core.js";
+import { paintAvatar } from "./avatar.js";
+import { EMPTY_TEXT, FILTERS } from "./chat-filter-model.js";
+import { progressText } from "./chat-progress-model.js";
 
 const dayNames = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -25,11 +28,12 @@ export function formatWhen(iso) {
   return `${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-function row(conversation, selectedId) {
+// `view` is { selectedId, progress }: the open conversation and the steps of the running ones.
+function row(conversation, view) {
   const element = document.createElement("div");
   element.className = "chat-row";
   element.dataset.id = conversation.id;
-  if (conversation.id === selectedId) element.classList.add("is-active");
+  if (conversation.id === view.selectedId) element.classList.add("is-active");
   if (conversation.unread > 0) element.classList.add("is-unread");
 
   const main = document.createElement("button");
@@ -53,7 +57,9 @@ function row(conversation, selectedId) {
   if (conversation.archived) parts.push("archivado");
   if (when) parts.push(when);
   if (conversation.unread) parts.push(`${conversation.unread} sin leer`);
-  meta.textContent = parts.length ? `Alfred · ${parts.join(" · ")}` : "Sin mensajes";
+  const step = progressText(view.progress, conversation.id);
+  if (step) meta.textContent = `Alfred · ${step}`;
+  else meta.textContent = parts.length ? `Alfred · ${parts.join(" · ")}` : "Sin mensajes";
   main.append(title, meta);
 
   if (conversation.unread) {
@@ -85,7 +91,7 @@ function caption(title) {
   return element;
 }
 
-function group(title, conversations, selectedId, options = {}) {
+function group(title, conversations, view, options = {}) {
   const element = document.createElement("section");
   element.className = "group";
   const head = document.createElement("div");
@@ -103,7 +109,7 @@ function group(title, conversations, selectedId, options = {}) {
   }
   element.append(head);
   for (const conversation of conversations) {
-    element.append(row(conversation, selectedId));
+    element.append(row(conversation, view));
   }
   return element;
 }
@@ -112,7 +118,7 @@ export function renderHistory(chat) {
   const groups = $("chat-groups");
   groups.replaceChildren();
   const home = chat.home;
-  const selectedId = chat.conversation ? chat.conversation.id : null;
+  const view = { selectedId: chat.conversation ? chat.conversation.id : null, progress: chat.progress };
 
   if (!home) {
     for (let index = 0; index < 4; index += 1) {
@@ -137,7 +143,7 @@ export function renderHistory(chat) {
       groups.append(empty);
     } else {
       groups.append(
-        group(`Resultados · ${chat.searchResults.length}`, chat.searchResults, selectedId),
+        group(`Resultados · ${chat.searchResults.length}`, chat.searchResults, view),
       );
     }
     return;
@@ -150,7 +156,20 @@ export function renderHistory(chat) {
       empty.textContent = "No hay conversaciones archivadas.";
       groups.append(empty);
     } else {
-      groups.append(group("Archivados", archived, selectedId));
+      groups.append(group("Archivados", archived, view));
+    }
+    return;
+  }
+
+  if (chat.filter !== "all") {
+    const rows = chat.filtered || [];
+    if (!rows.length) {
+      const empty = document.createElement("p");
+      empty.className = "history-empty";
+      empty.textContent = EMPTY_TEXT[chat.filter];
+      groups.append(empty);
+    } else {
+      groups.append(group(FILTERS.find((filter) => filter.id === chat.filter).label, rows, view));
     }
     return;
   }
@@ -173,19 +192,19 @@ export function renderHistory(chat) {
     (conversation) => !conversation.pinned && !inSections.includes(conversation),
   );
 
-  if (pinned.length) groups.append(group("Fijados", pinned, selectedId));
-  if (recent.length) groups.append(group("Recientes", recent, selectedId));
+  if (pinned.length) groups.append(group("Fijados", pinned, view));
+  if (recent.length) groups.append(group("Recientes", recent, view));
 
   if (sections.length) {
     groups.append(caption("Secciones"));
     for (const section of sections) {
       const rows = inSections.filter((conversation) => conversation.section_id === section.id);
-      groups.append(group(section.name, rows, selectedId));
+      groups.append(group(section.name, rows, view));
     }
   }
   if (archived.length) {
     groups.append(
-      group(`Archivados · ${archived.length}`, [], selectedId, {
+      group(`Archivados · ${archived.length}`, [], view, {
         action: "toggle-archived",
         actionLabel: "Ver",
       }),
@@ -258,6 +277,12 @@ export function renderSide(chat, agents) {
   const bootstrap = chat.home ? chat.home.bootstrap : null;
   const alfred = bootstrap ? bootstrap.alfred : null;
   $("side-alfred-name").textContent = alfred ? alfred.name : "Alfred";
+  paintAvatar($("side-alfred-avatar"), {
+    name: alfred ? alfred.name : "Alfred",
+    characterId: "alfred",
+    status: alfred && alfred.status,
+    px: 30,
+  });
   $("side-alfred-status").textContent = alfred
     ? `CTO · ${SEAT_STATUS[alfred.status] || alfred.status || "disponible"}`
     : "Sin conexión";

@@ -1,0 +1,17 @@
+[package]
+name = "hn-core-media"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Validates uploaded images by their real header and re-encodes them to WebP without metadata"
+
+[[bin]]
+name = "hn-media-worker"
+path = "src/bin/hn-media-worker.rs"
+
+[dependencies]
+hex.workspace = true
+image = { workspace = true, features = ["png", "jpeg", "webp"] }
+sha2.workspace = true
+thiserror.workspace = true
+webp.workspace = true

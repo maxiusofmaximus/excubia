@@ -12,7 +12,7 @@
 }
 
 .timeline:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: -4px;
 }
 
@@ -106,6 +106,81 @@
   font-style: italic;
 }
 
+/* The quoted line leads a reply's bubble; a click goes to the original. */
+.msg-quote {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  margin: 0 0 6px;
+  padding: 4px 8px;
+  border: 0;
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+/* A quoted original that was just scrolled to. */
+.msg.is-flash .msg-bubble {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* «Responder» shows on hover or on keyboard focus, never where it cannot be reached. */
+.msg-reply {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.msg:hover .msg-reply,
+.msg-reply:focus-visible,
+.msg:focus-within .msg-reply {
+  opacity: 1;
+}
+
+.msg-reply:hover {
+  color: var(--accent-text);
+}
+
+.msg-reply:focus-visible,
+.msg-quote:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The step of the operator's turn, under its last bubble. */
+.msg-status {
+  padding: 0 3px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.msg-status.is-failed {
+  color: var(--blocked);
+}
+
+/* The step of the open turn: plain text under the status line, one line. */
+.msg-progress {
+  padding: 0 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .msg-meta {
   display: flex;
   align-items: center;
@@ -131,7 +206,7 @@
   padding: 0 2px;
   border: 0;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -143,7 +218,7 @@
 }
 
 .inline-retry:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 1px;
   border-radius: 4px;
 }
@@ -214,7 +289,7 @@
 
 .error-card.info .error-icon {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .error-body {
@@ -311,22 +386,10 @@
   text-align: center;
 }
 
+/* The welcome face is an .avatar painted by ui/avatar.js at 68 px. */
 .empty-alfred {
-  display: grid;
-  place-items: center;
-  width: 68px;
-  height: 68px;
   margin-bottom: 15px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.18), transparent 48%),
-    linear-gradient(155deg, var(--accent), #4b3fb5);
-  border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--line));
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 700;
-  box-shadow: 0 16px 36px rgba(70, 50, 180, 0.25);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
 }
 
 .chat-empty h2 {
@@ -374,7 +437,7 @@
 }
 
 .suggestion:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -423,8 +486,8 @@
 }
 
 .chat-composer:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(139, 124, 246, 0.14);
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.14);
 }
 
 .chat-composer textarea {
@@ -439,7 +502,7 @@
   font-size: 13.5px;
   line-height: 1.5;
   resize: none;
-  caret-color: var(--accent);
+  caret-color: var(--accent-text);
 }
 
 .chat-composer textarea::placeholder {
@@ -466,17 +529,17 @@
   border: 0;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition: filter 0.15s ease, opacity 0.15s ease;
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #a99cf9;
+  filter: brightness(1.06);
 }
 
 .send-btn:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 3px;
 }
 
@@ -484,6 +547,56 @@
   background: var(--raised-2);
   color: var(--muted);
   cursor: not-allowed;
+}
+
+/* While a turn is open the send button stops it instead. */
+.send-btn .icon-stop {
+  display: none;
+}
+
+.send-btn.is-stop .icon-send {
+  display: none;
+}
+
+.send-btn.is-stop .icon-stop {
+  display: block;
+}
+
+.send-btn.is-stop {
+  background: var(--raised-2);
+  color: var(--accent-text);
+}
+
+.send-btn.is-stop:disabled {
+  color: var(--muted);
+}
+
+/* «Ir al final» floats over the thread, above the composer. */
+.thread {
+  position: relative;
+}
+
+.chat-jump {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  z-index: 2;
+  min-height: 32px;
+  padding: 0 14px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.chat-jump:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
 }
 
 .composer-hint {

@@ -7,7 +7,7 @@
 
 use axum::body::{to_bytes, Body};
 use axum::extract::{ConnectInfo, Request, State};
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, Method};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use subtle::ConstantTimeEq;
@@ -19,6 +19,8 @@ use hn_core_auth::{
 use hn_core_chat::{HookScope, HookTokenUse};
 
 use crate::error::ApiError;
+use crate::routes::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
+use crate::voice::{self, MAX_VOICE_BODY_BYTES};
 use crate::{ApiContext, PeerAddr};
 
 /// The header a hook presents its host token in.
@@ -56,7 +58,7 @@ async fn authenticate_inner(ctx: &ApiContext, request: Request) -> Result<Reques
         .path_and_query()
         .map(|path| path.as_str().to_string())
         .unwrap_or_else(|| parts.uri.path().to_string());
-    let bytes = to_bytes(body, MAX_SIGNED_BODY_BYTES)
+    let bytes = to_bytes(body, body_limit(&parts.method, parts.uri.path()))
         .await
         .map_err(|_| ApiError::body_too_large())?;
 
@@ -86,6 +88,17 @@ async fn authenticate_inner(ctx: &ApiContext, request: Request) -> Result<Reques
 
     parts.extensions.insert(verified);
     Ok(Request::from_parts(parts, Body::from(bytes)))
+}
+
+/// The cap a signed body is read under. The voice note is the one route with a larger one.
+fn body_limit(method: &Method, path: &str) -> usize {
+    if *method == Method::POST && path == voice::TRANSCRIBE_PATH {
+        MAX_VOICE_BODY_BYTES
+    } else if *method == Method::POST && path == IMPORT_PATH {
+        MAX_ICS_BODY_BYTES
+    } else {
+        MAX_SIGNED_BODY_BYTES
+    }
 }
 
 fn consume_budget(

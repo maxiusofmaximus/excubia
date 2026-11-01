@@ -340,7 +340,7 @@ async fn the_real_host_answers_three_turns_and_keeps_order_across_a_restart() {
 
     // Search reaches the message body.
     let found = client
-        .chat_conversations(Some("recibido"), None, false, false)
+        .chat_conversations(Some("recibido"), None, false, false, None)
         .await
         .expect("buscar");
     assert!(found.conversations.iter().any(|row| row.id == id));

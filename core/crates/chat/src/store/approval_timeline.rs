@@ -7,8 +7,11 @@ use crate::error::ChatError;
 use crate::model::{ApprovalLine, TimelineEntry, TimelinePage};
 use crate::model_team::Card;
 
+use super::calendar_card::load_calendar_cards;
 use super::conversation_exists;
-use super::messages::load_desc;
+use super::mail_card::load_mail_cards;
+use super::mail_draft_card::load_mail_draft_cards;
+use super::messages::load_timeline_messages;
 
 impl super::ChatStore {
     pub fn timeline(
@@ -24,15 +27,31 @@ impl super::ChatStore {
         }
         // Messages and cards share the `seq` namespace. Reading one extra of
         // each and merging in memory keeps one pagination rule for both.
-        let mut entries = load_desc(&connection, conversation_id, before_seq, limit + 1)?
-            .iter()
-            .map(TimelineEntry::message)
-            .collect::<Vec<_>>();
+        let mut entries =
+            load_timeline_messages(&connection, conversation_id, before_seq, limit + 1)?;
         entries.extend(
             load_cards(&connection, conversation_id, before_seq, limit + 1)?
                 .iter()
                 .map(Card::timeline_entry),
         );
+        entries.extend(load_mail_cards(
+            &connection,
+            conversation_id,
+            before_seq,
+            limit + 1,
+        )?);
+        entries.extend(load_mail_draft_cards(
+            &connection,
+            conversation_id,
+            before_seq,
+            limit + 1,
+        )?);
+        entries.extend(load_calendar_cards(
+            &connection,
+            conversation_id,
+            before_seq,
+            limit + 1,
+        )?);
         entries.extend(load_lines(
             &connection,
             conversation_id,

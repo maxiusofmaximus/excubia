@@ -51,9 +51,34 @@ pub(crate) fn identifier(raw: &str) -> bool {
         })
 }
 
+/// The longest mail draft id the host takes (`routes/mail_send.rs`).
+const DRAFT_ID_MAX_CHARS: usize = 512;
+
+/// A mail draft id is the provider's own: Graph issues ~140 characters of
+/// URL-safe base64, `=` padding included. Only that alphabet is taken, so the
+/// id cannot change the route or the JSON shape.
+pub(crate) fn draft_id(raw: &str) -> bool {
+    !raw.is_empty()
+        && raw.len() <= DRAFT_ID_MAX_CHARS
+        && raw.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '=')
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_graph_sized_draft_id_is_a_draft_id() {
+        let graph = format!("AQMkADAw{}==", "x".repeat(130));
+        assert_eq!(graph.len(), 140);
+        assert!(draft_id(&graph));
+        assert!(!draft_id(""));
+        assert!(!draft_id("with space"));
+        assert!(!draft_id("dft_1/../x"));
+        assert!(!draft_id(&"x".repeat(513)));
+    }
 
     #[test]
     fn text_is_trimmed_and_bounded() {

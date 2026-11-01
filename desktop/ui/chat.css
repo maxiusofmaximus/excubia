@@ -67,7 +67,7 @@
 }
 
 .nav-tab:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -230,7 +230,7 @@
 }
 
 .group-head .group-action:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -273,7 +273,7 @@
 }
 
 .chat-row-main:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -338,7 +338,7 @@
 }
 
 .row-more:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 1px;
 }
 
@@ -376,7 +376,7 @@
   min-width: 0;
   min-height: 0;
   background:
-    radial-gradient(620px 240px at 82% -20%, rgba(139, 124, 246, 0.055), transparent 70%),
+    radial-gradient(620px 240px at 82% -20%, rgba(var(--accent-rgb), 0.055), transparent 70%),
     var(--bg);
 }
 
@@ -580,7 +580,7 @@
 }
 
 .side-row:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 1px;
 }
 
@@ -743,6 +743,145 @@
   .chat-banner {
     margin: 10px 12px 0;
   }
+}
+
+/* History chips: the host filters, the counts are its own. */
+.chat-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 8px;
+}
+
+.chat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chat-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.chat-chip-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--raised-2);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-align: center;
+}
+
+/* The bar over the composer names the message the next send answers. */
+.chat-reply {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 4px 6px 4px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.chat-reply #chat-reply-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-reply-cancel {
+  min-width: 32px;
+  min-height: 32px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Quick answers under the last agent message, aligned with its bubble. */
+.quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 0 0 38px;
+}
+
+.quick-reply {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.quick-reply:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.quick-reply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chat-chip:focus-visible,
+.chat-reply-cancel:focus-visible,
+.quick-reply:focus-visible,
+.bubble-menu button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The right-click menu of a bubble: one item, placed where the click was. */
+.bubble-menu {
+  position: fixed;
+  z-index: 30;
+  min-width: 128px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.bubble-menu button {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bubble-menu button:hover {
+  background: var(--accent-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {

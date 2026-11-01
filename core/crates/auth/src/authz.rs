@@ -8,6 +8,11 @@
 use crate::error::{AuthzReason, Forbidden};
 use crate::store::Permission;
 
+mod agenda;
+mod hires;
+use agenda::agenda_rule;
+use hires::hire_rule;
+
 /// How an endpoint is priced against the rate limiters.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Budget {
@@ -52,6 +57,15 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
     if let Some(rule) = chat_rule(method.as_str(), &segments) {
         return Ok(rule);
     }
+    if let Some(rule) = mail_send_rule(method.as_str(), &segments) {
+        return Ok(rule);
+    }
+    if let Some(rule) = hire_rule(method.as_str(), &segments) {
+        return Ok(rule);
+    }
+    if let Some(rule) = agenda_rule(method.as_str(), &segments) {
+        return Ok(rule);
+    }
 
     match (method.as_str(), path) {
         // Public by design; listed so the matrix is auditable in one place.
@@ -68,9 +82,19 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         ("GET", "/v1/state") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/events") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/catalog") => Ok(rule(Permission::ReadState, Budget::Read)),
+        ("GET", "/v1/roles") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/devices") => Ok(rule(Permission::Admin, Budget::Read)),
+        // The mail logins create accounts on the host: an admin surface, and
+        // the listing names the accounts, so it is not for ReadState devices.
+        ("POST", "/v1/mail/login/start") => Ok(rule(Permission::Admin, Budget::Write)),
+        ("GET", "/v1/mail/login/status") => Ok(rule(Permission::Admin, Budget::Read)),
+        ("GET", "/v1/mail/accounts") => Ok(rule(Permission::Admin, Budget::Read)),
         // Starting a conversation launches an agent on the host.
         ("POST", "/v1/workspaces") => Ok(rule(Permission::Respond, Budget::Write)),
+        // A voice note is a message in other form: the same permission, the same budget.
+        ("POST", "/v1/voice/transcribe") => Ok(rule(Permission::Respond, Budget::Write)),
+        // A device names its own push endpoint: a write to its own record only.
+        ("POST", "/v1/me/push-endpoint") => Ok(rule(Permission::ReadState, Budget::Write)),
         _ if device_action == Some("revoke") => Ok(rule(Permission::Admin, Budget::Write)),
         _ => match agent_action {
             Some("respond") => Ok(rule(Permission::Respond, Budget::Write)),
@@ -85,6 +109,32 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
     }
 }
 
+/// The mail send matrix (MAIL2A). Sending, cancelling and reading a send are the
+/// operator's `APPROVE` grant, which no agent holds. Granting or revoking the
+/// send consent is `ADMIN`, like the login that creates the account.
+fn mail_send_rule(method: &str, segments: &[&str]) -> Option<EndpointRule> {
+    let rule = match (segments, method) {
+        (["", "v1", "mail", "drafts", _id], "GET") => rule(Permission::Approve, Budget::Read),
+        (["", "v1", "mail", "drafts", _id, "send"], "POST") => {
+            rule(Permission::Approve, Budget::Write)
+        }
+        (["", "v1", "mail", "drafts", _id, "update"], "POST") => {
+            rule(Permission::Approve, Budget::Write)
+        }
+        (["", "v1", "mail", "sends", _id, "cancel"], "POST") => {
+            rule(Permission::Approve, Budget::Write)
+        }
+        (["", "v1", "mail", "sends", _id], "GET") => rule(Permission::Approve, Budget::Read),
+        (["", "v1", "mail", "send", "enable"], "POST") => rule(Permission::Admin, Budget::Write),
+        (["", "v1", "mail", "send", "enable", "status"], "GET") => {
+            rule(Permission::Admin, Budget::Read)
+        }
+        (["", "v1", "mail", "send", "disable"], "POST") => rule(Permission::Admin, Budget::Write),
+        _ => return None,
+    };
+    Some(rule)
+}
+
 /// The `/v1/chat` matrix (`orchestrator-chat.md` §3): reads are `READ_STATE`,
 /// mutations are `RESPOND`, and the read cursor is as cheap as `seen`.
 fn chat_rule(method: &str, segments: &[&str]) -> Option<EndpointRule> {
@@ -92,10 +142,16 @@ fn chat_rule(method: &str, segments: &[&str]) -> Option<EndpointRule> {
         (["", "v1", "chat", "bootstrap"], "GET") => rule(Permission::ReadState, Budget::Read),
         (["", "v1", "chat", "conversations"], "GET") => rule(Permission::ReadState, Budget::Read),
         (["", "v1", "chat", "conversations"], "POST") => rule(Permission::Respond, Budget::Write),
+        (["", "v1", "chat", "conversations", "counts"], "GET") => {
+            rule(Permission::ReadState, Budget::Read)
+        }
         (["", "v1", "chat", "conversations", _id], "GET") => {
             rule(Permission::ReadState, Budget::Read)
         }
         (["", "v1", "chat", "conversations", _id, "update"], "POST") => {
+            rule(Permission::Respond, Budget::Write)
+        }
+        (["", "v1", "chat", "conversations", _id], "DELETE") => {
             rule(Permission::Respond, Budget::Write)
         }
         (["", "v1", "chat", "conversations", _id, "timeline"], "GET") => {
@@ -114,6 +170,29 @@ fn chat_rule(method: &str, segments: &[&str]) -> Option<EndpointRule> {
         }
         (["", "v1", "chat", "conversations", _id, "cancel"], "POST") => {
             rule(Permission::Respond, Budget::Write)
+        }
+        (["", "v1", "chat", "conversations", _id, "stop"], "POST") => {
+            rule(Permission::Respond, Budget::Write)
+        }
+        // Attachments: the upload is the human's `RESPOND`; reading the bytes is `READ_STATE`.
+        (["", "v1", "chat", "conversations", _id, "attachments"], "POST") => {
+            rule(Permission::Respond, Budget::Write)
+        }
+        (["", "v1", "chat", "conversations", _id, "attachments", _att], "GET") => {
+            rule(Permission::ReadState, Budget::Read)
+        }
+        (["", "v1", "chat", "conversations", _id, "attachments", _att], "DELETE") => {
+            rule(Permission::Respond, Budget::Write)
+        }
+        // A 10 MiB image is 80 chunks: they take the read budget (120/min), not the write one (30/min).
+        (["", "v1", "chat", "conversations", _id, "attachments", _att, "chunks"], "POST") => {
+            rule(Permission::Respond, Budget::Read)
+        }
+        (["", "v1", "chat", "conversations", _id, "attachments", _att, "complete"], "POST") => {
+            rule(Permission::Respond, Budget::Write)
+        }
+        (["", "v1", "chat", "conversations", _id, "attachments", _att, "content"], "GET") => {
+            rule(Permission::ReadState, Budget::Read)
         }
         (["", "v1", "chat", "delegations", _id], "GET") => {
             rule(Permission::ReadState, Budget::Read)
@@ -158,129 +237,4 @@ pub fn authorize(permissions: &[Permission], rule: &EndpointRule) -> Result<(), 
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn the_matrix_classifies_every_route() {
-        assert_eq!(
-            classify("GET", "/v1/state").unwrap().permission,
-            Some(Permission::ReadState)
-        );
-        assert_eq!(
-            classify("GET", "/v1/state?x=1").unwrap().budget,
-            Budget::Read,
-            "the query string is not part of the match"
-        );
-        assert_eq!(
-            classify("POST", "/v1/agents/w1:p1/respond")
-                .unwrap()
-                .permission,
-            Some(Permission::Respond)
-        );
-        assert_eq!(
-            classify("POST", "/v1/agents/w1:p1/keys")
-                .unwrap()
-                .permission,
-            Some(Permission::SendKey)
-        );
-        assert_eq!(
-            classify("POST", "/v1/agents/w1:p1/seen").unwrap().budget,
-            Budget::None
-        );
-        assert_eq!(
-            classify("GET", "/v1/devices").unwrap().permission,
-            Some(Permission::Admin)
-        );
-        assert_eq!(
-            classify("POST", "/v1/devices/dev-1/revoke").unwrap().budget,
-            Budget::Write
-        );
-        assert_eq!(
-            classify("POST", "/v1/workspaces").unwrap().permission,
-            Some(Permission::Respond)
-        );
-        assert_eq!(
-            classify("GET", "/v1/catalog").unwrap().permission,
-            Some(Permission::ReadState)
-        );
-        assert_eq!(
-            classify("POST", "/v1/agents/w1:p1/stop")
-                .unwrap()
-                .permission,
-            Some(Permission::Respond)
-        );
-        assert!(classify("DELETE", "/v1/state").is_err(), "fails closed");
-        assert!(classify("POST", "/v1/nope").is_err(), "no rule, no entry");
-    }
-
-    #[test]
-    fn the_chat_matrix_separates_reads_from_writes() {
-        let reads = [
-            ("GET", "/v1/chat/bootstrap"),
-            ("GET", "/v1/chat/conversations"),
-            ("GET", "/v1/chat/conversations/cnv_1"),
-            ("GET", "/v1/chat/conversations/cnv_1/timeline"),
-            ("GET", "/v1/chat/conversations/cnv_1/messages"),
-            ("GET", "/v1/chat/sections"),
-        ];
-        for (method, path) in reads {
-            let rule = classify(method, path).expect(path);
-            assert_eq!(rule.permission, Some(Permission::ReadState), "{path}");
-            assert_eq!(rule.budget, Budget::Read, "{path}");
-        }
-        let writes = [
-            ("POST", "/v1/chat/conversations"),
-            ("POST", "/v1/chat/conversations/cnv_1/update"),
-            ("POST", "/v1/chat/conversations/cnv_1/messages"),
-            ("POST", "/v1/chat/sections"),
-        ];
-        for (method, path) in writes {
-            let rule = classify(method, path).expect(path);
-            assert_eq!(rule.permission, Some(Permission::Respond), "{path}");
-            assert_eq!(rule.budget, Budget::Write, "{path}");
-        }
-        let read = classify("POST", "/v1/chat/conversations/cnv_1/read").expect("read");
-        assert_eq!(read.permission, Some(Permission::ReadState));
-        assert_eq!(read.budget, Budget::None);
-        assert!(classify("DELETE", "/v1/chat/conversations/cnv_1").is_err());
-        assert!(classify("POST", "/v1/chat/bootstrap").is_err());
-    }
-
-    /// The approval surface: the inbox is a read and the decision spends the
-    /// `APPROVE` grant, which nothing else does.
-    #[test]
-    fn the_approval_matrix_separates_the_inbox_from_the_decision() {
-        let inbox = classify("GET", "/v1/chat/approvals").expect("inbox");
-        assert_eq!(inbox.permission, Some(Permission::ReadState));
-        assert_eq!(inbox.budget, Budget::Read);
-        let decision = classify("POST", "/v1/chat/approvals/apr_1/decision").expect("decision");
-        assert_eq!(decision.permission, Some(Permission::Approve));
-        assert_eq!(decision.budget, Budget::Write);
-        // The hook routes are not device routes: they carry no rule and fail
-        // closed for a signed client.
-        assert!(classify("POST", "/v1/chat/approvals").is_err());
-        assert!(classify("GET", "/v1/chat/approvals/apr_1").is_err());
-        assert!(classify("POST", "/v1/chat/approvals/apr_1/consume").is_err());
-    }
-
-    #[test]
-    fn changing_the_approval_mode_needs_approve_not_admin() {
-        let read = classify("GET", "/v1/chat/approvals/settings").expect("settings");
-        assert_eq!(read.permission, Some(Permission::ReadState));
-        let change = classify("POST", "/v1/chat/approvals/settings").expect("change");
-        assert_eq!(change.permission, Some(Permission::Approve));
-        assert_eq!(change.budget, Budget::Write);
-        let admin_only = [Permission::Admin];
-        assert!(authorize(&admin_only, &change).is_err());
-    }
-
-    #[test]
-    fn a_grant_is_required_for_protected_routes() {
-        let respond = classify("POST", "/v1/agents/w1:p1/respond").unwrap();
-        assert!(authorize(&[Permission::ReadState], &respond).is_err());
-        assert!(authorize(&[Permission::ReadState, Permission::Respond], &respond).is_ok());
-        let health = classify("GET", "/v1/health").unwrap();
-        assert!(authorize(&[], &health).is_ok());
-    }
-}
+mod tests;

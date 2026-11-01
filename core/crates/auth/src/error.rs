@@ -2,6 +2,7 @@
 //! library-level reasons, kept separate so the caller can log the specific one
 //! while answering uniformly.
 
+use hn_core_persist::RandomError;
 use thiserror::Error;
 
 use crate::store::Permission;
@@ -18,6 +19,8 @@ pub enum StoreError {
     Version(u32),
     #[error("no data directory available for the trust store")]
     NoDataDir,
+    #[error(transparent)]
+    Random(#[from] RandomError),
 }
 
 /// A signed request was refused. The caller answers a uniform `401`.
@@ -49,13 +52,41 @@ pub enum AuthzReason {
 
 /// An enrollment code was unknown, expired, already used, or the request
 /// could not register the device it named. The caller answers a uniform
-/// `403 pairing_rejected` when a code was supplied.
+/// `403 pairing_rejected` when a code was supplied. A failure of the host
+/// itself (no entropy) is `internal`: the caller answers `500`, not a refusal
+/// the client would blame on the code.
 #[derive(Debug, Error)]
-#[error("enrollment rejected: {0}")]
-pub struct EnrollmentRejected(pub String);
+#[error("enrollment rejected: {message}")]
+pub struct EnrollmentRejected {
+    pub message: String,
+    pub internal: bool,
+}
 
 impl EnrollmentRejected {
     pub fn new(message: impl Into<String>) -> Self {
-        Self(message.into())
+        Self {
+            message: message.into(),
+            internal: false,
+        }
+    }
+}
+
+impl From<RandomError> for EnrollmentRejected {
+    fn from(error: RandomError) -> Self {
+        Self {
+            message: error.to_string(),
+            internal: true,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_random_failure_is_internal_and_a_bad_code_is_not() {
+        assert!(EnrollmentRejected::from(RandomError).internal);
+        assert!(!EnrollmentRejected::new("unknown").internal);
     }
 }

@@ -1,7 +1,10 @@
 import { app, $, invoke, toast } from "./core.js";
+import { avatarElement } from "./avatar.js";
 import { agentTitle, errorMessage, statusLabel, subtitle } from "./format.js";
 import { openDetail } from "./detail.js";
 import { chat, chatAfterConnect, chatOnConnection } from "./chat.js";
+import { teamCountLabel } from "./hires-model.js";
+import { teamHired } from "./hires.js";
 
 const CONNECTION_LABELS = {
   idle: "Sin conectar",
@@ -85,7 +88,7 @@ function renderEmpty() {
 
   if (app.state && app.state.agents.length === 0) {
     title.textContent = "Ningún agente en marcha";
-    body.textContent = "Arranca un agente en herdr y aparecerá aquí en cuanto lo detecte.";
+    body.textContent = "Cuando arranques un agente aparecerá aquí en cuanto lo detecte.";
     action.textContent = "Actualizar";
     action.dataset.action = "refresh";
     action.classList.remove("hidden");
@@ -138,6 +141,12 @@ function agentItem(agent, leadPane) {
   );
   button.addEventListener("click", () => openDetail(agent.pane_id));
 
+  const face = avatarElement({
+    name: agentTitle(agent),
+    characterId: agent.characterId,
+    status: agent.status,
+    px: 36,
+  });
   const dot = document.createElement("span");
   dot.className = "status-dot";
   dot.setAttribute("aria-hidden", "true");
@@ -179,7 +188,7 @@ function agentItem(agent, leadPane) {
   chevron.setAttribute("aria-hidden", "true");
   chevron.textContent = "›";
 
-  button.append(dot, text, status, chevron);
+  button.append(face, dot, text, status, chevron);
   item.appendChild(button);
   return item;
 }
@@ -235,9 +244,13 @@ export function renderAgents() {
 
   $("agents-loading").classList.toggle("hidden", !loading);
   $("agent-list").classList.toggle("hidden", !hasAgents);
-  $("agents-empty").classList.toggle("hidden", loading || hasAgents);
+  // A contracted team fills the view: the empty state gives way to «Tu equipo».
+  const hired = teamHired();
+  $("agents-empty").classList.toggle("hidden", loading || hasAgents || hired > 0);
   $("agents-subtitle").textContent = hasState
-    ? subtitle(app.state)
+    ? hired > 0
+      ? teamCountLabel(hired, app.state.agents.length)
+      : subtitle(app.state)
     : loading
       ? "Cargando estado…"
       : "Sin estado";

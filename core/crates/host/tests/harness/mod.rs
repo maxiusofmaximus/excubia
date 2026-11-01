@@ -11,17 +11,26 @@ mod poll;
 pub use poll::{process_exists, row_of, wait_for_status, wait_until_gone};
 mod tool_seat;
 use tool_seat::{write_catalog, ToolSeat};
+/// The routed fake Microsoft of the send tests, shared with the HTTP tests.
+#[path = "../mail_send_support/mod.rs"]
+pub mod mail_send_support;
+use mail_send_support::{seed_owner, Routed, BODY};
 
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+use hn_core_api::voice::{EngineStarter, VoiceService};
 use hn_core_api::{serve, serve_internal, AgentActions, ApiConfig, ApiContext};
 use hn_core_auth::{DeviceStore, Permission};
 use hn_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
+use hn_core_host::mail_api::MailLogins;
+use hn_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
+use hn_core_host::mail_tools::{MailTools, LEDGER_FILE};
 use hn_core_host::team::{TeamConfig, TeamService};
-use hn_core_host::{paths, AgentHost, HostOptions, SpawnSpec};
+use hn_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
+use hn_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
 use hn_core_pty::PtySize;
 use hn_core_seat::{test_profile, SeatConfig, SeatService};
 use hn_core_state::StateStore;
@@ -38,6 +47,67 @@ fn hook_command() -> PathBuf {
         "hn-uac-hook"
     };
     PathBuf::from(env!("CARGO_BIN_EXE_fake-cli")).with_file_name(name)
+}
+
+/// The mail logins of a test host, sending included. It has no app registration,
+/// so no login reaches Microsoft, and its accounts sit in the scratch data dir
+/// under a key file of their own: a test never touches the platform's credential
+/// store. Every Graph call goes to `transport`.
+pub fn test_mail(
+    data_dir: &Path,
+    chat: Arc<ChatStore>,
+    transport: Arc<dyn HttpTransport>,
+) -> MailLogins {
+    let accounts = data_dir.join("mail/accounts");
+    let key = FileKey::new(data_dir.join("mail-test.key"));
+    let store = Arc::new(AccountStore::open(&accounts, &key).expect("mail store"));
+    let ledger = Ledger::open(&data_dir.join(LEDGER_FILE)).expect("mail ledger");
+    let policy = SendPolicy {
+        per_hour: 10,
+        window: DEFAULT_WINDOW,
+    };
+    let sends = MailSends::new(
+        Arc::clone(&transport),
+        Arc::clone(&store),
+        Some("app".to_owned()),
+        ledger,
+        &accounts,
+        Arc::clone(&chat),
+        policy,
+    );
+    MailLogins::with_sends(transport, store, None, chat, sends)
+}
+
+/// The transport of a test host's mail: the one a test hands over, or a real
+/// client, which no test reaches while the host has no registration.
+pub fn mail_transport(given: Option<Arc<dyn HttpTransport>>) -> Arc<dyn HttpTransport> {
+    match given {
+        Some(transport) => transport,
+        None => Arc::new(ReqwestTransport::new().expect("transport")),
+    }
+}
+
+/// The `mail.*` tools of a test host, over the same store as [`test_mail`] and
+/// the sends of that host. Without a registration no Graph call is made.
+pub fn test_mail_tools(
+    data_dir: &Path,
+    chat: Arc<ChatStore>,
+    workspaces_root: &Path,
+    sends: MailSends,
+) -> MailTools {
+    let key = FileKey::new(data_dir.join("mail-test.key"));
+    let store = AccountStore::open(data_dir.join("mail/accounts"), &key).expect("mail store");
+    let transport = ReqwestTransport::new().expect("transport");
+    MailTools::new(
+        Arc::new(transport),
+        Arc::new(store),
+        None,
+        data_dir,
+        chat,
+        workspaces_root,
+        sends,
+    )
+    .expect("mail tools")
 }
 
 /// What the chat seat does in a test host.
@@ -106,7 +176,51 @@ impl TestHost {
         let scratch = TestDir::new(&format!("core3-tests-{name}"));
         write_catalog(&scratch);
         let data_dir = scratch.to_path_buf();
-        Self::open(data_dir, hook_ttl, seat, Some(scratch)).await
+        Self::open(data_dir, hook_ttl, seat, Some(scratch), None, None).await
+    }
+
+    /// A host whose speech engine is `starter`; `None` is a host without speech.
+    pub async fn start_with_voice(name: &str, starter: Option<Arc<dyn EngineStarter>>) -> Self {
+        let scratch = TestDir::new(&format!("core3-tests-{name}"));
+        write_catalog(&scratch);
+        let data_dir = scratch.to_path_buf();
+        Self::open(
+            data_dir,
+            DEFAULT_HOOK_TTL,
+            SeatKind::Fake,
+            Some(scratch),
+            None,
+            starter,
+        )
+        .await
+    }
+
+    /// A host whose mail goes to a routed fake Microsoft: `ACCOUNT` is signed in
+    /// with sending granted and owns `DRAFT`. The fake comes back, so a test can
+    /// read what Microsoft was asked and what it answered.
+    pub async fn start_with_mail(name: &str) -> (Self, Arc<Routed>) {
+        let scratch = TestDir::new(&format!("core3-tests-{name}"));
+        write_catalog(&scratch);
+        let data_dir = scratch.to_path_buf();
+        let world = Arc::new(Routed::new(BODY));
+        let transport: Arc<dyn HttpTransport> = world.clone();
+        let store = AccountStore::open(
+            data_dir.join("mail/accounts"),
+            &FileKey::new(data_dir.join("mail-test.key")),
+        )
+        .expect("mail store");
+        let ledger = Ledger::open(&data_dir.join(LEDGER_FILE)).expect("mail ledger");
+        seed_owner(&store, &ledger, transport.as_ref()).await;
+        let host = Self::open(
+            data_dir,
+            DEFAULT_HOOK_TTL,
+            SeatKind::Fake,
+            Some(scratch),
+            Some(transport),
+            None,
+        )
+        .await;
+        (host, world)
     }
 
     /// A second host over the same data directory: what a restart looks like.
@@ -118,7 +232,7 @@ impl TestHost {
         let scratch = self.scratch.take();
         let data_dir = self.data_dir.clone();
         drop(self);
-        Self::open(data_dir, hook_ttl, seat, scratch).await
+        Self::open(data_dir, hook_ttl, seat, scratch, None, None).await
     }
 
     async fn open(
@@ -126,6 +240,8 @@ impl TestHost {
         hook_ttl: Duration,
         seat: SeatKind,
         scratch: Option<TestDir>,
+        mail: Option<Arc<dyn HttpTransport>>,
+        voice: Option<Arc<dyn EngineStarter>>,
     ) -> Self {
         let devices = Arc::new(DeviceStore::open(Some(paths::devices_path(&data_dir))));
         let store = StateStore::open("test", Some(paths::counters_path(&data_dir)));
@@ -133,6 +249,7 @@ impl TestHost {
         let hook_token = hn_core_host::load_hook_token(&data_dir).expect("hook token");
         let chat =
             Arc::new(ChatStore::open(&paths::chat_db_path(&data_dir)).expect("chat database"));
+        chat.set_attachments_root(&paths::attachments_dir(&data_dir));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind public");
@@ -199,7 +316,16 @@ impl TestHost {
         // opens its approvals there.
         options.hook_url = format!("http://{addr}");
         let host = AgentHost::new(Arc::clone(&store), options).await;
+        hn_core_host::spawn_alerts(Arc::clone(&store), Arc::clone(&chat));
 
+        // One mail surface for the host: the team's `mail.*` tools share its sends,
+        // so a draft changed through a tool settles the owner's open question.
+        let mail_logins = Arc::new(test_mail(
+            &data_dir,
+            Arc::clone(&chat),
+            mail_transport(mail),
+        ));
+        let mail_sends = mail_logins.sends().expect("mail sends").clone();
         let mut team_service: Option<Arc<TeamService>> = None;
         let seat: Arc<dyn ChatSeat> = match seat {
             SeatKind::Fake => Arc::new(FakeSeat::replying(Arc::clone(&chat))),
@@ -223,6 +349,12 @@ impl TestHost {
                     workspaces_root: data_dir.join("workspaces"),
                     delegation_timeout,
                     uac_plugin_dir: uac_plugin,
+                    mail: Arc::new(test_mail_tools(
+                        &data_dir,
+                        Arc::clone(&chat),
+                        &data_dir.join("workspaces"),
+                        mail_sends.clone(),
+                    )),
                 })
                 .expect("team service");
                 team_service = Some(Arc::clone(&team));
@@ -239,6 +371,8 @@ impl TestHost {
             chat: Arc::clone(&chat),
             seat: Arc::clone(&seat),
             hook_token: Arc::new(hook_token.clone()),
+            mail: mail_logins,
+            voice: Arc::new(VoiceService::new(voice)),
         });
         let internal_context = context.clone();
         tokio::spawn(async move {
@@ -348,7 +482,7 @@ impl TestHost {
             .expect("conversation");
         let accepted = self
             .chat
-            .append_user_message(&conversation.id, &format!("harness-{name}"), "hola")
+            .append_user_message(&conversation.id, &format!("harness-{name}"), "hola", None)
             .expect("turn");
         let scope = HookScope::run(&accepted.turn.id, &conversation.id, &accepted.turn.agent_id);
         let token = self.chat.issue_hook_token(&scope).expect("hook token");

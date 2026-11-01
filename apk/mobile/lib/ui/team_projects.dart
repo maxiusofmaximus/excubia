@@ -3,7 +3,7 @@ import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
 import 'package:herdr_notify/src/rust/api/state.dart';
 
 import 'theme.dart';
-import 'widgets/status_dot.dart';
+import 'widgets/agent_avatar.dart';
 
 /// One project as the team surface sees it: its bootstrap lead plus the live
 /// specialists found in `/v1/state`.
@@ -124,7 +124,7 @@ class TeamProjectGroupCard extends StatelessWidget {
               color: c.raised,
               child: Row(
                 children: [
-                  Icon(Icons.folder_outlined, size: 20, color: c.accent),
+                  Icon(Icons.folder_outlined, size: 20, color: c.accentText),
                   const SizedBox(width: Spacing.sm),
                   Expanded(
                     child: Column(
@@ -163,7 +163,7 @@ class TeamProjectGroupCard extends StatelessWidget {
               ),
             for (final agent in group.specialists)
               _MemberRow(
-                name: _agentName(agent),
+                name: agentNameOf(agent),
                 role: 'Especialista',
                 status: agent.status,
                 detail: agent.title,
@@ -223,7 +223,12 @@ class _MemberRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                StatusDot(status: status),
+                AgentAvatar(
+                  name: name,
+                  status: status,
+                  size: 40,
+                  ringed: true,
+                ),
                 const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Column(
@@ -259,7 +264,7 @@ class _MemberRow extends StatelessWidget {
                   child: Text(
                     role,
                     style: context.text.label.copyWith(
-                      color: role == 'Lead' ? c.accent : c.textSecondary,
+                      color: role == 'Lead' ? c.accentText : c.textSecondary,
                       fontSize: 10,
                     ),
                   ),
@@ -291,28 +296,3 @@ AgentStatus _seatStatus(String status) => switch (status) {
   'idle' => AgentStatus.idle,
   _ => AgentStatus.unknown,
 };
-
-String _agentName(AgentEntry agent) {
-  // `/v1/state` has no specialist name field. The pane title carries the seat
-  // label in the middle segment ("desconocido · Ana · especialista"), so use it
-  // before falling back to the CLI id.
-  final segments = (agent.title ?? '')
-      .split('·')
-      .map((segment) => segment.trim())
-      .where((segment) => segment.isNotEmpty)
-      .toList();
-  if (segments.length >= 2) {
-    final candidate = segments[1];
-    final normalized = candidate.toLowerCase();
-    if (normalized != 'desconocido' && normalized != 'unknown') {
-      return candidate;
-    }
-  }
-  final raw = agent.agent.trim();
-  if (raw.isEmpty ||
-      raw.toLowerCase() == 'unknown' ||
-      raw.toLowerCase() == 'desconocido') {
-    return 'Especialista';
-  }
-  return raw[0].toUpperCase() + raw.substring(1);
-}

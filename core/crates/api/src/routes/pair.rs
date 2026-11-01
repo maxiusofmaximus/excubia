@@ -94,6 +94,7 @@ pub async fn pair(
             &owner,
         ) {
             Ok(device) => device,
+            Err(error) if error.internal => return ApiError::internal(error).into_response(),
             Err(_) => {
                 // A recovery code re-keys its device; anything else is the
                 // uniform refusal.
@@ -106,6 +107,9 @@ pub async fn pair(
                 ) {
                     Ok((device, recovery)) => {
                         return pair_response(&device, &recovery).into_response()
+                    }
+                    Err(error) if error.internal => {
+                        return ApiError::internal(error).into_response()
                     }
                     Err(_) => return rejected().into_response(),
                 }

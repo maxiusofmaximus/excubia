@@ -4,16 +4,20 @@
 //! again when the rules, the mode or the seat moved meanwhile.
 
 use rusqlite::{params, Connection, Transaction};
+use serde_json::Value;
 
 use crate::clock::iso;
 use crate::error::ChatError;
 use crate::id;
 use crate::model_approval::{
-    Approval, ApprovalStatus, NewApproval, MAX_PENDING_PER_CONVERSATION, MAX_TTL_SECONDS,
+    max_ttl_seconds, Approval, ApprovalStatus, NewApproval, MAIL_ACTIONS,
+    MAX_PENDING_PER_CONVERSATION,
 };
 use crate::model_mode::ApprovalMode;
+use crate::policy::Category;
 use crate::scorer::Judgement;
 
+use super::agenda::delete_key;
 use super::approval_level::ApprovalLevel;
 use super::approval_mode;
 use super::approval_policy::{Assessment, Placement, SCORER_ACTOR};
@@ -47,34 +51,150 @@ enum Admission {
     Open(Basis),
 }
 
+/// The pending question that already asks to delete the same note or contact, whatever
+/// the conversation. Such an object belongs to the company, so one question stands for
+/// it. Each request carries its own digest, so the digest cannot find it.
+fn pending_delete(connection: &Connection, new: &NewApproval) -> Result<Option<String>, ChatError> {
+    let Some(key) = delete_key(&new.tool) else {
+        return Ok(None);
+    };
+    let Some(object) = new
+        .payload_redacted
+        .as_ref()
+        .and_then(|payload| payload[key].as_str())
+    else {
+        return Ok(None);
+    };
+    let mut statement = connection.prepare(
+        "SELECT id, payload_redacted FROM approval
+          WHERE tool = ?1 AND status = 'pending' AND seat_id IS NULL",
+    )?;
+    let rows = statement.query_map([new.tool.as_str()], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+    })?;
+    for row in rows {
+        let (approval_id, payload) = row?;
+        let asks_for_object = payload
+            .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+            .is_some_and(|payload| payload[key].as_str() == Some(object));
+        if asks_for_object {
+            return Ok(Some(approval_id));
+        }
+    }
+    Ok(None)
+}
+
 impl super::ChatStore {
     /// Create one approval in `pending` (or decided by the policy). The digest
     /// is the identity of the action: a digest that already exists is never
     /// approved twice.
     pub fn create_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        // A mail action is placed by the host with its own category; a caller cannot file one.
+        if MAIL_ACTIONS.contains(&new.tool.as_str()) {
+            return Err(ChatError::ApprovalScopeDenied);
+        }
+        self.create_placed(new, None)
+    }
+
+    /// Create an approval that reaches outside the workspace (MAIL1D §0). Its
+    /// category is set by the host, whatever the seat and its project: the
+    /// rules send it to the operator, so no agent can decide it.
+    pub fn create_outside_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.create_placed(new, Some(Category::OutsideWorkspace))
+    }
+
+    /// Create the question for deleting user data, such as a note (F2). Forced to
+    /// `DeleteUserData`, which no rule reaches: the operator's device decides it,
+    /// never the lead.
+    pub fn create_delete_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.expire_now()?;
+        self.create_placed(new, Some(Category::DeleteUserData))
+    }
+
+    /// Create the question for sending one mail (MAIL2A). Forced to `MailSend`,
+    /// which is never delegable: only a device with APPROVE can let it through.
+    pub fn create_mail_send_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.create_mail_approval(new, Category::MailSend)
+    }
+
+    /// Create the question for a batch of mail moves (F2b-1). Forced to
+    /// `MailOrganize`: one approval covers the whole batch, and only a device
+    /// with APPROVE can let it through.
+    pub fn create_mail_organize_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.create_mail_approval(new, Category::MailOrganize)
+    }
+
+    fn create_mail_approval(
+        &self,
+        new: NewApproval,
+        category: Category,
+    ) -> Result<Approval, ChatError> {
+        self.expire_now()?;
+        self.hold_mail_digest(&new.action_digest)?;
+        self.create_placed(new, Some(category))
+    }
+
+    /// Decides what an earlier mail question on the same content leaves behind
+    /// (MAILUX-HOST §C). An expired one can no longer be answered, so it lets the
+    /// content be asked again: its digest is renamed, which frees the unique index
+    /// and keeps the digest in its audit lines. A denied one refuses the content
+    /// until the draft changes. Anything else keeps the content held as before.
+    fn hold_mail_digest(&self, digest: &str) -> Result<(), ChatError> {
+        let mut connection = self.lock();
+        let transaction = connection.transaction()?;
+        if let Some(holder) = digest_holder(&transaction, digest)? {
+            if holder.status == ApprovalStatus::Expired.as_str() {
+                transaction.execute(
+                    "UPDATE approval SET action_digest = ?1 WHERE id = ?2",
+                    params![format!("{digest}#expired:{}", holder.id), holder.id],
+                )?;
+            } else if holder.status == ApprovalStatus::Denied.as_str() {
+                return Err(ChatError::ApprovalDigestRefused);
+            }
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    /// `reach` is the category the host forces on the action, when it knows
+    /// one the payload cannot show. `None` leaves the category to the payload.
+    fn create_placed(
+        &self,
+        new: NewApproval,
+        reach: Option<Category>,
+    ) -> Result<Approval, ChatError> {
         self.expire_now()?;
         for _ in 0..MAX_JUDGEMENTS {
-            let basis = match self.read_admission(&new)? {
+            let basis = match self.read_admission(&new, reach)? {
                 Admission::Existing(approval_id) => return self.approval(&approval_id),
                 Admission::Open(basis) => basis,
             };
             let judged = self.judge(&basis.assessment, &new);
-            if let Some(approval_id) = self.place(&new, &basis, judged)? {
+            if let Some(approval_id) = self.place(&new, &basis, judged, reach)? {
                 return self.approval(&approval_id);
             }
         }
         Err(ChatError::ApprovalRaced)
     }
 
-    fn read_admission(&self, new: &NewApproval) -> Result<Admission, ChatError> {
+    fn read_admission(
+        &self,
+        new: &NewApproval,
+        reach: Option<Category>,
+    ) -> Result<Admission, ChatError> {
         let connection = self.lock();
-        self.admit(&connection, new)
+        self.admit(&connection, new, reach)
     }
 
     /// What a creation depends on, read from `connection`. A digest held by the
     /// same seat's pending approval answers with that approval; a digest held by
     /// anyone else, or a full conversation, is refused.
-    fn admit(&self, connection: &Connection, new: &NewApproval) -> Result<Admission, ChatError> {
+    fn admit(
+        &self,
+        connection: &Connection,
+        new: &NewApproval,
+        reach: Option<Category>,
+    ) -> Result<Admission, ChatError> {
         let context = resolve_context(connection, new)?;
         let seat = seat_of(&context, new);
         if let Some(holder) = digest_holder(connection, &new.action_digest)? {
@@ -85,12 +205,15 @@ impl super::ChatStore {
             }
             return Err(ChatError::ApprovalDigestReused);
         }
+        if let Some(approval_id) = pending_delete(connection, new)? {
+            return Ok(Admission::Existing(approval_id));
+        }
         if pending_in_conversation(connection, context.conversation_id.as_deref())?
             >= MAX_PENDING_PER_CONVERSATION
         {
             return Err(ChatError::ApprovalLimit);
         }
-        let assessment = self.assess(connection, new, seat.as_deref())?;
+        let assessment = self.assess(connection, new, seat.as_deref(), reach)?;
         let project_id = match seat.as_deref() {
             Some(seat) => project_of_seat(connection, seat)?,
             None => None,
@@ -112,10 +235,11 @@ impl super::ChatStore {
         new: &NewApproval,
         basis: &Basis,
         judged: Option<(Judgement, bool)>,
+        reach: Option<Category>,
     ) -> Result<Option<String>, ChatError> {
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
-        let fresh = match self.admit(&transaction, new)? {
+        let fresh = match self.admit(&transaction, new, reach)? {
             Admission::Existing(approval_id) => return Ok(Some(approval_id)),
             Admission::Open(fresh) => fresh,
         };
@@ -129,7 +253,7 @@ impl super::ChatStore {
             placement = placement.scored(judgement, approves);
         }
         let mut placement = placement.under(basis.mode);
-        let ttl_ms = i64::from(new.ttl_seconds.clamp(1, MAX_TTL_SECONDS)) * 1000;
+        let ttl_ms = i64::from(new.ttl_seconds.clamp(1, max_ttl_seconds(reach))) * 1000;
         let expires_ms = now_ms + ttl_ms;
         approval_settle::route(
             &transaction,

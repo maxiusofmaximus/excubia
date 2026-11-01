@@ -18,14 +18,15 @@ import { installDetailHandlers, openDetail, syncDetailFromState } from "./detail
 import { installNewConversationHandlers, openNewConversation } from "./newconversation.js";
 import { installApprovalHandlers } from "./approvals.js";
 import { mountApprovalSettings } from "./approval-settings.js";
+import { mountMailSettings } from "./mail.js";
+import { installMailDraft } from "./mail-draft.js";
 import { inboxOnEvent, refreshInbox } from "./approval-inbox.js";
-import {
-  chatBoot,
-  chatOnConnection,
-  chatOnEvent,
-  chatOnStateChange,
-  installChatHandlers,
-} from "./chat.js";
+import { installTeam, refreshTeam } from "./hires.js";
+import { checkOnboarding, installOnboarding } from "./onboarding.js";
+import { chatBoot, chatOnConnection, chatOnEvent, chatOnStateChange } from "./chat.js";
+import { installChatHandlers } from "./chatinstall.js";
+import { installAgenda } from "./agenda.js";
+import { installDevices } from "./devices.js";
 
 async function boot() {
   installChatHandlers();
@@ -33,8 +34,14 @@ async function boot() {
   installAgentHandlers();
   installDetailHandlers();
   installNewConversationHandlers();
+  installTeam(renderAgents);
+  installOnboarding();
   installApprovalHandlers();
   mountApprovalSettings();
+  mountMailSettings();
+  installMailDraft();
+  installAgenda();
+  installDevices();
   $("btn-stale-pair").addEventListener("click", forgetPairing);
   $("btn-empty-pair").addEventListener("click", forgetPairing);
   $("btn-new").addEventListener("click", () => openNewConversation());
@@ -62,7 +69,11 @@ async function boot() {
     renderConnection();
     renderAgents();
     chatOnConnection();
-    if (app.connection.kind === "connected") refreshInbox();
+    if (app.connection.kind === "connected") {
+      refreshInbox();
+      refreshTeam().then(renderAgents);
+      checkOnboarding();
+    }
   });
   await listen("hn-state", (event) => {
     setState(event.payload);

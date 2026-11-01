@@ -8,7 +8,6 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use rand_core::{OsRng, RngCore};
 
 const TOKEN_BYTES: usize = 32;
 
@@ -24,7 +23,7 @@ pub fn load_or_create(data_dir: &Path) -> Result<String> {
         }
     }
     let mut bytes = [0u8; TOKEN_BYTES];
-    OsRng.fill_bytes(&mut bytes);
+    hn_core_persist::fill_random(&mut bytes)?;
     let token = hex::encode(bytes);
     hn_core_persist::write_atomic(&path, token.as_bytes())
         .with_context(|| format!("write {}", path.display()))?;

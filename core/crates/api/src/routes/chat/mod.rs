@@ -7,25 +7,34 @@
 //! `409 agent_busy` before accepting it.
 
 mod approvals;
+mod attachments;
 mod bootstrap;
 mod conversations;
 mod delegations;
 mod messages;
 mod sections;
 mod settings;
-mod support;
+mod stop;
+pub(super) mod support;
 mod tool;
 
 pub use approvals::{
     consume as consume_approval, create as create_approval, decision as decide_approval,
     list as list_approvals, state as approval_state,
 };
+pub use attachments::{
+    attachment_content, complete_attachment, create_attachment, delete_attachment, show_attachment,
+    upload_chunk,
+};
 pub use bootstrap::bootstrap;
-pub use conversations::{create, list as conversations, show, update};
+pub use conversations::{
+    counts as conversation_counts, create, delete_conversation, list as conversations, show, update,
+};
 pub use delegations::{cancel as cancel_delegation, cancel_conversation, show as delegation};
 pub use messages::{messages, read, send, timeline};
 pub use sections::{list as sections, upsert};
 pub use settings::{change as change_approval_settings, show as approval_settings};
+pub use stop::stop_conversation;
 pub use tool::call as tool;
 
 use axum::response::{IntoResponse, Response};

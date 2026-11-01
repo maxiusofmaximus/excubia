@@ -15,10 +15,14 @@ pub enum Category {
     DeleteUserData,
     Publish,
     OutsideWorkspace,
+    /// Sending a mail from a draft (MAIL2A): the operator's device only.
+    MailSend,
+    /// A batch of mail moves (F2b-1): the operator's device only.
+    MailOrganize,
 }
 
 impl Category {
-    pub const ALL: [Category; 12] = [
+    pub const ALL: [Category; 14] = [
         Self::Read,
         Self::Edit,
         Self::Test,
@@ -31,6 +35,8 @@ impl Category {
         Self::DeleteUserData,
         Self::Publish,
         Self::OutsideWorkspace,
+        Self::MailSend,
+        Self::MailOrganize,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -47,6 +53,8 @@ impl Category {
             Self::DeleteUserData => "delete_user_data",
             Self::Publish => "publish",
             Self::OutsideWorkspace => "outside_workspace",
+            Self::MailSend => "mail_send",
+            Self::MailOrganize => "mail_organize",
         }
     }
 
@@ -66,6 +74,8 @@ impl Category {
                 | Self::Publish
                 | Self::Credentials
                 | Self::OutsideWorkspace
+                | Self::MailSend
+                | Self::MailOrganize
         )
     }
 }
@@ -88,7 +98,9 @@ mod tests {
                 "money",
                 "delete_user_data",
                 "publish",
-                "outside_workspace"
+                "outside_workspace",
+                "mail_send",
+                "mail_organize"
             ]
         );
     }

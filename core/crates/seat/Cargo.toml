@@ -22,4 +22,4 @@ hn-core-test-dir = { path = "../test-dir" }
 
 [[bin]]
 name = "hn-uac-hook"
-path = "src/bin/hn-uac-hook.rs"
+path = "src/bin/hn-uac-hook/main.rs"

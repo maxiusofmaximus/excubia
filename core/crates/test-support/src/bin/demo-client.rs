@@ -100,9 +100,11 @@ async fn run(args: &[String]) -> Result<(), String> {
             let approval = flags.require("--approval")?;
             let decision = flags.require("--decision")?;
             let client_id = flags.require("--client-id")?;
+            let exclude = flags.value("--exclude").unwrap_or_default();
+            let exclude: Vec<&str> = exclude.split(',').filter(|id| !id.is_empty()).collect();
             print(
                 load_client(&flags)?
-                    .chat_decide_approval(&approval, &decision, &client_id)
+                    .chat_decide_approval_excluding(&approval, &decision, &client_id, &exclude)
                     .await,
             )
         }
@@ -121,6 +123,19 @@ async fn run(args: &[String]) -> Result<(), String> {
         "revoke" => {
             let device = flags.require("--device")?;
             print(load_client(&flags)?.revoke(&device).await)
+        }
+        "request" => {
+            let method = flags.require("--method")?;
+            let path = flags.require("--path")?;
+            let body = flags.value("--body").map(String::into_bytes);
+            match load_client(&flags)?.request(&method, &path, body).await {
+                Ok((status, body)) => {
+                    println!("demo-client: HTTP {status}");
+                    println!("{body}");
+                    Ok(())
+                }
+                Err(error) => Err(error.to_string()),
+            }
         }
         other => Err(format!("unknown command: {other}\n\n{USAGE}")),
     }
@@ -260,5 +275,5 @@ impl Flags {
 }
 
 const USAGE: &str = "demo-client <pair|state|events|respond|read|keys|devices|revoke|\
-chat-bootstrap|chat-create|chat-send|approvals|decide|approval-mode|set-approval-mode> \
+chat-bootstrap|chat-create|chat-send|approvals|decide|approval-mode|set-approval-mode|request> \
 --url URL --identity FILE ...";

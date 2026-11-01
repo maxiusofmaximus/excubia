@@ -1,0 +1,183 @@
+/* Picture attachments: the tray over the composer, the drop state, the thumbnails in
+   the thread and the full-size view. Colours come from base.css. */
+
+.attach-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.attach-btn:hover:not(:disabled) {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
+.attach-btn:focus-visible,
+.attach-remove:focus-visible,
+.msg-attachment:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.attach-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.attach-tray {
+  display: flex;
+  flex: 0 0 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 2px 6px;
+}
+
+.attach-tray[hidden],
+.attach-viewer[hidden] {
+  display: none;
+}
+
+.attach-status {
+  flex: 0 0 100%;
+  margin: 0;
+  color: var(--blocked);
+  font-size: 12px;
+}
+
+.attach-status:empty {
+  display: none;
+}
+
+.attach-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+}
+
+.attach-item.is-failed {
+  border-color: var(--blocked);
+}
+
+.attach-thumb {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--raised-2);
+}
+
+.attach-text {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.attach-name,
+.attach-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-name {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.attach-detail {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.attach-progress {
+  width: 140px;
+  height: 5px;
+  accent-color: var(--accent-text);
+}
+
+.attach-remove {
+  flex: none;
+}
+
+.chat-composer.is-dragging {
+  outline: 2px dashed var(--accent-text);
+  outline-offset: 3px;
+}
+
+.chat-composer.is-dragging::after {
+  content: "Suelta para adjuntar";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent-text);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.msg-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.msg-attachment {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+  cursor: zoom-in;
+}
+
+.msg-attachment img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+.msg-attachment:not(.is-loaded) img {
+  opacity: 0.35;
+}
+
+.msg-attachment.is-failed img {
+  opacity: 0.2;
+}
+
+.attach-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(11, 20, 38, 0.88);
+}
+
+.attach-viewer-image {
+  max-width: 92vw;
+  max-height: 80vh;
+  border-radius: 12px;
+  object-fit: contain;
+}

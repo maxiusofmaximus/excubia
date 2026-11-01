@@ -5,7 +5,7 @@
 //! against the approval routes. A token is revoked when its run closes and
 //! every live token dies with the process that owned it (`schema::open`).
 
-use rand_core::{OsRng, RngCore};
+use hn_core_persist::{fill_random, RandomError};
 use rusqlite::{params, OptionalExtension};
 use sha2::{Digest, Sha256};
 
@@ -19,7 +19,7 @@ impl super::ChatStore {
     /// Mint the token of one run or panel. Any previous live token of the same
     /// scope dies first: one scope, one credential.
     pub fn issue_hook_token(&self, scope: &HookScope) -> Result<String, ChatError> {
-        let token = mint();
+        let token = mint()?;
         let (seat_id, run_id, conversation_id) = match scope {
             HookScope::Run {
                 seat_id,
@@ -83,10 +83,10 @@ impl super::ChatStore {
 }
 
 /// A token the host hands to one process: 32 random bytes, hex.
-fn mint() -> String {
+fn mint() -> Result<String, RandomError> {
     let mut bytes = [0u8; TOKEN_BYTES];
-    OsRng.fill_bytes(&mut bytes);
-    hex::encode(bytes)
+    fill_random(&mut bytes)?;
+    Ok(hex::encode(bytes))
 }
 
 fn hash(token: &str) -> String {

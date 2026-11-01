@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <title>herdr notify</title>
+  <title>Excubia</title>
   <link rel="stylesheet" href="base.css">
   <link rel="stylesheet" href="pairing.css">
   <link rel="stylesheet" href="chat.css">
@@ -14,13 +14,19 @@
   <link rel="stylesheet" href="detail.css">
   <link rel="stylesheet" href="newconversation.css">
   <link rel="stylesheet" href="approvals.css">
+  <link rel="stylesheet" href="hires.css">
+  <link rel="stylesheet" href="onboarding.css">
+  <link rel="stylesheet" href="mail.css">
+  <link rel="stylesheet" href="agenda.css">
+  <link rel="stylesheet" href="alerts.css">
+  <link rel="stylesheet" href="devices.css">
 </head>
 <body>
   <div class="app">
     <section id="view-pair" class="view view-pair">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <span>herdr notify</span>
+        <span>Excubia</span>
       </div>
 
       <div class="pair-intro">
@@ -42,7 +48,7 @@
         <input id="pair-code" class="code-input" type="text" inputmode="text" autocomplete="off"
                autocapitalize="characters" spellcheck="false" maxlength="64" placeholder="HJKQ2ZP4"
                aria-describedby="pair-hint">
-        <p id="pair-hint" class="hint">Déjalo vacío para emparejar automáticamente por Tailscale.</p>
+        <p id="pair-hint" class="hint">Déjalo vacío para emparejar automáticamente desde la red de tu casa u oficina, o desde una VPN.</p>
         <button id="btn-pair" class="btn primary btn-block" type="submit">Emparejar</button>
         <p id="pair-error" class="form-error hidden" role="alert"></p>
       </form>
@@ -139,7 +145,7 @@
     <section id="view-recovery" class="view view-recovery hidden">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <span>herdr notify</span>
+        <span>Excubia</span>
       </div>
       <div class="recovery-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
@@ -161,7 +167,7 @@
     <section id="view-lan" class="view view-lan hidden">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <span>herdr notify</span>
+        <span>Excubia</span>
       </div>
       <h1>Escanea con el móvil</h1>
       <p class="lede">Usa un móvil conectado a la misma red local. El código sirve una sola vez.</p>
@@ -179,11 +185,16 @@
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true"><span></span></span>
-          <span>herdr notify</span>
+          <span>Excubia</span>
         </div>
         <nav class="nav-tabs" aria-label="Vistas">
           <button id="tab-chat" class="nav-tab is-active" type="button" aria-current="page">Chat</button>
           <button id="tab-team" class="nav-tab" type="button">Equipo</button>
+          <button id="tab-contacts" class="nav-tab" type="button">Contactos</button>
+          <button id="tab-notes" class="nav-tab" type="button">Notas</button>
+          <button id="tab-calendar" class="nav-tab" type="button">Calendario</button>
+          <button id="tab-alerts" class="nav-tab" type="button">Avisos</button>
+          <button id="tab-devices" class="nav-tab" type="button">Dispositivos</button>
         </nav>
         <div class="top-actions">
           <span id="chat-connection" class="chip idle" role="status" title="Estado de la conexión">
@@ -220,6 +231,7 @@
             </svg>
             <input id="chat-search" type="search" placeholder="Buscar…" autocomplete="off" spellcheck="false">
           </label>
+          <div id="chat-filters" class="chat-filters hidden" role="group" aria-label="Filtrar conversaciones"></div>
           <div id="chat-groups" class="chat-groups"></div>
           <div class="history-foot">
             <button id="btn-archived" class="linkish" type="button">Archivados (0)</button>
@@ -252,7 +264,7 @@
                aria-label="Mensajes de la conversación"></div>
 
           <div id="chat-empty" class="chat-empty hidden">
-            <div class="empty-alfred" aria-hidden="true">A</div>
+            <div id="empty-alfred" class="avatar empty-alfred" aria-hidden="true">A</div>
             <h2 id="empty-chat-title">¿Qué movemos hoy?</h2>
             <p id="empty-chat-body">Dime un objetivo y reparto el trabajo entre Ernesto y su equipo. Yo te traigo el resultado.</p>
             <div class="suggestions" role="list">
@@ -260,9 +272,9 @@
                 <span class="suggestion-mark" aria-hidden="true">+</span>
                 <span><strong>Crea el proyecto Demo</strong><small>y pide a Ernesto un plan de 3 hitos</small></span>
               </button>
-              <button class="suggestion" type="button" role="listitem" data-suggestion="¿Cómo va herdr-notify? Estado, bloqueos y última entrega">
+              <button class="suggestion" type="button" role="listitem" data-suggestion="¿Cómo va Excubia? Estado, bloqueos y última entrega">
                 <span class="suggestion-mark" aria-hidden="true">?</span>
-                <span><strong>¿Cómo va herdr-notify?</strong><small>estado, bloqueos y última entrega</small></span>
+                <span><strong>¿Cómo va Excubia?</strong><small>estado, bloqueos y última entrega</small></span>
               </button>
               <button class="suggestion" type="button" role="listitem" data-suggestion="Revisa los tests de la API con Ines">
                 <span class="suggestion-mark" aria-hidden="true">✓</span>
@@ -271,14 +283,27 @@
             </div>
           </div>
 
+          <button id="chat-jump" class="chat-jump hidden" type="button" aria-label="Ir al final">↓</button>
+          <div id="bubble-menu" class="bubble-menu hidden" role="menu">
+            <button type="button" role="menuitem" data-reply-id="">Responder</button>
+          </div>
+
           <form id="chat-composer" class="chat-composer" novalidate>
+            <div id="chat-reply" class="chat-reply hidden" role="status">
+              <span id="chat-reply-text"></span>
+              <button id="btn-reply-cancel" class="chat-reply-cancel" type="button" aria-label="Quitar la cita">✕</button>
+            </div>
             <label class="sr-only" for="chat-input">Mensaje a Alfred</label>
             <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Mensaje a Alfred"></textarea>
             <button id="btn-send" class="send-btn" type="submit" title="Enviar mensaje" aria-label="Enviar mensaje">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="icon-send" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 19V5"></path>
                 <path d="m5 12 7-7 7 7"></path>
+              </svg>
+              <svg class="icon-stop" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"
+                   aria-hidden="true">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
               </svg>
             </button>
             <p id="chat-hint" class="composer-hint">Enter envía · Shift+Enter salto de línea</p>
@@ -294,7 +319,7 @@
           <div id="side-body" class="side-body">
             <div class="side-card">
               <div class="side-person">
-                <span class="avatar small" aria-hidden="true">A</span>
+                <span id="side-alfred-avatar" class="avatar" aria-hidden="true">A</span>
                 <div>
                   <strong id="side-alfred-name">Alfred</strong>
                   <span id="side-alfred-status" class="side-meta">CTO · disponible</span>
@@ -322,6 +347,11 @@
         <nav class="nav-tabs" aria-label="Vistas">
           <button id="team-tab-chat" class="nav-tab" type="button">Chat</button>
           <button id="team-tab-team" class="nav-tab is-active" type="button" aria-current="page">Equipo</button>
+          <button id="team-tab-contacts" class="nav-tab" type="button">Contactos</button>
+          <button id="team-tab-notes" class="nav-tab" type="button">Notas</button>
+          <button id="team-tab-calendar" class="nav-tab" type="button">Calendario</button>
+          <button id="team-tab-alerts" class="nav-tab" type="button">Avisos</button>
+          <button id="team-tab-devices" class="nav-tab" type="button">Dispositivos</button>
         </nav>
         <div class="top-actions">
           <span id="connection-chip" class="chip idle" role="status" title="Estado de la conexión">
@@ -340,7 +370,7 @@
 
       <header class="app-header">
         <div>
-          <p class="eyebrow">herdr notify</p>
+          <p class="eyebrow">Excubia</p>
           <h1>Equipo</h1>
           <p id="agents-subtitle" class="subtitle">Cargando estado…</p>
         </div>
@@ -364,6 +394,14 @@
         </span>
       </div>
 
+      <section id="team-hires" class="team-section" aria-labelledby="team-title">
+        <div class="team-head">
+          <h2 id="team-title">Tu equipo</h2>
+          <button id="btn-hire" class="btn primary btn-small hidden" type="button">Contratar</button>
+        </div>
+        <div id="team-hires-body"></div>
+      </section>
+
       <div id="agents-loading" class="loading-list" aria-label="Cargando agentes">
         <div class="skeleton-row"></div>
         <div class="skeleton-row"></div>
@@ -380,12 +418,306 @@
           </svg>
         </div>
         <h2 id="empty-title">Ningún agente en marcha</h2>
-        <p id="empty-body">Arranca un agente en herdr y aparecerá aquí en cuanto lo detecte.</p>
+        <p id="empty-body">Cuando arranques un agente aparecerá aquí en cuanto lo detecte.</p>
         <div class="empty-actions">
           <button id="btn-empty-new" class="btn primary" type="button">Nueva conversación</button>
           <button id="btn-empty-action" class="btn secondary" type="button">Actualizar</button>
           <button id="btn-empty-pair" class="btn ghost hidden" type="button">Volver a emparejar</button>
         </div>
+      </div>
+    </section>
+
+    <section id="view-onboarding" class="view view-onboarding hidden" aria-label="Primeros pasos">
+      <header class="onboarding-head">
+        <p class="eyebrow">Primeros pasos</p>
+        <p id="onboarding-progress" class="hint" aria-live="polite"></p>
+      </header>
+      <div id="onboarding-body" class="onboarding-body"></div>
+      <p id="onboarding-error" class="form-error hidden" role="alert"></p>
+      <div class="onboarding-actions">
+        <button id="onboarding-skip" class="btn ghost" type="button">Saltar</button>
+        <span class="onboarding-nav">
+          <button id="onboarding-back" class="btn secondary" type="button">Atrás</button>
+          <button id="onboarding-next" class="btn primary" type="button">Empezar</button>
+        </span>
+      </div>
+    </section>
+
+    <section id="view-mail" class="view view-mail hidden" aria-labelledby="mail-draft-title">
+      <header class="detail-header">
+        <button id="btn-mail-back" class="icon-btn" type="button" title="Volver a ajustes de correo" aria-label="Volver a ajustes de correo">←</button>
+        <div class="detail-title">
+          <p class="eyebrow">Borrador</p>
+          <h1 id="mail-draft-title" tabindex="-1">Borrador de correo</h1>
+          <p id="mail-draft-account" class="meta"></p>
+        </div>
+      </header>
+
+      <div id="mail-draft-error" class="form-error hidden" role="alert"></div>
+
+      <dl id="mail-draft-fields" class="mail-draft-fields"></dl>
+      <span id="mail-body-label" class="field-label">Cuerpo</span>
+      <div id="mail-draft-body" class="mail-body" tabindex="0"></div>
+      <div id="mail-draft-attachments" class="mail-attachments"></div>
+
+      <section id="mail-edit" class="mail-edit hidden" aria-label="Editar borrador">
+        <label class="field-label" for="mail-edit-subject">Asunto</label>
+        <input id="mail-edit-subject" type="text" autocomplete="off">
+        <label class="field-label" for="mail-edit-body">Cuerpo</label>
+        <textarea id="mail-edit-body" rows="12"></textarea>
+        <div class="mail-send-actions">
+          <button id="btn-mail-save" class="btn primary" type="button">Guardar</button>
+          <button id="btn-mail-edit-cancel" class="btn ghost" type="button">Cancelar</button>
+        </div>
+      </section>
+
+      <section id="mail-send" class="mail-send" aria-label="Envío del borrador">
+        <p id="mail-status" class="mail-status" role="status" aria-live="polite"></p>
+        <p id="mail-countdown" class="mail-countdown" role="timer"></p>
+        <div class="mail-send-actions">
+          <button id="btn-mail-send" class="btn primary" type="button">Enviar…</button>
+          <button id="btn-mail-cancel" class="btn destructive hidden" type="button">Cancelar envío</button>
+          <button id="btn-mail-settings" class="btn ghost hidden" type="button">Ir a ajustes de correo</button>
+          <button id="btn-mail-edit" class="btn secondary hidden" type="button">Editar</button>
+          <button id="btn-mail-changes" class="btn ghost hidden" type="button">Pedir cambios a Alfred</button>
+          <button id="btn-mail-decline" class="btn ghost hidden" type="button">No enviar</button>
+        </div>
+        <p id="mail-send-hint" class="hint"></p>
+      </section>
+    </section>
+
+    <section id="view-contacts" class="view view-agenda hidden" aria-label="Contactos">
+      <header class="topbar team-topbar">
+        <nav class="nav-tabs" aria-label="Vistas">
+          <button id="contacts-tab-chat" class="nav-tab" type="button">Chat</button>
+          <button id="contacts-tab-team" class="nav-tab" type="button">Equipo</button>
+          <button id="contacts-tab-contacts" class="nav-tab is-active" type="button" aria-current="page">Contactos</button>
+          <button id="contacts-tab-notes" class="nav-tab" type="button">Notas</button>
+          <button id="contacts-tab-calendar" class="nav-tab" type="button">Calendario</button>
+          <button id="contacts-tab-alerts" class="nav-tab" type="button">Avisos</button>
+          <button id="contacts-tab-devices" class="nav-tab" type="button">Dispositivos</button>
+        </nav>
+      </header>
+      <div class="agenda-shell">
+        <div class="agenda-list-pane">
+          <div class="agenda-head">
+            <h2>Contactos</h2>
+            <button id="btn-contact-new" class="btn primary btn-small" type="button">Nuevo contacto</button>
+          </div>
+          <label class="search">
+            <span class="sr-only">Buscar contactos</span>
+            <input id="contacts-search" type="search" placeholder="Buscar por nombre o alias…" autocomplete="off" spellcheck="false">
+          </label>
+          <p id="contacts-status" class="agenda-status" role="status" hidden></p>
+          <ul id="contacts-list" class="agenda-list"></ul>
+          <button id="contacts-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
+        </div>
+        <section id="contacts-panel" class="agenda-panel" aria-labelledby="contacts-panel-title" hidden>
+          <div class="agenda-panel-head">
+            <h2 id="contacts-panel-title"></h2>
+            <button id="contacts-panel-close" class="icon-btn" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+          </div>
+          <div id="contacts-panel-body" class="agenda-panel-body"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-notes" class="view view-agenda hidden" aria-label="Notas">
+      <header class="topbar team-topbar">
+        <nav class="nav-tabs" aria-label="Vistas">
+          <button id="notes-tab-chat" class="nav-tab" type="button">Chat</button>
+          <button id="notes-tab-team" class="nav-tab" type="button">Equipo</button>
+          <button id="notes-tab-contacts" class="nav-tab" type="button">Contactos</button>
+          <button id="notes-tab-calendar" class="nav-tab" type="button">Calendario</button>
+          <button id="notes-tab-alerts" class="nav-tab" type="button">Avisos</button>
+          <button id="notes-tab-devices" class="nav-tab" type="button">Dispositivos</button>
+          <button id="notes-tab-notes" class="nav-tab is-active" type="button" aria-current="page">Notas</button>
+        </nav>
+      </header>
+      <div class="agenda-shell">
+        <div class="agenda-list-pane">
+          <div class="agenda-head">
+            <h2>Notas</h2>
+            <button id="btn-note-new" class="btn primary btn-small" type="button">Nueva nota</button>
+          </div>
+          <label class="search">
+            <span class="sr-only">Buscar en asuntos y textos</span>
+            <input id="notes-search" type="search" placeholder="Buscar en asuntos y textos…" autocomplete="off" spellcheck="false">
+          </label>
+          <p id="notes-status" class="agenda-status" role="status" hidden></p>
+          <ul id="notes-list" class="agenda-list"></ul>
+          <button id="notes-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
+        </div>
+        <section id="notes-panel" class="agenda-panel" aria-labelledby="notes-panel-title" hidden>
+          <div class="agenda-panel-head">
+            <h2 id="notes-panel-title"></h2>
+            <button id="notes-panel-close" class="icon-btn" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+          </div>
+          <div id="notes-panel-body" class="agenda-panel-body"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-calendar" class="view view-agenda hidden" aria-label="Calendario">
+      <header class="topbar team-topbar">
+        <nav class="nav-tabs" aria-label="Vistas">
+          <button id="calendar-tab-chat" class="nav-tab" type="button">Chat</button>
+          <button id="calendar-tab-team" class="nav-tab" type="button">Equipo</button>
+          <button id="calendar-tab-contacts" class="nav-tab" type="button">Contactos</button>
+          <button id="calendar-tab-notes" class="nav-tab" type="button">Notas</button>
+          <button id="calendar-tab-calendar" class="nav-tab is-active" type="button" aria-current="page">Calendario</button>
+          <button id="calendar-tab-alerts" class="nav-tab" type="button">Avisos</button>
+          <button id="calendar-tab-devices" class="nav-tab" type="button">Dispositivos</button>
+        </nav>
+      </header>
+      <div class="agenda-shell">
+        <div class="agenda-list-pane">
+          <div class="agenda-head">
+            <h2>Calendario</h2>
+            <button id="btn-calendar-new" class="btn primary btn-small" type="button">Nuevo evento</button>
+          </div>
+          <div class="calendar-tools" role="group" aria-label="Archivo .ics">
+            <button id="btn-calendar-import" class="btn ghost btn-small" type="button">Importar .ics</button>
+            <select id="calendar-export-scope" class="agenda-select" aria-label="Eventos a exportar">
+              <option value="range">Rango visible</option>
+              <option value="all">Todo</option>
+            </select>
+            <button id="btn-calendar-export" class="btn ghost btn-small" type="button">Exportar .ics</button>
+          </div>
+          <section id="calendar-ics-result" class="calendar-ics" aria-label="Resultado del archivo .ics" hidden>
+            <p id="calendar-ics-summary" role="status"></p>
+            <p id="calendar-ics-problem" class="agenda-error" role="status" hidden></p>
+            <details id="calendar-ics-skipped" hidden>
+              <summary>Omitidos</summary>
+              <ul id="calendar-ics-skipped-list"></ul>
+              <p id="calendar-ics-more" class="agenda-muted" hidden></p>
+            </details>
+          </section>
+          <p id="calendar-zone-hint" class="agenda-hint" hidden>Fija antes la zona horaria de la empresa para crear eventos.</p>
+          <section id="calendar-zone" class="calendar-zone" aria-labelledby="calendar-zone-title" hidden>
+            <h3 id="calendar-zone-title">Zona horaria de la empresa</h3>
+            <p class="agenda-muted">Los eventos se muestran y se editan en esa zona. Se fija una sola vez.</p>
+            <label class="agenda-label" for="calendar-zone-input">Zona (nombre IANA)</label>
+            <input id="calendar-zone-input" type="text" list="calendar-zones" placeholder="Europe/Madrid" autocomplete="off" spellcheck="false">
+            <datalist id="calendar-zones"></datalist>
+            <p id="calendar-zone-problem" class="agenda-error" role="status" hidden></p>
+            <button id="btn-calendar-zone" class="btn primary btn-small" type="button">Guardar zona</button>
+          </section>
+          <div class="calendar-range" role="group" aria-label="Periodo">
+            <button id="calendar-range-day" class="btn ghost btn-small" type="button" aria-pressed="false">Hoy</button>
+            <button id="calendar-range-week" class="btn ghost btn-small" type="button" aria-pressed="false">7 días</button>
+            <button id="calendar-range-thirty" class="btn ghost btn-small" type="button" aria-pressed="true">30 días</button>
+            <button id="calendar-range-month" class="btn ghost btn-small" type="button" aria-pressed="false">Mes</button>
+          </div>
+          <div class="calendar-nav">
+            <button id="calendar-prev" class="icon-btn" type="button" title="Periodo anterior" aria-label="Periodo anterior">‹</button>
+            <p id="calendar-range-label" class="agenda-muted"></p>
+            <button id="calendar-next" class="icon-btn" type="button" title="Periodo siguiente" aria-label="Periodo siguiente">›</button>
+          </div>
+          <p id="calendar-status" class="agenda-status" role="status" hidden></p>
+          <ul id="calendar-list" class="agenda-list"></ul>
+          <button id="calendar-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
+        </div>
+        <section id="calendar-panel" class="agenda-panel" aria-labelledby="calendar-panel-title" hidden>
+          <div class="agenda-panel-head">
+            <h2 id="calendar-panel-title"></h2>
+            <button id="calendar-panel-close" class="icon-btn" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+          </div>
+          <div id="calendar-panel-body" class="agenda-panel-body"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-devices" class="view view-agenda hidden" aria-label="Dispositivos">
+      <header class="topbar team-topbar">
+        <nav class="nav-tabs" aria-label="Vistas">
+          <button id="devices-tab-chat" class="nav-tab" type="button">Chat</button>
+          <button id="devices-tab-team" class="nav-tab" type="button">Equipo</button>
+          <button id="devices-tab-contacts" class="nav-tab" type="button">Contactos</button>
+          <button id="devices-tab-notes" class="nav-tab" type="button">Notas</button>
+          <button id="devices-tab-calendar" class="nav-tab" type="button">Calendario</button>
+          <button id="devices-tab-alerts" class="nav-tab" type="button">Avisos</button>
+          <button id="devices-tab-devices" class="nav-tab is-active" type="button" aria-current="page">Dispositivos</button>
+        </nav>
+      </header>
+      <div class="agenda-shell devices-shell">
+        <div class="agenda-list-pane">
+          <div class="agenda-head">
+            <h2>Dispositivos</h2>
+          </div>
+          <p class="agenda-muted">Los equipos que pueden entrar en este gateway. Un dispositivo revocado deja de entrar.</p>
+          <p id="devices-status" class="agenda-status" role="status" hidden></p>
+          <ul id="devices-list" class="agenda-list"></ul>
+          <details id="devices-revoked-group" class="devices-revoked" hidden>
+            <summary id="devices-revoked-summary">Revocados</summary>
+            <ul id="devices-revoked" class="agenda-list"></ul>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-alerts" class="view view-agenda hidden" aria-label="Avisos">
+      <header class="topbar team-topbar">
+        <nav class="nav-tabs" aria-label="Vistas">
+          <button id="alerts-tab-chat" class="nav-tab" type="button">Chat</button>
+          <button id="alerts-tab-team" class="nav-tab" type="button">Equipo</button>
+          <button id="alerts-tab-contacts" class="nav-tab" type="button">Contactos</button>
+          <button id="alerts-tab-notes" class="nav-tab" type="button">Notas</button>
+          <button id="alerts-tab-calendar" class="nav-tab" type="button">Calendario</button>
+          <button id="alerts-tab-alerts" class="nav-tab is-active" type="button" aria-current="page">Avisos</button>
+          <button id="alerts-tab-devices" class="nav-tab" type="button">Dispositivos</button>
+        </nav>
+      </header>
+      <div class="agenda-shell alerts-shell">
+        <div class="agenda-list-pane">
+          <div class="agenda-head">
+            <h2>Avisos</h2>
+          </div>
+          <fieldset class="alerts-mode">
+            <legend>Qué avisa</legend>
+            <label class="alerts-option"><input type="radio" name="alerts-mode" value="all"> <span>Avisar de todo</span></label>
+            <label class="alerts-option"><input type="radio" name="alerts-mode" value="rules_only"> <span>Solo lo que yo elija</span></label>
+            <p id="alerts-mode-phrase" class="agenda-muted"></p>
+            <p id="alerts-mode-problem" class="agenda-error" role="status" hidden></p>
+          </fieldset>
+          <p id="alerts-guarantee" class="agenda-hint"></p>
+          <p id="alerts-problem" class="agenda-error" role="status" hidden></p>
+          <p id="alerts-status" class="agenda-status" role="status" hidden></p>
+          <p id="alerts-empty" class="agenda-muted" hidden></p>
+          <ul id="alerts-list" class="agenda-list" hidden></ul>
+        </div>
+        <section class="agenda-panel alerts-form-pane" aria-labelledby="alerts-new-title">
+          <div class="agenda-panel-head">
+            <h2 id="alerts-new-title">Nueva regla</h2>
+          </div>
+          <form id="alerts-form" class="alerts-form">
+            <label>Tipo
+              <select id="alerts-kind" class="agenda-select">
+                <option value="agent">Agente</option>
+                <option value="reminder">Recordatorio</option>
+              </select>
+            </label>
+            <label id="alerts-agent-field">Agente
+              <select id="alerts-agent" class="agenda-select">
+                <option value="">Cualquiera</option>
+              </select>
+            </label>
+            <label id="alerts-when-field">Cuándo
+              <select id="alerts-when" class="agenda-select">
+                <option value="blocked">Se bloquea</option>
+                <option value="done">Termina</option>
+              </select>
+            </label>
+            <label>Acción
+              <select id="alerts-action" class="agenda-select">
+                <option value="notify">Avisar</option>
+                <option value="mute">Silenciar</option>
+              </select>
+            </label>
+            <p id="alerts-form-problem" class="agenda-error" role="status" hidden></p>
+            <button id="btn-alert-create" class="btn primary btn-block" type="submit">Crear regla</button>
+          </form>
+        </section>
       </div>
     </section>
 
@@ -463,7 +795,7 @@
 
       <label class="field-label" for="nc-cwd">Carpeta de trabajo</label>
       <div class="nc-cwd-row">
-        <input id="nc-cwd" class="mono-input" type="text" spellcheck="false" placeholder="D:\Documentos\Projects\mi-repo">
+        <input id="nc-cwd" class="mono-input" type="text" spellcheck="false" placeholder="C:\proyectos\mi-repo">
         <button id="btn-pick-folder" class="btn secondary btn-small" type="button">Elegir carpeta…</button>
       </div>
 
@@ -531,6 +863,65 @@
       <div class="dialog-actions">
         <button id="delegation-kill-cancel" class="btn ghost" type="button">Volver</button>
         <button id="delegation-kill-confirm" class="btn destructive" type="submit">Cancelar delegaciones</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="hire-sheet" class="dialog hire-dialog">
+    <div class="hire-sheet-head">
+      <h2>Contratar</h2>
+      <button id="hire-sheet-close" class="btn ghost btn-small" type="button">Cerrar</button>
+    </div>
+    <p class="dialog-lede">Cada área admite hasta 8 agentes. Contratar uno lo añade a tu equipo al momento.</p>
+    <p id="hire-sheet-error" class="form-error hidden" role="alert"></p>
+    <div id="hire-sheet-body" class="hire-sheet-body"></div>
+  </dialog>
+
+  <dialog id="hire-actions" class="dialog hire-dialog">
+    <h2 id="hire-actions-title">Agente</h2>
+    <div class="hire-actions-list" role="group" aria-label="Acciones">
+      <button id="hire-actions-rename" class="btn secondary" type="button">Cambiar nombre</button>
+      <button id="hire-actions-avatar" class="btn secondary" type="button">Cambiar personaje</button>
+      <button id="hire-actions-dismiss" class="btn destructive" type="button">Despedir</button>
+    </div>
+    <div class="dialog-actions">
+      <button id="hire-actions-close" class="btn ghost" type="button">Cerrar</button>
+    </div>
+  </dialog>
+
+  <dialog id="hire-rename" class="dialog hire-dialog">
+    <form id="hire-rename-form" method="dialog" novalidate>
+      <h2>Cambiar nombre</h2>
+      <label class="field-label" for="hire-rename-input">Nombre</label>
+      <input id="hire-rename-input" type="text" spellcheck="false" autocomplete="off">
+      <p id="hire-rename-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="hire-rename-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="hire-rename-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="hire-avatar" class="dialog hire-dialog">
+    <form id="hire-avatar-form" method="dialog" novalidate>
+      <h2>Cambiar personaje</h2>
+      <div id="hire-avatar-grid" class="avatar-grid" role="group" aria-label="Personaje"></div>
+      <p id="hire-avatar-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="hire-avatar-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="hire-avatar-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="hire-dismiss" class="dialog hire-dialog">
+    <form id="hire-dismiss-form" method="dialog" novalidate>
+      <h2>Despedir</h2>
+      <p id="hire-dismiss-lede" class="dialog-lede"></p>
+      <p id="hire-dismiss-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="hire-dismiss-cancel" class="btn ghost" type="button">Volver</button>
+        <button id="hire-dismiss-confirm" class="btn destructive" type="submit">Despedir</button>
       </div>
     </form>
   </dialog>

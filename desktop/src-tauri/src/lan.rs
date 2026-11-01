@@ -7,7 +7,26 @@ use herdr_desktop_core::PairLink;
 use qrcode::render::svg;
 use qrcode::QrCode;
 
-pub const LAN_PORT: u16 = 8443;
+const DEFAULT_LAN_PORT: u16 = 8443;
+const LAN_PORT_VAR: &str = "EXCUBIA_LAN_PORT";
+
+/// The LAN port: `EXCUBIA_LAN_PORT` when it is 1024-65535, else the default.
+pub fn lan_port() -> u16 {
+    lan_port_from(std::env::var(LAN_PORT_VAR).ok().as_deref())
+}
+
+fn lan_port_from(value: Option<&str>) -> u16 {
+    match value {
+        None => DEFAULT_LAN_PORT,
+        Some(value) => match value.trim().parse::<u16>() {
+            Ok(port) if port >= 1024 => port,
+            _ => {
+                eprintln!("{LAN_PORT_VAR}={value} no es un puerto entre 1024 y 65535; uso {DEFAULT_LAN_PORT}");
+                DEFAULT_LAN_PORT
+            }
+        },
+    }
+}
 
 /// The private IPv4 this machine sends from. A connected UDP socket sends no
 /// packet; it only asks the OS which interface routes out.
@@ -22,7 +41,7 @@ pub fn lan_address() -> Option<Ipv4Addr> {
 
 /// The concrete address the core's LAN listener binds, never a wildcard.
 pub fn lan_bind() -> Option<SocketAddr> {
-    lan_address().map(|address| SocketAddr::new(address.into(), LAN_PORT))
+    lan_address().map(|address| SocketAddr::new(address.into(), lan_port()))
 }
 
 /// Pulls the link out of `host pair-code --lan`'s output.
@@ -59,6 +78,21 @@ mod tests {
     #[test]
     fn a_host_without_a_link_is_an_error() {
         assert!(pair_link_from("pairing code: ABCD-2345\n").is_err());
+    }
+
+    #[test]
+    fn the_lan_port_defaults_to_8443_and_takes_a_valid_override() {
+        assert_eq!(lan_port_from(None), 8443);
+        assert_eq!(lan_port_from(Some("9443")), 9443);
+        assert_eq!(lan_port_from(Some(" 65535 ")), 65535);
+    }
+
+    #[test]
+    fn an_invalid_or_out_of_range_lan_port_falls_back_to_8443() {
+        assert_eq!(lan_port_from(Some("abc")), 8443);
+        assert_eq!(lan_port_from(Some("")), 8443);
+        assert_eq!(lan_port_from(Some("1023")), 8443);
+        assert_eq!(lan_port_from(Some("70000")), 8443);
     }
 
     #[test]

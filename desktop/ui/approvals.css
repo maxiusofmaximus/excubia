@@ -77,7 +77,7 @@
 .approval-chip.risk-low { color: var(--done); }
 .approval-chip.risk-medium { color: var(--warning); }
 .approval-chip.risk-high { color: var(--blocked); }
-.approval-chip.level { color: var(--accent); }
+.approval-chip.level { color: var(--accent-text); }
 
 .approval-footer {
   display: flex;
@@ -109,7 +109,7 @@
 .approval-card :focus-visible,
 .approval-line :focus-visible,
 .approval-settings :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -164,7 +164,7 @@
 
 .approval-chain li::after { content: "→"; margin-left: 4px; color: var(--muted); }
 .approval-chain li:last-child::after { content: ""; }
-.approval-chain li.current { color: var(--accent); font-weight: 600; }
+.approval-chain li.current { color: var(--accent-text); font-weight: 600; }
 
 .approval-facts {
   display: grid;
@@ -239,4 +239,69 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
+}
+
+/* The checklist of a mail batch: one row per mail, its text as the mail wrote it. */
+.move-batch {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.move-item {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+.move-row {
+  min-height: 44px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.move-row input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.move-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.move-from {
+  color: var(--text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.move-subject,
+.move-meta,
+.move-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.move-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.move-reason {
+  overflow-wrap: anywhere;
+}
+
+.move-item.excluded .move-text {
+  text-decoration: line-through;
 }

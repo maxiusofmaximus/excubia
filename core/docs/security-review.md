@@ -1,6 +1,6 @@
 ﻿# Auditoría de seguridad
 
-> Alcance: `gateway/src/herdr_notify/api/**` (autenticación, rate limit,
+> (gateway retirado; ver README). Alcance: `gateway/src/herdr_notify/api/**` (autenticación, rate limit,
 > acciones) y `android/app/src/main/**` (manifiesto, keystore, notificaciones,
 > red).
 >

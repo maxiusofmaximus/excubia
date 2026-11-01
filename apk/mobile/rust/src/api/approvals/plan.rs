@@ -9,7 +9,12 @@ use crate::api::error::{ErrorInfo, FailureKind};
 use crate::api::validate;
 use crate::api::write::HttpCall;
 
+const MAX_EXCLUDE: usize = 20;
+const MAX_EXCLUDE_ID_CHARS: usize = 512;
+
 /// The inbox of the operator: pending by default, any lifecycle state on request.
+/// A device has no read of one approval by id (`GET /v1/chat/approvals/{id}` is
+/// a hook route): it finds one here, by status, as `findApproval` does in Dart.
 #[flutter_rust_bridge::frb(sync)]
 pub fn plan_approval_inbox(conversation_id: Option<String>, status: Option<String>) -> ChatPlan {
     let mut query = Vec::new();
@@ -33,31 +38,42 @@ pub fn plan_approval_inbox(conversation_id: Option<String>, status: Option<Strin
     get(target)
 }
 
-/// The state and the deadline of one approval, never its payload.
-#[flutter_rust_bridge::frb(sync)]
-pub fn plan_approval_read(approval_id: String) -> ChatPlan {
-    if !validate::identifier(&approval_id) {
-        return problem();
-    }
-    get(format!("/v1/chat/approvals/{approval_id}"))
-}
-
 /// One answer to one approval. `client_id` makes a retry safe: the host gives
-/// the same answer to the same id.
+/// the same answer to the same id. `exclude` leaves mails out of a `mail.move`.
 #[flutter_rust_bridge::frb(sync)]
-pub fn plan_approval_decision(approval_id: String, approve: bool, client_id: String) -> ChatPlan {
-    if !validate::identifier(&approval_id) || !validate::client_id(&client_id) {
+pub fn plan_approval_decision(
+    approval_id: String,
+    approve: bool,
+    client_id: String,
+    exclude: Vec<String>,
+) -> ChatPlan {
+    if !validate::identifier(&approval_id)
+        || !validate::client_id(&client_id)
+        || !exclusions_allowed(approve, &exclude)
+    {
         return problem();
     }
     let decision = if approve { "approve" } else { "deny" };
-    post(
-        format!("/v1/chat/approvals/{approval_id}/decision"),
-        object(json!({
-            "decision": decision,
-            "scope": "once",
-            "client_id": client_id,
-        })),
-    )
+    let mut body = object(json!({
+        "decision": decision,
+        "scope": "once",
+        "client_id": client_id,
+    }));
+    if !exclude.is_empty() {
+        body.insert("exclude".to_string(), json!(exclude));
+    }
+    post(format!("/v1/chat/approvals/{approval_id}/decision"), body)
+}
+
+/// The host's rules for `exclude` (`api.md`, «Exclusions»): only with `approve`,
+/// at most 20 ids, each one non-empty and at most 512 characters.
+fn exclusions_allowed(approve: bool, exclude: &[String]) -> bool {
+    exclude.is_empty()
+        || (approve
+            && exclude.len() <= MAX_EXCLUDE
+            && exclude
+                .iter()
+                .all(|id| !id.is_empty() && id.chars().count() <= MAX_EXCLUDE_ID_CHARS))
 }
 
 #[flutter_rust_bridge::frb(sync)]

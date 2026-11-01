@@ -157,6 +157,10 @@ pub trait ChatSeat: Send + Sync + 'static {
         Ok(())
     }
 
+    /// Stop the open turns of one conversation. The chat state is already
+    /// `interrupted` when this runs: the seat only kills the processes still alive.
+    fn stop_turns(&self, _conversation_id: &str) {}
+
     /// Stop accepting turns and close the live worker (host shutdown/restart).
     fn shutdown(&self) {}
 }

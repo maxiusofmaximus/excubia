@@ -31,5 +31,26 @@ pub async fn state(State(ctx): State<ApiContext>) -> Response {
         Ok(chat) => state["chat"] = chat,
         Err(error) => return ApiError::internal(error).into_response(),
     }
+    // The calendar counts are additive too: no titles, only what is left of today.
+    match ctx.chat.calendar_summary() {
+        Ok(summary) => {
+            state["calendar_today"] = json!(summary.today);
+            state["calendar_next"] = json!(summary
+                .next
+                .map(|next| json!({ "id": next.id, "start_utc": next.start_utc })));
+            state["reminders_due"] = json!(summary.reminders_due);
+        }
+        Err(error) => return ApiError::internal(error).into_response(),
+    }
+    // The alert counts are additive: the mode and how many rules are on, never the rules.
+    match ctx.chat.alert_summary() {
+        Ok(summary) => {
+            state["alert_rules"] = json!({
+                "mode": summary.mode.as_str(),
+                "enabled_count": summary.enabled_count,
+            });
+        }
+        Err(error) => return ApiError::internal(error).into_response(),
+    }
     Json(state).into_response()
 }

@@ -2,12 +2,14 @@
 //! approved one: the operator's answer, the agent's hook, and the host itself
 //! for the approvals it opened. Each one is one transaction with its audit row.
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, Transaction};
 
 use crate::error::ChatError;
 use crate::model_approval::{Approval, ApprovalStatus, Decision, HOOK_CONSUMER};
 use crate::model_hook::HookScope;
 
+use super::agenda::{self, delete_key};
+use super::approval_exclusion;
 use super::approval_rules::{approval_by_id, frame_of, write_audit, Decider};
 use super::approval_settle;
 
@@ -17,6 +19,38 @@ use super::approval_settle;
 pub(super) enum Burn<'a> {
     Host,
     Hook(&'a HookScope),
+}
+
+/// A delete is done by its approval: the object goes in the same transaction that marks
+/// the approval `consumed`, so the approval burns once and an object already gone is no
+/// failure.
+fn burn_delete(
+    transaction: &Transaction<'_>,
+    approval: &Approval,
+    approver: &str,
+    now: &str,
+) -> Result<(), ChatError> {
+    agenda::delete_object(transaction, approval, approver, now)?;
+    transaction.execute(
+        "UPDATE approval SET status = 'consumed', consumed_at = ?1, updated_at = ?1
+          WHERE id = ?2 AND status = 'approved'",
+        params![now, approval.id],
+    )?;
+    let decider = Decider {
+        kind: "user",
+        id: approver,
+        level: None,
+        reason: None,
+        scorer_version: None,
+    };
+    write_audit(
+        transaction,
+        &approval.id,
+        &approval.action_digest,
+        &decider,
+        "consumed",
+        now,
+    )
 }
 
 /// Whether a decision with this `client_id` already answered the approval.
@@ -44,6 +78,20 @@ impl super::ChatStore {
         client_id: &str,
         device_id: &str,
     ) -> Result<Approval, ChatError> {
+        self.decide_approval_excluding(approval_id, decision, &[], client_id, device_id)
+    }
+
+    /// The operator's answer, leaving out the messages `exclude` names of a mail
+    /// batch (F2C1). The exclusions and the answer are one transaction: either both
+    /// happen or neither does.
+    pub fn decide_approval_excluding(
+        &self,
+        approval_id: &str,
+        decision: Decision,
+        exclude: &[String],
+        client_id: &str,
+        device_id: &str,
+    ) -> Result<Approval, ChatError> {
         self.expire_now()?;
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
@@ -62,6 +110,7 @@ impl super::ChatStore {
             ApprovalStatus::Expired => return Err(ChatError::ApprovalExpired),
             ApprovalStatus::Consumed => return Err(ChatError::ApprovalAlreadyDecided),
         }
+        approval_exclusion::mark(&transaction, &approval, decision, exclude)?;
         transaction.execute(
             "UPDATE approval SET status = ?1, decided_by = ?2, decided_at = ?3, updated_at = ?3,
                     decider_kind = 'user', decider_id = ?2
@@ -87,9 +136,18 @@ impl super::ChatStore {
             "UPDATE approval_audit SET client_id = ?1 WHERE rowid = ?2",
             params![client_id, transaction.last_insert_rowid()],
         )?;
+        // Only the host's own question deletes: an agent's hook can file any tool
+        // name and payload, but never without its seat.
+        let burned = matches!(decision, Decision::Approve)
+            && delete_key(&approval.tool).is_some()
+            && approval.seat_id.is_none();
+        if burned {
+            burn_delete(&transaction, &approval, device_id, &now)?;
+        }
         let decided_row = approval_by_id(&transaction, approval_id)?;
         approval_settle::record_timeline_line(&transaction, &decided_row)?;
-        let frame = frame_of(&transaction, approval_id, "decided")?;
+        let change = if burned { "consumed" } else { "decided" };
+        let frame = frame_of(&transaction, approval_id, change)?;
         transaction.commit()?;
         self.publish(frame);
         drop(connection);
@@ -106,6 +164,12 @@ impl super::ChatStore {
         scope: &HookScope,
     ) -> Result<Approval, ChatError> {
         self.consume(approval_id, digest, Burn::Hook(scope))
+    }
+
+    /// Burn an approval the host opened for its own action (MAIL2A: one mail, one
+    /// approval). `digest` must be the one the approval was opened with.
+    pub fn consume_for_host(&self, approval_id: &str, digest: &str) -> Result<Approval, ChatError> {
+        self.consume(approval_id, Some(digest), Burn::Host)
     }
 
     /// The consumption itself. The two callers have different authority over

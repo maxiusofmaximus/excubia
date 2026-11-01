@@ -27,6 +27,7 @@ fn input<'a>(
         hook_url: "http://127.0.0.1:9",
         hook_token: "test-hook-token",
         hook_command: Path::new("C:\\bin\\hn-uac-hook.exe"),
+        attachment_dirs: &[],
     }
 }
 
@@ -89,6 +90,30 @@ fn claude_plan_isolates_settings_and_mcp() {
 }
 
 #[test]
+fn claude_plan_grants_the_attachment_folder_only_when_there_are_attachments() {
+    let profile = crate::profile::shipped().remove(0);
+    let scratch = TestDir::new("seat-claude-attachments");
+    let hook = hook_in(&scratch);
+    let root = PathBuf::from("run-dir");
+    let folder = PathBuf::from("data/chat/attachments/cnv_1");
+    let dirs = [folder.clone()];
+    let mut launch = input(&profile, &root, "role", "prompt");
+    launch.hook_command = &hook;
+    launch.attachment_dirs = &dirs;
+    let plan = prepare(&launch).expect("plan");
+    let flag = plan
+        .args
+        .iter()
+        .position(|arg| arg == "--add-dir")
+        .expect("--add-dir");
+    assert_eq!(plan.args[flag + 1], folder.to_string_lossy());
+
+    launch.attachment_dirs = &[];
+    let plan = prepare(&launch).expect("plan");
+    assert!(!plan.args.iter().any(|arg| arg == "--add-dir"));
+}
+
+#[test]
 fn claude_settings_gate_every_edit_tool_with_the_blocking_hook() {
     let profile = crate::profile::shipped().remove(0);
     let scratch = TestDir::new("seat-claude-gate");
@@ -115,6 +140,27 @@ fn claude_settings_gate_every_edit_tool_with_the_blocking_hook() {
     );
     assert_eq!(hook["hooks"][0]["timeout"], CLAUDE_HOOK_TIMEOUT_SECONDS);
     assert!(!file_text(&plan, "claude-settings.json").contains("test-hook-token"));
+}
+
+#[test]
+fn claude_allows_each_tool_the_seat_serves() {
+    let profile = crate::profile::shipped().remove(0);
+    let scratch = TestDir::new("seat-claude-chat-tools");
+    let hook_bin = hook_in(&scratch);
+    let root = PathBuf::from("run-dir");
+    let mut launch = input(&profile, &root, "role", "prompt");
+    launch.hook_command = &hook_bin;
+    let plan = prepare(&launch).expect("plan");
+    let settings: serde_json::Value =
+        serde_json::from_str(&file_text(&plan, "claude-settings.json")).expect("json");
+    let allowed = settings["permissions"]["allow"].to_string();
+    let served = crate::tools::definitions();
+    for tool in served["tools"].as_array().expect("tools") {
+        let name = tool["name"].as_str().expect("name");
+        // Without this rule `claude -p` refuses the call and the turn ends silently.
+        let rule = format!("mcp__hn-core__{}", name.replace('.', "_"));
+        assert!(allowed.contains(&rule), "{rule} must be allowed");
+    }
 }
 
 #[test]

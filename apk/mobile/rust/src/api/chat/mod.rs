@@ -1,5 +1,8 @@
 //! The persistent chat surface: models, request plans and the `seq` reducer.
 
+pub mod attach_model;
+pub mod attach_plan;
+pub mod attach_upload;
 pub mod model;
 pub mod model_team;
 pub mod plan;

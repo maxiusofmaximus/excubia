@@ -1,0 +1,84 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:herdr_notify/core/api/alerts_api.dart';
+import 'package:herdr_notify/core/api/connection_failure.dart';
+import 'package:herdr_notify/core/api/connection_text.dart';
+import 'package:herdr_notify/core/state/chat_controller.dart';
+import 'package:herdr_notify/core/state/hires_controller.dart';
+import 'package:herdr_notify/core/state/live_triage.dart';
+import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:herdr_notify/ui/agents_screen.dart';
+import 'package:herdr_notify/ui/chat/chat_screen.dart';
+import 'package:herdr_notify/ui/theme.dart';
+
+import 'support/connection_fixtures.dart';
+import 'support/scripted_transport.dart';
+
+void main() {
+  setUpAll(RustLib.init);
+
+  testWidgets('the chat header names why the PC cannot be reached', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(),
+        home: Scaffold(
+          body: ChatHeader(
+            name: 'Alfred',
+            status: 'Disponible',
+            offline: true,
+            connectionFailure: ConnectionFailure.hostDown,
+            unread: 0,
+            onHistory: () {},
+            onNewChat: () {},
+            alertRules: AlertsApi(ScriptedTransport({})),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('PC sin servicio'), findsOneWidget);
+    expect(find.text('Sin conexión'), findsNothing);
+  });
+
+  testWidgets('the team screen names the cause in its subtitle and banner', (
+    tester,
+  ) async {
+    late LiveTriage triage;
+    late ChatController chat;
+    late HiresController hires;
+    final client = refusingClient();
+    triage = LiveTriage(client);
+    chat = ChatController(client, triage);
+    hires = HiresController(transport: client);
+    await tester.runAsync(() async {
+      triage.start();
+      await settled(triage);
+      triage.stop();
+    });
+    addTearDown(triage.dispose);
+    addTearDown(chat.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(),
+        home: AgentsScreen(
+          triage: triage,
+          chat: chat,
+          hires: hires,
+          onUnpaired: () async {},
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining('Sin ruta al PC · último estado'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(connectionText(ConnectionFailure.noRoute)),
+      findsOneWidget,
+    );
+  });
+}

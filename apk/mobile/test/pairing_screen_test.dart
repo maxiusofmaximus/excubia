@@ -50,6 +50,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Excubia'), findsOneWidget);
+    expect(
+      find.text('Vigila a tus agentes mientras no estás'),
+      findsOneWidget,
+    );
+
     await pasteLink(tester, pinnedLink(expiresAt: nowSeconds() + 600));
 
     expect(paired?.deviceId, 'hn-7');

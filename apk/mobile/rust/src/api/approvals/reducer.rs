@@ -56,6 +56,9 @@ impl ApprovalReducer {
             risk: None,
             command: None,
             question: None,
+            mail_send: None,
+            mail_attach: None,
+            mail_move: None,
             status,
             level: event.level,
             escalated_from: event.escalated_from,
@@ -116,11 +119,14 @@ impl ApprovalReducer {
         if incoming_rank < stored_rank {
             return false;
         }
-        if incoming_rank == stored_rank && incoming.revision < stored.revision {
-            return false;
-        }
         let before = stored.clone();
-        fold(stored, incoming);
+        if incoming_rank == stored_rank && incoming.revision < stored.revision {
+            // An older read of the same status keeps the newer view, but fills what
+            // the frame never carried: a read has the details, a frame does not.
+            fill_missing(stored, incoming);
+        } else {
+            fold(stored, incoming);
+        }
         *stored != before
     }
 }
@@ -147,6 +153,10 @@ fn fold(stored: &mut ChatApproval, incoming: ChatApproval) {
     replace_some(&mut stored.risk, incoming.risk);
     replace_some(&mut stored.command, incoming.command);
     replace_some(&mut stored.question, incoming.question);
+    // The inbox row carries the mail facts; a frame that lands first must not hide them.
+    replace_some(&mut stored.mail_send, incoming.mail_send);
+    replace_some(&mut stored.mail_attach, incoming.mail_attach);
+    replace_some(&mut stored.mail_move, incoming.mail_move);
     replace_some(&mut stored.level, incoming.level);
     replace_some(&mut stored.escalated_from, incoming.escalated_from);
     replace_some(&mut stored.decider_kind, incoming.decider_kind);
@@ -158,6 +168,41 @@ fn fold(stored: &mut ChatApproval, incoming: ChatApproval) {
     }
     if !incoming.audit.is_empty() {
         stored.audit = incoming.audit;
+    }
+}
+
+/// Same status, older revision: only the facts the stored view still lacks.
+fn fill_missing(stored: &mut ChatApproval, incoming: ChatApproval) {
+    // What the card reads to know the kind of request: a frame never carries them.
+    if stored.tool.is_none() {
+        stored.tool = incoming.tool;
+    }
+    if stored.kind.is_none() {
+        stored.kind = incoming.kind;
+    }
+    if stored.seat_id.is_none() {
+        stored.seat_id = incoming.seat_id;
+    }
+    if stored.command.is_none() {
+        stored.command = incoming.command;
+    }
+    if stored.question.is_none() {
+        stored.question = incoming.question;
+    }
+    if stored.mail_send.is_none() {
+        stored.mail_send = incoming.mail_send;
+    }
+    if stored.mail_attach.is_none() {
+        stored.mail_attach = incoming.mail_attach;
+    }
+    if stored.mail_move.is_none() {
+        stored.mail_move = incoming.mail_move;
+    }
+    if stored.cwd.is_none() {
+        stored.cwd = incoming.cwd;
+    }
+    if stored.risk.is_none() {
+        stored.risk = incoming.risk;
     }
 }
 

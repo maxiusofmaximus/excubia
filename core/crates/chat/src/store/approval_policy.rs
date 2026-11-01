@@ -145,19 +145,22 @@ impl Placement {
 impl ChatStore {
     /// The verdict of the rules for a new approval. The project comes from the
     /// seat that asks; without one the action cannot be placed, so the rules
-    /// never allow it.
+    /// never allow it. A forced category (`reach`) is the host's own word on
+    /// what the action is, and it wins over the payload.
     pub(super) fn assess(
         &self,
         connection: &Connection,
         new: &NewApproval,
         seat_id: Option<&str>,
+        reach: Option<Category>,
     ) -> Result<Assessment, ChatError> {
         let project_root = match seat_id {
             Some(seat_id) => project_root_of(connection, seat_id)?,
             None => None,
         };
         let location = locate(project_root.as_deref(), new.cwd.as_deref(), &new.paths);
-        let category = classify(new.kind, &new.tool, new.payload_redacted.as_ref(), location);
+        let category = reach
+            .or_else(|| classify(new.kind, &new.tool, new.payload_redacted.as_ref(), location));
         let assessed = assess_risk(category, location);
         // A caller may ask for more risk than the host sees, never for less.
         let risk = new.risk.map_or(assessed, |asked| asked.max(assessed));

@@ -36,6 +36,12 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
         chat: Arc::clone(&host.chat),
         seat: Arc::clone(&host.seat),
         hook_token: Arc::new(host.hook_token.clone()),
+        mail: Arc::new(harness::test_mail(
+            &host.data_dir,
+            Arc::clone(&host.chat),
+            harness::mail_transport(None),
+        )),
+        voice: Arc::new(hn_core_api::voice::VoiceService::new(None)),
     });
     (addr, tokio::spawn(serve_client(listener, context)))
 }

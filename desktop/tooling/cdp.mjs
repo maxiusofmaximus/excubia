@@ -79,11 +79,24 @@ if (command === "eval") {
   const value = await evaluate(rest[0]);
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
 } else if (command === "reload") {
+  // Emulation dies with this session, so it must be set here, and the page must
+  // paint before the session closes: the avatars choose their file at paint time.
+  if (process.env.REDUCED_MOTION) {
+    await send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: process.env.REDUCED_MOTION }],
+    });
+  }
   await send("Page.reload", { ignoreCache: true });
+  await new Promise((resolve) => setTimeout(resolve, 4000));
 } else if (command === "shot") {
   const [file, scheme = "dark"] = rest;
+  // REDUCED_MOTION=reduce emulates the OS setting; unset means no-preference, so
+  // an earlier capture's override never leaks into this one.
   await send("Emulation.setEmulatedMedia", {
-    features: [{ name: "prefers-color-scheme", value: scheme }],
+    features: [
+      { name: "prefers-color-scheme", value: scheme },
+      { name: "prefers-reduced-motion", value: process.env.REDUCED_MOTION || "no-preference" },
+    ],
   });
   await send("Emulation.setDeviceMetricsOverride", {
     width: Number(process.env.SHOT_WIDTH || 1180),

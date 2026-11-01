@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "areas": [
+    {
+      "id": "programacion",
+      "label": "Programación",
+      "roles": ["ernesto", "bob", "nicole", "ines", "hugo", "sami", "dani", "conan", "ravi", "elif", "bruno", "astrid"],
+      "levels": {
+        "personal": ["bob"],
+        "profesional": ["bob", "ines", "conan", "nicole"],
+        "equipo": ["ernesto", "bob", "nicole", "ines", "hugo", "sami", "dani", "conan"]
+      }
+    },
+    {
+      "id": "video",
+      "label": "Vídeo y postproducción",
+      "roles": ["vera", "jade", "karim", "leo", "priya", "sofia"],
+      "levels": {
+        "personal": ["vera"],
+        "profesional": ["vera", "jade", "karim", "leo"],
+        "equipo": ["vera", "jade", "karim", "leo", "priya", "sofia"]
+      }
+    },
+    {
+      "id": "diseno_grafico",
+      "label": "Diseño gráfico e ilustración",
+      "roles": ["nadia", "kenji", "camila", "tomas"],
+      "levels": {
+        "personal": ["nadia"],
+        "profesional": ["nadia", "kenji", "tomas"],
+        "equipo": ["nadia", "kenji", "camila", "tomas"]
+      }
+    },
+    {
+      "id": "audio",
+      "label": "Audio y música",
+      "roles": ["beatriz", "malik", "ingrid", "kofi"],
+      "levels": {
+        "personal": ["beatriz"],
+        "profesional": ["beatriz", "malik", "ingrid"],
+        "equipo": ["beatriz", "malik", "ingrid", "kofi"]
+      }
+    },
+    {
+      "id": "documentos",
+      "label": "Documentos e informes",
+      "roles": ["greta", "amara", "yuki", "hana"],
+      "levels": {
+        "personal": ["greta"],
+        "profesional": ["greta", "amara", "hana"],
+        "equipo": ["greta", "amara", "yuki", "hana"]
+      }
+    },
+    {
+      "id": "investigacion",
+      "label": "Investigación y estrategia",
+      "roles": ["ibrahim", "lea", "noor"],
+      "levels": {
+        "personal": ["ibrahim"],
+        "profesional": ["ibrahim", "lea", "noor"],
+        "equipo": ["ibrahim", "lea", "noor"]
+      }
+    },
+    {
+      "id": "ingenieria_cad",
+      "label": "Ingeniería y CAD",
+      "roles": ["marek", "anika", "sven"],
+      "levels": {
+        "personal": ["marek"],
+        "profesional": ["marek", "anika", "sven"],
+        "equipo": ["marek", "anika", "sven"]
+      }
+    },
+    {
+      "id": "marketing",
+      "label": "Marketing y contenido",
+      "roles": ["aisha", "diego", "maya", "tariq"],
+      "levels": {
+        "personal": ["aisha"],
+        "profesional": ["aisha", "diego", "maya"],
+        "equipo": ["aisha", "diego", "maya", "tariq"]
+      }
+    },
+    {
+      "id": "otras",
+      "label": "Otras (educación, legal, finanzas)",
+      "roles": ["elena", "farah", "boris"],
+      "levels": {
+        "personal": [],
+        "profesional": [],
+        "equipo": []
+      }
+    }
+  ],
+  "roles": [
+    {"id": "ernesto", "name": "Ernesto", "title": "Líder de proyecto", "area": "programacion", "avatar": "ernesto", "apps": [], "skills": {"ok": [], "pending": []}},
+    {"id": "bob", "name": "Bob", "title": "Desarrollador", "area": "programacion", "avatar": "bob", "apps": ["context7", "git local", "build y tests"], "skills": {"ok": ["security-audit", "thermo-nuclear-code-quality-review", "graphify", "test-driven-development", "writing-plans", "executing-plans"], "pending": ["refactor-safe", "commit-convention", "dependency-guard"]}},
+    {"id": "nicole", "name": "Nicole", "title": "Diseñador de interfaz (UI)", "area": "programacion", "avatar": "nicole", "apps": ["context7", "playwright", "chrome-devtools", "generación de imágenes", "captura de pantalla"], "skills": {"ok": ["impeccable", "design-taste-frontend", "high-end-visual-design", "redesign-existing-projects", "minimalist-ui", "interface-design", "frontend-design", "imagegen-frontend-mobile", "brandkit", "graphify"], "pending": ["design-review-evidence", "a11y-pass", "design-tokens"]}},
+    {"id": "ines", "name": "Ines", "title": "Probador / QA", "area": "programacion", "avatar": "ines", "apps": ["context7", "playwright", "chrome-devtools", "adb", "captura de pantalla", "ejecución de suites"], "skills": {"ok": ["e2e", "mobiai-mobile-debugging", "test-driven-development", "mobiai-android-testing", "security-audit", "graphify"], "pending": ["bug-bash", "regression-matrix", "flaky-triage"]}},
+    {"id": "hugo", "name": "Hugo", "title": "Investigador", "area": "programacion", "avatar": "hugo", "apps": ["context7", "context7max", "github", "huggingface", "búsqueda web"], "skills": {"ok": ["find-docs", "context7-mcp", "hf-cli", "find-skills", "graphify", "writing-plans"], "pending": ["source-grade", "decision-brief", "paper-digest"]}},
+    {"id": "sami", "name": "Sami", "title": "Desarrollador Android", "area": "programacion", "avatar": "sami", "apps": ["context7", "adb", "Gradle", "emulador o dispositivo", "logcat", "captura de pantalla"], "skills": {"ok": ["mobiai-android-build", "mobiai-android-device", "mobiai-android-testing", "mobiai-android-architecture", "mobiai-mobile-debugging", "edge-to-edge", "navigation-3", "migrate-xml-views-to-jetpack-compose", "graphify", "security-audit"], "pending": ["android-release-sign", "play-policy-check", "perf-profile"]}},
+    {"id": "dani", "name": "Dani", "title": "Activos 3D", "area": "programacion", "avatar": "dani", "apps": ["blender (MCP)", "generación de imágenes", "captura de render"], "skills": {"ok": ["img2threejs", "graphify"], "pending": ["asset-budget", "pbr-materials", "rig-animate"]}},
+    {"id": "conan", "name": "Conan", "title": "Revisor / Seguridad", "area": "programacion", "avatar": "conan", "apps": ["context7", "git (lectura)", "escáneres de secretos"], "skills": {"ok": ["security-audit", "thermo-nuclear-code-quality-review", "graphify", "review-and-refactor", "mobiai-review-code"], "pending": ["threat-model", "secret-scan", "finding-triage"]}},
+    {"id": "ravi", "name": "Ravi", "title": "DevOps / Plataforma", "area": "programacion", "avatar": null, "apps": ["terminal", "github", "CI", "IaC"], "skills": {"ok": [], "pending": ["ci-pipeline", "iac-review"]}},
+    {"id": "elif", "name": "Elif", "title": "Ingeniero de datos", "area": "programacion", "avatar": null, "apps": ["terminal", "GridCraft"], "skills": {"ok": [], "pending": ["etl-testing", "data-contracts"]}},
+    {"id": "bruno", "name": "Bruno", "title": "Automatización QA (SDET)", "area": "programacion", "avatar": null, "apps": ["e2e", "CI"], "skills": {"ok": ["e2e", "mobiai-android-testing"], "pending": ["flaky-triage"]}},
+    {"id": "astrid", "name": "Astrid", "title": "Redactor técnico", "area": "programacion", "avatar": null, "apps": ["WordCraft"], "skills": {"ok": [], "pending": ["api-docs-style", "docs-ia"]}},
+    {"id": "vera", "name": "Vera", "title": "Editor de vídeo", "area": "video", "avatar": null, "apps": ["FilmCraft", "SoundCraft"], "skills": {"ok": [], "pending": ["edit-rhythm", "subtitle-sync"]}},
+    {"id": "jade", "name": "Jade", "title": "Colorista", "area": "video", "avatar": null, "apps": ["LightCraft"], "skills": {"ok": [], "pending": ["color-lut", "scopes-read"]}},
+    {"id": "karim", "name": "Karim", "title": "Diseñador de sonido / Mezcla", "area": "video", "avatar": null, "apps": ["SoundCraft"], "skills": {"ok": [], "pending": ["audio-post", "loudness-norm"]}},
+    {"id": "leo", "name": "Leo", "title": "Gráficos de movimiento / VFX", "area": "video", "avatar": null, "apps": ["EffectCraft", "FilmCraft"], "skills": {"ok": ["img2threejs"], "pending": ["motion-rig", "vfx-compositing"]}},
+    {"id": "priya", "name": "Priya", "title": "Productor / Asistente", "area": "video", "avatar": null, "apps": ["WordCraft", "GridCraft"], "skills": {"ok": [], "pending": ["production-plan", "cost-budget"]}},
+    {"id": "sofia", "name": "Sofia", "title": "Guionista", "area": "video", "avatar": null, "apps": ["WordCraft"], "skills": {"ok": ["writing-plans"], "pending": ["script-format", "story-structure"]}},
+    {"id": "nadia", "name": "Nadia", "title": "Diseñador gráfico", "area": "diseno_grafico", "avatar": null, "apps": ["DesignCraft"], "skills": {"ok": ["impeccable", "design-taste-frontend"], "pending": ["brand-kit", "print-prepress"]}},
+    {"id": "kenji", "name": "Kenji", "title": "Ilustrador vectorial", "area": "diseno_grafico", "avatar": null, "apps": ["VectorCraft"], "skills": {"ok": [], "pending": ["vector-craft", "character-design"]}},
+    {"id": "camila", "name": "Camila", "title": "Retoque fotográfico", "area": "diseno_grafico", "avatar": null, "apps": ["PhotoCraft"], "skills": {"ok": [], "pending": ["retouch-non-destructive", "color-manage"]}},
+    {"id": "tomas", "name": "Tomás", "title": "Maquetación / Layout", "area": "diseno_grafico", "avatar": null, "apps": ["DesignCraft", "GridCraft"], "skills": {"ok": [], "pending": ["layout-grid", "typesetting"]}},
+    {"id": "beatriz", "name": "Beatriz", "title": "Productor musical", "area": "audio", "avatar": null, "apps": ["SoundCraft"], "skills": {"ok": [], "pending": ["arrange-midi", "production-session"]}},
+    {"id": "malik", "name": "Malik", "title": "Ingeniero de mezcla", "area": "audio", "avatar": null, "apps": ["SoundCraft"], "skills": {"ok": [], "pending": ["mix-balance", "loudness-norm"]}},
+    {"id": "ingrid", "name": "Ingrid", "title": "Ingeniero de mastering", "area": "audio", "avatar": null, "apps": ["SoundCraft"], "skills": {"ok": [], "pending": ["master-chain", "platform-deliver"]}},
+    {"id": "kofi", "name": "Kofi", "title": "Editor de podcast", "area": "audio", "avatar": null, "apps": ["SoundCraft"], "skills": {"ok": [], "pending": ["denoise", "podcast-publish"]}},
+    {"id": "greta", "name": "Greta", "title": "Redactor / Editor", "area": "documentos", "avatar": null, "apps": ["WordCraft", "PdfCraft"], "skills": {"ok": [], "pending": ["style-guide", "doc-outline"]}},
+    {"id": "amara", "name": "Amara", "title": "Analista de datos / hojas de cálculo", "area": "documentos", "avatar": null, "apps": ["GridCraft"], "skills": {"ok": [], "pending": ["pivot-analysis", "charting"]}},
+    {"id": "yuki", "name": "Yuki", "title": "Diseñador de presentaciones", "area": "documentos", "avatar": null, "apps": ["DeckCraft", "DesignCraft"], "skills": {"ok": [], "pending": ["deck-story", "slide-layout"]}},
+    {"id": "hana", "name": "Hana", "title": "Revisor de documentos", "area": "documentos", "avatar": null, "apps": ["PdfCraft", "WordCraft"], "skills": {"ok": [], "pending": ["proofreading", "consistency-check"]}},
+    {"id": "ibrahim", "name": "Ibrahim", "title": "Investigador / Analista de investigación", "area": "investigacion", "avatar": null, "apps": ["GridCraft", "web"], "skills": {"ok": ["hf-cli", "find-docs"], "pending": ["survey-design", "source-grade"]}},
+    {"id": "lea", "name": "Lea", "title": "Analista de estrategia", "area": "investigacion", "avatar": null, "apps": ["GridCraft", "DeckCraft"], "skills": {"ok": [], "pending": ["decision-brief", "competitor-map"]}},
+    {"id": "noor", "name": "Noor", "title": "Redactor de informes", "area": "investigacion", "avatar": null, "apps": ["WordCraft", "DeckCraft"], "skills": {"ok": [], "pending": ["report-structure", "exec-summary"]}},
+    {"id": "marek", "name": "Marek", "title": "Delineante (CAD)", "area": "ingenieria_cad", "avatar": null, "apps": ["CADCraft"], "skills": {"ok": [], "pending": ["drafting-standards", "layers-blocks"]}},
+    {"id": "anika", "name": "Anika", "title": "Diseñador CAD", "area": "ingenieria_cad", "avatar": null, "apps": ["CADCraft"], "skills": {"ok": [], "pending": ["cad-modeling", "parametric-design"]}},
+    {"id": "sven", "name": "Sven", "title": "Revisor técnico", "area": "ingenieria_cad", "avatar": null, "apps": ["CADCraft", "PdfCraft"], "skills": {"ok": [], "pending": ["tolerance-check", "norm-compliance"]}},
+    {"id": "aisha", "name": "Aisha", "title": "Estratega de contenido", "area": "marketing", "avatar": null, "apps": ["WordCraft", "GridCraft"], "skills": {"ok": ["writing-plans"], "pending": ["content-calendar", "persona-map"]}},
+    {"id": "diego", "name": "Diego", "title": "Redactor publicitario", "area": "marketing", "avatar": null, "apps": ["WordCraft"], "skills": {"ok": [], "pending": ["copywriting", "tone-of-voice"]}},
+    {"id": "maya", "name": "Maya", "title": "Especialista SEO", "area": "marketing", "avatar": null, "apps": ["WordCraft", "web"], "skills": {"ok": ["find-docs"], "pending": ["keyword-research", "seo-onpage"]}},
+    {"id": "tariq", "name": "Tariq", "title": "Gestor de comunidad", "area": "marketing", "avatar": null, "apps": ["DesignCraft", "DeckCraft"], "skills": {"ok": [], "pending": ["social-schedule", "community-tone"]}},
+    {"id": "elena", "name": "Elena", "title": "Tutor / Diseño curricular", "area": "otras", "avatar": null, "apps": ["WordCraft", "DeckCraft"], "skills": {"ok": [], "pending": []}},
+    {"id": "farah", "name": "Farah", "title": "Revisor de contratos", "area": "otras", "avatar": null, "apps": ["PdfCraft", "WordCraft"], "skills": {"ok": [], "pending": []}},
+    {"id": "boris", "name": "Boris", "title": "Analista financiero", "area": "otras", "avatar": null, "apps": ["GridCraft", "DeckCraft"], "skills": {"ok": [], "pending": []}}
+  ]
+}

@@ -48,7 +48,7 @@ impl ChatSeat for FakeSeat {
                 return;
             }
             let text = format!("Respuesta simulada: {}", turn.text);
-            if let Err(error) = chat.complete_run_with_reply(&turn.id, &text) {
+            if let Err(error) = chat.complete_run_with_reply(&turn.id, &text, &[]) {
                 eprintln!("fake seat: could not complete {}: {error}", turn.id);
             }
         });

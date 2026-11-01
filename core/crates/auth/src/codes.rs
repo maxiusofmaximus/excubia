@@ -5,7 +5,7 @@
 //! so a code retyped from a screen still matches.
 
 use data_encoding::BASE32;
-use rand_core::{OsRng, RngCore};
+use hn_core_persist::{fill_random, RandomError};
 use sha2::{Digest, Sha256};
 
 /// 32 bits of entropy for a 10-minute single-use code.
@@ -16,22 +16,23 @@ pub const RECOVERY_CODE_BYTES: usize = 10;
 pub const ENROLLMENT_TTL_SECONDS: f64 = 600.0;
 
 /// A new pairing code: base32, no padding (`AEBAGBA`).
-pub fn mint_enrollment_code() -> String {
+pub fn mint_enrollment_code() -> Result<String, RandomError> {
     let mut bytes = [0u8; ENROLLMENT_CODE_BYTES];
-    OsRng.fill_bytes(&mut bytes);
-    BASE32.encode(&bytes).trim_end_matches('=').to_string()
+    fill_random(&mut bytes)?;
+    Ok(BASE32.encode(&bytes).trim_end_matches('=').to_string())
 }
 
 /// A new recovery code in its display form: four base32 groups of four.
-pub fn mint_recovery_code() -> String {
+pub fn mint_recovery_code() -> Result<String, RandomError> {
     let mut bytes = [0u8; RECOVERY_CODE_BYTES];
-    OsRng.fill_bytes(&mut bytes);
+    fill_random(&mut bytes)?;
     let raw = BASE32.encode(&bytes).trim_end_matches('=').to_string();
-    raw.as_bytes()
+    Ok(raw
+        .as_bytes()
         .chunks(4)
         .map(|chunk| String::from_utf8_lossy(chunk).to_string())
         .collect::<Vec<_>>()
-        .join("-")
+        .join("-"))
 }
 
 /// Drop separators and case, so any readable spelling hashes the same.
@@ -54,7 +55,7 @@ mod tests {
 
     #[test]
     fn enrollment_codes_match_the_gateway_shape() {
-        let code = mint_enrollment_code();
+        let code = mint_enrollment_code().expect("random");
         // 4 bytes are 7 base32 characters, no padding.
         assert_eq!(code.len(), 7);
         assert!(code
@@ -64,7 +65,7 @@ mod tests {
 
     #[test]
     fn recovery_codes_are_four_groups_of_four() {
-        let code = mint_recovery_code();
+        let code = mint_recovery_code().expect("random");
         let groups: Vec<&str> = code.split('-').collect();
         assert_eq!(groups.len(), 4);
         assert!(groups.iter().all(|group| group.len() == 4));

@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `link_failure`, `of`, `parse_link`, `refused`, `send`, `stop`
+// These functions are ignored because they are not marked as `pub`: `link_failure`, `of`, `parse_link`, `refused`, `send_bytes`, `stop`, `text_response`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`
 
 PairingLinkResult parsePairingLink({required String uri}) =>
@@ -20,6 +20,21 @@ Future<PinnedReply> pinnedRequest({
   required List<HeaderField> headers,
   required List<int> body,
 }) => RustLib.instance.api.crateApiPinnedPinnedRequest(
+  endpoint: endpoint,
+  method: method,
+  target: target,
+  headers: headers,
+  body: body,
+);
+
+/// Like `pinned_request`, but the body is returned as the bytes the host sent.
+Future<PinnedBytesReply> pinnedRequestBytes({
+  required PinnedEndpoint endpoint,
+  required String method,
+  required String target,
+  required List<HeaderField> headers,
+  required List<int> body,
+}) => RustLib.instance.api.crateApiPinnedPinnedRequestBytes(
   endpoint: endpoint,
   method: method,
   target: target,
@@ -108,6 +123,54 @@ class PairingLinkResult {
           runtimeType == other.runtimeType &&
           link == other.link &&
           failure == other.failure;
+}
+
+/// Exactly one of `response` and `failure` is set.
+class PinnedBytesReply {
+  final PinnedBytesResponse? response;
+  final PinnedFailure? failure;
+
+  const PinnedBytesReply({this.response, this.failure});
+
+  @override
+  int get hashCode => response.hashCode ^ failure.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PinnedBytesReply &&
+          runtimeType == other.runtimeType &&
+          response == other.response &&
+          failure == other.failure;
+}
+
+/// A binary answer, kept as the bytes the host sent.
+class PinnedBytesResponse {
+  final int status;
+  final Uint8List body;
+  final int? retryAfter;
+  final String address;
+
+  const PinnedBytesResponse({
+    required this.status,
+    required this.body,
+    this.retryAfter,
+    required this.address,
+  });
+
+  @override
+  int get hashCode =>
+      status.hashCode ^ body.hashCode ^ retryAfter.hashCode ^ address.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PinnedBytesResponse &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          body == other.body &&
+          retryAfter == other.retryAfter &&
+          address == other.address;
 }
 
 /// Where the host may be and the keys a device accepts for it. `addresses` are

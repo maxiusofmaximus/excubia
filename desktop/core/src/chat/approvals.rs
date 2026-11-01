@@ -10,6 +10,7 @@ use serde_json::{json, Map, Value};
 use super::error::{ChatFailure, ChatResult};
 use super::{validate_client_id, validate_prefixed_id};
 use crate::client::GatewayClient;
+use crate::mail::MailApprovalDetails;
 
 /// The modes the operator can set. `delegated` lets the policy, the scorer and
 /// the lead decide first; `always_user` sends every approval to the operator.
@@ -83,6 +84,9 @@ pub struct Approval {
     pub question: Option<String>,
     #[serde(default)]
     pub payload_redacted: Option<Value>,
+    /// The digest of a `mail.send` or `mail.move` approval. Only a device with `APPROVE` gets it.
+    #[serde(default)]
+    pub details: Option<MailApprovalDetails>,
     #[serde(default)]
     pub audit: Vec<ApprovalAudit>,
 }
@@ -161,15 +165,17 @@ impl GatewayClient {
     }
 
     /// Answers one approval once. `client_id` makes a retry safe: the host
-    /// gives the same answer to the same id.
+    /// gives the same answer to the same id. `exclude` leaves mails out of a
+    /// `mail.move` batch and only goes with an approval.
     pub async fn chat_approval_decide(
         &self,
         approval_id: &str,
         decision: &str,
         client_id: &str,
+        exclude: &[String],
     ) -> ChatResult<Approval> {
         validate_prefixed_id(approval_id, "apr_", "aprobación")?;
-        let body = decision_body(decision, client_id)?;
+        let body = decision_body(decision, client_id, exclude)?;
         let decided: ApprovalDecided = self
             .chat_send_json(
                 Method::POST,
@@ -180,6 +186,27 @@ impl GatewayClient {
             )
             .await?;
         Ok(decided.approval)
+    }
+
+    /// One approval by id. The host has no read of a single approval for a
+    /// device, so the pending inbox is read first and then the resolved statuses.
+    pub async fn chat_approval_find(&self, approval_id: &str) -> ChatResult<Option<Approval>> {
+        validate_prefixed_id(approval_id, "apr_", "aprobación")?;
+        let pending = self.chat_pending_approvals().await?;
+        if let Some(found) = pending.into_iter().find(|row| row.id == approval_id) {
+            return Ok(Some(found));
+        }
+        let resolved = futures_util::future::join_all(
+            ["approved", "denied", "expired", "consumed"]
+                .map(|status| self.chat_approvals_with_status(status)),
+        )
+        .await;
+        for rows in resolved {
+            if let Some(found) = rows?.into_iter().find(|row| row.id == approval_id) {
+                return Ok(Some(found));
+            }
+        }
+        Ok(None)
     }
 
     pub async fn chat_approval_settings(&self) -> ChatResult<ApprovalSettings> {
@@ -207,7 +234,11 @@ impl GatewayClient {
     }
 }
 
-fn decision_body(decision: &str, client_id: &str) -> ChatResult<Value> {
+/// The host's limits on `exclude`: the same numbers, so a bad list fails here first.
+const MAX_EXCLUDE: usize = 20;
+const MAX_EXCLUDE_ID: usize = 512;
+
+fn decision_body(decision: &str, client_id: &str, exclude: &[String]) -> ChatResult<Value> {
     validate_client_id(client_id)?;
     if !matches!(decision, "approve" | "deny") {
         return Err(ChatFailure::Invalid {
@@ -215,7 +246,33 @@ fn decision_body(decision: &str, client_id: &str) -> ChatResult<Value> {
             field: Some("decision".to_string()),
         });
     }
-    Ok(json!({ "decision": decision, "scope": "once", "client_id": client_id }))
+    let mut body = json!({ "decision": decision, "scope": "once", "client_id": client_id });
+    if !exclude.is_empty() {
+        if decision != "approve" {
+            return Err(ChatFailure::Invalid {
+                message: "Solo se pueden dejar correos fuera al permitir.".to_string(),
+                field: Some("exclude".to_string()),
+            });
+        }
+        validate_exclude(exclude)?;
+        body["exclude"] = json!(exclude);
+    }
+    Ok(body)
+}
+
+fn validate_exclude(exclude: &[String]) -> ChatResult<()> {
+    let bad = exclude.len() > MAX_EXCLUDE
+        || exclude
+            .iter()
+            .any(|id| id.is_empty() || id.chars().count() > MAX_EXCLUDE_ID);
+    if bad {
+        return Err(ChatFailure::Invalid {
+            message: "Se pueden dejar fuera hasta 20 correos, con identificadores válidos."
+                .to_string(),
+            field: Some("exclude".to_string()),
+        });
+    }
+    Ok(())
 }
 
 fn mode_body(client_id: &str, mode: &str, project_id: Option<&str>) -> ChatResult<Value> {
@@ -248,22 +305,52 @@ mod tests {
 
     #[test]
     fn a_decision_names_its_scope_and_client() {
-        let body = decision_body("approve", "c-1").expect("valid");
+        let body = decision_body("approve", "c-1", &[]).expect("valid");
         assert_eq!(body["decision"], "approve");
         assert_eq!(body["scope"], "once");
         assert_eq!(body["client_id"], "c-1");
+        assert!(body.get("exclude").is_none());
     }
 
     #[test]
     fn only_approve_and_deny_are_decisions() {
         assert!(matches!(
-            decision_body("always", "c-1"),
+            decision_body("always", "c-1", &[]),
             Err(ChatFailure::Invalid { .. })
         ));
         assert!(matches!(
-            decision_body("approve", ""),
+            decision_body("approve", "", &[]),
             Err(ChatFailure::Invalid { .. })
         ));
+    }
+
+    #[test]
+    fn exclusions_ride_along_only_with_an_approval() {
+        let ids = ["m2".to_string()];
+        let body = decision_body("approve", "c-1", &ids).expect("valid");
+        assert_eq!(body["exclude"], json!(["m2"]));
+        assert!(matches!(
+            decision_body("deny", "c-1", &ids),
+            Err(ChatFailure::Invalid { field: Some(field), .. }) if field == "exclude"
+        ));
+    }
+
+    #[test]
+    fn exclusions_stop_at_twenty_ids() {
+        let twenty: Vec<String> = (0..20).map(|i| format!("m{i}")).collect();
+        assert!(decision_body("approve", "c-1", &twenty).is_ok());
+        let twenty_one: Vec<String> = (0..21).map(|i| format!("m{i}")).collect();
+        assert!(matches!(
+            decision_body("approve", "c-1", &twenty_one),
+            Err(ChatFailure::Invalid { .. })
+        ));
+    }
+
+    #[test]
+    fn an_exclusion_id_is_never_empty_or_longer_than_512() {
+        assert!(decision_body("approve", "c-1", &[String::new()]).is_err());
+        assert!(decision_body("approve", "c-1", &["x".repeat(512)]).is_ok());
+        assert!(decision_body("approve", "c-1", &["x".repeat(513)]).is_err());
     }
 
     #[test]

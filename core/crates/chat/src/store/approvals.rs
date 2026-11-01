@@ -103,8 +103,26 @@ impl super::ChatStore {
     /// Open an approval and wait for the operator. The approval is consumed
     /// the moment it is allowed, so the action behind it can only run once.
     pub async fn request_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
-        let wait = Duration::from_secs(new.ttl_seconds as u64) + DECISION_SLACK;
+        let ttl_seconds = new.ttl_seconds;
         let approval = self.create_approval(new)?;
+        self.settle_request(&approval, ttl_seconds).await
+    }
+
+    /// As [`Self::request_approval`], for an action that reaches outside the
+    /// workspace (MAIL1D §0). The host places it as never delegable, whatever
+    /// seat asks, so only a device with APPROVE can let it through.
+    pub async fn request_outside_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        let ttl_seconds = new.ttl_seconds;
+        let approval = self.create_outside_approval(new)?;
+        self.settle_request(&approval, ttl_seconds).await
+    }
+
+    async fn settle_request(
+        &self,
+        approval: &Approval,
+        ttl_seconds: u32,
+    ) -> Result<Approval, ChatError> {
+        let wait = Duration::from_secs(ttl_seconds as u64) + DECISION_SLACK;
         let decided = self.await_approval(&approval.id, wait).await?;
         if decided.status == ApprovalStatus::Approved {
             return self.consume(&approval.id, Some(&approval.action_digest), Burn::Host);

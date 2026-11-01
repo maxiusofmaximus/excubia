@@ -350,3 +350,226 @@ async fn a_queued_turn_is_interrupted_when_the_host_restarts() {
         .expect("timeline");
     assert_eq!(timeline["entries"].as_array().expect("entries").len(), 1);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn stopping_a_turn_is_200_once_then_stopped_false_and_needs_respond() {
+    // A silent seat keeps the turn queued: a stop has an open turn to close.
+    let host = TestHost::start_with_seat("chat-stop", TTL, SeatKind::Silent).await;
+    let (client, paired) = host.pair("Desktop stop").await;
+    host.grant(&paired.device_id, Permission::ReadState);
+    host.grant(&paired.device_id, Permission::Respond);
+    let reader = host
+        .paired_with("Solo lectura", &[Permission::ReadState])
+        .await;
+
+    let created = client.chat_create("Parar", None).await.expect("create");
+    let conversation_id = created["conversation"]["id"]
+        .as_str()
+        .expect("id")
+        .to_string();
+    client
+        .chat_send(&conversation_id, "stop-client", "hola")
+        .await
+        .expect("send");
+    let path = format!("/v1/chat/conversations/{conversation_id}/stop");
+
+    let (status, body) = reader.request("POST", &path, None).await.expect("reader");
+    assert_eq!(status, 403, "{body}");
+
+    let (status, body) = client.request("POST", &path, None).await.expect("stop");
+    assert_eq!(status, 200, "{body}");
+    let stopped: Value = serde_json::from_str(&body).expect("json");
+    assert_eq!(stopped["stopped"], true);
+    assert_eq!(stopped["runs"], 1);
+
+    let timeline = client
+        .chat_timeline(&conversation_id, &[("limit", "20")])
+        .await
+        .expect("timeline");
+    let entry = timeline["entries"]
+        .as_array()
+        .expect("entries")
+        .iter()
+        .find(|entry| entry["preview"] == "hola")
+        .expect("user message");
+    assert_eq!(entry["turn_state"], "interrupted");
+
+    let (status, body) = client.request("POST", &path, None).await.expect("again");
+    assert_eq!(status, 200, "{body}");
+    let again: Value = serde_json::from_str(&body).expect("json");
+    assert_eq!(again["stopped"], false);
+
+    let (status, _) = client
+        .request("POST", "/v1/chat/conversations/cnv_missing/stop", None)
+        .await
+        .expect("missing");
+    assert_eq!(status, 404);
+}
+
+fn json_body(value: &Value) -> Option<Vec<u8>> {
+    Some(serde_json::to_vec(value).expect("json"))
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_reply_quotes_a_message_of_its_own_conversation() {
+    let host = TestHost::start("chat-reply").await;
+    let (client, paired) = host.pair("Desktop chat").await;
+    host.grant(&paired.device_id, Permission::ReadState);
+    host.grant(&paired.device_id, Permission::Respond);
+
+    let created = client
+        .chat_create("Respuestas", None)
+        .await
+        .expect("create");
+    let conversation_id = created["conversation"]["id"]
+        .as_str()
+        .expect("id")
+        .to_string();
+    let other = client
+        .chat_create("Otra", None)
+        .await
+        .expect("create other");
+    let other_id = other["conversation"]["id"]
+        .as_str()
+        .expect("id")
+        .to_string();
+
+    let first = client
+        .chat_send(&conversation_id, "reply-first", "uno")
+        .await
+        .expect("send");
+    let first_id = first["message"]["id"].as_str().expect("id").to_string();
+    let outside = client
+        .chat_send(&other_id, "reply-outside", "fuera")
+        .await
+        .expect("send other");
+    let outside_id = outside["message"]["id"].as_str().expect("id").to_string();
+    wait_for_entries(&client, &conversation_id, 2, Duration::from_secs(10)).await;
+
+    let path = format!("/v1/chat/conversations/{conversation_id}/messages");
+    let reply = serde_json::json!({
+        "client_id": "reply-1",
+        "text": "dos",
+        "reply_to": {"kind": "message", "id": first_id},
+    });
+    let (status, body) = client
+        .request("POST", &path, json_body(&reply))
+        .await
+        .expect("reply");
+    assert_eq!(status, 202, "{body}");
+    let accepted: Value = serde_json::from_str(&body).expect("json");
+    let reply_id = accepted["message"]["id"].as_str().expect("id").to_string();
+
+    let timeline = wait_for_entries(&client, &conversation_id, 4, Duration::from_secs(10)).await;
+    let quoted = timeline["entries"]
+        .as_array()
+        .expect("entries")
+        .iter()
+        .find(|entry| entry["preview"] == "dos")
+        .expect("reply entry");
+    assert_eq!(quoted["quote"]["kind"], "message");
+    assert_eq!(quoted["quote"]["id"], first_id.as_str());
+    assert_eq!(quoted["quote"]["author_kind"], "user");
+    assert_eq!(quoted["quote"]["preview"], "uno");
+
+    // The same client_id with another reply_to returns the original message.
+    let retry = serde_json::json!({
+        "client_id": "reply-1",
+        "text": "dos",
+        "reply_to": {"kind": "message", "id": outside_id},
+    });
+    let (status, body) = client
+        .request("POST", &path, json_body(&retry))
+        .await
+        .expect("retry");
+    assert_eq!(status, 202, "{body}");
+    let repeated: Value = serde_json::from_str(&body).expect("json");
+    assert_eq!(repeated["message"]["id"], reply_id.as_str());
+    assert_eq!(
+        client
+            .chat_timeline(&conversation_id, &[("limit", "100")])
+            .await
+            .expect("timeline")["entries"]
+            .as_array()
+            .expect("entries")
+            .len(),
+        4,
+        "a repeated client_id is not stored twice"
+    );
+
+    // A message of another conversation, an unknown id and a card are refused
+    // with 422 on reply_to, and nothing is stored.
+    let foreign = serde_json::json!({
+        "client_id": "reply-foreign",
+        "text": "tres",
+        "reply_to": {"kind": "message", "id": outside_id},
+    });
+    let (status, body) = client
+        .request("POST", &path, json_body(&foreign))
+        .await
+        .expect("foreign");
+    assert_eq!(status, 422, "{body}");
+    assert_eq!(error_detail(&body)["code"], "unknown_reply_to");
+    assert_eq!(error_detail(&body)["field"], "reply_to");
+
+    let unknown = serde_json::json!({
+        "client_id": "reply-unknown",
+        "text": "tres",
+        "reply_to": {"kind": "message", "id": "msg_nope"},
+    });
+    let (status, body) = client
+        .request("POST", &path, json_body(&unknown))
+        .await
+        .expect("unknown");
+    assert_eq!(status, 422, "{body}");
+    assert_eq!(error_detail(&body)["code"], "unknown_reply_to");
+
+    let card = serde_json::json!({
+        "client_id": "reply-card",
+        "text": "tres",
+        "reply_to": {"kind": "card", "id": first_id},
+    });
+    let (status, body) = client
+        .request("POST", &path, json_body(&card))
+        .await
+        .expect("card");
+    assert_eq!(status, 422, "{body}");
+    assert_eq!(error_detail(&body)["code"], "unsupported_reply_kind");
+    assert_eq!(error_detail(&body)["field"], "reply_to");
+    assert_eq!(
+        client
+            .chat_timeline(&conversation_id, &[("limit", "100")])
+            .await
+            .expect("timeline")["entries"]
+            .as_array()
+            .expect("entries")
+            .len(),
+        4,
+        "refused replies are not stored"
+    );
+
+    // Without reply_to the message is an old-client message: no quote.
+    client
+        .chat_send(&conversation_id, "plain", "sin cita")
+        .await
+        .expect("plain send");
+    let timeline = wait_for_entries(&client, &conversation_id, 6, Duration::from_secs(10)).await;
+    let plain = timeline["entries"]
+        .as_array()
+        .expect("entries")
+        .iter()
+        .find(|entry| entry["preview"] == "sin cita")
+        .expect("plain entry");
+    assert!(plain.get("quote").is_none(), "{plain}");
+
+    // Permissions are unchanged: reading is not enough to reply.
+    let reader = host
+        .paired_with("Phone reader", &[Permission::ReadState])
+        .await;
+    let (status, body) = reader
+        .request("POST", &path, json_body(&reply))
+        .await
+        .expect("denied");
+    assert_eq!(status, 403, "{body}");
+    assert_eq!(error_detail(&body), "forbidden");
+}

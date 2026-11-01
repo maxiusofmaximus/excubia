@@ -29,6 +29,7 @@ impl GatewayClient {
         section_id: Option<&str>,
         pinned: bool,
         archived: bool,
+        filter: Option<ListFilter>,
     ) -> ChatResult<ConversationPage> {
         if let Some(section_id) = section_id {
             validate_prefixed_id(section_id, "sec_", "sección")?;
@@ -46,7 +47,19 @@ impl GatewayClient {
         if archived {
             query.push(("archived", "true".to_string()));
         }
+        if let Some(filter) = filter {
+            query.push((filter.param(), "1".to_string()));
+        }
         self.chat_get("/v1/chat/conversations", &query).await
+    }
+
+    /// The chip numbers. A host without the route answers `None`: its chips stay hidden.
+    pub async fn chat_counts(&self) -> ChatResult<Option<ChatCounts>> {
+        match self.chat_get("/v1/chat/conversations/counts", &[]).await {
+            Ok(counts) => Ok(Some(counts)),
+            Err(failure) if counts_unsupported(&failure) => Ok(None),
+            Err(failure) => Err(failure),
+        }
     }
 
     pub async fn chat_create_conversation(&self, title: Option<&str>) -> ChatResult<Conversation> {
@@ -130,16 +143,50 @@ impl GatewayClient {
         client_id: &str,
         text: &str,
     ) -> ChatResult<SendAccepted> {
+        self.chat_send_reply(id, client_id, text, None).await
+    }
+
+    /// `reply_to` is sent only when the operator is answering a message.
+    pub async fn chat_send_reply(
+        &self,
+        id: &str,
+        client_id: &str,
+        text: &str,
+        reply_to: Option<&str>,
+    ) -> ChatResult<SendAccepted> {
+        self.chat_send_message(id, client_id, text, reply_to, &[])
+            .await
+    }
+
+    /// `attachments` are ready upload ids; with them the text may be empty.
+    pub async fn chat_send_message(
+        &self,
+        id: &str,
+        client_id: &str,
+        text: &str,
+        reply_to: Option<&str>,
+        attachments: &[String],
+    ) -> ChatResult<SendAccepted> {
         validate_prefixed_id(id, "cnv_", "conversación")?;
         validate_client_id(client_id)?;
         let text = text.trim();
-        if text.is_empty() {
+        if text.is_empty() && attachments.is_empty() {
             return Err(ChatFailure::Invalid {
                 message: "El mensaje está vacío.".to_string(),
                 field: Some("text".to_string()),
             });
         }
-        let body = json!({ "client_id": client_id, "text": text });
+        let mut body = json!({ "client_id": client_id, "text": text });
+        if let Some(reply_to) = reply_to {
+            validate_prefixed_id(reply_to, "msg_", "mensaje")?;
+            body["reply_to"] = json!({ "kind": "message", "id": reply_to });
+        }
+        if !attachments.is_empty() {
+            for attachment in attachments {
+                validate_prefixed_id(attachment, "att_", "adjunto")?;
+            }
+            body["attachments"] = json!(attachments);
+        }
         self.chat_send_json(
             Method::POST,
             &format!("/v1/chat/conversations/{id}/messages"),
@@ -148,6 +195,14 @@ impl GatewayClient {
             true,
         )
         .await
+    }
+
+    /// Stops the open turn of the conversation. Sent once per tap; the state
+    /// of the turn comes back by `chat.message` frames, not by this answer.
+    pub async fn chat_stop_conversation(&self, id: &str) -> ChatResult<StopOutcome> {
+        validate_prefixed_id(id, "cnv_", "conversación")?;
+        let path = format!("/v1/chat/conversations/{id}/stop");
+        self.chat_call(Method::POST, &path, &[], None, true).await
     }
 
     pub async fn chat_read(&self, id: &str, last_seq: i64) -> ChatResult<ReadAccepted> {
@@ -215,7 +270,7 @@ impl GatewayClient {
             .await
     }
 
-    async fn chat_call<T: DeserializeOwned>(
+    pub(super) async fn chat_call<T: DeserializeOwned>(
         &self,
         method: Method,
         path: &str,
@@ -243,4 +298,12 @@ struct CreatedConversation {
 #[derive(Debug, Deserialize)]
 struct SectionSaved {
     section: Section,
+}
+
+/// An older host has no counts route: 404 is `NotFound`, 405 a gateway refusal.
+fn counts_unsupported(failure: &ChatFailure) -> bool {
+    matches!(
+        failure,
+        ChatFailure::NotFound { .. } | ChatFailure::Gateway { status: 405, .. }
+    )
 }
