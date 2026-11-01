@@ -114,3 +114,7 @@ uv run python eval.py --checkpoint typed-decisions   # uno solo
 - `eval.py`, `eval_variants.py`, `metrics.py`: arnés de comparación y sus métricas (funciones puras).
 - `smoke.py`: 14 fichas sintéticas contra el servidor real, con medidas de arranque, latencia y VRAM.
 - Todo es sintético (dominios `example.*`); `tests/test_synthetic.py` lo vigila.
+
+## Acuerdo con las decisiones del Master (`agreement.py`)
+
+`python -I agreement.py <directorio de datos del host>` cruza `mail-shadow.jsonl` con los lotes decididos y muestra solo agregados (nada de ids, asuntos ni remitentes). Úsalo para repetir el calibrado cuando haya más etiquetas.
