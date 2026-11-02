@@ -66,7 +66,7 @@ extension ChatControllerHistory on ChatController {
         planChatDeleteConversation(conversationId: conversation.id),
       );
     } catch (error) {
-      final gone = error is GatewayError && error.status == 404;
+      final gone = error is HostError && error.status == 404;
       if (!gone) {
         final failure = _explain(error, WriteAction.respond);
         _failures.add(failure);
@@ -173,8 +173,7 @@ extension ChatControllerHistory on ChatController {
       _countsSupported = true;
       _notify();
     } catch (error) {
-      if (error is! GatewayError ||
-          !chatCountsUnsupported(status: error.status)) {
+      if (error is! HostError || !chatCountsUnsupported(status: error.status)) {
         return;
       }
       _countsSupported = false;

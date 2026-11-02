@@ -41,7 +41,7 @@ Además, código adaptado del cliente de escritorio (MIT):
     (`demo-client`). Es una dependencia de desarrollo (`publish = false`), no
     forma parte de ningún artefacto del producto, y la canonicalización no se
     duplica: reutiliza `hn_core_auth::canonical_string`. Fijado contra los
-    mismos vectores dorados del gateway retirado
+    mismos vectores dorados compartidos
     (`docs/contracts/vectors/signing_vectors.json`).
 
 - docs/core/evidence/desktop-compat/ (herramienta de evidencia, fuera del

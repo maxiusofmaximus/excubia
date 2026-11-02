@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/pairing_address.dart';
 import '../api/pinned_client.dart';
 
-/// Everything a paired phone needs to talk to its gateway.
+/// Everything a paired phone needs to talk to its host.
 ///
 /// Base URL and device id are labels, not secrets. The private key is a secret
 /// and lives encrypted by the platform keystore; it never appears on disk in

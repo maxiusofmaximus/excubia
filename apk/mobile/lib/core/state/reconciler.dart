@@ -2,7 +2,7 @@ import 'package:herdr_notify/src/rust/api/state.dart';
 
 /// "The last revision wins", in one place.
 ///
-/// The gateway publishes a change, not the whole state, so the client re-reads
+/// The host publishes a change, not the whole state, so the client re-reads
 /// `/v1/state` instead of patching locally; a re-read that races a newer frame
 /// must not roll the screen back. Equal revisions are allowed.
 class StateReconciler {

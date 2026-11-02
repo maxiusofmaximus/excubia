@@ -1,7 +1,7 @@
 # Contract: error model
-_(gateway retirado; ver README)_
+_(implementado en el núcleo Rust; ver README)_
 
-Authoritative code: `gateway/src/herdr_notify/api/{app,actions,ratelimit}.py`.
+Authoritative code: `crates/api/src/`, `crates/auth/src/ratelimit.rs`.
 
 ## Status codes
 
@@ -355,4 +355,4 @@ shapes above.
   cannot tell a refusal from a server fault would keep retrying a request that
   can never succeed.
 - herdr's refusal (`409`) is a normal outcome. An agent that is no longer blocked,
-  or a prompt herdr declined, is information, not a gateway failure.
+  or a prompt herdr declined, is information, not a host failure.

@@ -7,22 +7,22 @@ use herdr_desktop_core::chat::{
     AlertAction, AlertMode, AlertRuleDraft, AlertStatus, AlertTrigger, ChatFailure,
 };
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 
 const JSON: &str = "Content-Type: application/json\r\n";
 const RULE: &str = r#"{"ok":true,"rule":{"id":"ar_01JABCD","trigger":"pane_status","agent":"Bob","status":"done","action":"notify","enabled":true,"created_by":"user","created_at":"2026-10-29T10:00:00Z"}}"#;
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
-/// The request the fake gateway saw. It is stored before the answer goes out.
+/// The request the fake host saw. It is stored before the answer goes out.
 fn seen(captured: &Mutex<Option<Captured>>) -> Captured {
     captured
         .lock()
         .unwrap()
         .take()
-        .expect("el gateway no recibió la petición")
+        .expect("el PC no recibió la petición")
 }
 
 fn bob_done_notify() -> AlertRuleDraft {

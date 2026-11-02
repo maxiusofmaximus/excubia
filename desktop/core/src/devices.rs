@@ -1,4 +1,4 @@
-//! «Mis dispositivos»: the devices the gateway trusts, read and revoked over
+//! «Mis dispositivos»: the devices the host trusts, read and revoked over
 //! `/v1/devices`. Both need `ADMIN`, which only the operator's desktop holds. The
 //! list carries public material only: never a key, a token or a push endpoint.
 
@@ -6,7 +6,7 @@ use reqwest::{Method, RequestBuilder};
 use serde::de::{DeserializeOwned, IgnoredAny};
 use serde::{Deserialize, Serialize};
 
-use crate::client::{expect_json, validate_device_id, GatewayClient};
+use crate::client::{expect_json, validate_device_id, HostClient};
 use crate::error::CoreError;
 
 const DEVICES: &str = "/v1/devices";
@@ -72,7 +72,7 @@ impl DeviceFailure {
     }
 }
 
-impl GatewayClient {
+impl HostClient {
     /// Every device the host knows, revoked ones included.
     pub async fn devices(&self) -> DeviceResult<DeviceList> {
         let response: DevicesResponse = self.device_call(Method::GET, DEVICES).await?;
@@ -125,10 +125,10 @@ mod tests {
     use crate::identity::DeviceIdentity;
     use crate::signing;
 
-    fn client() -> (GatewayClient, VerifyingKey) {
+    fn client() -> (HostClient, VerifyingKey) {
         let identity = DeviceIdentity::generate("dev-desk", "Escritorio");
         let key = identity.verifying_key();
-        let client = GatewayClient::new("https://127.0.0.1:8443", identity).unwrap();
+        let client = HostClient::new("https://127.0.0.1:8443", identity).unwrap();
         (client, key)
     }
 

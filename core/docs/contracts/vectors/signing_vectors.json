@@ -1,5 +1,5 @@
 {
-  "_comment": "Golden vectors for the signed request string. Both the Kotlin implementation (RequestSigner.signingString) and the Python one (api.auth.canonical.build_signing_string) must produce exactly these bytes. Changing either side without regenerating here fails both test suites.",
+  "_comment": "Golden vectors for the signed request string. Every client implementation must produce exactly these bytes. Changing either side without regenerating here fails both test suites.",
   "encoding": "utf-8",
   "vectors": [
     {

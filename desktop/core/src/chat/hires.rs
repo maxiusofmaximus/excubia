@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 
 use super::error::ChatResult;
 use super::validate_prefixed_id;
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 
 /// The roles each onboarding level preselects in an area.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -117,7 +117,7 @@ fn hire_route(hire_id: &str, action: &str) -> ChatResult<String> {
     Ok(format!("/v1/hires/{hire_id}/{action}"))
 }
 
-impl GatewayClient {
+impl HostClient {
     pub async fn team_roles(&self) -> ChatResult<RoleCatalog> {
         self.chat_get("/v1/roles", &[]).await
     }

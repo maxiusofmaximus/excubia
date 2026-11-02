@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/mail_api.dart';
 import 'package:herdr_notify/ui/mail/mail_settings_screen.dart';
 import 'package:herdr_notify/ui/theme.dart';
@@ -33,9 +33,9 @@ class _Host implements ChatTransport {
     final key = '$method $target';
     calls.add(key);
     final answer = answers[key];
-    if (answer is GatewayError) throw answer;
+    if (answer is HostError) throw answer;
     if (answer is String) return answer;
-    throw const GatewayError(404, '{"detail":"not found"}');
+    throw const HostError(404, '{"detail":"not found"}');
   }
 }
 
@@ -98,7 +98,7 @@ void main() {
     tester,
   ) async {
     _tallSurface(tester);
-    await _mount(tester, _Host({'GET $_accounts': const GatewayError(403, '')}));
+    await _mount(tester, _Host({'GET $_accounts': const HostError(403, '')}));
 
     expect(find.textContaining('no tiene permiso'), findsOneWidget);
     expect(find.text('Conectar una cuenta'), findsNothing);

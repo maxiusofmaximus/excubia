@@ -9,12 +9,9 @@
 mod device;
 mod enrollment;
 mod file;
-mod import;
 mod persist;
 
 pub use device::{Device, Permission, PublicDevice};
-pub use file::RecordError;
-pub use import::{ConflictPolicy, ImportEntry, ImportOutcome};
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

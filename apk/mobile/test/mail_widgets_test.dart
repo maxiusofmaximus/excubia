@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/mail_api.dart';
 import 'package:herdr_notify/core/state/mail_draft_controller.dart';
 import 'package:herdr_notify/src/rust/api/approvals/model.dart';
@@ -43,13 +43,13 @@ class _Host implements ChatTransport {
     final key = '$method $target';
     calls.add(key);
     final answer = answers[key];
-    if (answer is GatewayError) throw answer;
+    if (answer is HostError) throw answer;
     if (answer is String) return answer;
-    throw const GatewayError(404, '{"detail":"not found"}');
+    throw const HostError(404, '{"detail":"not found"}');
   }
 }
 
-/// Answers by route, in order, and the last answer repeats. A [GatewayError]
+/// Answers by route, in order, and the last answer repeats. A [HostError]
 /// answer is thrown the way the real client refuses.
 class _Script implements ChatTransport {
   @override
@@ -71,9 +71,9 @@ class _Script implements ChatTransport {
     List<int> body = const [],
   ]) async {
     final queue = answers['$method $target'] ?? const <Object>[];
-    if (queue.isEmpty) throw const GatewayError(404, '{"detail":"not found"}');
+    if (queue.isEmpty) throw const HostError(404, '{"detail":"not found"}');
     final answer = queue.length > 1 ? queue.removeAt(0) : queue.first;
-    if (answer is GatewayError) throw answer;
+    if (answer is HostError) throw answer;
     return answer as String;
   }
 }
@@ -536,7 +536,7 @@ void main() {
       tester,
     ) async {
       final transport = _Host({
-        draftRoute: const GatewayError(
+        draftRoute: const HostError(
           400,
           '{"detail":{"code":"mail_unknown_draft","message":"x"}}',
         ),

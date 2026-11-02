@@ -5,7 +5,7 @@ use herdr_desktop_core::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_GATEWAY: &str = "http://127.0.0.1:8787";
+pub const DEFAULT_HOST: &str = "http://127.0.0.1:8787";
 
 /// The host key a pairing link pinned. Public, so it lives beside the URL.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,8 +45,11 @@ impl StoredPins {
 pub struct Config {
     /// The app hosts its own core by default; `false` means "another host".
     pub local: bool,
-    pub gateway_url: String,
-    pub gateway_pins: Option<StoredPins>,
+    // Old config.json files wrote gateway_*; they still read, and save as host_*.
+    #[serde(rename = "host_url", alias = "gateway_url")]
+    pub host_url: String,
+    #[serde(rename = "host_pins", alias = "gateway_pins")]
+    pub host_pins: Option<StoredPins>,
     pub device_id: Option<String>,
     pub label: String,
     pub paired: bool,
@@ -59,8 +62,8 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             local: true,
-            gateway_url: DEFAULT_GATEWAY.to_string(),
-            gateway_pins: None,
+            host_url: DEFAULT_HOST.to_string(),
+            host_pins: None,
             device_id: None,
             label: default_device_label(),
             paired: false,
@@ -82,8 +85,8 @@ impl Config {
             Err(_) => Self::default(),
         };
         config.label = normalize_device_label(&config.label);
-        if config.gateway_url.trim().is_empty() {
-            config.gateway_url = DEFAULT_GATEWAY.to_string();
+        if config.host_url.trim().is_empty() {
+            config.host_url = DEFAULT_HOST.to_string();
         }
         config
     }
@@ -96,13 +99,13 @@ impl Config {
         std::fs::write(path, body)
     }
 
-    /// How the gateway is reached: the local core is always plain loopback,
+    /// How the host is reached: the local core is always plain loopback,
     /// a remote one is pinned when a pairing link pinned it.
     pub fn transport(&self) -> Transport {
         if self.local {
             return Transport::Plain;
         }
-        self.gateway_pins
+        self.host_pins
             .as_ref()
             .and_then(StoredPins::to_pins)
             .map_or(Transport::Plain, Transport::Pinned)

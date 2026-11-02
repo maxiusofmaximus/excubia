@@ -2,15 +2,11 @@
 // Escucha SOLO en la IP de la tailnet y reenvía cada conexión a loopback, donde
 // corre el host del arnés. Sin dependencias. Se apaga solo a los 30 min.
 //
-//   node tailnet-forward.mjs <ip-tailnet> [puerto]
+//   node tailnet-forward.mjs [ip-tailnet] [puerto]
 
 import net from 'node:net';
 
-const LISTEN_HOST = process.argv[2];
-if (!LISTEN_HOST) {
-  console.error('uso: node tailnet-forward.mjs <ip-tailnet> [puerto]');
-  process.exit(2);
-}
+const LISTEN_HOST = process.argv[2] ?? '100.71.59.101';
 const PORT = Number(process.argv[3] ?? 18878);
 const TARGET_HOST = '127.0.0.1';
 const MAX_LIFETIME_MS = 30 * 60 * 1000;

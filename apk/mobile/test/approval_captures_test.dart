@@ -32,7 +32,7 @@ Future<void> _loadReadableFonts() async {
   // Windows sans ('Segoe UI'), 'monospace' and the Material icon font; loading
   // the real faces under those names makes the captures readable.
   const icons =
-      r'C:\Users\dev\flutter\bin\cache\artifacts\material_fonts\materialicons-regular.otf';
+      r'C:\Users\Max\flutter\bin\cache\artifacts\material_fonts\materialicons-regular.otf';
   for (final family in ['Segoe UI', 'Roboto']) {
     await (FontLoader(
       family,

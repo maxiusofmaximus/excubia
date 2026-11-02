@@ -43,7 +43,7 @@ export function renderConnection() {
   stale.classList.toggle("hidden", !showStale);
   if (showStale) {
     $("stale-text").textContent =
-      connection.reason || "Sin conexión con el gateway. Mostrando el último estado conocido.";
+      connection.reason || "Sin conexión con el PC. Mostrando el último estado conocido.";
     $("btn-stale-retry").classList.toggle("hidden", connection.kind === "fatal");
     $("btn-stale-pair").classList.toggle("hidden", connection.kind !== "fatal");
   }
@@ -98,14 +98,14 @@ function renderEmpty() {
   if (!app.state && connection.kind === "fatal") {
     title.textContent = "No se puede leer el estado";
     body.textContent =
-      connection.reason || "El gateway no acepta este dispositivo. Vuelve a emparejarlo.";
+      connection.reason || "El PC no acepta este dispositivo. Vuelve a emparejarlo.";
     pair.classList.remove("hidden");
     return;
   }
 
   if (!app.state && connection.kind === "offline") {
-    title.textContent = "Sin conexión con el gateway";
-    body.textContent = connection.reason || "El gateway no responde. Se reintentará automáticamente.";
+    title.textContent = "Sin conexión con el PC";
+    body.textContent = connection.reason || "El PC no responde. Se reintentará automáticamente.";
     action.textContent = "Reintentar";
     action.dataset.action = "retry";
     action.classList.remove("hidden");
@@ -113,7 +113,7 @@ function renderEmpty() {
   }
 
   title.textContent = "Cargando agentes…";
-  body.textContent = "Conectando con el gateway.";
+  body.textContent = "Conectando con el PC.";
 }
 
 function projectLeadPane(project) {

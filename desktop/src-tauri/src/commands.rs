@@ -6,7 +6,7 @@ use herdr_desktop_core::state::{AgentRow, StateSnapshot};
 use herdr_desktop_core::stream::ConnectionStatus;
 use herdr_desktop_core::transport::is_loopback_url;
 use herdr_desktop_core::{
-    validate_device_label, CatalogAgent, CoreError, GatewayClient, Transport, WriteAction,
+    validate_device_label, CatalogAgent, CoreError, HostClient, Transport, WriteAction,
 };
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
@@ -24,7 +24,7 @@ fn shared(state: &State<'_, Shared>) -> Shared {
 pub struct Bootstrap {
     mode: String,
     host: HostStatus,
-    gateway_url: String,
+    host_url: String,
     device_id: String,
     label: String,
     public_key: Option<String>,
@@ -145,7 +145,7 @@ pub fn bootstrap(state: State<'_, Shared>) -> Bootstrap {
     Bootstrap {
         pinned: matches!(transport, Transport::Pinned(_)),
         unencrypted: matches!(transport, Transport::Plain)
-            && !is_loopback_url(&inner.config.gateway_url),
+            && !is_loopback_url(&inner.config.host_url),
         lan_pairing: inner.config.lan_pairing,
         mode: if inner.config.local {
             "local".to_string()
@@ -153,7 +153,7 @@ pub fn bootstrap(state: State<'_, Shared>) -> Bootstrap {
             "remote".to_string()
         },
         host: inner.host.clone(),
-        gateway_url: inner.config.gateway_url.clone(),
+        host_url: inner.config.host_url.clone(),
         device_id: identity
             .map(|identity| identity.device_id().to_string())
             .unwrap_or_default(),
@@ -269,7 +269,7 @@ pub async fn pair(
 pub async fn save_advanced(
     app: AppHandle,
     state: State<'_, Shared>,
-    gateway_url: String,
+    host_url: String,
     device_id: String,
     label: String,
 ) -> Result<AdvancedOutcome, String> {
@@ -278,7 +278,7 @@ pub async fn save_advanced(
     // target, and its runtime URL must stop shadowing the new one.
     shared.stop_local_host();
     shared.stop_stream();
-    let gateway_url = normalize_base_url(&gateway_url).map_err(|error| error.to_string())?;
+    let host_url = normalize_base_url(&host_url).map_err(|error| error.to_string())?;
     validate_device_id(&device_id).map_err(|error| error.to_string())?;
     let label = validate_device_label(&label).map_err(|error| error.to_string())?;
 
@@ -296,8 +296,8 @@ pub async fn save_advanced(
     {
         let mut inner = lock(&shared.inner);
         inner.config.local = false;
-        inner.config.gateway_url = gateway_url.clone();
-        inner.config.gateway_pins = None;
+        inner.config.host_url = host_url.clone();
+        inner.config.host_pins = None;
         inner.config.device_id = Some(identity.device_id().to_string());
         inner.config.label = label;
         inner.config.paired = false;
@@ -305,7 +305,7 @@ pub async fn save_advanced(
     shared.save_config()?;
     lock(&shared.store()).clear();
 
-    let client = GatewayClient::new(&gateway_url, identity).map_err(|error| error.to_string())?;
+    let client = HostClient::new(&host_url, identity).map_err(|error| error.to_string())?;
     match client.state().await {
         Ok(state) => {
             lock(&shared.inner).config.paired = true;
@@ -321,7 +321,7 @@ pub async fn save_advanced(
         }
         Err(CoreError::Unauthorized) => Ok(AdvancedOutcome {
             verified: false,
-            message: "El gateway aún no conoce este dispositivo. Ejecuta el comando en el host y vuelve a intentarlo.".to_string(),
+            message: "El PC aún no conoce este dispositivo. Ejecuta el comando en el host y vuelve a intentarlo.".to_string(),
         }),
         Err(CoreError::Forbidden) => {
             lock(&shared.inner).config.paired = true;

@@ -30,7 +30,7 @@ extension _PairingScreenFlows on _PairingScreenState {
   Future<void> _saveAndContinue() async {
     final baseUrl = PairingAddress.normaliseUrl(_url.text);
     if (baseUrl.isEmpty) {
-      _fail('La dirección del gateway está vacía.');
+      _fail('La dirección del PC está vacía.');
       return;
     }
     final loopback = PairingAddress.loopbackProblem(

@@ -28,6 +28,7 @@ use hn_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
 use hn_core_host::mail_api::MailLogins;
 use hn_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
 use hn_core_host::mail_tools::{MailTools, LEDGER_FILE};
+use hn_core_host::pairing_notice::PairingNotice;
 use hn_core_host::team::{TeamConfig, TeamService};
 use hn_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
 use hn_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
@@ -373,6 +374,7 @@ impl TestHost {
             hook_token: Arc::new(hook_token.clone()),
             mail: mail_logins,
             voice: Arc::new(VoiceService::new(voice)),
+            pairing_audit: Arc::new(PairingNotice::new(&data_dir, Arc::clone(&chat))),
         });
         let internal_context = context.clone();
         tokio::spawn(async move {
@@ -404,7 +406,7 @@ impl TestHost {
     /// Mint a single-use pairing code, exactly like `host pair-code` does.
     pub fn pair_code(&self) -> String {
         self.devices
-            .issue_enrollment_code(600.0)
+            .issue_enrollment_code(hn_core_auth::ENROLLMENT_TTL_SECONDS)
             .expect("issue code")
     }
 

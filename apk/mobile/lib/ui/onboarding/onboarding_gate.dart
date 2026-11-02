@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/api/chat_transport.dart';
-import '../../core/api/gateway_client.dart';
+import '../../core/api/host_client.dart';
 import '../../core/state/onboarding_controller.dart';
 import '../../core/storage/pairing_store.dart';
 import 'onboarding_screen.dart';
@@ -31,7 +31,7 @@ class OnboardingGate extends StatefulWidget {
 
 class _OnboardingGateState extends State<OnboardingGate> {
   late final ChatTransport _transport =
-      widget.transport ?? GatewayClient.forPairing(widget.pairing);
+      widget.transport ?? HostClient.forPairing(widget.pairing);
   late final OnboardingController _controller = OnboardingController(
     transport: _transport,
   );

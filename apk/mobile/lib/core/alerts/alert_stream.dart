@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import 'alert_notice.dart';
 import 'alert_platform.dart';
 import 'alert_policy.dart';
@@ -74,7 +74,7 @@ class AlertStream {
         reached: true,
         reason: 'sin datos del PC en ${heartbeat.inSeconds} s',
       );
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       return _Attempt(reached: false, reason: _why(e));
     } on IOException {
       return const _Attempt(reached: false, reason: 'sin red ni ruta al PC');
@@ -138,7 +138,7 @@ class AlertStream {
   Future<String?> _state() async {
     try {
       return await source.state();
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       await platform.record('sin estado: ${_why(e)}');
     } on IOException {
       await platform.record('sin estado: sin red');
@@ -171,6 +171,6 @@ class _Attempt {
 }
 
 /// Why a request failed: the status, or for a transport failure (status 0) the kind of failure.
-String _why(GatewayError e) => e.status == 0
+String _why(HostError e) => e.status == 0
     ? 'transporte: ${e.failure?.name ?? 'desconocido'}'
     : 'HTTP ${e.status}';

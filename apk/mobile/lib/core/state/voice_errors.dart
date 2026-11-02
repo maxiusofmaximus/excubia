@@ -1,10 +1,10 @@
 import '../api/connection_text.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 
 /// What the user reads when a voice note is refused. Codes come from the
 /// host's voice contract; a connection failure says why the PC is unreachable.
 String voiceErrorText(Object error) {
-  if (error is! GatewayError) return _generic;
+  if (error is! HostError) return _generic;
   final body = error.body;
   if (body.contains('"voice_unavailable"')) {
     return 'El PC no tiene la voz instalada o no está lista.';

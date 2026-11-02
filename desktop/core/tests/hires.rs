@@ -3,13 +3,13 @@ mod common;
 use common::spawn_server;
 use herdr_desktop_core::chat::{ChatFailure, HireChange};
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 
 const HIRE_REPLY: &str = r#"{"ok":true,"hire":{"id":"hire_01JAB3ZQ5V8K2M9X4T6R0WQ7YD","role":"bob","area":"programacion","name":"Bob","avatar":"bob","status":"hired","created_at":"2026-10-25T10:00:00.000Z"}}"#;
 const TEAM_REPLY: &str = r#"{"ok":true,"hires":[{"id":"hire_01JAB3ZQ5V8K2M9X4T6R0WQ7YD","role":"bob","area":"programacion","name":"Bob","avatar":"bob","status":"hired","created_at":"2026-10-25T10:00:00.000Z"}],"can_hire":true}"#;
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
 fn json_body(body: &[u8]) -> serde_json::Value {
@@ -150,7 +150,7 @@ async fn a_full_area_names_the_limit() {
 }
 
 #[tokio::test]
-async fn an_unknown_hire_is_a_refusal_not_a_gateway_error() {
+async fn an_unknown_hire_is_a_refusal_not_a_host_error() {
     let body = r#"{"detail":{"code":"no_such_hire","message":"x"}}"#;
     let (base_url, _) = spawn_server(vec![(404, body)]).await;
 

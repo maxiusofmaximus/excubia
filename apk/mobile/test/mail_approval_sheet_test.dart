@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/mail_api.dart';
 import 'package:herdr_notify/core/state/approvals_controller.dart';
 import 'package:herdr_notify/core/state/mail_draft_controller.dart';
@@ -70,7 +70,7 @@ class _ApprovingHost implements ChatTransport {
     if (method == 'GET' && target.startsWith('/v1/chat/approvals')) {
       return inboxJson([_row()]);
     }
-    throw const GatewayError(404, '{"detail":"not found"}');
+    throw const HostError(404, '{"detail":"not found"}');
   }
 
   Map<String, Object?> _row() => {

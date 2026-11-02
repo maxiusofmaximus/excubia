@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../api/chat_transport.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import 'voice_errors.dart';
 import 'voice_recorder.dart';
 
@@ -138,7 +138,7 @@ class VoiceNotes extends ChangeNotifier {
       }
     } catch (error) {
       _notice = voiceErrorText(error);
-      if (error is GatewayError && error.status == 429) {
+      if (error is HostError && error.status == 429) {
         _retryAt = DateTime.now().add(Duration(seconds: error.retryAfter ?? 2));
       }
     } finally {

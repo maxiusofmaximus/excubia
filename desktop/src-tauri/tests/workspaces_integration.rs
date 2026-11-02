@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use common::{fake_agent_binary, run_cli, start_host};
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::{CoreError, GatewayClient, WriteAction};
+use herdr_desktop_core::{CoreError, HostClient, WriteAction};
 use herdr_notify_desktop::app_state::pair_code_from;
 
 async fn pair(
@@ -30,10 +30,10 @@ fn client_for(
     host: &common::RunningHost,
     identity: &DeviceIdentity,
     device_id: &str,
-) -> GatewayClient {
+) -> HostClient {
     let mut identity = identity.clone();
     identity.set_device_id(device_id);
-    GatewayClient::new(&host.url(), identity).unwrap()
+    HostClient::new(&host.url(), identity).unwrap()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

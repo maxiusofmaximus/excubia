@@ -8,7 +8,7 @@ use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
 use crate::chat::ChatEvent;
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 use crate::sse::{SseMessage, SseParser};
 use crate::state::{StateSnapshot, StateStore};
 
@@ -53,7 +53,7 @@ impl Default for StreamOptions {
 /// Connects, decodes events, re-reads `/v1/state` on change frames, and
 /// reconnects with exponential backoff until cancelled or the device is refused.
 pub async fn run_event_loop(
-    client: Arc<GatewayClient>,
+    client: Arc<HostClient>,
     store: Arc<Mutex<StateStore>>,
     sink: Arc<dyn EventSink>,
     cancel: CancellationToken,
@@ -106,7 +106,7 @@ pub async fn run_event_loop(
             tokio::select! {
                 _ = cancel.cancelled() => return,
                 _ = &mut idle => {
-                    break "El gateway dejó de enviar datos.".to_string();
+                    break "El PC dejó de enviar datos.".to_string();
                 }
                 item = stream.next() => {
                     match item {
@@ -126,7 +126,7 @@ pub async fn run_event_loop(
                             break format!("Se perdió la conexión: {error}");
                         }
                         None => {
-                            break "El gateway cerró la conexión.".to_string();
+                            break "El PC cerró la conexión.".to_string();
                         }
                     }
                 }
@@ -148,7 +148,7 @@ enum FrameAction {
 }
 
 async fn handle_message(
-    client: &GatewayClient,
+    client: &HostClient,
     store: &Mutex<StateStore>,
     sink: &Arc<dyn EventSink>,
     message: SseMessage,
@@ -209,7 +209,7 @@ async fn emit_if_applied(
 fn fatal_reason(error: &crate::error::CoreError) -> String {
     match error {
         crate::error::CoreError::Unauthorized => {
-            "El gateway ya no confía en este dispositivo. Vuelve a emparejarlo.".to_string()
+            "El PC ya no confía en este dispositivo. Vuelve a emparejarlo.".to_string()
         }
         crate::error::CoreError::Forbidden => {
             "Este dispositivo no tiene permiso para leer el estado.".to_string()

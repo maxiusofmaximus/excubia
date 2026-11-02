@@ -78,13 +78,13 @@ export function canRevoke(device, thisDevice) {
 
 const FAILURE_TEXT = {
   offline: "Sin conexión con el host. Lo cargado sigue visible.",
-  unauthorized: "El gateway ya no confía en este dispositivo. Vuelve a emparejarlo.",
+  unauthorized: "El PC ya no confía en este dispositivo. Vuelve a emparejarlo.",
   forbidden: "Este equipo no puede administrar dispositivos.",
   notFound: "Ya no existe.",
 };
 
 // The operator's words for a failure. A refusal names its status; anything else is generic.
 export function deviceFailureText(failure) {
-  if (failure?.kind === "refused") return `El gateway rechazó la petición (${failure.status}).`;
+  if (failure?.kind === "refused") return `El PC rechazó la petición (${failure.status}).`;
   return FAILURE_TEXT[failure?.kind] || "No se pudo completar la operación.";
 }

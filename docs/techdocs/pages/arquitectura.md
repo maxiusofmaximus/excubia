@@ -34,9 +34,3 @@ README y su propio sistema de compilación.
    `host hook-token`.
 4. El host decide qué puede hacer cada dispositivo según sus permisos. Las peticiones de
    aprobación suben por niveles: política del proyecto, lead, Alfred y, por último, el usuario.
-
-## Piezas heredadas
-
-El gateway de Python (`gateway/`) está retirado del repositorio y ya no recibe cambios. Sus dispositivos
-se importan con `host devices import-gateway`. La tabla de equivalencias está en
-[paridad gateway → core](PARITY-GATEWAY.md).

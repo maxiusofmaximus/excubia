@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:herdr_notify/core/api/chat_attachment_source.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_attachment_tray.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 
 import 'fake_chat_transport.dart';
 
 LiveTriage dummyTriage() => LiveTriage(
-  GatewayClient(
+  HostClient(
     baseUrl: 'http://100.64.0.1:8788',
     deviceId: 'dev-x',
     privateKeyBase64: 'placeholder',
@@ -112,7 +112,7 @@ Map<String, String> chatRoutes() => {
 class UploadTransport extends FakeChatTransport {
   UploadTransport(super.routes);
 
-  final List<GatewayError> chunkRefusals = <GatewayError>[];
+  final List<HostError> chunkRefusals = <HostError>[];
   final List<int> chunkOffsets = <int>[];
 
   /// Holds the create answer until the test completes it.

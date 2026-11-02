@@ -5,7 +5,7 @@ import '../../src/rust/api/mail.dart';
 import 'approval_find.dart';
 import 'chat_transport.dart';
 import 'connection_text.dart';
-import 'gateway_client.dart';
+import 'host_client.dart';
 import 'json_read.dart';
 import 'plan_runner.dart';
 

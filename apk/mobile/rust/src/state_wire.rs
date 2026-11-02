@@ -1,5 +1,5 @@
 //! Wire shapes and lenient decoding. Kept out of `api` so the bridge only sees
-//! the stable client model, not the gateway's JSON internals.
+//! the stable client model, not the host's JSON internals.
 
 use std::collections::{BTreeMap, HashMap};
 

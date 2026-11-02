@@ -12,7 +12,7 @@ const FAILURE_TITLES = {
   archived: "La conversación está archivada",
   notFound: "La conversación ya no existe",
   invalid: "El mensaje no es válido",
-  gateway: "El host rechazó la petición",
+  host: "El host rechazó la petición",
   protocol: "Respuesta inesperada del host",
 };
 
@@ -23,14 +23,14 @@ function grantCommand(text) {
 }
 
 export function renderFailure(failure, context = {}) {
-  const kind = failure && failure.kind ? failure.kind : "gateway";
+  const kind = failure && failure.kind ? failure.kind : "host";
   const card = element("div", "error-card");
   card.dataset.failure = kind;
 
   const icon = element("span", "error-icon", "!");
   icon.setAttribute("aria-hidden", "true");
   const body = element("div", "error-body");
-  const title = element("h3", null, FAILURE_TITLES[kind] || FAILURE_TITLES.gateway);
+  const title = element("h3", null, FAILURE_TITLES[kind] || FAILURE_TITLES.host);
   const message = element("p", null, failure && failure.message ? failure.message : "No se pudo completar la operación.");
   body.append(title, message);
 

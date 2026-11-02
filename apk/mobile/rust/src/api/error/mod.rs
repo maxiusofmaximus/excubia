@@ -44,12 +44,12 @@ pub fn explain_error(
 ) -> ErrorInfo {
     match status {
         0 => info(
-            "Sin conexión con el gateway.",
+            "Sin conexión con el PC.",
             Some("Comprueba la red y vuelve a intentarlo."),
             FailureKind::Retry,
         ),
         401 => info(
-            "El gateway ya no confía en este dispositivo.",
+            "El PC ya no confía en este dispositivo.",
             Some("Vuelve a emparejarlo desde Avanzado."),
             FailureKind::Repair,
         ),
@@ -63,30 +63,30 @@ pub fn explain_error(
         ),
         400 => bad_request(code.as_deref(), &message),
         413 => info(
-            "El mensaje es demasiado largo para el gateway.",
+            "El mensaje es demasiado largo para el PC.",
             Some("Acórtalo y vuelve a intentarlo."),
             FailureKind::Retry,
         ),
         422 => info("La petición no es válida.", None, FailureKind::Retry),
         429 => info(
-            "El gateway está limitando las peticiones.",
+            "El PC está limitando las peticiones.",
             Some("Espera unos segundos y vuelve a intentarlo."),
             FailureKind::Retry,
         ),
         status if status >= 500 => info(
-            format!("El gateway tuvo un fallo interno ({status})."),
+            format!("El PC tuvo un fallo interno ({status})."),
             Some("Vuelve a intentarlo en unos segundos."),
             FailureKind::Retry,
         ),
         status => info(
-            format!("El gateway respondió {status}: {message}"),
+            format!("El PC respondió {status}: {message}"),
             Some("Vuelve a intentarlo."),
             FailureKind::Retry,
         ),
     }
 }
 
-/// Decode a gateway error body and explain it in one step. The body shapes are
+/// Decode a host error body and explain it in one step. The body shapes are
 /// `{"detail": "..."}`, `{"detail": {code, message}}` and `{code, message}`.
 #[flutter_rust_bridge::frb(sync)]
 pub fn explain_http_error(status: u16, body: String, action: WriteAction) -> ErrorInfo {
@@ -99,7 +99,7 @@ pub fn explain_pairing_error(status: u16) -> ErrorInfo {
     match status {
         0 => info(
             "No se pudo contactar con el equipo.",
-            Some("Comprueba la red y la dirección del gateway."),
+            Some("Comprueba la red y la dirección del PC."),
             FailureKind::Retry,
         ),
         400 => info(
@@ -329,7 +329,7 @@ fn forbidden(action: WriteAction) -> ErrorInfo {
     )
 }
 
-/// One action code becomes text and an action. Shared by the gateway's `400`
+/// One action code becomes text and an action. Shared by the host's `400`
 /// and by the local validation of a write plan, so there is one wording.
 pub(crate) fn action_problem(code: &str) -> Option<ErrorInfo> {
     Some(match code {
@@ -422,7 +422,7 @@ fn bad_request(code: Option<&str>, message: &str) -> ErrorInfo {
     }
     code.and_then(action_problem).unwrap_or_else(|| {
         info(
-            format!("El gateway rechazó la petición: {message}"),
+            format!("El PC rechazó la petición: {message}"),
             None,
             FailureKind::Retry,
         )

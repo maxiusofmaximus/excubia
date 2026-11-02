@@ -1,19 +1,19 @@
 import 'package:herdr_notify/src/rust/api/stream.dart';
 
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import 'alert_policy.dart';
 
-/// The two calls the alerts stream makes. [GatewayAlertSource] is the app's signed client.
+/// The two calls the alerts stream makes. [HostAlertSource] is the app's signed client.
 abstract interface class AlertSource {
   Future<Stream<String>> lines({String? lastEventId});
 
   Future<String> state();
 }
 
-class GatewayAlertSource implements AlertSource {
-  GatewayAlertSource(this._client);
+class HostAlertSource implements AlertSource {
+  HostAlertSource(this._client);
 
-  final GatewayClient _client;
+  final HostClient _client;
 
   @override
   Future<Stream<String>> lines({String? lastEventId}) =>

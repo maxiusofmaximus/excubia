@@ -30,7 +30,7 @@ void main() {
   });
 
   test('the working directory keeps its last two folders', () {
-    expect(shortCwd(r'C:\Users\dev\demo\api'), '…/demo/api');
+    expect(shortCwd(r'C:\Users\Max\demo\api'), '…/demo/api');
     expect(shortCwd('demo/api'), 'demo/api');
     expect(shortCwd('api'), 'api');
     expect(shortCwd('  '), isNull);

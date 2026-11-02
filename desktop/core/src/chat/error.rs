@@ -96,7 +96,7 @@ pub enum ChatFailure {
         code: String,
         message: String,
     },
-    Gateway {
+    Host {
         message: String,
         status: u16,
     },
@@ -145,7 +145,7 @@ impl ChatFailure {
                         message: delegation_text(other).unwrap_or_default().to_string(),
                         status: *status,
                     },
-                    other => ChatFailure::Gateway {
+                    other => ChatFailure::Host {
                         message: format!("El host rechazó la petición: {other}"),
                         status: *status,
                     },
@@ -166,7 +166,7 @@ impl ChatFailure {
                     retry_after_secs: None,
                     status: *status,
                 },
-                _ => ChatFailure::Gateway {
+                _ => ChatFailure::Host {
                     message: error.describe(action).text(),
                     status: *status,
                 },
@@ -284,7 +284,7 @@ pub(super) fn status_failure(
                 code: code.to_string(),
                 message: approval_text(code).unwrap_or_default().to_string(),
             },
-            _ => ChatFailure::Gateway {
+            _ => ChatFailure::Host {
                 message: error_message(body),
                 status: status.as_u16(),
             },
@@ -355,10 +355,10 @@ mod tests {
     }
 
     #[test]
-    fn an_unknown_conflict_stays_a_gateway_refusal() {
+    fn an_unknown_conflict_stays_a_host_refusal() {
         assert!(matches!(
             conflict("made_up_code"),
-            ChatFailure::Gateway { status: 409, .. }
+            ChatFailure::Host { status: 409, .. }
         ));
     }
 }

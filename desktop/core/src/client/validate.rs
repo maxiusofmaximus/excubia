@@ -40,7 +40,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pane_ids_follow_the_gateway_regex() {
+    fn pane_ids_follow_the_host_regex() {
         assert!(validate_pane_id("w1:p3").is_ok());
         assert!(validate_pane_id("wQ:p3N").is_ok());
         assert!(validate_pane_id("w1").is_err());

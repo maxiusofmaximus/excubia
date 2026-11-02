@@ -1,15 +1,13 @@
 # Contract: device identity, pairing, revocation
-_(gateway retirado; ver README)_
+_(implementado en el núcleo Rust; ver README)_
 
-Authoritative code: `gateway/src/herdr_notify/api/auth/devices.py`,
-`gateway/src/herdr_notify/cli.py` (`add-device`, `enroll`, `devices`),
-`android/.../security/DeviceKeyStore.kt`, `android/.../pairing/`.
+Authoritative code: `crates/auth/src/store/`, `crates/host/src/cli/`.
 
 ## Device identity — IMPLEMENTED
 
 Each install generates a P-256 key **inside the Android Keystore**. The private
 key never leaves the device, is never exportable, and is never sent anywhere. The
-public key is transmitted in the encoding the gateway verifies:
+public key is transmitted in the encoding the host verifies:
 
 - **P-256:** uncompressed SEC1 point, 65 bytes `0x04 || X(32) || Y(32)`, base64.
 - The full curve and encoding rules are in [`auth.md`](auth.md).
@@ -21,7 +19,7 @@ The device id is a host-side label (`dev-<16 hex>` by default), not a secret.
 Pairing has two implemented paths, and both land in the same trust store.
 
 **Host-side CLI — IMPLEMENTED.** The operator runs a command on the machine that
-runs the gateway. The app's pairing screen cannot submit anything; its whole job
+runs the host. The app's pairing screen cannot submit anything; its whole job
 is to present the command with the device's own public key pre-filled.
 
 ```
@@ -33,7 +31,7 @@ shows its public key      ──▶      runs:
                                        --public-key <SEC1 base64> \
                                        --label <name>
                                    trust store written atomically
-app connects signed       ──▶      running gateway picks up the file
+app connects signed       ──▶      running host picks up the file
                                    change without a restart
 ```
 
@@ -41,7 +39,7 @@ app connects signed       ──▶      running gateway picks up the file
 herdr-notify add-device --curve p256 --public-key <b64> --label <name>
 ```
 
-The running gateway notices a changed trust store (`reload_if_changed`) and
+The running host notices a changed trust store (`reload_if_changed`) and
 rebuilds its device list, so pairing a phone does not require restarting the
 service.
 
@@ -51,7 +49,7 @@ ownership (see *Enrollment codes* below). It creates a **pending** device that
 holds no permission (CORE11, D3): the host grants `READ_STATE` and anything else
 afterwards. The wire contract — request body, resolution order, response
 and errors — is in [`api.md`](api.md) and [`errors.md`](errors.md);
-`gateway/src/herdr_notify/api/app.py` is authoritative.
+`crates/api/src/routes/` is authoritative.
 
 ## Enrollment codes — IMPLEMENTED (Fase 2(c))
 
@@ -80,17 +78,20 @@ path is a **code from `herdr-notify enroll`**, which the operator reads off the
 host and enters once on the phone.
 
 - **Pairing code**: `DeviceStore.issue_enrollment_code` — 4 random bytes, base32,
-  600 s TTL, **single use**. `herdr-notify enroll` prints it. The store validates
+  180 s TTL (the host default; `host pair-code --ttl` overrides it), **single use**. `herdr-notify enroll` prints it. The store validates
   the payload **before** spending the code, so a malformed request cannot deny
   the legitimate phone its pairing. The code is **persisted to the trust store**
   (as a SHA-256 digest, never in the clear), because `enroll` and the running
-  `serve` gateway are separate processes: the gateway notices the changed file
+  `serve` daemon (`host`) are separate processes: the host notices the changed file
   (`reload_if_changed`) and accepts the code. A spent or expired code is dropped
   from the file, so single use survives a restart.
 - **Recovery code**: minted at pairing and returned exactly once; stored only as
   a SHA-256 hash. `herdr-notify devices --recovery <id>` mints a new one
   (rotating the old). It re-keys the device without manual approval and cannot
   be used for a revoked device.
+  The host CLI mints one the same way: `host devices recovery <device_id>
+  [--data-dir DIR]` prints the new code once and replaces the old one. An
+  unknown or revoked device is refused with an error and no code is minted.
 - **Auto-approval**: with no code, `tailscale whois --json <source-ip>` must
   report the same `UserProfile.ID` as the host's own `Self.UserID`. A different
   account, a tagged node, or an unavailable daemon never auto-approves. A
@@ -102,6 +103,31 @@ host and enters once on the phone.
   slightly clearer `403 {code, message}` naming `herdr-notify enroll`, since the
   caller already knows it sent no code and only the owner check could have
   failed; it still reveals no owner). The endpoint is rate-limited per source IP.
+
+**Pairing audit.** Every decision of `POST /v1/pair` that reaches the handler
+appends one line to `<data-dir>/pairing-audit.jsonl`:
+`{ts, outcome: paired|recovered|rejected, device_id, label, via: code|recovery|tailnet, source_ip}`.
+A refusal records `device_id: null`, and its `via` is `code` when a code was
+sent, `tailnet` otherwise. No line holds a code or a public key. A failed write
+is reported on stderr and does not fail the pairing.
+
+**Rotation.** An append that would pass 1 MiB first moves the file to
+`pairing-audit.jsonl.1`, replacing the previous one, and a new file starts. Both
+happen under the write lock, so no line is lost. A failed rotation is reported on
+stderr and the line is still written.
+
+**Pairing notice.** A `paired` or `recovered` decision also posts a message from
+Alfred in the conversation «Avisos del sistema». The conversation is created by the
+first notice and found by its title among the conversations not archived; the host
+keeps its id until it restarts, so an archived one keeps the notices until then. The
+texts are:
+
+- ``Nuevo dispositivo pendiente: `<label>` (<device_id>), sin permisos. Si no fuiste tú: `host devices revoke <device_id>`.``
+- ``Se usó el código de recuperación de <device_id> (`<label>`). Si no fuiste tú: `host devices revoke <device_id>`.``
+
+The label is a code span cut to 40 characters, with line breaks turned into spaces
+and backticks into quotes. A refusal posts nothing. A failed notice is reported on
+stderr and never fails or undoes the pairing.
 
 The host-side `add-device` CLI remains the manual path to the same result, and
 is the way to grant anything, `READ_STATE` included, to a pending device.
@@ -242,32 +268,6 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
   so the next request gets `401`.
 - Revoking one device does not affect any other device's key.
 
-## Migrar desde el gateway Python
-
-Un dispositivo emparejado con el gateway Python (`gateway/`, obsoleto y solo
-de lectura) pasa a este host en tres pasos:
-
-1. Copiar el `devices.json` del gateway al host. El importador no lo modifica.
-2. `host devices import-gateway <devices.json> [--force] [--data-dir DIR]`
-3. El teléfono se re-empareja con su **código de recuperación** enviándolo como
-   `code` en `POST /v1/pair`. Conserva su `device_id` y sus permisos, y recibe
-   un código de recuperación nuevo.
-
-Reglas del importador:
-
-- Se importan el `device_id`, la clave pública y su curva, la etiqueta, los
-  permisos, la revocación y el hash del código de recuperación.
-- No se importan el token FCM ni los códigos de emparejamiento pendientes.
-- Un permiso desconocido se descarta con aviso; el dispositivo se conserva.
-- Una entrada corrupta o con clave inválida se informa como rechazada; el resto
-  se importa igual.
-- Mismo `device_id` con otra clave: se conserva la clave del host salvo con
-  `--force`. La misma clave bajo otro id no se duplica.
-- Reimportar sin cambios no escribe nada. La escritura es atómica: si falla, el
-  fichero del host queda como estaba.
-- Un dispositivo sin `recovery_code_hash` no puede re-emparejarse; debe volver a
-  emparejarse con un código de emparejamiento.
-
 ## Implementation status
 
 | Capability | Status |
@@ -275,7 +275,7 @@ Reglas del importador:
 | Device identity (P-256 / Ed25519 public key in the keystore) | IMPLEMENTED |
 | Host-side `add-device` CLI pairing | IMPLEMENTED |
 | `POST /v1/pair` (code / recovery / tailnet owner) | IMPLEMENTED (Fase 2(c)) |
-| Pairing codes (4 bytes, 600 s, single use) | IMPLEMENTED |
+| Pairing codes (4 bytes, 180 s, single use) | IMPLEMENTED |
 | Recovery codes (re-key, rotate, SHA-256 hash only) | IMPLEMENTED |
 | Tailnet auto-approval (`tailscale whois`, same owner) | IMPLEMENTED |
 | Trust store (atomic writes, fail closed, live reload) | IMPLEMENTED |

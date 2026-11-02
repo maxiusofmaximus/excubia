@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/api/catalog.dart';
 import 'package:herdr_notify/src/rust/api/error.dart';
@@ -8,7 +8,7 @@ import 'package:herdr_notify/ui/new_conversation_screen.dart';
 import 'package:herdr_notify/ui/theme.dart';
 
 LiveTriage dummyTriage() => LiveTriage(
-  GatewayClient(
+  HostClient(
     baseUrl: 'http://100.64.0.1:8788',
     deviceId: 'dev-x',
     privateKeyBase64: 'placeholder',

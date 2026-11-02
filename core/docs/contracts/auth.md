@@ -1,5 +1,5 @@
 # Contract: request authentication and authorization
-_(gateway retirado; ver README)_
+_(implementado en el núcleo Rust; ver README)_
 
 Every request except `GET /v1/health` must carry a signature over the exact
 request. There is no bearer token and no shared secret to leak: a device is a
@@ -19,9 +19,8 @@ this order:
 A valid signature never implies authorization. Authentication answers *who you
 are*; authorization answers *what you may do*.
 
-Authoritative code: `gateway/src/herdr_notify/api/auth/canonical.py`,
-`.../verify.py`, `.../devices.py`, `.../authz.py`;
-`android/.../net/RequestSigner.kt`; `android/.../security/DeviceKeyStore.kt`.
+Authoritative code: `crates/auth/src/verify.rs`, `crates/auth/src/store/`,
+`crates/auth/src/authz.rs`.
 
 ## Headers
 
@@ -90,7 +89,7 @@ NONCE \n
   string.
 
 This exact byte string is what the golden vectors in
-`gateway/tests/vectors/signing_vectors.json` pin.
+`docs/contracts/vectors/signing_vectors.json` pin.
 
 ## Signing algorithms
 

@@ -7,7 +7,7 @@
 //! host devices list                   list paired devices
 //! host devices revoke <id>            revoke one device
 //! host devices grant <id> -p <perm>   grant one permission (host-side act)
-//! host devices import-gateway <file> [--force]  bring a gateway's devices over
+//! host devices recovery <id>          rotate and print a recovery code (once)
 //! ```
 //!
 //! Every subcommand accepts `--data-dir DIR`; the daemon also accepts
@@ -23,6 +23,8 @@ mod usage;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_pairing;
 
 pub use parse::parse;
 pub use types::{Command, DevicesCommand, RunOptions, TlsCommand};

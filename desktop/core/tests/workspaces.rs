@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use common::read_request;
 use herdr_desktop_core::error::{CoreError, WriteAction};
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use serde_json::Value;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
@@ -40,8 +40,8 @@ async fn one_shot(status: u16, response: &'static str) -> (String, Arc<Mutex<Vec
     (format!("http://{address}"), captured)
 }
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
 #[tokio::test]

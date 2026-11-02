@@ -375,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_string_matches_the_gateway_golden_vector() {
+    fn canonical_string_matches_the_golden_vector() {
         let canonical = canonical_string(
             "GET",
             "/v1/state",

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/api/chat/model.dart';
 
@@ -9,7 +9,7 @@ import 'package:herdr_notify/src/rust/api/chat/model.dart';
 class SignalTriage extends LiveTriage {
   SignalTriage()
     : super(
-        GatewayClient(
+        HostClient(
           baseUrl: 'http://100.64.0.1:8788',
           deviceId: 'dev-x',
           privateKeyBase64: 'placeholder',

@@ -42,11 +42,9 @@ pub enum DevicesCommand {
         device_id: String,
         permission: String,
     },
-    /// Merge the devices of a gateway's `devices.json` into this trust store.
-    ImportGateway {
-        path: PathBuf,
-        /// Replace a registered device whose id arrives with another key.
-        force: bool,
+    /// Rotate the device's recovery code and print the new one once.
+    Recovery {
+        device_id: String,
     },
 }
 

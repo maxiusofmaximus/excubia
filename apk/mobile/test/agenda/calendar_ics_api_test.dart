@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 import '../support/ics_fakes.dart';
 import '../support/scripted_transport.dart';
@@ -14,7 +14,7 @@ const String _importPath = 'POST /v1/calendar/import';
 const String _emptyImport =
     '{"ok":true,"imported":0,"skipped_existing":0,"skipped_unsupported":0,"details":[]}';
 
-GatewayError _error(int status, String code) => GatewayError(
+HostError _error(int status, String code) => HostError(
   status,
   jsonEncode({'ok': false, 'detail': {'code': code}}),
 );
@@ -50,7 +50,7 @@ void main() {
       await expectLater(
         api.exportIcs(),
         throwsA(
-          isA<GatewayError>().having((e) => e.status, 'status', 422),
+          isA<HostError>().having((e) => e.status, 'status', 422),
         ),
       );
     });
@@ -88,7 +88,7 @@ void main() {
     test('un archivo de más de 512 KiB se rechaza sin enviarlo', () async {
       await expectLater(
         api.importIcs(Uint8List(icsMaxBytes + 1)),
-        throwsA(isA<GatewayError>().having((e) => e.status, 'status', 413)),
+        throwsA(isA<HostError>().having((e) => e.status, 'status', 413)),
       );
 
       expect(transport.targets, isEmpty);
@@ -107,7 +107,7 @@ void main() {
 
       await expectLater(
         api.importIcs(Uint8List.fromList(utf8.encode('hola'))),
-        throwsA(isA<GatewayError>().having((e) => e.status, 'status', 400)),
+        throwsA(isA<HostError>().having((e) => e.status, 'status', 400)),
       );
     });
   });
@@ -150,7 +150,7 @@ void main() {
         'El archivo no es un calendario .ics válido.',
       );
       expect(
-        icsFailureText(const GatewayError(413, ''), importing: true),
+        icsFailureText(const HostError(413, ''), importing: true),
         'El archivo pesa más de 512 KiB.',
       );
     });

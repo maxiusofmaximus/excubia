@@ -8,12 +8,12 @@ use data_encoding::BASE32;
 use hn_core_persist::{fill_random, RandomError};
 use sha2::{Digest, Sha256};
 
-/// 32 bits of entropy for a 10-minute single-use code.
+/// 32 bits of entropy for a single-use code that lives three minutes.
 pub const ENROLLMENT_CODE_BYTES: usize = 4;
 /// 80 bits for a recovery code, printed once as four base32 groups.
 pub const RECOVERY_CODE_BYTES: usize = 10;
-/// Pairing codes live ten minutes.
-pub const ENROLLMENT_TTL_SECONDS: f64 = 600.0;
+/// Default life of a pairing code (`host pair-code --ttl` overrides it).
+pub const ENROLLMENT_TTL_SECONDS: f64 = 180.0;
 
 /// A new pairing code: base32, no padding (`AEBAGBA`).
 pub fn mint_enrollment_code() -> Result<String, RandomError> {
@@ -54,7 +54,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn enrollment_codes_match_the_gateway_shape() {
+    fn enrollment_codes_are_seven_base32_characters() {
         let code = mint_enrollment_code().expect("random");
         // 4 bytes are 7 base32 characters, no padding.
         assert_eq!(code.len(), 7);
@@ -72,9 +72,9 @@ mod tests {
     }
 
     // Pinned to Python's base64.b32encode for the same bytes, so the format is
-    // the gateway's and not merely self-consistent.
+    // the standard one and not merely self-consistent.
     #[test]
-    fn base32_matches_the_gateway_encoding() {
+    fn base32_matches_the_standard_encoding() {
         let encoded = BASE32.encode(&[0x01, 0x02, 0x03, 0x04]);
         assert_eq!(encoded.trim_end_matches('='), "AEBAGBA");
         let encoded = BASE32.encode(&[0u8; 10]);

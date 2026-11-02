@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/api/state.dart';
 import 'package:herdr_notify/ui/agent_detail_screen.dart';
@@ -26,7 +26,7 @@ AgentEntry agent({
 
 LiveTriage triageWith(AgentStatus status, {bool restored = false}) {
   final triage = LiveTriage(
-    GatewayClient(
+    HostClient(
       baseUrl: 'http://100.64.0.1:8788',
       deviceId: 'dev-x',
       privateKeyBase64: 'placeholder',

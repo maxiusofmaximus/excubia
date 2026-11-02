@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/hires_controller.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
@@ -21,7 +21,7 @@ import 'support/fake_team_host.dart';
 import 'support/history_chips.dart';
 
 LiveTriage dummyTriage() => LiveTriage(
-  GatewayClient(
+  HostClient(
     baseUrl: 'http://100.64.0.1:8788',
     deviceId: 'dev-x',
     privateKeyBase64: 'placeholder',
@@ -602,7 +602,7 @@ void main() {
       final transport = FakeChatTransport(routes);
       await pumpChat(tester, routes: routes, transport: transport);
 
-      transport.failure = const GatewayError(403, '{"detail":"forbidden"}');
+      transport.failure = const HostError(403, '{"detail":"forbidden"}');
       await tester.tap(find.byTooltip('Detener'));
       await tester.pumpAndSettle();
 

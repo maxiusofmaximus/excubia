@@ -3,7 +3,7 @@ import 'package:herdr_notify/core/api/agenda_api.dart';
 import 'package:herdr_notify/core/api/alerts_api.dart';
 import 'package:herdr_notify/core/api/alerts_models.dart';
 import 'package:herdr_notify/core/api/alerts_failure_text.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 import '../support/recording_transport.dart';
 
@@ -135,7 +135,7 @@ void main() {
 
   group('errores', () {
     String failure(int status, String body) =>
-        alertsFailureText(GatewayError(status, body));
+        alertsFailureText(HostError(status, body));
 
     test('una regla igual se dice en español', () {
       expect(
@@ -159,20 +159,20 @@ void main() {
     });
 
     test('sin el permiso sale el texto estándar de la agenda', () {
-      expect(failure(403, ''), agendaFailureText(const GatewayError(403, '')));
+      expect(failure(403, ''), agendaFailureText(const HostError(403, '')));
     });
 
     test('una regla que ya no existe usa el texto de la agenda', () {
       expect(
         failure(404, '{"detail":{"code":"not_found"}}'),
-        agendaFailureText(const GatewayError(404, '')),
+        agendaFailureText(const HostError(404, '')),
       );
     });
 
     test('un error que no es de la API no se inventa un texto', () {
       expect(
         failure(500, 'no es json'),
-        agendaFailureText(const GatewayError(500, 'no es json')),
+        agendaFailureText(const HostError(500, 'no es json')),
       );
     });
   });

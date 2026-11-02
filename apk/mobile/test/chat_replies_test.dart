@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/hires_controller.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
@@ -14,7 +14,7 @@ import 'package:herdr_notify/ui/theme.dart';
 import 'support/fake_chat_transport.dart';
 
 LiveTriage dummyTriage() => LiveTriage(
-  GatewayClient(
+  HostClient(
     baseUrl: 'http://100.64.0.1:8788',
     deviceId: 'dev-x',
     privateKeyBase64: 'placeholder',
@@ -264,7 +264,7 @@ void main() {
       await startReplyToFirst(tester);
       await tester.enterText(find.byType(TextField), 'Sí, créalo');
       await tester.pump();
-      transport.failure = const GatewayError(
+      transport.failure = const HostError(
         422,
         '{"detail":{"code":"unknown_reply_to","field":"reply_to","message":"x"}}',
       );

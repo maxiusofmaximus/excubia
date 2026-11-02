@@ -13,7 +13,7 @@ mkdir -p "$src/contracts" "$src/rfc" "$src/apk"
 cp "$root/docs/techdocs/pages/"*.md "$src/"
 cp "$root/core/docs/contracts/"*.md "$src/contracts/"
 cp "$root/core/docs/rfc/"*.md "$src/rfc/"
-cp "$root/core/docs/security-review.md" "$root/core/docs/PARITY-GATEWAY.md" "$src/"
+cp "$root/core/docs/security-review.md" "$src/"
 cp "$root/apk/docs/migration-from-kotlin.md" "$src/apk/"
 
 # Enlaces a ficheros que no se publican: se quita el enlace y queda el texto.

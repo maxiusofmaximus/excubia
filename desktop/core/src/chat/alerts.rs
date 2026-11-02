@@ -12,7 +12,7 @@ use super::alerts_model::{AlertMode, AlertRule, AlertRuleDraft};
 use super::error::{detail_code, protocol, status_failure, ChatFailure, ChatResult};
 use super::error_text::alert_text;
 use super::validate_prefixed_id;
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 use crate::error::CoreError;
 
 const RULE_TIMEOUT: Duration = Duration::from_secs(20);
@@ -49,7 +49,7 @@ fn rule_refusal(body: &[u8]) -> Option<ChatFailure> {
     })
 }
 
-impl GatewayClient {
+impl HostClient {
     pub async fn alert_rules(&self) -> ChatResult<Vec<AlertRule>> {
         let envelope: RulesEnvelope = self
             .alert_call(Method::GET, "/v1/alerts/rules", None, false)

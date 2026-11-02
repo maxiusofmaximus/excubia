@@ -1,5 +1,5 @@
 //! SSE change frames and the event names on the wire, kept from herdr's
-//! vocabulary so the existing gateway-facing clients recognise them.
+//! vocabulary so the existing clients recognise them.
 
 use std::sync::Arc;
 

@@ -10,7 +10,7 @@ import 'package:herdr_notify/src/rust/api/chat/plan.dart' show newChatClientId;
 
 import '../api/approval_find.dart';
 import '../api/chat_transport.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../api/plan_runner.dart';
 import 'approval_move.dart';
 
@@ -175,7 +175,7 @@ class ApprovalsController extends ChangeNotifier {
         ),
       );
       return false;
-    } on GatewayError catch (error) {
+    } on HostError catch (error) {
       if (error.status != 404) return false;
     } catch (_) {
       return false;
@@ -295,7 +295,7 @@ class ApprovalsController extends ChangeNotifier {
   }
 
   ApprovalFailure _explain(Object error) {
-    if (error is GatewayError) {
+    if (error is HostError) {
       return explainApprovalFailure(
         status: error.status,
         body: error.body,

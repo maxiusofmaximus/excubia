@@ -32,18 +32,6 @@ impl Curve {
     }
 }
 
-/// True when `public_key` is base64 of a point `curve` accepts: the test
-/// verification applies, so a key that passes it can be used to verify.
-pub fn is_valid_public_key(curve: Curve, public_key: &str) -> bool {
-    let Ok(raw) = STANDARD.decode(public_key) else {
-        return false;
-    };
-    match curve {
-        Curve::P256 => p256_from_bytes(&raw).is_some(),
-        Curve::Ed25519 => ed25519_from_bytes(&raw).is_some(),
-    }
-}
-
 /// True when `signature` is a valid signature of `message` for `public_key`.
 ///
 /// `public_key` is base64: an uncompressed SEC1 point (65 bytes) for P-256, or
@@ -146,18 +134,6 @@ mod tests {
             &signature.to_bytes(),
             b"otro"
         ));
-    }
-
-    #[test]
-    fn public_keys_are_checked_for_their_curve() {
-        let (_, public) = p256_key();
-        assert!(is_valid_public_key(Curve::P256, &public));
-        assert!(!is_valid_public_key(Curve::Ed25519, &public));
-        assert!(!is_valid_public_key(
-            Curve::P256,
-            &STANDARD.encode([0u8; 10])
-        ));
-        assert!(!is_valid_public_key(Curve::P256, "no-base64!"));
     }
 
     #[test]

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-/// herdr's status vocabulary, forwarded unchanged by the gateway. Anything
+/// herdr's status vocabulary, forwarded unchanged by the host. Anything
 /// unrecognised degrades to `Unknown`; it is never stored as-is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -64,7 +64,7 @@ pub struct Focused {
     pub pane_id: Option<String>,
 }
 
-/// One ranked triage row, as the gateway built it.
+/// One ranked triage row, as the host built it.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct AgentRow {
@@ -98,7 +98,7 @@ pub struct StateSnapshot {
 
 impl StateSnapshot {
     /// Drops rows without a pane id, normalises fallbacks, and fills counts when
-    /// an older gateway omits them. Never reorders: ranking is the host's job.
+    /// an older host omits them. Never reorders: ranking is the host's job.
     pub fn sanitize(&mut self) {
         for agent in &mut self.agents {
             agent.pane_id = agent.pane_id.trim().to_string();
@@ -154,8 +154,8 @@ impl StateStore {
         self.current.as_ref().map(|state| state.revision)
     }
 
-    /// Drops the current state. Revisions are monotonic per gateway, so a
-    /// different gateway must start from an empty baseline instead of being
+    /// Drops the current state. Revisions are monotonic per host, so a
+    /// different host must start from an empty baseline instead of being
     /// compared against another host's revision.
     pub fn clear(&mut self) {
         self.current = None;
@@ -227,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn fills_counts_when_an_older_gateway_omits_them() {
+    fn fills_counts_when_an_older_host_omits_them() {
         let mut state: StateSnapshot = serde_json::from_str(
             r#"{"revision":1,"agents":[
                 {"pane_id":"w1:p1","status":"blocked"},
@@ -264,7 +264,7 @@ mod tests {
     }
 
     #[test]
-    fn clearing_the_store_accepts_a_lower_revision_from_another_gateway() {
+    fn clearing_the_store_accepts_a_lower_revision_from_another_host() {
         let mut store = StateStore::default();
         store.apply(StateSnapshot {
             revision: 9_000_000,
@@ -278,7 +278,7 @@ mod tests {
                     ..StateSnapshot::default()
                 })
                 .is_some(),
-            "a new gateway starts its own revision sequence"
+            "a new host starts its own revision sequence"
         );
     }
 

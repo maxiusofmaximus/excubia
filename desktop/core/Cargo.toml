@@ -2,7 +2,7 @@
 name = "herdr-desktop-core"
 version = "0.1.0"
 edition = "2021"
-description = "UI-free gateway client core for herdr notify desktop"
+description = "UI-free host client core for herdr notify desktop"
 
 [dependencies]
 async-trait = "0.1"

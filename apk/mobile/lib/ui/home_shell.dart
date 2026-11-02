@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:herdr_notify/src/rust/api/signing.dart';
 
-import '../core/api/gateway_client.dart';
+import '../core/api/host_client.dart';
 import '../core/state/approvals_controller.dart';
 import '../core/state/chat_controller.dart';
 import '../core/state/hires_controller.dart';
@@ -44,7 +44,7 @@ class _HomeShellState extends State<HomeShell> {
       _keyError = true;
       return;
     }
-    final client = GatewayClient.forPairing(widget.pairing);
+    final client = HostClient.forPairing(widget.pairing);
     final triage = LiveTriage(client)..start();
     final approvals = ApprovalsController(
       transport: client,

@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/chat_attachment_source.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_attachment_errors.dart';
 import 'package:herdr_notify/core/state/chat_attachment_images.dart';
 import 'package:herdr_notify/core/state/chat_attachment_tray.dart';
@@ -86,7 +86,7 @@ void main() {
       () async {
         final transport = UploadTransport(chatRoutes())
           ..chunkRefusals.add(
-            const GatewayError(
+            const HostError(
               409,
               '{"detail":{"code":"offset_mismatch","message":"x","next_offset":4}}',
             ),
@@ -123,13 +123,13 @@ void main() {
     test('a 422 that names unknown_attachment is found in its body', () {
       expect(
         namesUnknownAttachment(
-          const GatewayError(422, '{"detail":{"code":"unknown_attachment"}}'),
+          const HostError(422, '{"detail":{"code":"unknown_attachment"}}'),
         ),
         isTrue,
       );
       expect(
         namesUnknownAttachment(
-          const GatewayError(422, '{"detail":{"code":"other"}}'),
+          const HostError(422, '{"detail":{"code":"other"}}'),
         ),
         isFalse,
       );
@@ -170,11 +170,11 @@ void main() {
       var asked = 0;
       final images = ChatAttachmentImages((_) async {
         asked++;
-        throw const GatewayError(502, 'down');
+        throw const HostError(502, 'down');
       });
 
-      await expectLater(images.load('att_1'), throwsA(isA<GatewayError>()));
-      await expectLater(images.load('att_1'), throwsA(isA<GatewayError>()));
+      await expectLater(images.load('att_1'), throwsA(isA<HostError>()));
+      await expectLater(images.load('att_1'), throwsA(isA<HostError>()));
       expect(asked, 1);
     });
 

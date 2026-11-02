@@ -9,7 +9,7 @@ use serde_json::{json, Map, Value};
 
 use super::error::{ChatFailure, ChatResult};
 use super::{validate_client_id, validate_prefixed_id};
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 use crate::mail::MailApprovalDetails;
 
 /// The modes the operator can set. `delegated` lets the policy, the scorer and
@@ -133,7 +133,7 @@ struct SettingsEnvelope {
     settings: ApprovalSettings,
 }
 
-impl GatewayClient {
+impl HostClient {
     /// The approvals of a conversation that still wait for the operator. The
     /// host answers the pending ones when no status is asked for.
     pub async fn chat_approvals(&self, conversation_id: &str) -> ChatResult<Vec<Approval>> {

@@ -1,4 +1,4 @@
-//! Request signing for the gateway contract (`docs/contracts/auth.md`).
+//! Request signing for the host contract (`docs/contracts/auth.md`).
 //!
 //! The private key stays in `flutter_secure_storage`; Dart passes it for the
 //! duration of a call. Nothing here persists key material.

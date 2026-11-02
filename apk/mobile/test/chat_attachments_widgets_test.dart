@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_attachment_images.dart';
 import 'package:herdr_notify/core/state/chat_attachment_tray.dart';
 import 'package:herdr_notify/core/state/voice_notes.dart';
@@ -113,7 +113,7 @@ void main() {
     );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    pending.completeError(const GatewayError(0, 'sin conexión'));
+    pending.completeError(const HostError(0, 'sin conexión'));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
   });

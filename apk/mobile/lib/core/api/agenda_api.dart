@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'chat_transport.dart';
 import 'connection_text.dart';
-import 'gateway_client.dart';
+import 'host_client.dart';
 import 'json_read.dart';
 
 part 'agenda_failure_text.dart';
@@ -196,7 +196,7 @@ class AgendaApi {
 
   /// Sends the file as it is. One over [icsMaxBytes] is refused here, without a call.
   Future<IcsImportReport> importIcs(Uint8List file) async {
-    if (file.length > icsMaxBytes) throw const GatewayError(413, '');
+    if (file.length > icsMaxBytes) throw const HostError(413, '');
     final json = await _transport.postBytes(
       '/v1/calendar/import',
       file,
@@ -212,7 +212,7 @@ class AgendaApi {
     try {
       await _write(_idPath('/v1/contacts', _grantProbeId, 'delete'), const {});
       return true;
-    } on GatewayError catch (error) {
+    } on HostError catch (error) {
       if (error.status == 404) return true;
       if (error.status == 403) return false;
       rethrow;

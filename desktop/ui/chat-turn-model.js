@@ -82,7 +82,7 @@ export function composerMode({ inFlight, offline, sent, denied }) {
 // Words for a failed stop. A host without the route answers 404 or 405.
 export function stopFailureText(failure) {
   if (failure.kind === "forbidden") return "No tienes permiso para detener esto desde este dispositivo.";
-  if (failure.kind === "notFound" || (failure.kind === "gateway" && [404, 405].includes(failure.status))) {
+  if (failure.kind === "notFound" || (failure.kind === "host" && [404, 405].includes(failure.status))) {
     return "Este equipo no admite detener todavía.";
   }
   return "No se pudo detener. Inténtalo de nuevo.";

@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use herdr_desktop_core::chat::{ChatFailure, ChatResult};
-use herdr_desktop_core::{ChatSnapshot, GatewayClient};
+use herdr_desktop_core::{ChatSnapshot, HostClient};
 use tauri::State;
 
 use crate::app_state::{lock, AppState};
@@ -24,7 +24,7 @@ pub(crate) fn shared(state: &State<'_, Shared>) -> Shared {
     state.inner().clone()
 }
 
-pub(crate) fn client(shared: &AppState) -> ChatResult<GatewayClient> {
+pub(crate) fn client(shared: &AppState) -> ChatResult<HostClient> {
     let settings = shared.settings().map_err(|message| ChatFailure::Protocol {
         message: format!("La configuración local no está lista: {message}"),
     })?;

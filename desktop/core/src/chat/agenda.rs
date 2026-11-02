@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use super::agenda_model::{Contact, ContactDraft, ContactPage, Note, NoteDraft, NotePage};
 use super::error::{protocol, ChatFailure, ChatResult};
 use super::validate_prefixed_id;
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 
 /// The codes the agenda refuses with. A body whose `detail.code` is one of them
 /// is an agenda refusal; any other code keeps its chat meaning.
@@ -118,7 +118,7 @@ fn entry_path(collection: &Collection, id: &str, action: &str) -> ChatResult<Str
     Ok(format!("/v1/{}/{id}{action}", collection.path))
 }
 
-impl GatewayClient {
+impl HostClient {
     pub async fn notes(&self, search: Option<&str>, before: Option<&str>) -> ChatResult<NotePage> {
         let query = list_query(&NOTES, search, before)?;
         self.chat_get("/v1/notes", &query).await

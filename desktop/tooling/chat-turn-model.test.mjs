@@ -122,8 +122,8 @@ test("a failed stop says why in Spanish", () => {
     "No tienes permiso para detener esto desde este dispositivo.",
   );
   assert.equal(stopFailureText({ kind: "notFound" }), "Este equipo no admite detener todavía.");
-  assert.equal(stopFailureText({ kind: "gateway", status: 405 }), "Este equipo no admite detener todavía.");
-  assert.equal(stopFailureText({ kind: "gateway", status: 404 }), "Este equipo no admite detener todavía.");
+  assert.equal(stopFailureText({ kind: "host", status: 405 }), "Este equipo no admite detener todavía.");
+  assert.equal(stopFailureText({ kind: "host", status: 404 }), "Este equipo no admite detener todavía.");
   assert.equal(stopFailureText({ kind: "offline" }), "No se pudo detener. Inténtalo de nuevo.");
-  assert.equal(stopFailureText({ kind: "gateway", status: 500 }), "No se pudo detener. Inténtalo de nuevo.");
+  assert.equal(stopFailureText({ kind: "host", status: 500 }), "No se pudo detener. Inténtalo de nuevo.");
 });

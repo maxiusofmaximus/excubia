@@ -10,7 +10,7 @@ use serde_json::{json, Map, Value};
 use super::calendar_model::{CalendarEvent, CompanyTimezone, EventDraft, EventPage};
 use super::error::ChatResult;
 use super::validate_prefixed_id;
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 
 const EVENT_PREFIX: &str = "ev_";
 const EVENT_LABEL: &str = "evento";
@@ -97,7 +97,7 @@ fn page_query(
     Ok(query)
 }
 
-impl GatewayClient {
+impl HostClient {
     pub async fn calendar_timezone(&self) -> ChatResult<CompanyTimezone> {
         self.chat_get("/v1/company/timezone", &[]).await
     }

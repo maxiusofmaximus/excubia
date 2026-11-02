@@ -12,7 +12,7 @@ import 'package:herdr_notify/src/rust/api/workspace.dart';
 import 'package:herdr_notify/src/rust/api/write.dart';
 
 import '../api/connection_failure.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../model/connection_state.dart';
 import 'reconciler.dart';
 
@@ -25,7 +25,7 @@ import 'reconciler.dart';
 /// The host answers `403` to a device that is paired but lacks `read_state`.
 /// Its body is always the same `forbidden` (the reason stays in the host log),
 /// so the status alone is the signal.
-bool awaitsApproval(GatewayError error) => error.status == 403;
+bool awaitsApproval(HostError error) => error.status == 403;
 
 class LiveTriage extends ChangeNotifier {
   LiveTriage(
@@ -37,7 +37,7 @@ class LiveTriage extends ChangeNotifier {
 
   static const String reconnectReason = 'el equipo cerró la conexión';
 
-  final GatewayClient _client;
+  final HostClient _client;
   final Random _random;
   final int baseBackoffMillis;
   final int maxBackoffMillis;
@@ -83,7 +83,7 @@ class LiveTriage extends ChangeNotifier {
   Future<void> refreshNow() async {
     try {
       await _refresh();
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       if (awaitsApproval(e)) {
         _set(const AwaitingApproval());
         return;
@@ -126,7 +126,7 @@ class LiveTriage extends ChangeNotifier {
           ),
         );
         attempt = 0;
-      } on GatewayError catch (e) {
+      } on HostError catch (e) {
         if (awaitsApproval(e)) {
           // The loop ends here on purpose: a retry is a person's tap, not a timer.
           _set(const AwaitingApproval());
@@ -202,7 +202,7 @@ class LiveTriage extends ChangeNotifier {
     final StateSnapshot? next;
     try {
       next = parseState(json: await _client.state());
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       if (e.status == 401 || e.status == 403) rethrow;
       return;
     }
@@ -229,14 +229,14 @@ class LiveTriage extends ChangeNotifier {
       await _client.call(call.method, call.target, call.body);
       unawaited(refreshNow());
       return null;
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       return _explainWrite(e, action.kind);
     } on Exception catch (e) {
       return ErrorInfo(message: e.toString(), kind: FailureKind.retry);
     }
   }
 
-  ErrorInfo _explainWrite(GatewayError error, AgentActionKind kind) =>
+  ErrorInfo _explainWrite(HostError error, AgentActionKind kind) =>
       explainHttpError(
         status: error.status,
         body: error.body,
@@ -264,7 +264,7 @@ class LiveTriage extends ChangeNotifier {
         );
       }
       return (entries: entries, error: null);
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       return (
         entries: null,
         error: explainHttpError(
@@ -314,7 +314,7 @@ class LiveTriage extends ChangeNotifier {
       }
       unawaited(refreshNow());
       return (created: created, error: null);
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       return (
         created: null,
         error: explainCreateError(status: e.status, body: e.body),
@@ -350,7 +350,7 @@ class LiveTriage extends ChangeNotifier {
       await _client.call(call.method, call.target, call.body);
       unawaited(refreshNow());
       return (stopped: true, gone: false, error: null);
-    } on GatewayError catch (e) {
+    } on HostError catch (e) {
       final failure = classifyStopError(status: e.status, body: e.body);
       return (stopped: false, gone: failure.gone, error: failure.error);
     } on Exception catch (e) {
@@ -362,7 +362,7 @@ class LiveTriage extends ChangeNotifier {
     }
   }
 
-  ErrorInfo _explain(GatewayError error) => explainHttpError(
+  ErrorInfo _explain(HostError error) => explainHttpError(
     status: error.status,
     body: error.body,
     action: WriteAction.read,

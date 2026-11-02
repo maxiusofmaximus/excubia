@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 /// The host of the first-run team, as tests need it: one canned answer per
-/// route (`METHOD /path`), a `GatewayError` where the host refuses, and a record
+/// route (`METHOD /path`), a `HostError` where the host refuses, and a record
 /// of every POST body. Nothing reaches the network.
 class FakeOnboardingHost implements ChatTransport {
   @override
@@ -33,7 +33,7 @@ class FakeOnboardingHost implements ChatTransport {
       posts.add(jsonDecode(utf8.decode(body)) as Map<String, Object?>);
     }
     final answer = answers[route];
-    if (answer is GatewayError) throw answer;
+    if (answer is HostError) throw answer;
     if (answer is String) return answer;
     throw StateError('no canned answer for $route');
   }

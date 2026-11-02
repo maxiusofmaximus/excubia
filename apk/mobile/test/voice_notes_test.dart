@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/voice_errors.dart';
 import 'package:herdr_notify/core/state/voice_notes.dart';
 
@@ -13,8 +13,8 @@ import 'support/fake_voice_recorder.dart';
 /// Lets the transcript stream deliver what was added to it.
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 
-GatewayError _refused(int status, String code, {int? retryAfter}) =>
-    GatewayError(status, '{"detail":{"code":"$code"}}', retryAfter: retryAfter);
+HostError _refused(int status, String code, {int? retryAfter}) =>
+    HostError(status, '{"detail":{"code":"$code"}}', retryAfter: retryAfter);
 
 void main() {
   test(
@@ -74,7 +74,7 @@ void main() {
   });
 
   group('refusals read as their own text', () {
-    final cases = <(String, GatewayError, String)>[
+    final cases = <(String, HostError, String)>[
       (
         'voice_unavailable',
         _refused(503, 'voice_unavailable'),
@@ -93,12 +93,12 @@ void main() {
       ),
       (
         'sin conexión',
-        const GatewayError(0, 'Connection refused'),
+        const HostError(0, 'Connection refused'),
         'Sin conexión con el PC.',
       ),
       (
         'plazo agotado',
-        const GatewayError.transport(
+        const HostError.transport(
           ConnectionFailure.timeout,
           'el equipo no respondió a tiempo',
         ),
@@ -106,17 +106,17 @@ void main() {
       ),
       (
         'sin ruta al PC',
-        const GatewayError.transport(ConnectionFailure.noRoute, 'refused'),
+        const HostError.transport(ConnectionFailure.noRoute, 'refused'),
         'No llego al PC. ¿Está encendido y en la misma red? Si usas una VPN, compruébala.',
       ),
       (
         'PC con el servicio parado',
-        const GatewayError(503, 'Service Unavailable'),
+        const HostError(503, 'Service Unavailable'),
         'El PC responde, pero el servicio está parado. Arráncalo en el PC e inténtalo de nuevo.',
       ),
       (
         'respuesta 500',
-        const GatewayError(500, 'internal error'),
+        const HostError(500, 'internal error'),
         'No se pudo transcribir la nota. Vuelve a intentarlo.',
       ),
     ];

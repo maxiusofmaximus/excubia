@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cleartext is permitted at the platform level because the gateway can live
+<!-- Cleartext is permitted at the platform level because the host can live
      behind Tailscale on a plain http:// tailnet address; the app itself refuses
      cleartext outside tailnet/loopback hosts (TailnetCleartext). -->
 <network-security-config>

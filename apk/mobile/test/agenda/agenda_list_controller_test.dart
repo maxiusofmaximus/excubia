@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/agenda_list_controller.dart';
 
 void main() {
@@ -70,7 +70,7 @@ void main() {
   test('a failed search says why and shows no rows', () async {
     var fail = false;
     final list = AgendaListController<String>((query, cursor) async {
-      if (fail) throw const GatewayError(500, '{"detail":{"code":"x"}}');
+      if (fail) throw const HostError(500, '{"detail":{"code":"x"}}');
       return AgendaPage(items: ['a'], next: null);
     });
 

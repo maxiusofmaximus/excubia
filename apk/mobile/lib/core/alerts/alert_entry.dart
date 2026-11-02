@@ -1,6 +1,6 @@
 import 'package:herdr_notify/src/rust/api/stream.dart';
 
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../storage/pairing_store.dart';
 import 'alert_platform.dart';
 import 'alert_policy.dart';
@@ -19,7 +19,7 @@ Future<void> runAlertStream() async {
     return;
   }
   final stream = AlertStream(
-    source: GatewayAlertSource(GatewayClient.forPairing(pairing)),
+    source: HostAlertSource(HostClient.forPairing(pairing)),
     platform: platform,
     newDecoder: _decoderOf,
   );

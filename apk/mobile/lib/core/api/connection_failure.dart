@@ -1,6 +1,6 @@
 import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
 
-/// Why the PC could not be reached. A [GatewayError] carries it only when the
+/// Why the PC could not be reached. A [HostError] carries it only when the
 /// request failed before an answer; an HTTP status is classified from its code.
 enum ConnectionFailure {
   /// No transport completed the handshake with the paired identity.

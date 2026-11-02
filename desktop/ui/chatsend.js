@@ -20,7 +20,7 @@ function newClientId() {
 
 function reuseFor(pending) {
   if (!pending || !pending.failure) return null;
-  return ["offline", "gateway", "protocol"].includes(pending.failure.kind)
+  return ["offline", "host", "protocol"].includes(pending.failure.kind)
     ? pending.clientId
     : null;
 }

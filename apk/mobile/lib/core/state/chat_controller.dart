@@ -18,7 +18,7 @@ import 'package:herdr_notify/src/rust/api/write.dart' show HttpCall;
 import '../api/chat_transport.dart';
 import '../api/connection_failure.dart';
 import '../api/connection_text.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../api/agenda_api.dart';
 import '../api/alerts_api.dart';
 import '../api/mail_api.dart';
@@ -321,7 +321,7 @@ class ChatController extends ChangeNotifier {
 
   ChatProblem _explain(Object error, WriteAction action) {
     if (error is _LocalChatProblem) return error.failure;
-    if (error is GatewayError) {
+    if (error is HostError) {
       return explainChatError(
         status: error.status,
         body: error.body,

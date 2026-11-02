@@ -4,9 +4,7 @@ import 'package:herdr_notify/ui/theme.dart';
 import 'package:herdr_notify/ui/widgets/advanced_pairing.dart';
 
 void main() {
-  testWidgets('tapping the stored gateway URL selects all of it', (
-    tester,
-  ) async {
+  testWidgets('tapping the stored host URL selects all of it', (tester) async {
     final url = TextEditingController(text: 'pc.old.ts.net:8788');
     final device = TextEditingController(text: 'telefono');
     await tester.pumpWidget(

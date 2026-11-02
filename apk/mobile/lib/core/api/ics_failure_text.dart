@@ -13,4 +13,4 @@ String icsFailureText(Object error, {required bool importing}) {
 bool icsZoneUnset(Object error) => _codeOf(error) == 'timezone_unset';
 
 String? _codeOf(Object error) =>
-    error is GatewayError ? _detailOf(error.body).code : null;
+    error is HostError ? _detailOf(error.body).code : null;

@@ -13,5 +13,3 @@ está en la [documentación técnica de la migración](../docs/apk/migration-fro
 3. Cuando el emparejamiento funcione, revisa que el móvil ve el estado de tus agentes. Si
    está pendiente, concédele `read_state` en el host.
 
-Si el móvil tenía dispositivos del gateway de Python en el PC, mira también
-[migrar desde el gateway Python](gateway-python.md).

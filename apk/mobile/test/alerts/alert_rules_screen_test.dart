@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
 import 'package:herdr_notify/core/api/alerts_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/ui/alerts/alert_rules_screen.dart';
 
 import '../support/scripted_transport.dart';
@@ -70,7 +70,7 @@ void main() {
 
     testWidgets('un fallo al cambiar el modo se dice', (tester) async {
       final transport = ScriptedTransport(_routes());
-      transport.failNext('POST /v1/alerts/mode', const GatewayError(403, ''));
+      transport.failNext('POST /v1/alerts/mode', const HostError(403, ''));
 
       await mountWidget(tester, AlertRulesScreen(api: AlertsApi(transport)));
       await tester.pumpAndSettle();
@@ -78,7 +78,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text(agendaFailureText(const GatewayError(403, ''))),
+        find.text(agendaFailureText(const HostError(403, ''))),
         findsOneWidget,
       );
       await unmountWidget(tester);
@@ -123,7 +123,7 @@ void main() {
       final transport = ScriptedTransport(_routes(rules: [_paneRule]));
       transport.failNext(
         'POST /v1/alerts/rules/ar_1/update',
-        const GatewayError(404, '{"detail":{"code":"not_found"}}'),
+        const HostError(404, '{"detail":{"code":"not_found"}}'),
       );
 
       await mountWidget(tester, AlertRulesScreen(api: AlertsApi(transport)));
@@ -234,7 +234,7 @@ void main() {
       final transport = ScriptedTransport(_routes());
       transport.failNext(
         'POST /v1/alerts/rules',
-        const GatewayError(409, '{"detail":"rule_exists"}'),
+        const HostError(409, '{"detail":"rule_exists"}'),
       );
 
       await mountWidget(tester, AlertRulesScreen(api: AlertsApi(transport)));

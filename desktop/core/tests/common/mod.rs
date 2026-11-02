@@ -13,7 +13,7 @@ pub struct Captured {
     pub body: Vec<u8>,
 }
 
-/// A fake gateway on loopback that answers `responses` in order and records
+/// A fake host on loopback that answers `responses` in order and records
 /// what it saw. Nothing leaves the machine.
 pub async fn spawn_server(
     responses: Vec<(u16, &'static str)>,
@@ -48,7 +48,7 @@ pub async fn spawn_server(
     (format!("http://{address}"), captured)
 }
 
-/// A fake gateway that answers one request with `status`, its own `headers` (each line
+/// A fake host that answers one request with `status`, its own `headers` (each line
 /// ending in CRLF) and a raw `body`, and records what it saw.
 pub async fn spawn_reply(
     status: u16,

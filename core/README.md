@@ -9,8 +9,7 @@ straight to the answer. No terminal hunting, no pane-by-pane archaeology.
 
 ## Estado
 
-Hitos y verificaciones: [`docs/roadmap.md`](docs/roadmap.md). Paridad con el
-gateway Python retirado: [`docs/PARITY-GATEWAY.md`](docs/PARITY-GATEWAY.md).
+Hitos y verificaciones: [`docs/roadmap.md`](docs/roadmap.md).
 
 | Crate | Qué hace |
 |-------|----------|
@@ -32,7 +31,7 @@ agentes CLI ──pty──▶ hn-core-host ──detect──▶ hn-core-state
      hn-core-api
   HTTP + SSE firmado
           │
-     clientes (android/)
+     clientes (app móvil y escritorio)
 ```
 
 La identidad TLS del host y su pin viven en `hn-core-pin`; el rechazo de
@@ -42,7 +41,6 @@ direcciones comodín en `--bind` está en `crates/host/src/cli/run.rs`.
 
 ```
 crates/      núcleo Rust: workspace de 15 crates
-android/     app Kotlin · Jetpack Compose (cliente)
 tooling/     scripts PowerShell y plugin de UAC para opencode
 docs/        contratos (docs/contracts/), RFC, roadmap, notas del núcleo
 ```
@@ -53,20 +51,6 @@ docs/        contratos (docs/contracts/), RFC, roadmap, notas del núcleo
 cargo build --workspace
 cargo run -p hn-core-host --bin host -- --help   # imprime el uso
 ```
-
-## Migrar desde el gateway Python
-
-```bash
-host devices import-gateway /ruta/a/devices.json           # informe por dispositivo
-host devices import-gateway /ruta/a/devices.json --force   # reemplaza claves en conflicto
-```
-
-- El fichero del gateway no se modifica. La importación es idempotente y atómica.
-- Se conservan `device_id`, permisos, revocación y el hash del código de
-  recuperación. El teléfono se re-empareja enviando su código de recuperación
-  en `POST /v1/pair`.
-- Detalle y reglas: [`docs/contracts/pairing.md`](docs/contracts/pairing.md#migrar-desde-el-gateway-python).
-- Paridad funcional con el gateway: [`docs/PARITY-GATEWAY.md`](docs/PARITY-GATEWAY.md).
 
 ## Testing
 
@@ -91,8 +75,6 @@ request per connection, subscription sets are frozen at subscribe time,
 read/write position plus `CloseHandle` deadlock are both real and both fail
 confusingly.
 
-(El cliente Python que implementaba esa lógica está retirado con el gateway.)
-
 ## Seguridad
 
 Sin token estático: cada dispositivo se identifica con una clave pública
@@ -100,10 +82,6 @@ Sin token estático: cada dispositivo se identifica con una clave pública
 guarda solo el hash del código de recuperación (`crates/auth/src/store/file.rs`).
 `--bind` rechaza direcciones comodín (`0.0.0.0`, `::`)
 (`crates/host/src/cli/run.rs`). Contratos: `docs/contracts/auth.md`.
-
-Configuración local (no versionada): copia `android/local.properties` con
-`gatewayUrl=http://<tu-ip-tailscale>:8788` y `tailnetHosts=<tu-ip-tailscale>`.
-Sin ese fichero la app compila con placeholders inocuos.
 
 ## Security posture
 
@@ -118,4 +96,4 @@ El host supervisa los ptys de los agentes, así que es la parte sensible:
   (`.gitignore`).
 
 Revisión de seguridad previa: [`docs/security-review.md`](docs/security-review.md)
-(su alcance es el gateway retirado).
+(su alcance original fue la implementación Python retirada).

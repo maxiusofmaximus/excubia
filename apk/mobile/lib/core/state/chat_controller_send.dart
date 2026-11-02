@@ -198,7 +198,7 @@ extension ChatControllerSend on ChatController {
       } else {
         _reducer.failSend(clientId: clientId);
       }
-      _retryClientId = error is GatewayError && error.status == 0
+      _retryClientId = error is HostError && error.status == 0
           ? clientId
           : null;
       return accepted || failure.keptByHost;

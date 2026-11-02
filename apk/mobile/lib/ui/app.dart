@@ -10,6 +10,18 @@ import 'onboarding/onboarding_gate.dart';
 import 'pairing_screen.dart';
 import 'theme.dart';
 
+/// The app draws edge to edge, and the lists with a fixed `padding` ignore the bar of
+/// buttons at the bottom: their last row stayed under it. Every screen ends above it.
+Widget withSystemBarsClear(BuildContext context, Widget? child) => ColoredBox(
+  color: context.colors.bg,
+  child: SafeArea(
+    top: false,
+    left: false,
+    right: false,
+    child: child ?? const SizedBox.shrink(),
+  ),
+);
+
 class HerdrNotifyApp extends StatefulWidget {
   const HerdrNotifyApp({super.key, required this.store, this.migration});
 
@@ -69,6 +81,7 @@ class _HerdrNotifyAppState extends State<HerdrNotifyApp> {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(),
       themeMode: ThemeMode.system,
+      builder: withSystemBarsClear,
       home: _loading || pairing == null
           ? Builder(builder: (context) => ColoredBox(color: context.colors.bg))
           : pairing.isComplete

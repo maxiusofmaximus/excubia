@@ -6,7 +6,7 @@ import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
 import 'package:herdr_notify/src/rust/api/onboarding/plan.dart';
 
 import '../api/chat_transport.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../api/plan_runner.dart';
 
 /// The professionals the user has contracted (`GET /v1/hires`) and the catalogue
@@ -179,7 +179,7 @@ class HiresController extends ChangeNotifier {
   Future<String> _send(ChatPlan plan) => runPlan(_transport, plan);
 
   ErrorInfo _explain(Object error) {
-    if (error is GatewayError) {
+    if (error is HostError) {
       return explainHireError(status: error.status, body: error.body);
     }
     if (error is PlanRefused) {

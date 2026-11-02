@@ -16,7 +16,7 @@ export function hydratePairing(boot) {
   $("plain-warning").classList.toggle("hidden", !boot.unencrypted);
   hydrateLan(boot.lan_pairing === true);
   renderLocalStatus(boot.host);
-  $("gateway-url").value = boot.gateway_url || "";
+  $("host-url").value = boot.host_url || "";
   $("device-id").value = boot.device_id || "";
   $("device-label").value = boot.label || "";
   $("fingerprint").textContent = boot.fingerprint || "No disponible";
@@ -97,7 +97,7 @@ function completePairing(outcome) {
   $("recovery-code").textContent = outcome.recovery_code || "No disponible";
   $("recovery-note").textContent = outcome.recovery_code
     ? "No se volverá a mostrar."
-    : "El gateway no devolvió un código de recuperación.";
+    : "El PC no devolvió un código de recuperación.";
   $("btn-copy-recovery").disabled = !outcome.recovery_code;
   showView("recovery");
 }
@@ -109,7 +109,7 @@ async function saveAdvanced() {
   setBusy(button, true, "Guardando…");
   try {
     const outcome = await invoke("save_advanced", {
-      gatewayUrl: $("gateway-url").value,
+      hostUrl: $("host-url").value,
       deviceId: $("device-id").value,
       label: $("device-label").value,
     });
@@ -119,7 +119,7 @@ async function saveAdvanced() {
       app.boot = {
         ...(app.boot || {}),
         paired: true,
-        gateway_url: $("gateway-url").value.trim(),
+        host_url: $("host-url").value.trim(),
         device_id: $("device-id").value.trim(),
         label: $("device-label").value.trim(),
       };

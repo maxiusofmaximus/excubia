@@ -1,6 +1,6 @@
 import '../../src/rust/api/error.dart' show FailureKind;
 import '../../src/rust/api/error/chat.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 
 /// What the user reads for an attachment refusal. Codes the host does not name
 /// fall back to the generic line.
@@ -33,4 +33,4 @@ ChatFailure attachmentChatProblem(String code) => ChatFailure(
 /// already sent. The Rust mapping reads 422 by field, so the code is found in
 /// the body.
 bool namesUnknownAttachment(Object error) =>
-    error is GatewayError && error.body.contains('"unknown_attachment"');
+    error is HostError && error.body.contains('"unknown_attachment"');

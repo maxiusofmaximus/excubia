@@ -10,7 +10,7 @@ use serde_json::{json, Map, Value};
 use super::error::{decode, protocol, ChatFailure, ChatResult};
 use super::model::*;
 use super::{validate_client_id, validate_prefixed_id, ConversationPatch};
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 use crate::error::CoreError;
 
 const CHAT_TIMEOUT: Duration = Duration::from_secs(20);
@@ -18,7 +18,7 @@ const CHAT_TIMEOUT: Duration = Duration::from_secs(20);
 /// page, so a long offline gap does not lose the middle of the thread.
 pub const CHAT_PAGE_LIMIT: u16 = 60;
 
-impl GatewayClient {
+impl HostClient {
     pub async fn chat_bootstrap(&self) -> ChatResult<ChatBootstrap> {
         self.chat_get("/v1/chat/bootstrap", &[]).await
     }
@@ -300,10 +300,10 @@ struct SectionSaved {
     section: Section,
 }
 
-/// An older host has no counts route: 404 is `NotFound`, 405 a gateway refusal.
+/// An older host has no counts route: 404 is `NotFound`, 405 a host refusal.
 fn counts_unsupported(failure: &ChatFailure) -> bool {
     matches!(
         failure,
-        ChatFailure::NotFound { .. } | ChatFailure::Gateway { status: 405, .. }
+        ChatFailure::NotFound { .. } | ChatFailure::Host { status: 405, .. }
     )
 }

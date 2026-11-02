@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../api/mail_api.dart';
 import 'mail_draft_controller.dart';
 import 'mail_drafts.dart';
@@ -161,7 +161,7 @@ class MailSettingsController extends ChangeNotifier {
     notifyListeners();
     try {
       return await call();
-    } on GatewayError catch (error) {
+    } on HostError catch (error) {
       _notice = mailFailureText(error);
       return null;
     } on FormatException {

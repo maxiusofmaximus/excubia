@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/onboarding_controller.dart';
 import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
@@ -40,7 +40,7 @@ void main() {
       'a failed read keeps the assistant open and a retry loads it',
       () async {
         final host = standardHost()
-          ..answers['GET /v1/roles'] = const GatewayError(0, '');
+          ..answers['GET /v1/roles'] = const HostError(0, '');
         final controller = OnboardingController(transport: host);
 
         await controller.loadCatalog();
@@ -183,7 +183,7 @@ void main() {
 
     test('area_full keeps the selection and a retry sends it again', () async {
       final host = standardHost(
-        post: GatewayError(
+        post: HostError(
           409,
           jsonEncode({
             'detail': {'code': 'area_full'},
@@ -254,14 +254,14 @@ void main() {
 
     test('a failed read stays closed', () async {
       final host = standardHost()
-        ..answers['GET /v1/onboarding'] = const GatewayError(422, '');
+        ..answers['GET /v1/onboarding'] = const HostError(422, '');
 
       expect(await onboardingPending(host), isFalse);
     });
 
     test('a network failure stays closed', () async {
       final host = standardHost()
-        ..answers['GET /v1/onboarding'] = const GatewayError(0, 'sin red');
+        ..answers['GET /v1/onboarding'] = const HostError(0, 'sin red');
 
       expect(await onboardingPending(host), isFalse);
     });

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 import '../support/recording_transport.dart';
 
@@ -19,7 +19,7 @@ const String _seriesRow =
     '"recurring":true}';
 
 String _detail(int status, Map<String, Object?> detail) =>
-    agendaFailureText(GatewayError(status, jsonEncode({'detail': detail})));
+    agendaFailureText(HostError(status, jsonEncode({'detail': detail})));
 
 void main() {
   late RecordingTransport transport;
@@ -255,7 +255,7 @@ void main() {
 
     test('un evento que ya no existe se dice en español', () {
       expect(
-        agendaFailureText(const GatewayError(404, '{"detail":{"code":"not_found"}}')),
+        agendaFailureText(const HostError(404, '{"detail":{"code":"not_found"}}')),
         'Ya no existe. Vuelve a la lista.',
       );
     });

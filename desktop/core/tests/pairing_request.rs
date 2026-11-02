@@ -10,7 +10,7 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 
-/// One-shot fake gateway: captures the exact request body and answers a pair
+/// One-shot fake host: captures the exact request body and answers a pair
 /// response, so the wire contract is asserted without a real server.
 async fn spawn_pair_server() -> (String, Arc<Mutex<Vec<u8>>>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();

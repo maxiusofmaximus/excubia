@@ -1,4 +1,4 @@
-//! How the desktop reaches a gateway.
+//! How the desktop reaches a host.
 //!
 //! A pairing link pins the host's key and the connection is TLS 1.3 with that
 //! pin (`Pinned`). A typed URL reaches the host in clear (`Plain`), and only

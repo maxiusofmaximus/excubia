@@ -77,7 +77,7 @@ test("cada refusal de importar o exportar se lee con las palabras de la persona"
   assert.equal(icsErrorText({ kind: "fileRefused", code: "too_large" }, "import"), "El archivo es demasiado grande (máximo 512 KiB).");
   assert.equal(icsErrorText({ kind: "fileRefused", code: "read_failed" }, "import"), "No se pudo leer el archivo.");
   assert.equal(icsErrorText({ kind: "fileRefused", code: "write_failed" }, "export"), "No se pudo guardar el archivo.");
-  assert.equal(icsErrorText({ kind: "gateway", status: 413, message: "" }, "import"), "El archivo es demasiado grande (máximo 512 KiB).");
+  assert.equal(icsErrorText({ kind: "host", status: 413, message: "" }, "import"), "El archivo es demasiado grande (máximo 512 KiB).");
   assert.equal(icsErrorText(agenda("too_many_events"), "import"), "Tiene más de 500 eventos: divide el archivo.");
   assert.equal(icsErrorText(agenda("too_many_events"), "export"), "Hay demasiados eventos: elige un rango más corto.");
   assert.equal(icsErrorText(agenda("invalid_ics"), "import"), "El archivo no es un calendario .ics válido.");

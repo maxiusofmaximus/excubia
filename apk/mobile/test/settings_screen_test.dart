@@ -3,9 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
 import 'package:herdr_notify/core/api/alerts_api.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/mail_api.dart';
 import 'package:herdr_notify/core/api/phone_contacts.dart';
+import 'package:herdr_notify/core/app_info.dart';
 import 'package:herdr_notify/core/state/voice_send_settings.dart';
 import 'package:herdr_notify/ui/settings_screen.dart';
 import 'package:herdr_notify/ui/theme.dart';
@@ -27,7 +28,7 @@ class _NoCallTransport implements ChatTransport {
     String method,
     String target, [
     List<int> body = const [],
-  ]) => throw const GatewayError(0, 'sin red en este test');
+  ]) => throw const HostError(0, 'sin red en este test');
 }
 
 void main() {
@@ -47,7 +48,7 @@ void main() {
 
     expect(find.text('Excubia'), findsOneWidget);
     expect(find.text('Vigila a tus agentes mientras no estás'), findsOneWidget);
-    expect(find.textContaining('Versión 1.0.2'), findsOneWidget);
+    expect(find.textContaining('Versión $appVersion'), findsOneWidget);
     expect(find.text('Avisos con la pantalla apagada'), findsOneWidget);
   });
 

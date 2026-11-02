@@ -1,12 +1,9 @@
 # Contract: state model and triage
-_(gateway retirado; ver README)_
+_(implementado en el núcleo Rust; ver README)_
 
 `herdr` events are reduced on the host into a read model. The app renders that
 model; it does not re-derive it. Authoritative code:
-`gateway/src/herdr_notify/state/{models,store}.py`,
-`gateway/src/herdr_notify/notify/attention.py`,
-`gateway/src/herdr_notify/api/app.py` (`state_payload`),
-`android/.../net/Wire.kt`, `android/.../domain/SessionState.kt`.
+`crates/state/src/`, `crates/state/src/status.rs`, `crates/host/src/lib.rs` (`state_payload`).
 
 ## One shape, two transports
 
@@ -14,7 +11,7 @@ model; it does not re-derive it. Authoritative code:
 same object, built by one function (`state_payload`). This was not always true:
 the stream used to return the raw reduced view, which has no `attention` and a
 different `counts`, so a phone that joined the stream ranked from a payload the
-gateway never ranked. That divergence is fixed and pinned by a test.
+host never ranked. That divergence is fixed and pinned by a test.
 
 ## The state object
 
@@ -196,7 +193,7 @@ timeline for chat.
 ## Client decoding
 
 The app decodes leniently (`ignoreUnknownKeys`, `isCoerceInputValues`): a newer
-gateway adding a field must not stop an older phone. A malformed body falls back
+host adding a field must not stop an older phone. A malformed body falls back
 to the last good state and shows it as stale, rather than emptying the screen.
 
 ## `ERROR` — dropped by D2 (herdr never reports it)
@@ -205,7 +202,7 @@ The specification (§10) lists `ERROR` among the minimum states. herdr cannot
 produce one: in herdr 0.9.1 (`src/api/schema/common.rs`) `AgentStatus` is
 `idle | working | blocked | done | unknown` — no `Error` arm — and
 `PaneAgentState`, the raw detection state, has none either; `parse_agent_status`
-(`src/cli.rs`) accepts only those five strings. The gateway forwards herdr's
+(`src/cli.rs`) accepts only those five strings. The host forwards herdr's
 status untouched and degrades an unrecognised value to `unknown`, so an `ERROR`
 state is unreachable by construction and no `ERROR` was added to the model
 (decision D2 in [`../roadmap.md`](../roadmap.md)). If a future herdr adds an

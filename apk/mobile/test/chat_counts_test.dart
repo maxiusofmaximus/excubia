@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
@@ -45,7 +45,7 @@ Map<String, Object?> _row(String id) => {
 };
 
 LiveTriage _triage() => LiveTriage(
-  GatewayClient(
+  HostClient(
     baseUrl: 'http://100.64.0.1:8788',
     deviceId: 'dev-x',
     privateKeyBase64: 'placeholder',

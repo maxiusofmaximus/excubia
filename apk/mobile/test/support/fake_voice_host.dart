@@ -1,4 +1,4 @@
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 import 'fake_chat_transport.dart';
 
@@ -9,7 +9,7 @@ class FakeVoiceHost extends FakeChatTransport {
     : super({});
 
   final String answer;
-  final GatewayError? refusal;
+  final HostError? refusal;
   final List<({String target, List<int> body, String contentType})> posts = [];
 
   @override

@@ -1,6 +1,6 @@
 # Contracts
 
-The agreement between the gateway (Python) and the app (Kotlin). Both sides must
+The agreement between the host (Rust) and the app. Both sides must
 consume exactly these shapes. When one side changes a contract, the other side
 changes in the same commit, and the golden vectors change with them.
 
@@ -36,7 +36,7 @@ purpose so no reader mistakes a defined shape for a working path.
 | Device management (`GET /v1/devices`, revoke) behind `ADMIN` | IMPLEMENTED (Fase 2(c)) | [`auth.md`](auth.md), [`api.md`](api.md) |
 | Tailnet peer list (`GET /v1/peers`) for address probing | IMPLEMENTED (Fase 2(c)) | [`api.md`](api.md) |
 | FCM token lifecycle (park → register → store); `push.md` retirado 2026-10-30 | IMPLEMENTED (unit-verified, 2026-10-04) | [`pairing.md`](pairing.md) |
-| FCM end-to-end (`token → gateway → FCM → phone`, physical device) | **NOT IMPLEMENTED** (M3 open) | [`pairing.md`](pairing.md) |
+| FCM end-to-end (`token → host → FCM → phone`, physical device) | **NOT IMPLEMENTED** (M3 open) | [`pairing.md`](pairing.md) |
 | `ERROR` triage state | **DROPPED** (D2: herdr never reports it) | [`state.md`](state.md) |
 | `X-HN-Key-Id` header | **RESERVED** — no effect in v1 | [`auth.md`](auth.md) |
 
@@ -55,24 +55,19 @@ purpose so no reader mistakes a defined shape for a working path.
 5. **No secret is a static bearer token.** A device is a public key.
 
 ## Source of truth
-_(gateway retirado; ver README)_
-
-- Signing string: `gateway/src/herdr_notify/api/auth/canonical.py` and
-  `android/.../net/RequestSigner.kt`. Pinned by the shared golden vectors.
-- HTTP surface: `gateway/src/herdr_notify/api/app.py`.
-- Typed actions and allowlists: `gateway/src/herdr_notify/api/actions.py`.
-- State model: `gateway/src/herdr_notify/state/models.py` and
-  `gateway/src/herdr_notify/notify/attention.py`.
-- Trust store and enrollment: `gateway/src/herdr_notify/api/auth/devices.py`.
-- Push policy: `gateway/src/herdr_notify/notify/policy.py`.
+- Signing string: `crates/auth/src/verify.rs` (`canonical_string`). Pinned by the
+  shared golden vectors.
+- HTTP surface: `crates/api/src/routes/`.
+- Typed actions and allowlists: `crates/api/src/lib.rs` (`AgentActions`).
+- State model: `crates/state/src/`.
+- Trust store and enrollment: `crates/auth/src/store/`.
 
 ## Golden vectors
-_(gateway retirado; ver README)_
 
-`gateway/tests/vectors/signing_vectors.json` is the shared fixture. The Python
-suite (`tests/test_golden_vectors.py`) and the Kotlin suite
-(`GoldenVectorTest`) both assert against the same file, so a change to the
-canonical string breaks both suites if only one side is updated.
+`docs/contracts/vectors/signing_vectors.json` is the shared fixture. The host's
+suite (`crates/test-support/src/client/signed.rs`) and the app's suite assert
+against the same file, so a change to the canonical string breaks both suites
+if only one side is updated.
 
 The vectors cover the signing string because that is where the two languages are
 most likely to disagree by one byte (key order, newline termination, method

@@ -8,7 +8,7 @@ import 'pinned_client.dart';
 import 'tailnet_cleartext.dart';
 
 /// The body of `POST /v1/pair`, built by hand so the bytes that go out are the
-/// bytes the gateway parses.
+/// bytes the host parses.
 class PairRequest {
   const PairRequest({
     required this.publicKey,
@@ -68,7 +68,7 @@ class PairingException implements Exception {
 }
 
 /// The one unauthenticated write: it carries the public key of the phone and is
-/// answered with the device id the gateway assigned.
+/// answered with the device id the host assigned.
 class PairingApi {
   PairingApi({HttpClient? http, PinnedClient? pinned})
     : _http = http ?? _defaultClient(),

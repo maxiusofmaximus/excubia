@@ -1,5 +1,5 @@
-//! When a state change becomes an alert. Port of the gateway's `policy.py`
-//! (contract: `api.md`, "Reglas de aviso"). Three brakes, checked
+//! When a state change becomes an alert. Port of the first implementation's
+//! `policy.py` (contract: `api.md`, "Reglas de aviso"). Three brakes, checked
 //! in order: eligibility, cooldown, budget. Quiet hours defer `done` only.
 
 use std::collections::{HashMap, VecDeque};
@@ -90,7 +90,7 @@ pub struct PolicyConfig {
     pub cooldown_secs: f64,
     /// Repeat window for an agent still blocked. `None` disables the repeat.
     pub escalate_after_secs: Option<f64>,
-    /// Budgets of zero are disabled, as in the gateway.
+    /// Budgets of zero are disabled.
     pub max_per_agent_per_hour: usize,
     pub max_per_hour: usize,
     pub max_per_day: usize,

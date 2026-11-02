@@ -6,7 +6,7 @@ use herdr_desktop_core::chat::ChatFailure;
 use herdr_desktop_core::error::{CoreError, WriteAction};
 use herdr_desktop_core::identity::DeviceIdentity;
 use herdr_desktop_core::signing::canonical_string;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use p256::ecdsa::{signature::Verifier, Signature};
 
 fn header<'a>(headers: &'a str, name: &str) -> &'a str {
@@ -42,11 +42,11 @@ fn verify_signature(identity: &DeviceIdentity, captured: &Captured) {
     identity
         .verifying_key()
         .verify(canonical.as_bytes(), &signature)
-        .expect("the gateway would verify this signature");
+        .expect("the host would verify this signature");
 }
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
 #[tokio::test]
@@ -54,7 +54,7 @@ async fn writes_sign_the_exact_contract_body() {
     let ok = r#"{"ok":true,"result":{"pane_id":"w1:p1"}}"#;
     let (base_url, captured) = spawn_server(vec![(200, ok), (200, ok), (200, ok)]).await;
     let identity = DeviceIdentity::generate("dev-test", "test");
-    let client = GatewayClient::new(&base_url, identity.clone()).unwrap();
+    let client = HostClient::new(&base_url, identity.clone()).unwrap();
 
     client.respond("w1:p1", "hola, ¿sigues ahí?").await.unwrap();
     client
@@ -79,7 +79,7 @@ async fn writes_sign_the_exact_contract_body() {
     assert_eq!(captured[2].target, "/v1/agents/w1:p1/seen");
     assert!(captured[2].body.is_empty(), "seen carries no body");
 
-    // Signatures are checked against the public key, like the gateway does.
+    // Signatures are checked against the public key, like the host does.
     for request in captured.iter() {
         verify_signature(&identity, request);
     }
@@ -237,5 +237,5 @@ async fn chat_stop_maps_a_missing_permission_and_an_old_host_apart() {
         .chat_stop_conversation("cnv_01JABC")
         .await
         .unwrap_err();
-    assert!(matches!(error, ChatFailure::Gateway { status: 405, .. }));
+    assert!(matches!(error, ChatFailure::Host { status: 405, .. }));
 }

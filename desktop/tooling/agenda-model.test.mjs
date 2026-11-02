@@ -131,6 +131,6 @@ test("every refusal of the agenda has its Spanish words", () => {
 
 test("an offline or unknown failure never shows the raw code", () => {
   assert.match(agendaErrorText({ kind: "offline", message: "x" }), /Sin conexión/);
-  assert.match(agendaErrorText({ kind: "gateway", message: "El host rechazó la petición: x" }), /rechazó/);
+  assert.match(agendaErrorText({ kind: "host", message: "El host rechazó la petición: x" }), /rechazó/);
   assert.equal(agendaErrorText(null), "No se pudo completar la operación.");
 });

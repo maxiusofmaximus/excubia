@@ -1,4 +1,4 @@
-//! The `host devices` subcommands: list, revoke, grant and import-gateway.
+//! The `host devices` subcommands: list, revoke, grant and recovery.
 
 use std::path::PathBuf;
 
@@ -9,10 +9,9 @@ use super::usage::GRANT_HINT;
 pub(super) fn devices(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
     let sub = args
         .next()
-        .ok_or("devices needs a subcommand: list|revoke|grant|import-gateway")?;
+        .ok_or("devices needs a subcommand: list|revoke|grant|recovery")?;
     let mut data_dir = None;
     let mut permission = None;
-    let mut force = false;
     let mut positional: Vec<String> = Vec::new();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -24,19 +23,11 @@ pub(super) fn devices(mut args: impl Iterator<Item = String>) -> Result<Command,
             "--permission" | "-p" => {
                 permission = Some(args.next().ok_or("--permission needs a value")?)
             }
-            "--force" => force = true,
             other => positional.push(other.to_string()),
         }
     }
     let command = match sub.as_str() {
         "list" => DevicesCommand::List,
-        "import-gateway" => DevicesCommand::ImportGateway {
-            path: positional
-                .first()
-                .map(PathBuf::from)
-                .ok_or("import-gateway needs the gateway's devices.json")?,
-            force,
-        },
         "revoke" => DevicesCommand::Revoke {
             device_id: positional
                 .first()
@@ -49,6 +40,12 @@ pub(super) fn devices(mut args: impl Iterator<Item = String>) -> Result<Command,
                 .cloned()
                 .ok_or("grant needs a device id")?,
             permission: permission.ok_or_else(|| format!("missing --permission; {GRANT_HINT}"))?,
+        },
+        "recovery" => DevicesCommand::Recovery {
+            device_id: positional
+                .first()
+                .cloned()
+                .ok_or("recovery needs a device id")?,
         },
         other => return Err(format!("unknown devices subcommand: {other}")),
     };

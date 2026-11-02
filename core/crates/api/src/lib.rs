@@ -14,6 +14,7 @@ mod hire_api;
 mod mail;
 mod middleware;
 mod note_api;
+mod pairing_audit;
 pub mod role_catalog;
 mod routes;
 mod sse;
@@ -27,6 +28,7 @@ pub use mail::{
     DraftEdit, MailAccount, MailActions, MailDraft, MailDraftAttachment, MailFailure,
     MailLoginStart, MailLoginStatus, SendAnswer, SendFailure, SendStatus,
 };
+pub use pairing_audit::{PairOutcome, PairVia, PairingAttempt, PairingAudit};
 pub use tls::TlsListener;
 pub use validate::{clamp_read_lines, validate_keys, validate_pane_id, validate_prompt};
 
@@ -127,6 +129,8 @@ pub struct ApiContext {
     /// The mail logins and accounts the host keeps (MAIL1D §1).
     pub mail: Arc<dyn MailActions>,
     pub voice: Arc<voice::VoiceService>,
+    /// Where each `POST /v1/pair` decision is recorded.
+    pub pairing_audit: Arc<dyn PairingAudit>,
     /// In-process revocation notifications, so a revoke closes open streams
     /// immediately instead of on their next tick.
     pub revocations: broadcast::Sender<String>,
@@ -143,6 +147,7 @@ pub struct ApiConfig {
     pub hook_token: Arc<String>,
     pub mail: Arc<dyn MailActions>,
     pub voice: Arc<voice::VoiceService>,
+    pub pairing_audit: Arc<dyn PairingAudit>,
 }
 
 impl ApiContext {
@@ -161,6 +166,7 @@ impl ApiContext {
             hook_token: config.hook_token,
             mail: config.mail,
             voice: config.voice,
+            pairing_audit: config.pairing_audit,
             revocations,
         }
     }

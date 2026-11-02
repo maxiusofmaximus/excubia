@@ -1,4 +1,4 @@
-﻿//! Store tests: enrollment lifecycle, revocation, permissions, persistence.
+//! Store tests: enrollment lifecycle, revocation, permissions, persistence.
 use super::*;
 use crate::curve::Curve;
 use hn_core_test_dir::TestDir;
@@ -116,6 +116,64 @@ fn revoked_devices_are_marked_and_their_recovery_refused() {
     let reopened = DeviceStore::open(Some(path));
     let record = reopened.get(&device.device_id).expect("still listed");
     assert!(record.revoked, "revocation survives a reload");
+}
+
+#[test]
+fn a_new_recovery_code_invalidates_the_previous_one() {
+    let (store, _, _dir) = temp_store("recovery-reissue");
+    let code = store.issue_enrollment_code(180.0).expect("issue");
+    let device = store
+        .enroll(&code, Curve::P256, &public_key(), None, "")
+        .expect("enroll");
+    let first = store
+        .issue_recovery_code(&device.device_id)
+        .expect("issue")
+        .expect("some");
+    let second = store
+        .issue_recovery_code(&device.device_id)
+        .expect("issue")
+        .expect("some");
+    assert!(store
+        .use_recovery_code(&first, Curve::P256, &public_key(), None, "")
+        .is_err());
+    assert!(store
+        .use_recovery_code(&second, Curve::P256, &public_key(), None, "")
+        .is_ok());
+}
+
+#[test]
+fn a_revoked_or_unknown_device_gets_no_recovery_code() {
+    let (store, _, _dir) = temp_store("recovery-refused");
+    let code = store.issue_enrollment_code(180.0).expect("issue");
+    let device = store
+        .enroll(&code, Curve::P256, &public_key(), None, "")
+        .expect("enroll");
+    store
+        .issue_recovery_code(&device.device_id)
+        .expect("issue")
+        .expect("some");
+    let before = store
+        .get(&device.device_id)
+        .expect("device")
+        .recovery_code_hash;
+    assert!(before.is_some());
+    assert!(store.revoke(&device.device_id).expect("revoke"));
+    assert_eq!(
+        store.issue_recovery_code(&device.device_id).expect("issue"),
+        None
+    );
+    assert_eq!(
+        store
+            .get(&device.device_id)
+            .expect("device")
+            .recovery_code_hash,
+        before,
+        "a refused mint leaves the stored hash alone"
+    );
+    assert_eq!(
+        store.issue_recovery_code("dev-missing").expect("issue"),
+        None
+    );
 }
 
 #[test]

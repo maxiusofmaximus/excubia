@@ -9,7 +9,7 @@ use reqwest::{Method, Response};
 use serde::{Deserialize, Serialize};
 
 use super::error::{decode, status_failure, ChatFailure, ChatResult};
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 use crate::error::CoreError;
 
 /// The largest file the host takes in, in bytes. A bigger one is refused before it is sent.
@@ -40,7 +40,7 @@ pub struct IcsExport {
     pub bytes: Vec<u8>,
 }
 
-impl GatewayClient {
+impl HostClient {
     /// The events from `from` up to `to` (not included), or every event without a window.
     pub async fn calendar_export_ics(&self, window: Option<(&str, &str)>) -> ChatResult<IcsExport> {
         let query: Vec<(&str, String)> = window

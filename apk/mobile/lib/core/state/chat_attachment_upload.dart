@@ -4,7 +4,7 @@ import '../../src/rust/api/chat/attach_upload.dart';
 import '../../src/rust/api/chat/plan.dart';
 import '../api/chat_attachment_source.dart';
 import '../api/chat_transport.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../api/plan_runner.dart';
 
 /// The host refused the upload for good; [code] is the contract code.
@@ -141,7 +141,7 @@ Future<String> _send(
       return await runPlan(transport, plan);
     } on PlanRefused {
       throw const AttachmentRefused('invalid_request');
-    } on GatewayError catch (error) {
+    } on HostError catch (error) {
       final failure = explainAttachmentError(
         status: error.status,
         body: error.body,

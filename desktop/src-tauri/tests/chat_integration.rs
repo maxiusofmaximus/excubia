@@ -15,7 +15,7 @@ use herdr_desktop_core::chat::{
     ChatFailure, ConversationPatch, Message, SectionChange, TimelineEntry,
 };
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 
@@ -171,7 +171,7 @@ async fn start_host_binary(
     })
 }
 
-async fn pair_and_grant(host: &RunningHost, respond: bool) -> (DeviceIdentity, GatewayClient) {
+async fn pair_and_grant(host: &RunningHost, respond: bool) -> (DeviceIdentity, HostClient) {
     let identity = DeviceIdentity::generate("dev-chat-it", "chat");
     let code = herdr_notify_desktop::app_state::pair_code_from(&run_cli(
         &host.binary,
@@ -204,7 +204,7 @@ async fn pair_and_grant(host: &RunningHost, respond: bool) -> (DeviceIdentity, G
     }
     let mut identity = identity;
     identity.set_device_id(paired.device_id);
-    let client = GatewayClient::new(&host.url(), identity.clone()).expect("client");
+    let client = HostClient::new(&host.url(), identity.clone()).expect("client");
     (identity, client)
 }
 
@@ -229,7 +229,7 @@ fn card_id(entry: &TimelineEntry) -> Option<String> {
 }
 
 async fn wait_for_cards(
-    client: &GatewayClient,
+    client: &HostClient,
     conversation_id: &str,
     mut done: impl FnMut(&[TimelineEntry]) -> bool,
 ) -> Vec<TimelineEntry> {
@@ -251,7 +251,7 @@ async fn wait_for_cards(
 }
 
 async fn wait_for_messages(
-    client: &GatewayClient,
+    client: &HostClient,
     conversation_id: &str,
     mut done: impl FnMut(&[Message]) -> bool,
 ) -> Vec<Message> {
@@ -366,7 +366,7 @@ async fn the_real_host_answers_three_turns_and_keeps_order_across_a_restart() {
     let Some(host) = start_host(data_dir, Some(with_cli(&cli_dir))).await else {
         panic!("el host no volvió a arrancar");
     };
-    let client = GatewayClient::new(&host.url(), identity).expect("client");
+    let client = HostClient::new(&host.url(), identity).expect("client");
     let detail = client.chat_conversation(&id).await.expect("tras reinicio");
     assert_eq!(detail.conversation.title, "Plan real");
     assert!(detail.conversation.pinned);
@@ -704,7 +704,7 @@ async fn cancelling_and_restarting_keep_the_delegation_card() {
     else {
         panic!("el host de pruebas no volvió a arrancar");
     };
-    let restart_client = GatewayClient::new(&restart_host.url(), restart_identity).expect("client");
+    let restart_client = HostClient::new(&restart_host.url(), restart_identity).expect("client");
     let interrupted = restart_client
         .chat_delegation(&running_id)
         .await

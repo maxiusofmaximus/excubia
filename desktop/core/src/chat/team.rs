@@ -8,7 +8,7 @@ use serde_json::json;
 use super::error::ChatResult;
 use super::model::{CardLinks, Message};
 use super::validate_prefixed_id;
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Delegation {
@@ -106,7 +106,7 @@ pub struct CancelledConversation {
     pub cancelled: Vec<String>,
 }
 
-impl GatewayClient {
+impl HostClient {
     pub async fn chat_delegation(&self, id: &str) -> ChatResult<DelegationDetail> {
         validate_prefixed_id(id, "dlg_", "delegación")?;
         self.chat_get(&format!("/v1/chat/delegations/{id}"), &[])

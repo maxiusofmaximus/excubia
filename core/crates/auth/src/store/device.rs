@@ -42,7 +42,7 @@ impl Permission {
     }
 }
 
-/// A registered device. Public material only — the gateway never has a
+/// A registered device. Public material only — the host never has a
 /// private key.
 #[derive(Clone, Debug)]
 pub struct Device {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/approvals_controller.dart';
 import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
@@ -120,7 +120,7 @@ void main() {
     'without APPROVE the controls are off and the host line says why',
     (tester) async {
       final host = ScriptedTransport({_settings: settingsJson()})
-        ..failNext(_settings, const GatewayError(403, forbiddenBody));
+        ..failNext(_settings, const HostError(403, forbiddenBody));
       final approvals = await _pump(tester, host);
       expect(
         find.textContaining('Este dispositivo no tiene el permiso APPROVE'),

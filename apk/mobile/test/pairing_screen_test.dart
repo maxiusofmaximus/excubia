@@ -159,7 +159,7 @@ void main() {
     expect(find.text('Escanear QR'), findsOneWidget);
     expect(find.text('Avanzado'), findsOneWidget);
     // The manual fields live inside the collapsed advanced block.
-    expect(find.text('URL del gateway'), findsNothing);
+    expect(find.text('Dirección del PC'), findsNothing);
   });
 
   testWidgets('pairing without an address says what is missing', (

@@ -19,6 +19,7 @@ use hn_core_host::cli::RunOptions;
 use hn_core_host::mail_routes;
 use hn_core_host::mail_shadow::Shadow;
 use hn_core_host::mail_tools::MailTools;
+use hn_core_host::pairing_notice::PairingNotice;
 use hn_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
 use hn_core_host::tls_slots::TlsSlots;
 use hn_core_host::{
@@ -191,11 +192,12 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         actions,
         devices,
         agents: catalog,
-        chat,
+        chat: Arc::clone(&chat),
         seat,
         hook_token: token,
         mail: Arc::new(mail),
         voice,
+        pairing_audit: Arc::new(PairingNotice::new(&options.data_dir, chat)),
     });
     let mut internal_task = tokio::spawn(serve_internal(internal, context.clone()));
     let mut lan_task =

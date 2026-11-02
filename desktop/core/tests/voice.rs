@@ -2,12 +2,12 @@ mod common;
 
 use common::spawn_server;
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::{GatewayClient, VoiceFailure, VoiceTranscript};
+use herdr_desktop_core::{HostClient, VoiceFailure, VoiceTranscript};
 
 const TRANSCRIBED: &str = r#"{"text":"hola Excubia","ms":1840}"#;
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
 #[tokio::test]

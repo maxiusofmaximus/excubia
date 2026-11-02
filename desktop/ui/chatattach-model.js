@@ -37,7 +37,7 @@ const ATTACHMENT_TEXT = {
 };
 const FALLBACK_TEXT = "No se pudo adjuntar la imagen.";
 // Only these failures can succeed on a second try; a refusal never can.
-const RETRYABLE = ["offline", "gateway", "agentBusy"];
+const RETRYABLE = ["offline", "host", "agentBusy"];
 
 export function acceptsType(type) {
   return ACCEPTED_TYPES.includes(type);

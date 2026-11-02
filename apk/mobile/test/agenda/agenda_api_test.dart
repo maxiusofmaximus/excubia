@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 import '../support/recording_transport.dart';
 
@@ -94,28 +94,28 @@ void main() {
 
   group('canApprove', () {
     test('a 404 on the probe means the grant is there', () async {
-      transport.failure = const GatewayError(404, '{"detail":{"code":"not_found"}}');
+      transport.failure = const HostError(404, '{"detail":{"code":"not_found"}}');
 
       expect(await api.canApprove(), isTrue);
       expect(transport.targets.single, 'POST /v1/contacts/ct_grant_probe/delete');
     });
 
     test('a 403 on the probe means the grant is missing', () async {
-      transport.failure = const GatewayError(403, '{"detail":{"code":"forbidden"}}');
+      transport.failure = const HostError(403, '{"detail":{"code":"forbidden"}}');
 
       expect(await api.canApprove(), isFalse);
     });
 
     test('any other answer is an error, not a guess', () async {
-      transport.failure = const GatewayError(500, '');
+      transport.failure = const HostError(500, '');
 
-      await expectLater(api.canApprove(), throwsA(isA<GatewayError>()));
+      await expectLater(api.canApprove(), throwsA(isA<HostError>()));
     });
   });
 
   group('agendaFailureText', () {
     String textOf(int status, Map<String, Object?> detail) =>
-        agendaFailureText(GatewayError(status, jsonEncode({'detail': detail})));
+        agendaFailureText(HostError(status, jsonEncode({'detail': detail})));
 
     test('an address owned by another contact names it', () {
       expect(
@@ -149,7 +149,7 @@ void main() {
       expect(textOf(409, {'code': 'contact_limit'}), 'Ya hay 1000 contactos. Borra alguno para crear otro.');
       expect(textOf(409, {'code': 'note_limit'}), 'Ya hay 2000 notas. Borra alguna para crear otra.');
       expect(
-        agendaFailureText(const GatewayError(403, '')),
+        agendaFailureText(const HostError(403, '')),
         startsWith('Falta un permiso de este dispositivo'),
       );
     });

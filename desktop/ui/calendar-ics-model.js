@@ -57,7 +57,7 @@ const TOO_MANY_EVENTS = {
 // The operator's words for a failure of an import (`"import"`) or of an export (`"export"`).
 export function icsErrorText(failure, operation) {
   if (failure.kind === "fileRefused" && FILE_REFUSALS[failure.code]) return FILE_REFUSALS[failure.code];
-  if (failure.kind === "gateway" && failure.status === 413) return FILE_REFUSALS.too_large;
+  if (failure.kind === "host" && failure.status === 413) return FILE_REFUSALS.too_large;
   if (failure.kind === "agendaRefused" && failure.code === "too_many_events") return TOO_MANY_EVENTS[operation];
   if (failure.kind === "agendaRefused" && SHARED_REFUSALS[failure.code]) return SHARED_REFUSALS[failure.code];
   return calendarErrorText(failure);

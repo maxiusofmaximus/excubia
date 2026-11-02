@@ -3,7 +3,7 @@ part of 'agenda_api.dart';
 /// Spanish text for a failed agenda call. The host's own words are not shown;
 /// the one name it writes, the owner of an address, is what the person needs.
 String agendaFailureText(Object error) {
-  if (error is! GatewayError) return _unknownFailure;
+  if (error is! HostError) return _unknownFailure;
   final detail = _detailOf(error.body);
   final failure = error.failure;
   if (failure != null && detail.code == null) return connectionText(failure);

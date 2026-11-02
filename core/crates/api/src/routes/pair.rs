@@ -4,19 +4,19 @@
 //! tailnet owner of the source address — never a static secret. A supplied
 //! code that fails answers a uniform `403 pairing_rejected`; a missing code
 //! answers a `{code, message}` object that names the working path and reveals
-//! nothing about owners.
+//! nothing about owners. Every decision is recorded in the pairing audit.
 
 use axum::body::Bytes;
 use axum::extract::{ConnectInfo, State};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::{is_host_owner, tailnet_owner_of, Class, Curve};
+use hn_core_auth::{is_host_owner, tailnet_owner_of, unix_seconds, Class, Curve, Device};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::error::ApiError;
 use crate::routes::parse_body;
-use crate::{ApiContext, PeerAddr};
+use crate::{ApiContext, PairOutcome, PairVia, PairingAttempt, PeerAddr};
 
 /// The enrollment-body cap of `errors.md` (8 KiB).
 const MAX_PAIR_BODY_BYTES: usize = 8 * 1024;
@@ -32,6 +32,15 @@ struct PairBody {
     label: Option<String>,
     #[serde(default)]
     code: Option<String>,
+}
+
+/// A pairing the host let through: the device it made or re-keyed, and the
+/// recovery code it must show once.
+struct Granted {
+    device: Device,
+    recovery: String,
+    outcome: PairOutcome,
+    via: PairVia,
 }
 
 pub async fn pair(
@@ -65,63 +74,135 @@ pub async fn pair(
     }
 
     let ip = addr.ip().to_string();
+    match grant(&ctx, &ip, curve, &payload) {
+        Ok(granted) => {
+            audit(
+                &ctx,
+                &ip,
+                granted.outcome,
+                granted.via,
+                Some(&granted.device.device_id),
+                granted.device.label.as_deref(),
+            );
+            pair_response(&granted.device, &granted.recovery).into_response()
+        }
+        Err(error) => {
+            audit(
+                &ctx,
+                &ip,
+                PairOutcome::Rejected,
+                attempted_via(&payload),
+                None,
+                payload.label.as_deref(),
+            );
+            error.into_response()
+        }
+    }
+}
+
+/// The decision itself. Nothing here writes the audit: `pair` records each
+/// outcome once, whichever way the decision went.
+fn grant(
+    ctx: &ApiContext,
+    ip: &str,
+    curve: Curve,
+    payload: &PairBody,
+) -> Result<Granted, ApiError> {
     if let Err(retry_after) = ctx.limiter.allow(&format!("pair:{ip}"), Class::Write) {
-        return ApiError::slow_down(retry_after).into_response();
+        return Err(ApiError::slow_down(retry_after));
     }
 
     // The trust store can be rewritten by the CLI while this server runs.
     ctx.devices.reload_if_changed();
-    let owner = tailnet_owner_of(&ip).unwrap_or_default();
-    let code = payload.code.unwrap_or_default();
+    let owner = tailnet_owner_of(ip).unwrap_or_default();
+    let code = payload.code.as_deref().unwrap_or_default();
 
-    let device = if code.is_empty() {
-        if !is_host_owner(&ip) {
-            return empty_code_refusal(&ip).into_response();
+    if code.is_empty() {
+        if !is_host_owner(ip) {
+            return Err(empty_code_refusal(ip));
         }
-        match ctx
+        let device = ctx
             .devices
             .add_device(curve, &payload.public_key, payload.label.clone(), &owner)
-        {
-            Ok(device) => device,
-            Err(error) => return ApiError::internal(error).into_response(),
-        }
-    } else {
-        match ctx.devices.enroll(
-            &code,
+            .map_err(ApiError::internal)?;
+        return issue(ctx, device, PairOutcome::Paired, PairVia::Tailnet);
+    }
+
+    match ctx.devices.enroll(
+        code,
+        curve,
+        &payload.public_key,
+        payload.label.clone(),
+        &owner,
+    ) {
+        Ok(device) => issue(ctx, device, PairOutcome::Paired, PairVia::Code),
+        Err(error) if error.internal => Err(ApiError::internal(error)),
+        // A recovery code re-keys its device; anything else is the uniform refusal.
+        Err(_) => match ctx.devices.use_recovery_code(
+            code,
             curve,
             &payload.public_key,
             payload.label.clone(),
             &owner,
         ) {
-            Ok(device) => device,
-            Err(error) if error.internal => return ApiError::internal(error).into_response(),
-            Err(_) => {
-                // A recovery code re-keys its device; anything else is the
-                // uniform refusal.
-                match ctx.devices.use_recovery_code(
-                    &code,
-                    curve,
-                    &payload.public_key,
-                    payload.label.clone(),
-                    &owner,
-                ) {
-                    Ok((device, recovery)) => {
-                        return pair_response(&device, &recovery).into_response()
-                    }
-                    Err(error) if error.internal => {
-                        return ApiError::internal(error).into_response()
-                    }
-                    Err(_) => return rejected().into_response(),
-                }
-            }
-        }
-    };
-
-    match ctx.devices.issue_recovery_code(&device.device_id) {
-        Ok(Some(recovery)) => pair_response(&device, &recovery).into_response(),
-        Ok(None) => ApiError::internal("device vanished while pairing").into_response(),
-        Err(error) => ApiError::internal(error).into_response(),
+            Ok((device, recovery)) => Ok(Granted {
+                device,
+                recovery,
+                outcome: PairOutcome::Recovered,
+                via: PairVia::Recovery,
+            }),
+            Err(error) if error.internal => Err(ApiError::internal(error)),
+            Err(_) => Err(rejected()),
+        },
     }
+}
+
+/// A new device gets its first recovery code.
+fn issue(
+    ctx: &ApiContext,
+    device: Device,
+    outcome: PairOutcome,
+    via: PairVia,
+) -> Result<Granted, ApiError> {
+    match ctx.devices.issue_recovery_code(&device.device_id) {
+        Ok(Some(recovery)) => Ok(Granted {
+            device,
+            recovery,
+            outcome,
+            via,
+        }),
+        Ok(None) => Err(ApiError::internal("device vanished while pairing")),
+        Err(error) => Err(ApiError::internal(error)),
+    }
+}
+
+/// The way a refused attempt was made. A recovery code and a pairing code look
+/// alike until the decision, so a refusal with a code is recorded as `code`.
+fn attempted_via(payload: &PairBody) -> PairVia {
+    if payload.code.as_deref().is_some_and(|code| !code.is_empty()) {
+        PairVia::Code
+    } else {
+        PairVia::Tailnet
+    }
+}
+
+/// One line of the pairing audit. It carries no code and no public key.
+fn audit(
+    ctx: &ApiContext,
+    source_ip: &str,
+    outcome: PairOutcome,
+    via: PairVia,
+    device_id: Option<&str>,
+    label: Option<&str>,
+) {
+    ctx.pairing_audit.record(&PairingAttempt {
+        ts: unix_seconds(),
+        outcome,
+        device_id: device_id.map(str::to_string),
+        label: label.map(str::to_string),
+        via,
+        source_ip: source_ip.to_string(),
+    });
 }
 
 /// Uniform refusal for a supplied code: the caller is never told which check
@@ -156,7 +237,7 @@ fn empty_code_refusal(ip: &str) -> ApiError {
 
 /// The recovery code is the one secret here and is returned exactly once:
 /// only a hash is stored, so this is the only moment it can be shown.
-fn pair_response(device: &hn_core_auth::Device, recovery: &str) -> Json<Value> {
+fn pair_response(device: &Device, recovery: &str) -> Json<Value> {
     let mut permissions: Vec<String> = device
         .permissions
         .iter()

@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/phone_contacts.dart';
 import 'package:herdr_notify/core/state/contacts_import_controller.dart';
 
@@ -88,7 +88,7 @@ void main() {
   });
 
   test('a host refusal during the import is shown as the agenda failure', () async {
-    transport.failure = const GatewayError(403, '');
+    transport.failure = const HostError(403, '');
     final controller = ContactsImportController(
       phone: FakePhoneContacts(
         rows: const [PhoneEmailRow(contactId: '1', name: 'Ana', address: 'ana@mail.es')],

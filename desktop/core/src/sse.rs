@@ -1,5 +1,5 @@
 //! Minimal SSE decoder. It handles chunk boundaries, CRLF, comments and
-//! multi-line `data:` fields; the gateway sends one JSON object per frame.
+//! multi-line `data:` fields; the host sends one JSON object per frame.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SseMessage {

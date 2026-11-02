@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../theme.dart';
 
 /// The collapsed manual path: fingerprint, device id, the host command and the
-/// gateway URL. Kept out of the pairing page so that page stays about the
+/// host URL. Kept out of the pairing page so that page stays about the
 /// single primary flow.
 class AdvancedPairingSection extends StatelessWidget {
   const AdvancedPairingSection({
@@ -83,7 +83,7 @@ class AdvancedPairingSection extends StatelessWidget {
               extentOffset: urlController.text.length,
             ),
             decoration: const InputDecoration(
-              labelText: 'URL del gateway',
+              labelText: 'Dirección del PC',
               hintText: '192.168.1.20:47443',
             ),
           ),

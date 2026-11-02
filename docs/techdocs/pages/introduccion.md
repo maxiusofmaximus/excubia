@@ -1,7 +1,7 @@
 # Documentación técnica
 
 Esta sección describe cómo funciona herdr notify por dentro: los contratos entre componentes,
-las propuestas de diseño (RFC), la revisión de seguridad y la paridad con el gateway de Python.
+las propuestas de diseño (RFC), la revisión de seguridad.
 
 Los contratos y las RFC están en inglés. La portada, la arquitectura y la navegación están en
 español.
@@ -14,7 +14,6 @@ español.
 | [Contratos](contracts/) | Formas exactas de peticiones, respuestas, estado y emparejamiento. |
 | [RFC](rfc/RFC-transports.md) | Propuestas de diseño, con sus decisiones abiertas. |
 | [Revisión de seguridad](security-review.md) | Qué se ha revisado y qué queda pendiente. |
-| [Paridad gateway → core](PARITY-GATEWAY.md) | Qué hace el gateway de Python y qué equivalente tiene el host. |
 | [Migración desde la app Kotlin](apk/migration-from-kotlin.md) | Cómo reutilizar el emparejamiento de la app anterior. |
 
 ## Estado de la implementación

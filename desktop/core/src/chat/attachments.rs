@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 
 use super::error::{status_failure, ChatFailure, ChatResult};
 use super::{validate_client_id, validate_prefixed_id};
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 use crate::error::CoreError;
 
 /// The host stores every ready file re-encoded as WebP.
@@ -100,7 +100,7 @@ fn attachment_path(conversation_id: &str, attachment_id: &str) -> ChatResult<Str
     ))
 }
 
-impl GatewayClient {
+impl HostClient {
     /// Starts an upload. A repeat with the same `client_id` answers the first attachment.
     pub async fn chat_attachment_create(
         &self,

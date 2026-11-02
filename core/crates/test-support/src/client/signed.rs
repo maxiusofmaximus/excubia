@@ -198,13 +198,13 @@ pub(super) fn random_nonce() -> String {
 mod tests {
     use super::*;
 
-    /// The same golden vectors the gateway, the Kotlin app and the desktop
-    /// client pin: all sides must produce identical bytes.
+    /// The shared golden vectors every client pins: all sides must produce
+    /// identical bytes.
     #[test]
-    fn canonicalisation_matches_the_gateway_vectors() {
+    fn canonicalisation_matches_the_shared_vectors() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../docs/contracts/vectors/signing_vectors.json");
-        let raw = std::fs::read_to_string(&path).expect("gateway vectors");
+        let raw = std::fs::read_to_string(&path).expect("shared vectors");
         let vectors: Value = serde_json::from_str(&raw).expect("json");
         let mut checked = 0;
         for vector in vectors["vectors"].as_array().expect("vectors") {
@@ -219,6 +219,6 @@ mod tests {
             assert_eq!(canonical, expected, "vector {}", vector["name"]);
             checked += 1;
         }
-        assert!(checked >= 6, "all gateway vectors must be checked");
+        assert!(checked >= 6, "all shared vectors must be checked");
     }
 }

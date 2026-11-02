@@ -194,22 +194,6 @@ fn pair_code_and_devices_subcommands_parse() {
         panic!("expected grant");
     };
     assert_eq!(permission, "respond");
-
-    let Command::Devices { command, .. } = parse(args(&[
-        "devices",
-        "import-gateway",
-        "gw/devices.json",
-        "--force",
-    ]))
-    .expect("parse") else {
-        panic!("expected devices");
-    };
-    let DevicesCommand::ImportGateway { path, force } = command else {
-        panic!("expected import-gateway");
-    };
-    assert_eq!(path, PathBuf::from("gw/devices.json"));
-    assert!(force);
-    assert!(parse(args(&["devices", "import-gateway"])).is_err());
 }
 
 #[test]

@@ -5,24 +5,24 @@ use std::sync::Mutex;
 use common::{spawn_reply, Captured};
 use herdr_desktop_core::chat::{export_file_name, ChatFailure, ICS_MAX_BYTES};
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 
 const JSON: &str = "Content-Type: application/json\r\n";
 const ICS_FILE: &str = "Content-Type: text/calendar; charset=utf-8\r\nContent-Disposition: attachment; filename=\"excubia.ics\"\r\n";
 const EXPORTED: &[u8] = b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n";
 const IMPORTED: &str = r#"{"ok":true,"imported":2,"skipped_existing":1,"skipped_unsupported":1,"details":[{"index":1,"reason":"exists"},{"index":2,"reason":"unsupported_recurrence"}]}"#;
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
-/// The request the fake gateway saw. It is stored before the answer goes out.
+/// The request the fake host saw. It is stored before the answer goes out.
 fn seen(captured: &Mutex<Option<Captured>>) -> Captured {
     captured
         .lock()
         .unwrap()
         .take()
-        .expect("el gateway no recibió la petición")
+        .expect("el PC no recibió la petición")
 }
 
 async fn import_refusal(status: u16, body: &'static str) -> ChatFailure {
@@ -206,7 +206,7 @@ async fn a_file_with_too_many_events_names_its_code_for_the_screen() {
 async fn a_file_the_host_will_not_take_keeps_its_status() {
     let failure = import_refusal(413, r#"{"detail":"demasiado grande"}"#).await;
 
-    assert!(matches!(failure, ChatFailure::Gateway { status: 413, .. }));
+    assert!(matches!(failure, ChatFailure::Host { status: 413, .. }));
 }
 
 #[tokio::test]

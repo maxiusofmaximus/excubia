@@ -24,7 +24,7 @@ extension ChatControllerStop on ChatController {
   }
 
   ChatProblem _explainStop(Object error) {
-    if (error is GatewayError) {
+    if (error is HostError) {
       return explainChatStopError(
         status: error.status,
         body: error.body,

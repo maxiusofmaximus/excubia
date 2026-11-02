@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/ui/agenda/agenda_widgets.dart';
 import 'package:herdr_notify/ui/agenda/calendar_screen.dart';
 
@@ -159,7 +159,7 @@ void main() {
         'GET /v1/company/timezone': okJson({'timezone': 'Europe/Madrid'}),
         _eventsPath: okJson({'events': [], 'next': null}),
       });
-      transport.failNext(_eventsPath, const GatewayError(403, ''));
+      transport.failNext(_eventsPath, const HostError(403, ''));
 
       await _mount(tester, transport);
 
@@ -196,7 +196,7 @@ void main() {
         'GET /v1/company/timezone': okJson({'timezone': 'Europe/Madrid'}),
         _eventsPath: okJson({'events': [_timedRow], 'next': null}),
       });
-      transport.failNext(_probePath, const GatewayError(403, ''));
+      transport.failNext(_probePath, const HostError(403, ''));
 
       await _mount(tester, transport);
       await tester.tap(find.text('Llamada con Ana'));

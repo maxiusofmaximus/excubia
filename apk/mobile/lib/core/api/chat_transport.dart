@@ -1,4 +1,4 @@
-/// The signed HTTP surface the chat controller needs. `GatewayClient` is the
+/// The signed HTTP surface the chat controller needs. `HostClient` is the
 /// production implementation; tests inject a fake one.
 abstract interface class ChatTransport {
   Future<String> call(

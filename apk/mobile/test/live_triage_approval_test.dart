@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/model/connection_state.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
@@ -22,7 +22,7 @@ Future<HttpServer> _host(int status) async {
 }
 
 LiveTriage _triageFor(String baseUrl) => LiveTriage(
-  GatewayClient(
+  HostClient(
     baseUrl: baseUrl,
     deviceId: 'dev-test',
     privateKeyBase64: generateDeviceKey().privateKeyB64,
@@ -70,7 +70,7 @@ void main() {
     test('cannot send, and says it waits for the approval', () async {
       final server = await _host(403);
       addTearDown(() => server.close(force: true));
-      final client = GatewayClient(
+      final client = HostClient(
         baseUrl: 'http://127.0.0.1:${server.port}',
         deviceId: 'dev-test',
         privateKeyBase64: generateDeviceKey().privateKeyB64,

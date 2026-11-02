@@ -259,7 +259,7 @@ class _PairingScreenState extends State<PairingScreen> {
             ),
             const SizedBox(height: Spacing.sm),
             Text(
-              'Empareja este teléfono con el equipo que ejecuta el gateway.',
+              'Empareja este teléfono con el equipo que ejecuta Excubia.',
               style: context.text.bodySecondary,
             ),
             const SizedBox(height: Spacing.xl),

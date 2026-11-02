@@ -104,7 +104,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
               child: Column(
                 children: [
                   Text(
-                    'Apunta al QR que muestra el gateway en el equipo.',
+                    'Apunta al QR que muestra Excubia en el equipo.',
                     style: context.text.bodySecondary,
                     textAlign: TextAlign.center,
                   ),

@@ -1,4 +1,4 @@
-//! Mail through the gateway (`/v1/mail`, MAIL2A): accounts, sign-in by device
+//! Mail through the host (`/v1/mail`, MAIL2A): accounts, sign-in by device
 //! code, the draft the operator reads, and the approved send. The wire shapes and
 //! the typed failures live here; the signed calls are in `client`.
 

@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use common::{fake_agent_binary, run_cli, start_host};
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use herdr_notify_desktop::app_state::pair_code_from;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -59,7 +59,7 @@ async fn the_real_host_pairs_answers_and_survives_a_kill() {
     // The fake agent must show up in the state.
     let mut identity = identity;
     identity.set_device_id(response.device_id.clone());
-    let client = GatewayClient::new(&host.url(), identity).unwrap();
+    let client = HostClient::new(&host.url(), identity).unwrap();
     let mut pane_id = None;
     let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
     while tokio::time::Instant::now() < deadline && pane_id.is_none() {

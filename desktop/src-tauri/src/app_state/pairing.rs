@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use herdr_desktop_core::client::pair_device;
-use herdr_desktop_core::{CoreError, GatewayClient, Transport, WriteAction};
+use herdr_desktop_core::{CoreError, HostClient, Transport, WriteAction};
 use tauri::{AppHandle, Emitter};
 
 use super::{lock, AppState};
@@ -20,7 +20,7 @@ impl AppState {
             .clone()
             .ok_or_else(|| "No hay identidad de dispositivo disponible.".to_string())?;
         let client =
-            GatewayClient::new(base_url, identity.clone()).map_err(|error| error.to_string())?;
+            HostClient::new(base_url, identity.clone()).map_err(|error| error.to_string())?;
         match client.state().await {
             Ok(state) => {
                 if let Some(state) = lock(&self.store()).apply(state) {

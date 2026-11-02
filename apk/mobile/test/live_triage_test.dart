@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/tailnet_cleartext.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/core/storage/pairing_store.dart';
@@ -50,7 +50,7 @@ void main() {
 
   group('backoff', () {
     LiveTriage triage(int seed) => LiveTriage(
-      GatewayClient(
+      HostClient(
         baseUrl: 'http://100.64.0.1:8788',
         deviceId: 'dev-x',
         privateKeyBase64: 'placeholder',
@@ -78,11 +78,11 @@ void main() {
 
   group('awaiting approval', () {
     test('only a 403 means the device is not granted read_state yet', () {
-      expect(awaitsApproval(const GatewayError(403, '{"detail":"forbidden"}')),
+      expect(awaitsApproval(const HostError(403, '{"detail":"forbidden"}')),
           isTrue);
       for (final status in [0, 401, 404, 409, 500, 503]) {
         expect(
-          awaitsApproval(GatewayError(status, 'x')),
+          awaitsApproval(HostError(status, 'x')),
           isFalse,
           reason: 'status $status must keep its own failure',
         );

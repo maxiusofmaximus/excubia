@@ -132,7 +132,8 @@ async fn the_real_seat_answers_through_chat_reply_and_closes_the_run() {
         state["chat"]["revision"].as_i64().unwrap_or_default() > 0,
         "{state}"
     );
-    assert_eq!(state["chat"]["unread"], 1);
+    // The pairing's notice and Alfred's reply.
+    assert_eq!(state["chat"]["unread"], 2);
     assert_eq!(state["chat"]["pending_approvals"], 0);
     assert_eq!(state["chat"]["active_delegations"], 0);
 }

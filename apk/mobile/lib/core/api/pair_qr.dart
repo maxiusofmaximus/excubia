@@ -2,7 +2,7 @@ import '../app_info.dart';
 
 /// The text a pairing QR carries, once it has been read and trusted to be ours.
 ///
-/// Only two facts survive parsing: where the gateway is and the short code that
+/// Only two facts survive parsing: where the host is and the short code that
 /// registers this phone with it. The string comes from a camera, so it is
 /// untrusted input and every check below is a pinned case in the tests.
 class PairingQrPayload {
@@ -51,7 +51,7 @@ class PairingQrPayload {
       return _invalid('Al código QR le falta el código de emparejamiento.');
     }
 
-    // A scanned URL is not guessed a scheme for: the gateway always emits a
+    // A scanned URL is not guessed a scheme for: the host always emits a
     // full URL, so a bare host means the payload is not the one we expect.
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return _invalid(

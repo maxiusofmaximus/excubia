@@ -34,7 +34,7 @@
         <p class="lede">Introduce el código que muestra el host. Alfred y el equipo se actualizarán en vivo.</p>
       </div>
 
-      <p id="plain-warning" class="warning hidden" role="note">La conexión con este gateway no va cifrada. Solo es aceptable en este equipo o en una red privada de confianza.</p>
+      <p id="plain-warning" class="warning hidden" role="note">La conexión con este PC no va cifrada. Solo es aceptable en este equipo o en una red privada de confianza.</p>
 
       <div id="local-card" class="card local-card hidden">
         <h2>Este equipo aloja su propio núcleo</h2>
@@ -91,14 +91,14 @@
             <label class="field-label" for="device-id">Identificador</label>
             <input id="device-id" class="mono-input" type="text" autocomplete="off" spellcheck="false"
                    maxlength="64" aria-describedby="device-id-hint">
-            <p id="device-id-hint" class="hint">Debe coincidir con el identificador registrado en el gateway.</p>
+            <p id="device-id-hint" class="hint">Debe coincidir con el identificador registrado en el PC.</p>
           </div>
 
           <div class="field">
             <label class="field-label" for="device-label">Nombre de este equipo</label>
             <input id="device-label" type="text" autocomplete="off" spellcheck="false"
                    maxlength="64" aria-describedby="device-label-hint">
-            <p id="device-label-hint" class="hint">Se envía al gateway al emparejar; por defecto, el nombre del host.</p>
+            <p id="device-label-hint" class="hint">Se envía al PC al emparejar; por defecto, el nombre del host.</p>
           </div>
 
           <div class="field">
@@ -107,14 +107,14 @@
               <button id="btn-copy-command" class="btn ghost btn-small" type="button">Copiar</button>
             </div>
             <div class="command"><pre id="command">Cargando…</pre></div>
-            <p class="hint">Ejecútalo en la máquina del gateway si el emparejamiento por código no está disponible.</p>
+            <p class="hint">Ejecútalo en la máquina del PC si el emparejamiento por código no está disponible.</p>
           </div>
 
           <div class="field">
-            <label class="field-label" for="gateway-url">URL del gateway</label>
-            <input id="gateway-url" class="mono-input" type="text" inputmode="url" autocomplete="off"
+            <label class="field-label" for="host-url">Dirección del PC</label>
+            <input id="host-url" class="mono-input" type="text" inputmode="url" autocomplete="off"
                    spellcheck="false" placeholder="http://127.0.0.1:8787">
-            <p class="hint">Por defecto, el gateway local en el puerto 8787.</p>
+            <p class="hint">Por defecto, el PC local en el puerto 8787.</p>
           </div>
 
           <div class="field">
@@ -155,7 +155,7 @@
         </svg>
       </div>
       <h1>Guarda este código</h1>
-      <p class="lede">El gateway solo lo muestra una vez. Sirve para volver a emparejar este equipo si pierdes el acceso al host.</p>
+      <p class="lede">El PC solo lo muestra una vez. Sirve para volver a emparejar este equipo si pierdes el acceso al host.</p>
       <div class="card recovery-card">
         <div id="recovery-code" class="recovery-code">—</div>
         <button id="btn-copy-recovery" class="btn ghost btn-block" type="button">Copiar código</button>
@@ -387,7 +387,7 @@
       </header>
 
       <div id="stale-banner" class="stale hidden" role="status">
-        <span id="stale-text">Sin conexión con el gateway. Mostrando el último estado conocido.</span>
+        <span id="stale-text">Sin conexión con el PC. Mostrando el último estado conocido.</span>
         <span class="stale-actions">
           <button id="btn-stale-retry" class="btn ghost btn-small" type="button">Reintentar</button>
           <button id="btn-stale-pair" class="btn ghost btn-small hidden" type="button">Volver a emparejar</button>
@@ -645,7 +645,7 @@
           <div class="agenda-head">
             <h2>Dispositivos</h2>
           </div>
-          <p class="agenda-muted">Los equipos que pueden entrar en este gateway. Un dispositivo revocado deja de entrar.</p>
+          <p class="agenda-muted">Los equipos que pueden entrar en este PC. Un dispositivo revocado deja de entrar.</p>
           <p id="devices-status" class="agenda-status" role="status" hidden></p>
           <ul id="devices-list" class="agenda-list"></ul>
           <details id="devices-revoked-group" class="devices-revoked" hidden>
@@ -795,7 +795,7 @@
 
       <label class="field-label" for="nc-cwd">Carpeta de trabajo</label>
       <div class="nc-cwd-row">
-        <input id="nc-cwd" class="mono-input" type="text" spellcheck="false" placeholder="C:\proyectos\mi-repo">
+        <input id="nc-cwd" class="mono-input" type="text" spellcheck="false" placeholder="D:\Documentos\Projects\mi-repo">
         <button id="btn-pick-folder" class="btn secondary btn-small" type="button">Elegir carpeta…</button>
       </div>
 

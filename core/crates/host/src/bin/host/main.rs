@@ -4,7 +4,7 @@
 //! loopback. `host pair-code` mints a single-use pairing code (and its link,
 //! with `--lan`), `host tls prepare|activate` rotates the LAN certificate,
 //! `host hook-token` prints the token agent hooks use, and
-//! `host devices list|revoke|grant|import-gateway` manage the trust store — the
+//! `host devices list|revoke|grant|recovery` manage the trust store — the
 //! same files the daemon re-reads, so both processes agree without a restart.
 
 mod admin;

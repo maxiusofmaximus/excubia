@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/pairing_api.dart';
 import 'package:herdr_notify/core/api/plan_runner.dart';
 import 'package:herdr_notify/core/state/approvals_controller.dart';
@@ -65,7 +65,7 @@ void main() {
       }
 
       await grant('respond');
-      final transport = GatewayClient(
+      final transport = HostClient(
         baseUrl: base,
         deviceId: deviceId,
         privateKeyBase64: key.privateKeyB64,

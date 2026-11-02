@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use herdr_desktop_core::identity::DeviceIdentity;
 use herdr_desktop_core::state::{StateSnapshot, StateStore};
 use herdr_desktop_core::stream::{run_event_loop, ConnectionStatus, EventSink, StreamOptions};
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use serde_json::json;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -75,7 +75,7 @@ async fn reconnects_after_a_closed_stream_and_last_revision_wins() {
     });
 
     let identity = DeviceIdentity::generate("dev-test", "test");
-    let client = Arc::new(GatewayClient::new(&format!("http://{address}"), identity).unwrap());
+    let client = Arc::new(HostClient::new(&format!("http://{address}"), identity).unwrap());
     let store = Arc::new(Mutex::new(StateStore::default()));
     let sink = Arc::new(RecordingSink::default());
     let cancel = CancellationToken::new();
@@ -130,7 +130,7 @@ async fn a_chat_frame_reaches_the_sink_and_is_not_a_state_refresh() {
     });
 
     let identity = DeviceIdentity::generate("dev-test", "test");
-    let client = Arc::new(GatewayClient::new(&format!("http://{address}"), identity).unwrap());
+    let client = Arc::new(HostClient::new(&format!("http://{address}"), identity).unwrap());
     let store = Arc::new(Mutex::new(StateStore::default()));
     let sink = Arc::new(RecordingSink::default());
     let cancel = CancellationToken::new();
@@ -181,7 +181,7 @@ async fn a_401_is_terminal_and_is_not_retried() {
     });
 
     let identity = DeviceIdentity::generate("dev-test", "test");
-    let client = Arc::new(GatewayClient::new(&format!("http://{address}"), identity).unwrap());
+    let client = Arc::new(HostClient::new(&format!("http://{address}"), identity).unwrap());
     let store = Arc::new(Mutex::new(StateStore::default()));
     let sink = Arc::new(RecordingSink::default());
     let cancel = CancellationToken::new();

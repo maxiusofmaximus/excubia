@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/mail_api.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 
@@ -29,7 +29,7 @@ class _FakeTransport implements ChatTransport {
   ]) async {
     calls.add((method: method, target: target, body: utf8.decode(body)));
     final answer = _answers.removeAt(0);
-    if (answer is GatewayError) throw answer;
+    if (answer is HostError) throw answer;
     return answer as String;
   }
 }
@@ -214,7 +214,7 @@ void main() {
   );
 
   test('a refusal reads its code under detail, and the text is Spanish', () {
-    const refusal = GatewayError(
+    const refusal = HostError(
       400,
       '{"detail":{"code":"mail_send_not_enabled","message":"x"}}',
     );
@@ -226,7 +226,7 @@ void main() {
   });
 
   test('a rate limit explains the wait from Retry-After', () {
-    const limited = GatewayError(
+    const limited = HostError(
       429,
       '{"detail":{"code":"mail_send_rate_limited","message":"x"}}',
       retryAfter: 600,

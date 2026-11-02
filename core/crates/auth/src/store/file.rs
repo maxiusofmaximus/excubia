@@ -1,9 +1,7 @@
 //! The trust-store file: `{version, devices, codes}` pretty JSON, written
 //! atomically (tmp + rename) and read fail-closed.
 //!
-//! The shape is the gateway's (`gateway/src/herdr_notify/api/auth/devices.py`),
-//! so a store written by one implementation can be read by the other. Entries
-//! that do not parse are dropped individually, never the whole file.
+//! Entries that do not parse are dropped individually, never the whole file.
 
 use std::fs;
 use std::path::Path;
@@ -179,5 +177,13 @@ mod tests {
         let saved = fs::read_to_string(&path).expect("read back");
         assert!(!saved.contains("push_endpoint"), "{saved}");
         assert!(!saved.contains("ntfy.sh"), "{saved}");
+    }
+
+    #[test]
+    fn a_newer_store_version_is_refused() {
+        let dir = TestDir::new("auth-newer-version");
+        let path = dir.join("devices.json");
+        fs::write(&path, r#"{"version": 2, "devices": []}"#).expect("write the store");
+        assert!(matches!(read(&path), Err(StoreError::Version(2))));
     }
 }

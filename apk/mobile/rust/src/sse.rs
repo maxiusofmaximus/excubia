@@ -1,4 +1,4 @@
-//! The narrow SSE subset the gateway emits, fed one line at a time.
+//! The narrow SSE subset the host emits, fed one line at a time.
 //!
 //! Lines rather than byte chunks: the Dart side already reads a UTF-8 line
 //! stream, and this keeps the framing rules in one testable place.

@@ -1,7 +1,7 @@
 //! The exact bytes every request signs, per `docs/contracts/auth.md`.
 //!
 //! Canonicalisation is the part that fails in practice, so it lives on its own
-//! and is pinned by the gateway's golden vector.
+//! and is pinned by the host's golden vector.
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -57,7 +57,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_string_matches_the_gateway_golden_vector() {
+    fn canonical_string_matches_the_host_golden_vector() {
         let canonical = canonical_string(
             "GET",
             "/v1/state",

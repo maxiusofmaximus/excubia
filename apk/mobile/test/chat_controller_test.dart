@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/api/chat/model.dart';
@@ -12,7 +12,7 @@ import 'support/fake_chat_transport.dart';
 import 'support/signal_triage.dart';
 
 LiveTriage dummyTriage() => LiveTriage(
-  GatewayClient(
+  HostClient(
     baseUrl: 'http://100.64.0.1:8788',
     deviceId: 'dev-x',
     privateKeyBase64: 'placeholder',
@@ -164,7 +164,7 @@ void main() {
     addTearDown(controller.dispose);
     await controller.start();
 
-    transport.failure = const GatewayError(0, 'no route');
+    transport.failure = const HostError(0, 'no route');
     await controller.send('hola');
     final failed = controller.failedLocal;
     expect(failed, isNotNull);
@@ -217,7 +217,7 @@ void main() {
     final target = controller.entries[1];
     controller.startReply(target);
 
-    transport.failure = const GatewayError(
+    transport.failure = const HostError(
       422,
       '{"detail":{"code":"unknown_reply_to","field":"reply_to","message":"x"}}',
     );
@@ -237,7 +237,7 @@ void main() {
     await controller.start();
     final target = controller.entries[1];
 
-    transport.failure = const GatewayError(0, 'no route');
+    transport.failure = const HostError(0, 'no route');
     await controller.send('Sí, créalo', replyTo: target);
     transport.failure = null;
     await controller.retryLocal(controller.failedLocal!);
@@ -394,7 +394,7 @@ void main() {
     addTearDown(controller.dispose);
     await controller.start();
 
-    transport.failure = const GatewayError(403, '{"detail":"forbidden"}');
+    transport.failure = const HostError(403, '{"detail":"forbidden"}');
     final denied = await controller.stop();
     expect(
       denied?.message,
@@ -415,12 +415,12 @@ void main() {
     addTearDown(controller.dispose);
     await controller.start();
 
-    transport.failure = const GatewayError(404, '{"detail":"Not Found"}');
+    transport.failure = const HostError(404, '{"detail":"Not Found"}');
     expect(
       (await controller.stop())?.message,
       'Este equipo no admite detener todavía.',
     );
-    transport.failure = const GatewayError(0, '');
+    transport.failure = const HostError(0, '');
     expect(
       (await controller.stop())?.message,
       'No se pudo detener. Inténtalo de nuevo.',
@@ -525,7 +525,7 @@ void main() {
 
     expect(await controller.send('Nuevo encargo'), isTrue);
 
-    transport.failure = const GatewayError(0, 'no route');
+    transport.failure = const HostError(0, 'no route');
     expect(await controller.send('otro'), isFalse);
     expect(await controller.send('   '), isFalse);
   });

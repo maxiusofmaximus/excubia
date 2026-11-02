@@ -6,10 +6,9 @@ use std::net::SocketAddr;
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
-use hn_core_auth::{ConflictPolicy, DeviceStore, Permission};
+use hn_core_auth::{DeviceStore, Permission};
 use hn_core_chat::{ChatStore, HookScope};
 use hn_core_host::cli::{DevicesCommand, TlsCommand};
-use hn_core_host::import_report;
 use hn_core_host::mail_cli::{self, MailInvocation};
 use hn_core_host::tls_slots::TlsSlots;
 use hn_core_host::{load_hook_token, paths};
@@ -159,19 +158,18 @@ pub(super) fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {
                 bail!("no such device: {device_id}")
             }
         }
-        DevicesCommand::ImportGateway { path, force } => {
-            let policy = if force {
-                ConflictPolicy::Replace
-            } else {
-                ConflictPolicy::Keep
-            };
-            let entries = store
-                .import_gateway(&path, policy)
-                .with_context(|| format!("import {}", path.display()))?;
-            for line in import_report::report_lines(&entries) {
-                println!("{line}");
+        DevicesCommand::Recovery { device_id } => {
+            let device = store
+                .get(&device_id)
+                .with_context(|| format!("no such device: {device_id}"))?;
+            if device.revoked {
+                bail!("device {device_id} is revoked: no recovery code is issued for it");
             }
-            println!("{}", import_report::summary(&entries));
+            let code = store
+                .issue_recovery_code(&device_id)?
+                .with_context(|| format!("no such device: {device_id}"))?;
+            println!("recovery code: {code}");
+            println!("shown once; it replaces the previous recovery code of {device_id}");
             Ok(())
         }
     }

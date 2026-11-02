@@ -23,5 +23,4 @@
 # Seguridad y migración
 
 - [Revisión de seguridad](security-review.md)
-- [Paridad gateway → core](PARITY-GATEWAY.md)
 - [Migración desde la app Kotlin](apk/migration-from-kotlin.md)

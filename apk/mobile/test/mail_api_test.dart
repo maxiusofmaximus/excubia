@@ -4,11 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
 import 'package:herdr_notify/core/api/connection_failure.dart';
 import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/mail_api.dart';
 
 /// Answers each call in order and records what was asked. An answer that is a
-/// [GatewayError] is thrown, the way the real client refuses.
+/// [HostError] is thrown, the way the real client refuses.
 class _FakeTransport implements ChatTransport {
   @override
   Future<String> postBytes(String target, List<int> body, String contentType) =>
@@ -31,7 +31,7 @@ class _FakeTransport implements ChatTransport {
   ]) async {
     calls.add((method: method, target: target, body: utf8.decode(body)));
     final answer = _answers.removeAt(0);
-    if (answer is GatewayError) throw answer;
+    if (answer is HostError) throw answer;
     return answer as String;
   }
 }
@@ -199,21 +199,18 @@ void main() {
       await expectLater(api.loginStatus('trabajo'), throwsFormatException);
     });
 
-    test(
-      'a refusal from the host reaches the caller as a GatewayError',
-      () async {
-        final api = MailApi(
-          _FakeTransport([const GatewayError(403, '{"detail":"forbidden"}')]),
-        );
+    test('a refusal from the host reaches the caller as a HostError', () async {
+      final api = MailApi(
+        _FakeTransport([const HostError(403, '{"detail":"forbidden"}')]),
+      );
 
-        await expectLater(api.accounts(), throwsA(isA<GatewayError>()));
-      },
-    );
+      await expectLater(api.accounts(), throwsA(isA<HostError>()));
+    });
   });
 
   group('mailFailureText', () {
     String textOf(int status, {String body = '', int? retryAfter}) =>
-        mailFailureText(GatewayError(status, body, retryAfter: retryAfter));
+        mailFailureText(HostError(status, body, retryAfter: retryAfter));
 
     test('no connection says so in plain words, with no raw error', () {
       expect(
@@ -225,7 +222,7 @@ void main() {
     test('a PC that cannot be reached says why, not the generic line', () {
       expect(
         mailFailureText(
-          const GatewayError.transport(ConnectionFailure.noRoute, 'refused'),
+          const HostError.transport(ConnectionFailure.noRoute, 'refused'),
         ),
         connectionText(ConnectionFailure.noRoute),
       );

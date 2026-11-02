@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use super::errors::{detail_fields, status_error};
-use super::gateway::normalize_endpoint;
+use super::host::normalize_endpoint;
 use crate::error::{CoreError, Result};
 use crate::transport::Transport;
 
@@ -69,7 +69,6 @@ fn pairing_message(body: &[u8]) -> String {
         .message
         .filter(|message| message != "pairing_rejected")
         .unwrap_or_else(|| {
-            "El gateway rechazó el emparejamiento. Comprueba el código e inténtalo de nuevo."
-                .to_string()
+            "El PC rechazó el emparejamiento. Comprueba el código e inténtalo de nuevo.".to_string()
         })
 }

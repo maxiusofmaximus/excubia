@@ -4,7 +4,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use common::spawn_server;
 use herdr_desktop_core::chat::ChatFailure;
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use serde_json::{json, Value};
 
 const CREATED: &str = r#"{"ok":true,"attachment":{"id":"att_01K","state":"uploading"}}"#;
@@ -15,8 +15,8 @@ const OFFSET: &str = r#"{"detail":{"code":"offset_mismatch","message":"x","next_
 const UNKNOWN: &str =
     r#"{"detail":{"code":"unknown_attachment","message":"x","field":"attachments"}}"#;
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
 #[tokio::test]

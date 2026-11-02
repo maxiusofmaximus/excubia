@@ -16,4 +16,3 @@
 # Migración
 
 - [Migrar desde la app anterior](migracion.md)
-- [Migrar desde el gateway Python](gateway-python.md)

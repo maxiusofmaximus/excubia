@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/onboarding_controller.dart';
 import 'package:herdr_notify/core/storage/pairing_store.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
@@ -240,7 +240,7 @@ void main() {
       tester,
     ) async {
       final host = standardHost()
-        ..answers['GET /v1/roles'] = const GatewayError(0, '');
+        ..answers['GET /v1/roles'] = const HostError(0, '');
       await pumpScreen(tester, host);
 
       await tapText(tester, 'Continuar');

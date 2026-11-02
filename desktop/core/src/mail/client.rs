@@ -12,12 +12,12 @@ use super::{
     failure_from_status, DeviceLogin, LoginStatus, MailAccount, MailDraft, MailFailure, MailResult,
     SendRequest, SendState, SendToggled,
 };
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 
 const MAIL_TIMEOUT: Duration = Duration::from_secs(20);
 const TENANTS: [&str; 2] = ["consumers", "organizations"];
 
-impl GatewayClient {
+impl HostClient {
     pub async fn mail_accounts(&self) -> MailResult<Vec<MailAccount>> {
         let page: AccountPage = self
             .mail_call(Method::GET, "/v1/mail/accounts", &[], None)

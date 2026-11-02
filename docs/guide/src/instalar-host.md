@@ -54,7 +54,6 @@ El host acepta estos comandos desde una terminal. Todos admiten `--data-dir DIR`
 | `host devices list` | Lista los dispositivos emparejados. |
 | `host devices grant <id> --permission <permiso>` | Concede un permiso a un dispositivo. |
 | `host devices revoke <id>` | Quita un dispositivo. |
-| `host devices import-gateway <devices.json>` | Trae los dispositivos del gateway Python. Ver [migrar desde el gateway Python](gateway-python.md). |
 | `host hook-token` | Imprime el token que los agentes usan para avisar de su estado. |
 
 Al arrancar, el host también acepta `--uac-plugin-dir DIR`, la carpeta del plugin que

@@ -1,15 +1,15 @@
-//! «Mis dispositivos» commands: the gateway's device list and the revoke of one
+//! «Mis dispositivos» commands: the host's device list and the revoke of one
 //! device. Each is a signed call that needs `ADMIN`; a refusal comes back as a
 //! typed `DeviceFailure` the screen words by its `kind`.
 
 use herdr_desktop_core::devices::{DeviceFailure, DeviceList};
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use tauri::State;
 
 use crate::app_state::AppState;
 use crate::chat_commands::{shared, Shared};
 
-fn client(shared: &AppState) -> Result<GatewayClient, DeviceFailure> {
+fn client(shared: &AppState) -> Result<HostClient, DeviceFailure> {
     shared
         .settings()
         .map_err(|_| DeviceFailure::Protocol)?

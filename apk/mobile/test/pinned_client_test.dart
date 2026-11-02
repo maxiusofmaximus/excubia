@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/pairing_api.dart';
 import 'package:herdr_notify/core/api/pinned_client.dart';
 import 'package:herdr_notify/core/api/transport_note.dart';
@@ -133,7 +133,7 @@ void main() {
     });
   });
 
-  group('GatewayClient with pins', () {
+  group('HostClient with pins', () {
     test(
       'signed calls go through the pinned transport to the link address',
       () async {
@@ -144,7 +144,7 @@ void main() {
             address: '127.0.0.1:8443',
           ),
         );
-        final client = GatewayClient(
+        final client = HostClient(
           baseUrl: 'https://127.0.0.1:8443',
           deviceId: 'hn-7',
           privateKeyBase64: generateDeviceKey().privateKeyB64,
@@ -159,7 +159,7 @@ void main() {
       },
     );
 
-    GatewayClient pinnedClientOn(PinnedClient pinned) => GatewayClient(
+    HostClient pinnedClientOn(PinnedClient pinned) => HostClient(
       baseUrl: 'https://127.0.0.1:8443',
       deviceId: 'hn-7',
       privateKeyBase64: generateDeviceKey().privateKeyB64,
@@ -191,7 +191,7 @@ void main() {
       },
     );
 
-    test('a pinned binary refusal is a GatewayError with its status', () async {
+    test('a pinned binary refusal is a HostError with its status', () async {
       final notFound = pinnedClientOn(
         FakePinnedClient(
           bytesAnswer: const PinnedBytesAnswer(
@@ -218,7 +218,7 @@ void main() {
           '/v1/chat/conversations/c1/attachments/a1/content',
         ),
         throwsA(
-          isA<GatewayError>()
+          isA<HostError>()
               .having((e) => e.status, 'status', 404)
               .having((e) => e.body, 'body', '{}'),
         ),
@@ -229,7 +229,7 @@ void main() {
           '/v1/chat/conversations/c1/attachments/a1/content',
         ),
         throwsA(
-          isA<GatewayError>()
+          isA<HostError>()
               .having((e) => e.status, 'status', 429)
               .having((e) => e.retryAfter, 'retryAfter', 7),
         ),

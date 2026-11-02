@@ -16,8 +16,8 @@ Future<void> showRecoveryCodeDialog(BuildContext context, String code) {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Guárdalo: no se vuelve a mostrar. Sirve para re-emparejar este '
-            'teléfono sin aprobación manual.',
+            'Guárdalo en un gestor de contraseñas: no se vuelve a mostrar. '
+            'Sirve para re-emparejar este teléfono sin aprobación manual.',
             style: context.text.bodySecondary,
           ),
           const SizedBox(height: Spacing.md),

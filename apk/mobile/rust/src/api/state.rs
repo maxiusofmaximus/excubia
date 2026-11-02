@@ -1,6 +1,6 @@
 //! The state read model, decoded leniently (`docs/contracts/state.md`).
 //!
-//! The gateway ranks and computes attention; this module only carries those
+//! The host ranks and computes attention; this module only carries those
 //! values through, dropping rows that cannot be addressed and degrading an
 //! unknown status instead of failing.
 
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn counts_are_derived_when_an_older_gateway_omits_them() {
+    fn counts_are_derived_when_an_older_host_omits_them() {
         let state = parse(
             r#"{"revision":1,"agents":[
                 {"pane_id":"w1:p1","status":"blocked"},

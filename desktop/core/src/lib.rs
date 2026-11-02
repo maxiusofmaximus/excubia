@@ -1,6 +1,6 @@
 //! UI-free client core for herdr notify.
 //!
-//! The crate knows the gateway contracts (pairing, signed reads, SSE) and
+//! The crate knows the host contracts (pairing, signed reads, SSE) and
 //! nothing about Tauri. The desktop shell uses it directly; an Android shell
 //! can reuse it through JNI/uniffi and supply its own `IdentityStore`.
 
@@ -25,7 +25,7 @@ pub use chat::{
     SectionChange, TimelineEntry,
 };
 pub use chat_feed::{ChatEntry, ChatFeed, ChatSnapshot};
-pub use client::{CatalogAgent, GatewayClient, PairResponse, WorkspaceCreated};
+pub use client::{CatalogAgent, HostClient, PairResponse, WorkspaceCreated};
 pub use error::{CoreError, ErrorInfo, Result, WriteAction};
 pub use hn_core_pin::{Fingerprint, PinSet};
 pub use identity::{

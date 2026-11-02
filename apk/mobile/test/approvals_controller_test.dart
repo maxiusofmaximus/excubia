@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/approvals_controller.dart';
 import 'package:herdr_notify/src/rust/api/approvals/error.dart';
 import 'package:herdr_notify/src/rust/api/chat/model.dart';
@@ -73,7 +73,7 @@ void main() {
 
   test('a 403 keeps the card pending and names the host command', () async {
     final host = _host()
-      ..failNext(_decide, const GatewayError(403, forbiddenBody));
+      ..failNext(_decide, const HostError(403, forbiddenBody));
     final approvals = await _loaded(host);
     await approvals.decide('apr_1', approve: true);
     final failure = approvals.failureOf('apr_1')!;
@@ -87,7 +87,7 @@ void main() {
     final host = _host(state: 'denied')
       ..failNext(
         _decide,
-        const GatewayError(409, '{"detail":"approval_already_decided"}'),
+        const HostError(409, '{"detail":"approval_already_decided"}'),
       );
     final approvals = await _loaded(host);
     host.routes['GET /v1/chat/approvals'] = inboxJson([]);
@@ -101,11 +101,9 @@ void main() {
   });
 
   test('a 409 expired closes the card as expired', () async {
-    final host = _host(state: 'expired')
-      ..failNext(
-        _decide,
-        const GatewayError(409, '{"detail":"approval_expired"}'),
-      );
+    final host = _host(
+      state: 'expired',
+    )..failNext(_decide, const HostError(409, '{"detail":"approval_expired"}'));
     final approvals = await _loaded(host);
     host.routes['GET /v1/chat/approvals'] = inboxJson([]);
     await approvals.decide('apr_1', approve: true);
@@ -115,7 +113,7 @@ void main() {
   });
 
   test('a retry after a network failure reuses the client_id', () async {
-    final host = _host()..failNext(_decide, const GatewayError(0, 'sin red'));
+    final host = _host()..failNext(_decide, const HostError(0, 'sin red'));
     final approvals = await _loaded(host);
     await approvals.decide('apr_1', approve: true);
     expect(approvals.failureOf('apr_1')!.kind, ApprovalFailureKind.other);
@@ -129,7 +127,7 @@ void main() {
 
   test('without APPROVE the settings stay read-only and say why', () async {
     final host = _host()
-      ..failNext(_settings, const GatewayError(403, forbiddenBody));
+      ..failNext(_settings, const HostError(403, forbiddenBody));
     final approvals = ApprovalsController(transport: host, deviceId: 'dev_1');
     await approvals.loadSettings();
     expect(approvals.settingsDenied, isTrue);
@@ -185,7 +183,7 @@ void main() {
     'a recheck clears the grant notice only once the grant is there',
     () async {
       final host = _host()
-        ..failNext(_decide, const GatewayError(403, forbiddenBody));
+        ..failNext(_decide, const HostError(403, forbiddenBody));
       final approvals = await _loaded(host);
       await approvals.decide('apr_1', approve: true);
       expect(
@@ -193,14 +191,14 @@ void main() {
         ApprovalFailureKind.needsGrant,
       );
 
-      host.failNext(_probe, const GatewayError(403, forbiddenBody));
+      host.failNext(_probe, const HostError(403, forbiddenBody));
       expect(await approvals.recheckGrant(), isFalse);
       expect(
         approvals.failureOf('apr_1')!.kind,
         ApprovalFailureKind.needsGrant,
       );
 
-      host.failNext(_probe, const GatewayError(404, '{"detail":"not found"}'));
+      host.failNext(_probe, const HostError(404, '{"detail":"not found"}'));
       expect(await approvals.recheckGrant(), isTrue);
       expect(approvals.failureOf('apr_1'), isNull);
       expect(approvals.viewOf('apr_1')!.status, 'pending');
@@ -294,8 +292,7 @@ void main() {
     });
 
     test('a retry with the same exclusions reuses the client_id', () async {
-      final host = moveHost()
-        ..failNext(_decide, const GatewayError(0, 'sin red'));
+      final host = moveHost()..failNext(_decide, const HostError(0, 'sin red'));
       final approvals = await _loaded(host);
       approvals.setMailChecked('apr_1', 'm2', checked: false);
       await approvals.decide('apr_1', approve: true);
@@ -307,8 +304,7 @@ void main() {
     });
 
     test('a retry with other exclusions gets a new client_id', () async {
-      final host = moveHost()
-        ..failNext(_decide, const GatewayError(0, 'sin red'));
+      final host = moveHost()..failNext(_decide, const HostError(0, 'sin red'));
       final approvals = await _loaded(host);
       approvals.setMailChecked('apr_1', 'm2', checked: false);
       await approvals.decide('apr_1', approve: true);

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/alerts/alert_stream.dart';
 import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 import 'alert_fakes.dart';
 
@@ -155,7 +155,7 @@ void main() {
   });
 
   test('a refused connection says its status and waits the first step', () async {
-    final source = FakeAlertSource([const GatewayError(503, 'no')]);
+    final source = FakeAlertSource([const HostError(503, 'no')]);
     final waits = <Duration>[];
     unawaited(
       streamWith(
@@ -172,7 +172,7 @@ void main() {
 
   test('a transport failure names its kind instead of HTTP 0', () async {
     final source = FakeAlertSource([
-      const GatewayError.transport(ConnectionFailure.identityMismatch, 'x'),
+      const HostError.transport(ConnectionFailure.identityMismatch, 'x'),
     ]);
     unawaited(streamWith(source, delay: (wait) async {}).run());
 

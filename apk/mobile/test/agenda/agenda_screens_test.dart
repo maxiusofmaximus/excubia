@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/phone_contacts.dart';
 import 'package:herdr_notify/ui/agenda/agenda_contact_screen.dart';
 import 'package:herdr_notify/ui/agenda/agenda_import_screen.dart';
@@ -76,7 +76,7 @@ void main() {
       final transport = ScriptedTransport({
         'GET /v1/notes': okJson({'notes': [], 'next': null}),
       });
-      transport.failNext('GET /v1/notes', const GatewayError(0, ''));
+      transport.failNext('GET /v1/notes', const HostError(0, ''));
 
       await mountWidget(tester, AgendaNotesScreen(api: AgendaApi(transport)));
       await tester.pumpAndSettle();
@@ -94,7 +94,7 @@ void main() {
   group('contacto', () {
     testWidgets('sin el permiso APPROVE, Borrar está apagado y dice por qué', (tester) async {
       final transport = ScriptedTransport({});
-      transport.failNext(_probePath, const GatewayError(403, ''));
+      transport.failNext(_probePath, const HostError(403, ''));
 
       await mountWidget(
         tester,
@@ -112,7 +112,7 @@ void main() {
 
     testWidgets('Cancelar en la confirmación no borra nada', (tester) async {
       final transport = ScriptedTransport({});
-      transport.failNext(_probePath, const GatewayError(404, ''));
+      transport.failNext(_probePath, const HostError(404, ''));
 
       await mountWidget(
         tester,
@@ -134,7 +134,7 @@ void main() {
       final transport = ScriptedTransport({
         'POST /v1/contacts/ct_1/delete': okJson({}),
       });
-      transport.failNext(_probePath, const GatewayError(404, ''));
+      transport.failNext(_probePath, const HostError(404, ''));
 
       await mountWidget(
         tester,
@@ -156,7 +156,7 @@ void main() {
   group('importar', () {
     testWidgets('sin permiso del sistema dice que no se leyó nada', (tester) async {
       final transport = ScriptedTransport({});
-      transport.failNext(_probePath, const GatewayError(404, ''));
+      transport.failNext(_probePath, const HostError(404, ''));
       final phone = FakePhoneContacts(access: PhoneAccess.denied);
 
       await mountWidget(
@@ -179,7 +179,7 @@ void main() {
 
     testWidgets('denegado para siempre ofrece abrir los ajustes de la app', (tester) async {
       final transport = ScriptedTransport({});
-      transport.failNext(_probePath, const GatewayError(404, ''));
+      transport.failNext(_probePath, const HostError(404, ''));
       final phone = FakePhoneContacts(access: PhoneAccess.deniedForever);
 
       await mountWidget(
@@ -199,7 +199,7 @@ void main() {
 
     testWidgets('sin APPROVE el botón está apagado y se explica', (tester) async {
       final transport = ScriptedTransport({});
-      transport.failNext(_probePath, const GatewayError(403, ''));
+      transport.failNext(_probePath, const HostError(403, ''));
       final phone = FakePhoneContacts();
 
       await mountWidget(

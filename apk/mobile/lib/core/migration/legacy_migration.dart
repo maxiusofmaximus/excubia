@@ -1,5 +1,5 @@
 import '../../src/rust/api/signing.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../api/pairing_api.dart';
 import '../storage/pairing_store.dart';
 import 'legacy_pairing.dart';
@@ -60,7 +60,7 @@ class LegacyMigration {
     store: store,
     api: PairingApi(),
     newKey: generateDeviceKey,
-    verify: (pairing) => GatewayClient(
+    verify: (pairing) => HostClient(
       baseUrl: pairing.baseUrl,
       deviceId: pairing.deviceId,
       privateKeyBase64: pairing.privateKey,

@@ -3,11 +3,11 @@ use thiserror::Error;
 
 use crate::transport::tls_failure;
 
-mod gateway;
+mod host;
 #[cfg(test)]
 mod tests;
 
-use gateway::{
+use host::{
     bad_request_info, create_refused_info, forbidden_info, invalid_field_info, refusal_info,
     stop_refused_info,
 };
@@ -15,10 +15,10 @@ use gateway::{
 /// Errors the shell can present without knowing which transport failed.
 #[derive(Debug, Error)]
 pub enum CoreError {
-    #[error("no se pudo contactar con el gateway: {0}")]
+    #[error("no se pudo contactar con el PC: {0}")]
     Transport(String),
 
-    #[error("el gateway respondió {status}: {message}")]
+    #[error("el PC respondió {status}: {message}")]
     Status {
         status: u16,
         code: Option<String>,
@@ -27,7 +27,7 @@ pub enum CoreError {
         message: String,
     },
 
-    #[error("el gateway ya no confía en este dispositivo; vuelve a emparejarlo")]
+    #[error("el PC ya no confía en este dispositivo; vuelve a emparejarlo")]
     Unauthorized,
 
     #[error("este dispositivo no tiene permiso para esa operación")]
@@ -36,7 +36,7 @@ pub enum CoreError {
     #[error("{0}")]
     PairingRejected(String),
 
-    #[error("respuesta inesperada del gateway: {0}")]
+    #[error("respuesta inesperada del PC: {0}")]
     Protocol(String),
 
     #[error("dato inválido: {0}")]
@@ -90,7 +90,7 @@ pub enum WriteAction {
 /// The canonical host-side grant command (CORE4's `GRANT_HINT`).
 pub const GRANT_HINT: &str = "host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]";
 
-/// One message plus the action that resolves it. The only place a gateway code
+/// One message plus the action that resolves it. The only place a host code
 /// becomes text, so the UI never branches on status codes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ErrorInfo {
@@ -124,7 +124,7 @@ impl CoreError {
     pub fn describe(&self, action: WriteAction) -> ErrorInfo {
         match self {
             CoreError::Unauthorized => ErrorInfo {
-                message: "El gateway ya no confía en este dispositivo.".to_string(),
+                message: "El PC ya no confía en este dispositivo.".to_string(),
                 action: Some("Vuelve a emparejarlo desde Avanzado.".to_string()),
             },
             CoreError::Forbidden => forbidden_info(action),
@@ -141,7 +141,7 @@ impl CoreError {
                 _ => refusal_info(message),
             },
             CoreError::Status { status: 429, .. } => ErrorInfo {
-                message: "El gateway está limitando las peticiones.".to_string(),
+                message: "El PC está limitando las peticiones.".to_string(),
                 action: Some("Espera unos segundos y vuelve a intentarlo.".to_string()),
             },
             CoreError::Status {
@@ -151,23 +151,23 @@ impl CoreError {
                 ..
             } => bad_request_info(code.as_deref(), message),
             CoreError::Status { status: 413, .. } => ErrorInfo {
-                message: "El mensaje es demasiado largo para el gateway.".to_string(),
+                message: "El mensaje es demasiado largo para el PC.".to_string(),
                 action: Some("Acórtalo y vuelve a intentarlo.".to_string()),
             },
             CoreError::Status {
                 status, message, ..
             } if *status >= 500 => ErrorInfo {
-                message: format!("El gateway tuvo un fallo interno ({status}: {message})."),
+                message: format!("El PC tuvo un fallo interno ({status}: {message})."),
                 action: Some("Vuelve a intentarlo en unos segundos.".to_string()),
             },
             CoreError::Status {
                 status, message, ..
             } => ErrorInfo {
-                message: format!("El gateway respondió {status}: {message}"),
+                message: format!("El PC respondió {status}: {message}"),
                 action: Some("Vuelve a intentarlo.".to_string()),
             },
             CoreError::Transport(_) => ErrorInfo {
-                message: "Sin conexión con el gateway.".to_string(),
+                message: "Sin conexión con el PC.".to_string(),
                 action: Some("Comprueba la red y vuelve a intentarlo.".to_string()),
             },
             CoreError::PairingRejected(message) => ErrorInfo {
@@ -175,7 +175,7 @@ impl CoreError {
                 action: None,
             },
             CoreError::Protocol(message) => ErrorInfo {
-                message: format!("Respuesta inesperada del gateway: {message}"),
+                message: format!("Respuesta inesperada del PC: {message}"),
                 action: None,
             },
             CoreError::InvalidInput(message) => ErrorInfo {

@@ -18,7 +18,7 @@ String mailSendFailureText(MailSendFailure failure) => switch (failure.code) {
 /// Spanish text for a refused or failed mail call. The mapping is closed: codes,
 /// addresses, paths and tokens never reach the screen.
 String mailFailureText(Object error) {
-  if (error is! GatewayError) return _unknownFailure;
+  if (error is! HostError) return _unknownFailure;
   final code = _codeOf(error.body);
   final failure = error.failure;
   if (failure != null && code == null) return connectionText(failure);

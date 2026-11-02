@@ -188,9 +188,10 @@ async fn the_chat_flow_survives_a_restart_and_resumes_sse() {
         .expect("pin and move");
     let read = client.chat_read(&conversation_id, 99).await.expect("read");
     assert_eq!(read["last_read_seq"], 6);
+    // Only the pairing's notice is left unread, in its own conversation.
     assert_eq!(
         client.chat_bootstrap().await.expect("bootstrap")["unread"]["messages"],
-        0
+        1
     );
 
     // SSE replay: everything after this revision is journaled and must come

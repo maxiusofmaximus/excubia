@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use herdr_desktop_core::identity::{DeviceIdentity, IdentityStore, KeyringIdentityStore};
 use herdr_desktop_core::state::StateStore;
 use herdr_desktop_core::stream::ConnectionStatus;
-use herdr_desktop_core::{ChatFeed, CoreError, GatewayClient, Transport};
+use herdr_desktop_core::{ChatFeed, CoreError, HostClient, Transport};
 use tauri::{AppHandle, Manager};
 use tokio_util::sync::CancellationToken;
 
@@ -68,15 +68,15 @@ pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 /// Everything a signed request needs, read once per command.
-pub struct GatewaySettings {
+pub struct HostSettings {
     pub url: String,
     pub identity: DeviceIdentity,
     pub transport: Transport,
 }
 
-impl GatewaySettings {
-    pub fn client(&self) -> Result<GatewayClient, CoreError> {
-        GatewayClient::with_transport(&self.url, self.identity.clone(), &self.transport)
+impl HostSettings {
+    pub fn client(&self) -> Result<HostClient, CoreError> {
+        HostClient::with_transport(&self.url, self.identity.clone(), &self.transport)
     }
 }
 
@@ -122,7 +122,7 @@ impl AppState {
             .map_err(|error| error.to_string())
     }
 
-    pub fn settings(&self) -> Result<GatewaySettings, String> {
+    pub fn settings(&self) -> Result<HostSettings, String> {
         let inner = lock(&self.inner);
         let identity = inner
             .identity
@@ -131,8 +131,8 @@ impl AppState {
         let url = inner
             .runtime_url
             .clone()
-            .unwrap_or_else(|| inner.config.gateway_url.clone());
-        Ok(GatewaySettings {
+            .unwrap_or_else(|| inner.config.host_url.clone());
+        Ok(HostSettings {
             url,
             identity,
             transport: inner.config.transport(),

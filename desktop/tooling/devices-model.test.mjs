@@ -106,7 +106,7 @@ test("each failure has its words, and a refused grant is a state rather than an 
   assert.equal(deviceFailureText({ kind: "notFound" }), "Ya no existe.");
   assert.match(deviceFailureText({ kind: "unauthorized" }), /Vuelve a emparejarlo/);
   assert.match(deviceFailureText({ kind: "offline" }), /Sin conexión/);
-  assert.equal(deviceFailureText({ kind: "refused", status: 500 }), "El gateway rechazó la petición (500).");
+  assert.equal(deviceFailureText({ kind: "refused", status: 500 }), "El PC rechazó la petición (500).");
   assert.equal(deviceFailureText({ kind: "protocol" }), "No se pudo completar la operación.");
   assert.equal(deviceFailureText(undefined), "No se pudo completar la operación.");
 });

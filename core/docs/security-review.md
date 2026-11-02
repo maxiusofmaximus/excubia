@@ -1,7 +1,7 @@
 ﻿# Auditoría de seguridad
 
-> (gateway retirado; ver README). Alcance: `gateway/src/herdr_notify/api/**` (autenticación, rate limit,
-> acciones) y `android/app/src/main/**` (manifiesto, keystore, notificaciones,
+> (implementación Python retirada; ver README). Alcance: su `api/**` (autenticación, rate limit,
+> acciones) y la app Android retirada `app/src/main/**` (manifiesto, keystore, notificaciones,
 > red).
 >
 > Método: lectura de fuente, más una ejecución real en un TECNO KI7-GL
@@ -11,12 +11,12 @@
 
 | Frontera | Quién está de un lado | Control |
 |---|---|---|
-| Red → gateway | cualquier cosa que alcance el puerto | firma P-256/Ed25519 por petición, sin token estático |
+| Red → host | cualquier cosa que alcance el puerto | firma P-256/Ed25519 por petición, sin token estático |
 | Red → app Android | FCM, o quien controla el dispositivo | `exported=false` en todo menos `MainActivity`; payload validado campo a campo |
-| Host → gateway | CLI local (`enroll`, `add-device`, `devices`) | codes de un solo uso, 10 min, filesystem local |
-| Gateway → herdr | named pipe en `%APPDATA%\herdr` | acciones allowlisted; nunca se reenvía un método de herdr |
+| CLI local → host | CLI local (`enroll`, `add-device`, `devices`) | codes de un solo uso, 10 min, filesystem local |
+| Host → herdr | named pipe en `%APPDATA%\herdr` | acciones allowlisted; nunca se reenvía un método de herdr |
 
-La consecuencia de diseño que atraviesa todo: **el gateway puede pilotar
+La consecuencia de diseño que atraviesa todo: **el host puede pilotar
 cualquier agente de la máquina**, así que un token filtrado equivale a entregar
 una shell. Por eso no existe token: un device es una clave pública, y probar que
 la llamante tiene la privada es lo único que autentica.
@@ -32,7 +32,7 @@ la llamante tiene la privada es lo único que autentica.
   Distinguir "device desconocida" de "firma mala" convertiría el endpoint en un
   oráculo de qué ids existen.
 - **El `_save()` es atómico** (`os.replace`, `devices.py:173`). Un trust store a
-  medio escribir es un gateway que rechaza a todos o cree en las devices
+  medio escribir es un host que rechaza a todos o cree en las devices
   equivocadas.
 - **`ctrl+c` exige `confirm`**, y las keys están allowlisted.
 
@@ -59,9 +59,9 @@ minuto y por device, con el timestamp en memoria siempre exacto.
 
 ### F3 — el backoff de reconexión no tenía jitter
 
-Gateway y teléfonos despiertan juntos. El backoff determinista hacía que todos
+Host y teléfonos despiertan juntos. El backoff determinista hacía que todos
 calculasen el mismo intervalo y reconectasen en el mismo instante, contra un
-gateway con cap por stream. Corregido con un 20% de dispersión.
+host con cap por stream. Corregido con un 20% de dispersión.
 
 ### F4 — la app no tenía forma de emparejarse
 
@@ -91,11 +91,11 @@ BigInteger en todos los providers. Deliberadamente **no** por el tamaño del
 campo: 256 bits también acepta brainpoolP256r1, misma anchura de coordenadas,
 curva distinta.
 
-### F7 — cleartext bloqueado impedía conectar con el gateway
+### F7 — cleartext bloqueado impedía conectar con el host
 
-Android 28+ bloquea HTTP en claro. El gateway sirve HTTP plano en loopback y no
+Android 28+ bloquea HTTP en claro. El host sirve HTTP plano en loopback y no
 había network security config, así que la app no podía hablar con su propio
-gateway en absoluto.
+host en absoluto.
 
 Corregido con una excepción acotada a loopback y al alias del emulador. No se
 activó cleartext globalmente: eso dejaría que un `http://` mal escrito
@@ -104,11 +104,11 @@ degradase en silencio una conexión real.
 ### F8 — la app nunca salía de la pantalla de pairing
 
 `App` leía el pairing una vez con `produceState`, que responde al arrancar y
-nunca más. El gateway había recibido cero peticiones, y así se encontró.
+nunca más. El host había recibido cero peticiones, y así se encontró.
 
 ## Cosas que deliberadamente NO son hallazgos
 
-- **El gateway escucha solo en `127.0.0.1`.** Endurecerlo sin exposición previa
+- **El host escucha solo en `127.0.0.1`.** Endurecerlo sin exposición previa
   sería consejo genérico, no un defecto.
 - **`/v1/health` es sin auth.** Devuelve contadores, no datos del operador. No
   expone versión de herdr ni nombres de pane, que sí serían reconocimiento.
@@ -130,12 +130,12 @@ Esta revisión leyó `api/auth/{verify,devices,canonical}.py`,
 ejecutó la app en un dispositivo real.
 
 **No** cubrió: el transporte de named pipe a herdr, la política de push, la
-implementación de FCM en el gateway, ni el pipeline de release. Ninguna
+implementación de FCM en el host, ni el pipeline de release. Ninguna
 afirmación aquí dice que esas partes estén bien — solo que nadie las miró.
 
 ## Núcleo Rust: `cargo audit` (CORE5, 2026-10-20)
 
-Alcance nuevo: el núcleo Rust de `crates/` (esta revisión solo miraba gateway y
+Alcance nuevo: el núcleo Rust de `crates/` (esta revisión solo miraba la implementación Python y la
 app Android). Herramienta: `cargo audit` 0.22.2 con la base RustSec (1348
 avisos). `cargo deny` no está configurado en el worktree (no hay `deny.toml`),
 así que no se ejecutó.

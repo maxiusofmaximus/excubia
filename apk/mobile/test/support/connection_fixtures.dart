@@ -1,17 +1,17 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/model/connection_state.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/api/signing.dart';
 
 /// A client for a loopback port with nothing listening on it: the socket is refused.
-Future<GatewayClient> refusedClient() async {
+Future<HostClient> refusedClient() async {
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
   final port = server.port;
   await server.close(force: true);
-  return GatewayClient(
+  return HostClient(
     baseUrl: 'http://127.0.0.1:$port',
     deviceId: 'hn-7',
     privateKeyBase64: generateDeviceKey().privateKeyB64,
@@ -20,7 +20,7 @@ Future<GatewayClient> refusedClient() async {
 
 /// Every socket is refused without touching the network. The widget test
 /// binding answers real HTTP with a 400, so a widget test needs this instead.
-GatewayClient refusingClient() => GatewayClient(
+HostClient refusingClient() => HostClient(
   baseUrl: 'http://127.0.0.1:1',
   deviceId: 'hn-7',
   privateKeyBase64: generateDeviceKey().privateKeyB64,

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/calendar_controller.dart';
 import 'package:herdr_notify/core/state/calendar_time.dart';
 
@@ -43,7 +43,7 @@ void main() {
   });
 
   test('un fallo al fijar la zona la deja sin fijar y dice por qué', () async {
-    transport.failure = const GatewayError(
+    transport.failure = const HostError(
       409,
       '{"detail":{"code":"timezone_already_set"}}',
     );

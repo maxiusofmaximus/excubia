@@ -22,7 +22,7 @@ ErrorInfo explainError({
   action: action,
 );
 
-/// Decode a gateway error body and explain it in one step. The body shapes are
+/// Decode a host error body and explain it in one step. The body shapes are
 /// `{"detail": "..."}`, `{"detail": {code, message}}` and `{code, message}`.
 ErrorInfo explainHttpError({
   required int status,

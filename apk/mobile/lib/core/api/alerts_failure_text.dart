@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'agenda_api.dart';
-import 'gateway_client.dart';
+import 'host_client.dart';
 
 /// Spanish text for a failed rule call. The two rule codes have their own words; every other
 /// failure reads as the agenda's, since the host's routes answer the same way.
@@ -14,7 +14,7 @@ String alertsFailureText(Object error) => switch (_codeOf(error)) {
 /// The stable code of a host error, or null when the body has none. The alert routes answer
 /// `{"detail": "rule_exists"}`; the agenda's answer `{"detail": {"code": …}}`.
 String? _codeOf(Object error) {
-  if (error is! GatewayError) return null;
+  if (error is! HostError) return null;
   final Object? decoded;
   try {
     decoded = jsonDecode(error.body);

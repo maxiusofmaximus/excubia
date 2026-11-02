@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/mail_api.dart';
 import 'package:herdr_notify/core/state/mail_draft_controller.dart';
 import 'package:herdr_notify/core/state/mail_settings_controller.dart';
@@ -19,7 +19,7 @@ final RegExp _approvalById = RegExp(
 final RegExp _inboxRoute = RegExp(r'^/v1/chat/approvals(?:\?status=(\w+))?$');
 
 /// A host that answers by route ("METHOD target"). A route with several answers
-/// gives them in order and then repeats the last one; a [GatewayError] answer
+/// gives them in order and then repeats the last one; a [HostError] answer
 /// is thrown the way the real client refuses.
 ///
 /// The approval lives in the inbox, as on the host. [approvals] is its status
@@ -57,14 +57,14 @@ class _Host implements ChatTransport {
     final text = utf8.decode(body);
     if (method == 'POST' && text.isNotEmpty) sent.add('$key $text');
     if (method == 'GET' && _approvalById.hasMatch(target)) {
-      throw const GatewayError(401, '{"detail":"unauthorized"}');
+      throw const HostError(401, '{"detail":"unauthorized"}');
     }
     final inbox = _inboxRoute.firstMatch(target);
     if (method == 'GET' && inbox != null) return _readInbox(inbox.group(1));
     final queue = answers[key] ?? const <Object>[];
-    if (queue.isEmpty) throw const GatewayError(404, '{"detail":"not found"}');
+    if (queue.isEmpty) throw const HostError(404, '{"detail":"not found"}');
     final answer = queue.length > 1 ? queue.removeAt(0) : queue.first;
-    if (answer is GatewayError) throw answer;
+    if (answer is HostError) throw answer;
     return answer as String;
   }
 
@@ -461,7 +461,7 @@ void main() {
   });
 
   test('a stale confirmation ends at once and is not retried', () async {
-    const stale = GatewayError(
+    const stale = HostError(
       400,
       '{"detail":{"code":"mail_approval_stale","message":"x"}}',
     );
@@ -485,7 +485,7 @@ void main() {
   test(
     'a rate limit says how long to wait and lets the user try again',
     () async {
-      const limited = GatewayError(
+      const limited = HostError(
         429,
         '{"detail":{"code":"mail_send_rate_limited","message":"x"}}',
         retryAfter: 90,
@@ -539,7 +539,7 @@ void main() {
           statuses: [
             _ok({'state': 'cancelled'}),
           ],
-          cancels: [const GatewayError(0, 'sin conexión')],
+          cancels: [const HostError(0, 'sin conexión')],
         ),
         approvals: ['approved'],
       );
@@ -562,7 +562,7 @@ void main() {
   test('a draft the host refuses to show ends with a Spanish reason', () async {
     final host = _Host({
       _draftRoute: [
-        const GatewayError(
+        const HostError(
           400,
           '{"detail":{"code":"mail_unknown_draft","message":"x"}}',
         ),

@@ -1,6 +1,4 @@
-**Producto: la app Flutter de `apk/mobile`, paquete `dev.herdrnotify.app`.** La app Kotlin v1 está retirada (`apk/_legacy-kotlin-v1/`).
-
-# Excubia
+# herdr-notify
 
 ## What it is
 
@@ -55,7 +53,7 @@ Two independent paths, so neither is a single point of failure.
 into a message, the phone shows a notification, tapping it opens the agent. This
 is the only path that works when the app is killed.
 
-**Live** is a persistent event stream over an encrypted channel to a gateway
+**Live** is a persistent event stream over an encrypted channel to the host
 running beside herdr. With the app open, state appears as it changes.
 
 The app is fully usable on the live path alone. Push is an accelerant, never a
@@ -63,7 +61,7 @@ prerequisite — which is why an incomplete push backend must not block the app.
 
 ## Security posture
 
-The gateway can submit prompts and write keystrokes into any coding agent on the
+The host can submit prompts and write keystrokes into any coding agent on the
 host. It is the crown jewel, and the design treats it as one.
 
 - **No static secret exists.** A device is a public key; requests are signed with
@@ -74,7 +72,7 @@ host. It is the crown jewel, and the design treats it as one.
 - **Keys are allowlisted**, destructive ones behind an explicit confirmation.
 - **Adding a device is a host-side action.** There is no unauthenticated write in
   the API.
-- **Nothing is exposed to the internet.** The gateway binds loopback; an
+- **Nothing is exposed to the internet.** The host binds loopback; an
   encrypted overlay network carries traffic to the phone.
 
 ## Surface

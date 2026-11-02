@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../src/rust/api/approvals/model.dart';
-import '../api/gateway_client.dart';
+import '../api/host_client.dart';
 import '../api/mail_api.dart';
 import '../api/plan_runner.dart';
 
@@ -346,7 +346,7 @@ class MailDraftController extends ChangeNotifier {
     _notify();
     try {
       return await call();
-    } on GatewayError catch (error) {
+    } on HostError catch (error) {
       _notice = mailFailureText(error);
       return null;
     } on PlanRefused catch (error) {

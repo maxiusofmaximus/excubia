@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/src/rust/api/chat/model.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
@@ -103,7 +103,7 @@ void main() {
     final transport = ScriptedTransport(routes());
     transport.failNext(
       _deletePath,
-      const GatewayError(409, '{"detail":"conversation_busy"}'),
+      const HostError(409, '{"detail":"conversation_busy"}'),
     );
     final controller = ChatController(transport, SignalTriage());
     addTearDown(controller.dispose);
@@ -123,7 +123,7 @@ void main() {
     final transport = ScriptedTransport(routes());
     transport.failNext(
       _deletePath,
-      const GatewayError(404, '{"detail":"no_such_conversation"}'),
+      const HostError(404, '{"detail":"no_such_conversation"}'),
     );
     final controller = ChatController(transport, SignalTriage());
     addTearDown(controller.dispose);
@@ -141,7 +141,7 @@ void main() {
     'a refused connection keeps the conversation and reads as offline',
     () async {
       final transport = ScriptedTransport(routes());
-      transport.failNext(_deletePath, const GatewayError(0, ''));
+      transport.failNext(_deletePath, const HostError(0, ''));
       final controller = ChatController(transport, SignalTriage());
       addTearDown(controller.dispose);
       await controller.start();

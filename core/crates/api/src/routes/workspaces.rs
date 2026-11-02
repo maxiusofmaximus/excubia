@@ -2,7 +2,7 @@
 //!
 //! The client names an agent from the host's closed list and a working
 //! directory; it never names an executable. The response carries the pane id
-//! and the initial agent record, mirroring the gateway's shape.
+//! and the initial agent record.
 //!
 //! A request that does not satisfy the model is rejected with a dedicated
 //! `422` code and an explicit field (`errors.md`): `unknown_agent`,
@@ -21,7 +21,7 @@ use crate::error::ApiError;
 use crate::routes::parse_body;
 use crate::ApiContext;
 
-/// The gateway caps a conversation name at 64 characters.
+/// The host caps a conversation name at 64 characters.
 const MAX_LABEL_CHARS: usize = 64;
 
 #[derive(Deserialize)]

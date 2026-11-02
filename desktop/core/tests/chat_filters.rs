@@ -3,12 +3,12 @@ mod common;
 use common::spawn_server;
 use herdr_desktop_core::chat::{ChatFailure, ListFilter};
 use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 
 const SENT: &str = r#"{"ok":true,"message":{"id":"msg_01K","conversation_id":"cnv_01JABC","seq":4,"author_kind":"user","body_md":"Sí","state":"complete","created_at":""},"turn":{"id":"run_01J","state":"queued","agent_id":"ag_01J"}}"#;
 
-fn client(base_url: &str) -> GatewayClient {
-    GatewayClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
+fn client(base_url: &str) -> HostClient {
+    HostClient::new(base_url, DeviceIdentity::generate("dev-test", "test")).unwrap()
 }
 
 #[tokio::test]

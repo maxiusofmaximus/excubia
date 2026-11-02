@@ -48,8 +48,8 @@ pub async fn pair_link(
     {
         let mut inner = lock(&shared.inner);
         inner.config.local = false;
-        inner.config.gateway_url = paired.base_url;
-        inner.config.gateway_pins = Some(StoredPins::from(link.pins));
+        inner.config.host_url = paired.base_url;
+        inner.config.host_pins = Some(StoredPins::from(link.pins));
         inner.config.device_id = Some(response.device_id.clone());
         inner.config.label = label.clone();
         inner.config.paired = true;

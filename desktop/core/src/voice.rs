@@ -7,7 +7,7 @@ use std::time::Duration;
 use reqwest::{Method, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::client::GatewayClient;
+use crate::client::HostClient;
 
 /// The host may load the engine on the first note (up to 40 s) before it transcribes.
 const VOICE_TIMEOUT: Duration = Duration::from_secs(90);
@@ -39,7 +39,7 @@ pub struct VoiceTranscript {
     pub ms: u64,
 }
 
-impl GatewayClient {
+impl HostClient {
     /// Sends one WAV note (`audio/wav`) and returns its transcript. It is signed
     /// like the other chat writes, so it needs RESPOND.
     pub async fn voice_transcribe(&self, wav: &[u8]) -> VoiceResult<VoiceTranscript> {

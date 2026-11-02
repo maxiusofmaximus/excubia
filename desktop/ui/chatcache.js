@@ -9,7 +9,7 @@ export const LAST_KEY = "hn-chat-last";
 
 function cacheKey() {
   const boot = app.boot || {};
-  return `${CACHE_PREFIX}:${boot.device_id || "sin-dispositivo"}:${boot.gateway_url || "local"}`;
+  return `${CACHE_PREFIX}:${boot.device_id || "sin-dispositivo"}:${boot.host_url || "local"}`;
 }
 
 export function saveCache(chat) {

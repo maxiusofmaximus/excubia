@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/connection_failure.dart';
 import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/pinned_client.dart';
 import 'package:herdr_notify/core/model/connection_state.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
@@ -30,10 +30,10 @@ class _Silent extends FakePinnedClient {
   }) => Completer<PinnedAnswer>().future;
 }
 
-GatewayClient _pinnedClient(
+HostClient _pinnedClient(
   PinnedClient pinned, {
   Duration requestTimeout = const Duration(seconds: 30),
-}) => GatewayClient(
+}) => HostClient(
   baseUrl: 'https://127.0.0.1:8443',
   deviceId: 'hn-7',
   privateKeyBase64: generateDeviceKey().privateKeyB64,
@@ -42,11 +42,11 @@ GatewayClient _pinnedClient(
   requestTimeout: requestTimeout,
 );
 
-/// The failure of a call that must fail as a [GatewayError].
+/// The failure of a call that must fail as a [HostError].
 Future<ConnectionFailure?> _failureOf(Future<Object?> call) async {
   try {
     await call;
-  } on GatewayError catch (error) {
+  } on HostError catch (error) {
     return error.failure;
   }
   fail('the call did not fail');
@@ -55,7 +55,7 @@ Future<ConnectionFailure?> _failureOf(Future<Object?> call) async {
 void main() {
   setUpAll(RustLib.init);
 
-  group('a GatewayError says why the PC could not be reached', () {
+  group('a HostError says why the PC could not be reached', () {
     test('a deadline that runs out is a timeout', () async {
       final client = _pinnedClient(
         _Silent(),
@@ -139,7 +139,7 @@ void main() {
       );
     });
 
-    test('an answer that is not a gateway failure has no failure', () async {
+    test('an answer that is not a host failure has no failure', () async {
       final client = _pinnedClient(
         FakePinnedClient(
           answer: const PinnedAnswer(
@@ -200,7 +200,7 @@ void main() {
         await request.response.close();
       });
       final triage = LiveTriage(
-        GatewayClient(
+        HostClient(
           baseUrl: 'http://127.0.0.1:${server.port}',
           deviceId: 'hn-7',
           privateKeyBase64: generateDeviceKey().privateKeyB64,

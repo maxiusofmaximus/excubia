@@ -1,4 +1,4 @@
-//! The authenticated endpoints of the gateway, one method per route.
+//! The authenticated endpoints of the host, one method per route.
 
 use serde_json::{json, Value};
 

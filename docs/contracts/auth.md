@@ -1,4 +1,5 @@
 # Contract: request authentication and authorization
+_(implementado en el núcleo Rust; ver README)_
 
 Every request except `GET /v1/health` must carry a signature over the exact
 request. There is no bearer token and no shared secret to leak: a device is a
@@ -18,9 +19,8 @@ this order:
 A valid signature never implies authorization. Authentication answers *who you
 are*; authorization answers *what you may do*.
 
-Authoritative code: `gateway/src/herdr_notify/api/auth/canonical.py`,
-`.../verify.py`, `.../devices.py`, `.../authz.py`;
-`android/.../net/RequestSigner.kt`; `android/.../security/DeviceKeyStore.kt`.
+Authoritative code: `crates/auth/src/verify.rs`, `crates/auth/src/store/`,
+`crates/auth/src/authz.rs`.
 
 ## Headers
 
@@ -34,6 +34,36 @@ Authoritative code: `gateway/src/herdr_notify/api/auth/canonical.py`,
 `X-HN-Key-Id` is reserved and **not used in v1**. A client must not send it; a
 server must ignore it. It exists as a name so key rotation can be added later
 without a second header name.
+
+## Internal MCP surface (CORE6B)
+
+Alfred's CLI calls the MCP shim over stdio; the shim forwards tool calls to a
+second listener bound to `127.0.0.1:0`, never to the public/tailnet socket.
+Those requests are not device-signed: they carry `X-HN-Tool-Token`, a random
+per-run value passed only in the CLI's inherited environment. The token is
+never in argv, prompt, history or a config file, and the seat invalidates it
+when the run closes. A missing or unknown token is `401`; the public router
+does not mount the internal path at all.
+
+## Hook surface (CORE8B)
+
+Agent hooks are local processes, so they authenticate with a token in
+`X-HN-Hook-Token` and only from loopback. There are two kinds and they are not
+interchangeable:
+
+- **Host token** (`host hook-token`, persisted in the data directory): reports
+  pane state on `POST /v1/hooks/report`. It names no run, so the approval
+  routes refuse it with `403 hook_token_not_scoped`.
+- **Run token**: minted when the host launches one run (or one resident panel),
+  handed to the CLI in `HN_HOOK_TOKEN`, and revoked when that run closes. Only
+  a run token opens, reads and burns approvals, and only for the run it names:
+  another run's approval is `403 hook_scope_mismatch` and a closed run's token
+  is `403 hook_token_revoked`.
+
+The database keeps the SHA-256 of a run token, never the token, and a restart
+revokes every live one: a run does not survive the process that owned it.
+Neither token is a device credential: no hook token is accepted on a signed
+route, and no device signature is accepted on a hook route.
 
 ## The signing string
 
@@ -59,7 +89,7 @@ NONCE \n
   string.
 
 This exact byte string is what the golden vectors in
-`gateway/tests/vectors/signing_vectors.json` pin.
+`docs/contracts/vectors/signing_vectors.json` pin.
 
 ## Signing algorithms
 
@@ -110,16 +140,20 @@ the default below.
 
 | Permission | id | Default at pairing | Meaning |
 |------------|----|--------------------|---------|
-| `READ_STATE` | `read_state` | **granted** | Observe: `/v1/state`, `/v1/events` (SSE), `/v1/peers`, pane output reads, mark an agent seen |
-| `RESPOND` | `respond` | not granted | Act: submit a prompt, focus a pane, attach an image to a pane |
+| `READ_STATE` | `read_state` | **granted** | Observe: `/v1/state`, `/v1/events` (SSE), `/v1/peers`, pane output reads, mark an agent seen; read chat and move its read cursor |
+| `RESPOND` | `respond` | not granted | Act: submit a prompt, focus a pane, attach an image to a pane; create/update chat, send messages, manage sections |
 | `SEND_KEY` | `send_key` | not granted | Act: send allowlisted keys |
-| `APPROVE` | `approve` | not granted | **RESERVED in v1** — no endpoint maps to it; dialog answering is done through `respond`/`keys` |
+| `APPROVE` | `approve` | not granted | Decide an UAC approval: `POST /v1/chat/approvals/{id}/decision` (CORE8); change the approval mode: `POST /v1/chat/approvals/settings` (CORE9-D). Nothing else maps to it |
 | `ADMIN` | `admin` | not granted | Manage devices: `GET /v1/devices`, `POST /v1/devices/{id}/revoke` (activated in Fase 2(c)) |
 
-`APPROVE` remains a valid grantable identifier so a future endpoint can adopt it
-without a migration, but it grants nothing in v1 — the same pattern as the
-reserved `X-HN-Key-Id` header. `ADMIN` was reserved the same way in M2 and is
-now the grant behind device management (Fase 2(c)).
+`APPROVE` was a reserved identifier with no endpoint; CORE8 gives it the one
+endpoint it was reserved for, the UAC decision, and the approval mode (CORE9-D).
+It grants nothing else, and the
+approval routes of the hook (`POST /v1/chat/approvals`, `GET
+/v1/chat/approvals/{id}` and `POST /v1/chat/approvals/{id}/consume`) are not
+device routes at all: they authenticate with a hook token over loopback, and a
+device signature is never accepted there. `ADMIN` was reserved the same way in
+M2 and is now the grant behind device management (Fase 2(c)).
 
 `focus` sits behind `RESPOND` because it drives herdr (`agent.focus` on the
 session): a device granted only `READ_STATE` observes but never drives. `seen`
@@ -147,17 +181,75 @@ endpoint cannot start life implicitly authorized.
 | `POST` | `/v1/pair` | `200`/`403` | — | — |
 | `GET` | `/v1/state` | `401` | `403` | `200` |
 | `GET` | `/v1/events` | `401` | `403` | `200` |
+| `GET` | `/v1/catalog` | `401` | `403` | `200` |
 | `GET` | `/v1/peers` | `401` | `403` | `200` |
 | `GET` | `/v1/devices` | `401` | `403` | `200` (`ADMIN`) |
 | `POST` | `/v1/devices/{device_id}/revoke` | `401` | `403` | `200` (`ADMIN`) |
 | `POST` | `/v1/agents/{pane_id}/respond` | `401` | `403` | `200` |
 | `POST` | `/v1/agents/{pane_id}/keys` | `401` | `403` | `200` |
+| `POST` | `/v1/agents/{pane_id}/stop` | `401` | `403` | `200` |
 | `POST` | `/v1/agents/{pane_id}/focus` | `401` | `403` | `200` |
 | `POST` | `/v1/agents/{pane_id}/seen` | `401` | `200` | `200` |
 | `POST` | `/v1/agents/{pane_id}/read` | `401` | `200` | `200` |
 | `POST` | `/v1/agents/{pane_id}/image` | `401` | `403` | `200` |
 | `POST` | `/v1/me/fcm-token` | `401` | `200` | `200` |
+| `GET` | `/v1/chat/bootstrap` | `401` | `403` | `200` |
+| `GET` | `/v1/chat/conversations` | `401` | `403` | `200` |
+| `POST` | `/v1/chat/conversations` | `401` | `403` | `200` |
+| `GET` | `/v1/chat/conversations/{id}` | `401` | `403` | `200` |
+| `POST` | `/v1/chat/conversations/{id}/update` | `401` | `403` | `200` |
+| `DELETE` | `/v1/chat/conversations/{id}` | `401` | `403` | `200` |
+| `GET` | `/v1/chat/conversations/{id}/timeline` | `401` | `403` | `200` |
+| `GET` | `/v1/chat/conversations/{id}/messages` | `401` | `403` | `200` |
+| `POST` | `/v1/chat/conversations/{id}/messages` | `401` | `403` | `200` |
+| `POST` | `/v1/chat/conversations/{id}/read` | `401` | `200` | `200` |
+| `GET` | `/v1/chat/sections` | `401` | `403` | `200` |
+| `POST` | `/v1/chat/sections` | `401` | `403` | `200` |
+| `GET` | `/v1/chat/approvals` | `401` | `403` | `200` |
+| `POST` | `/v1/chat/approvals/{id}/decision` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/chat/approvals/settings` | `401` | `403` | `200` |
+| `POST` | `/v1/chat/approvals/settings` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/roles` | `401` | `403` | `200` |
+| `GET` | `/v1/hires` | `401` | `403` | `200` |
+| `POST` | `/v1/hires` | `401` | `403` | `200` (`APPROVE`) |
+| `POST` | `/v1/hires/{id}/update` | `401` | `403` | `200` (`APPROVE`) |
+| `POST` | `/v1/hires/{id}/dismiss` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/onboarding` | `401` | `403` | `200` |
+| `POST` | `/v1/onboarding` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/notes` | `401` | `403` | `200` |
+| `GET` | `/v1/notes/{id}` | `401` | `403` | `200` |
+| `POST` | `/v1/notes` | `401` | `403` | `200` |
+| `POST` | `/v1/notes/{id}/update` | `401` | `403` | `200` |
+| `POST` | `/v1/notes/{id}/delete` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/contacts` | `401` | `403` | `200` |
+| `GET` | `/v1/contacts/{id}` | `401` | `403` | `200` |
+| `POST` | `/v1/contacts` | `401` | `403` | `200` |
+| `POST` | `/v1/contacts/{id}/update` | `401` | `403` | `200` |
+| `POST` | `/v1/contacts/{id}/delete` | `401` | `403` | `200` (`APPROVE`) |
+| `POST` | `/v1/contacts/import` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/calendar/events` | `401` | `403` | `200` |
+| `GET` | `/v1/calendar/events/{id}` | `401` | `403` | `200` |
+| `POST` | `/v1/calendar/events` | `401` | `403` | `200` |
+| `POST` | `/v1/calendar/events/{id}/update` | `401` | `403` | `200` |
+| `POST` | `/v1/calendar/events/{id}/delete` | `401` | `403` | `200` (`APPROVE`) |
+| `GET` | `/v1/company/timezone` | `401` | `403` | `200` |
+| `POST` | `/v1/company/timezone` | `401` | `403` | `200` (`APPROVE`) |
 | any | endpoint with no rule | `401`/`404` | `403` | `403` |
+
+The team routes (ONBOARD-T3) change who the user is hiring, so every write needs
+`APPROVE`. An agent holds `RESPOND` at most, and a device with only `RESPOND`
+gets the `403` above. A hook or agent credential presented on a device route
+has no device signature, so it gets the uniform `401`.
+
+The agenda routes (AGENDA-REST) follow the same split: reads need `READ_STATE`,
+creating and editing a note or contact needs `RESPOND`, and deleting one or
+importing the phone book needs `APPROVE`. A device with only `RESPOND` can keep
+notes and contacts but cannot delete them or import.
+
+The calendar routes (CALENDARIO-F4) follow the same split: reads need `READ_STATE`,
+creating and editing an event needs `RESPOND`, and deleting one needs `APPROVE`. The
+company's time zone is read with `READ_STATE` and fixed with `APPROVE`, because it can
+be set only once.
 
 `POST /v1/pair` is the **only unauthenticated write** (Fase 2(c)): the pairing
 code, a recovery code, or the tailnet-owner check is the authorisation, never a
@@ -168,6 +260,15 @@ static secret. It is rate-limited per source IP and answers a uniform
 The query string is not part of the match: the permission is derived from the
 method and the path exactly as signed (`raw_path`), with anything after `?`
 ignored.
+
+Chat reads consume the read budget; chat mutations consume read and write.
+Moving the read cursor (`POST /v1/chat/conversations/{id}/read`) consumes no
+write budget, the same reasoning as `seen`: it is reversible and drives no
+agent. A device without `RESPOND` gets the uniform `403`; the client shows the
+canonical grant hint `host devices grant <device_id> --permission respond` and
+does not retry. The UAC decision spends the `APPROVE` grant, and only that
+one: the client shows the canonical hint `host devices grant <device_id>
+--permission approve` and does not retry.
 
 ### The 403 response
 
@@ -226,9 +327,9 @@ leaves no last-seen trace, the same way a revoked device never reaches either.
 
 ```
 unknown
-  ↓  host-side CLI (add-device) or HTTP POST /v1/pair (code | recovery | same-owner)
+  ↓  host-side CLI (pair-code) or HTTP POST /v1/pair (code | recovery | same-owner)
 paired (default grant: READ_STATE)
-  ↓  host-side CLI (devices --grant)
+  ↓  host-side CLI (host devices grant)
 authorized (for exactly the granted operations)
   ↓  host-side CLI (devices --revoke / --revoke-permission) or HTTP POST /v1/devices/{id}/revoke (ADMIN)
 revoked (marked, never deleted: the device stays visible and refused)
@@ -251,10 +352,10 @@ an explicitly stored empty set stays empty.
 
 **APPROVE endpoints.** The permission model, the endpoint matrix and the
 `403` contract are IMPLEMENTED (M2); `ADMIN` was activated in Fase 2(c) for
-device management. `APPROVE` is a RESERVED grant identifier with no endpoint in
-v1: dialog answering is done through `respond`/`keys`. No endpoint maps to it,
-so granting it has no effect until one adopts it — recorded here so the
-reservation is not mistaken for a working surface.
+device management. CORE8 activated `APPROVE` for the UAC decision,
+`POST /v1/chat/approvals/{id}/decision`. CORE9-D adds the approval mode,
+`POST /v1/chat/approvals/settings`, which takes `APPROVE` too, not `ADMIN`. No
+other endpoint maps to it.
 
 **Pairing wire flow.** IMPLEMENTED in Fase 2(c): `POST /v1/pair` consumes a
 host-printed single-use code, a per-device recovery code, or the tailnet-owner

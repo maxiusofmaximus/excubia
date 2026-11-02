@@ -21,22 +21,25 @@ async fn the_filters_and_counts_follow_the_contract() {
 
     let counts = client.chat_counts().await.expect("counts");
     assert_eq!(counts["ok"], true);
-    assert_eq!(counts["all"], 1);
-    assert_eq!(counts["attention"], 0);
+    // The pairing's notice and the plan; the notice is unread, so it alone waits.
+    assert_eq!(counts["all"], 2);
+    assert_eq!(counts["attention"], 1);
     assert_eq!(counts["working"], 0);
     assert_eq!(counts["archived"], 0);
 
     for name in ["attention", "working"] {
-        let listed = client
-            .chat_conversations(&[(name, "1")])
-            .await
-            .expect("filter");
-        assert_eq!(listed["conversations"], Value::Array(Vec::new()), "{name}");
-        let listed = client
-            .chat_conversations(&[(name, "true")])
-            .await
-            .expect("filter");
-        assert_eq!(listed["conversations"], Value::Array(Vec::new()), "{name}");
+        let waiting = usize::from(name == "attention");
+        for value in ["1", "true"] {
+            let listed = client
+                .chat_conversations(&[(name, value)])
+                .await
+                .expect("filter");
+            assert_eq!(
+                listed["conversations"].as_array().expect("rows").len(),
+                waiting,
+                "{name}={value}"
+            );
+        }
 
         for refused in ["yes", "0", "false", ""] {
             let error = client

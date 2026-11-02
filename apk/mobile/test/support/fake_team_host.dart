@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 
 /// A stateful host of the team, as `errors.md` and `api.md` describe it: hires
 /// are registered, renamed, given a character and dismissed, and the list
@@ -46,7 +46,7 @@ class FakeTeamHost implements ChatTransport {
   ]) async {
     final route = '$method ${target.split('?').first}';
     calls.add(route);
-    if (networkDown) throw const GatewayError(0, 'sin red');
+    if (networkDown) throw const HostError(0, 'sin red');
     final json = body.isEmpty
         ? <String, Object?>{}
         : jsonDecode(utf8.decode(body)) as Map<String, Object?>;
@@ -133,11 +133,11 @@ class FakeTeamHost implements ChatTransport {
     return null;
   }
 
-  GatewayError _refusal(int status, String? code, {String? field}) {
+  HostError _refusal(int status, String? code, {String? field}) {
     final detail = <String, Object?>{'message': 'x'};
     if (code != null) detail['code'] = code;
     if (field != null) detail['field'] = field;
-    return GatewayError(status, jsonEncode({'detail': detail}));
+    return HostError(status, jsonEncode({'detail': detail}));
   }
 }
 

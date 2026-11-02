@@ -66,6 +66,9 @@ async fn a_reminder_alerts_only_when_a_notify_rule_names_it_and_mute_wins() {
     host.chat
         .set_company_timezone("dev_harness", "Europe/Madrid")
         .expect("zone");
+    // Pairing posts the notice first: a reminder without an origin goes to the newest
+    // conversation, so «Trabajo» is created after it.
+    let writer = host.paired_with("writer", &[Permission::Respond]).await;
     let conversation_id = host
         .chat
         .create_conversation(NewConversation {
@@ -74,7 +77,6 @@ async fn a_reminder_alerts_only_when_a_notify_rule_names_it_and_mute_wins() {
         })
         .expect("conversation")
         .id;
-    let writer = host.paired_with("writer", &[Permission::Respond]).await;
     let mut receiver = host.store.receiver();
 
     // No rule: the card arrives, and no alert frame.
@@ -133,6 +135,9 @@ async fn a_burst_of_reminders_sends_every_card_but_only_a_few_frames() {
     host.chat
         .set_company_timezone("dev_harness", "Europe/Madrid")
         .expect("zone");
+    // Pairing posts the notice first: a reminder without an origin goes to the newest
+    // conversation, so «Trabajo» is created after it.
+    let writer = host.paired_with("writer", &[Permission::Respond]).await;
     let conversation_id = host
         .chat
         .create_conversation(NewConversation {
@@ -141,7 +146,6 @@ async fn a_burst_of_reminders_sends_every_card_but_only_a_few_frames() {
         })
         .expect("conversation")
         .id;
-    let writer = host.paired_with("writer", &[Permission::Respond]).await;
     let (status, _) = writer
         .request(
             "POST",

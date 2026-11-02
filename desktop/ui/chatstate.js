@@ -47,9 +47,9 @@ export const chat = {
 
 export function failure(error) {
   if (error && typeof error === "object" && error.kind) return error;
-  if (typeof error === "string") return { kind: "gateway", message: error };
-  if (error && typeof error.message === "string") return { kind: "gateway", message: error.message };
-  return { kind: "gateway", message: "No se pudo completar la operación." };
+  if (typeof error === "string") return { kind: "host", message: error };
+  if (error && typeof error.message === "string") return { kind: "host", message: error.message };
+  return { kind: "host", message: "No se pudo completar la operación." };
 }
 
 export function connection() {
@@ -63,7 +63,7 @@ export function offline() {
 export function hostName() {
   if (app.boot && app.boot.mode === "local") return "el host local";
   try {
-    return new URL(app.boot.gateway_url).hostname || "el host";
+    return new URL(app.boot.host_url).hostname || "el host";
   } catch {
     return "el host";
   }

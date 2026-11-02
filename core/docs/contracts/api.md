@@ -1,9 +1,9 @@
 # Contract: HTTP surface
-_(gateway retirado; ver README)_
+_(implementado en el núcleo Rust; ver README)_
 
 The host binds loopback by default. Reaching it from a phone is the transport's
 job, not this process's: over Tailscale, or over the LAN listener below. Authoritative
-code: `gateway/src/herdr_notify/api/app.py`, `.../api/actions.py`.
+code: `crates/api/src/routes/`, `crates/api/src/lib.rs`.
 
 ## LAN TLS listener — IMPLEMENTED (CORE11)
 
@@ -98,7 +98,7 @@ host (a herdr round trip and a pane read) even though it mutates nothing.
 
 `pane_id` must match `^[A-Za-z0-9]{1,32}:p[0-9A-Za-z]{1,32}$` (for example
 `w1:p3`). A bare agent name is refused — targets are resolved only to panes the
-gateway already mirrors.
+host already mirrors.
 
 ## Request and response shapes
 
@@ -137,7 +137,7 @@ Body: `{ "keys": ["enter"], "confirm": false }` — 1…8 keys.
 No body. `focus` calls herdr's `agent.focus`. `seen` is an acknowledged no-op:
 herdr 0.9.1 clears a "done" badge only through `agent.focus`, which would also
 move the operator's terminal, so the phone marks the agent seen locally and the
-gateway calls nothing (updated: this route no longer reaches herdr).
+host calls nothing (updated: this route no longer reaches herdr).
 
 ### `POST /v1/agents/{pane_id}/read`
 
@@ -155,7 +155,7 @@ Body: `{ "mime": "image/png", "data": "<base64>" }`.
 - `data` is standard base64 of the image bytes, at most 5 MiB decoded.
 - The bytes must actually be the declared container (PNG magic, JPEG `FF D8 FF`,
   or a `RIFF….WEBP` header). A renamed file is refused, not stored.
-- The gateway writes the file under its data dir (`--images`, default
+- The host writes the file under its data dir (`--images`, default
   `~/.config/herdr-notify/images`) and submits the **absolute path** to the agent
   as a prompt (`Imagen adjunta: <path>`), so the agent opens it with its own
   tools. The file is removed again if herdr refuses the prompt.
@@ -174,14 +174,14 @@ Failures: `400` with an action code (`unsupported_type`, `invalid_image`,
 cap. Requires `RESPOND`: attaching a picture drives the agent exactly as sending
 a prompt does.
 
-> **IMPLEMENTED.** The Android side (`ImageAttachment`, `sendImage`) validates
+> **IMPLEMENTED.** The client side (`ImageAttachment`, `sendImage`) validates
 > the same 5 MiB ceiling and the three types before sending.
 
 ### Action responses
 
 Writes return `{"ok": true, "result": {…}}` where `result` is trimmed to what the
 app needs (for a prompt: `pane_id`, `agent`, `agent_status`). herdr's own
-refusal is a `409`, not a gateway fault (`errors.md`).
+refusal is a `409`, not a host fault (`errors.md`).
 
 ### `POST /v1/workspaces`
 
@@ -198,7 +198,7 @@ Body: `{ "agent": "opencode", "cwd": "<path>", "label": "…" }`.
   the pane's display title and wins over the terminal's own OSC title. A
   label that breaks the rule is `422 invalid_label`.
 
-Response (the gateway's shape):
+Response (the host's shape):
 
 ```json
 { "ok": true, "workspace_id": "w1", "pane_id": "w1:p4",

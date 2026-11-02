@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/gateway_client.dart';
+import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/api/pinned_client.dart';
 import 'package:herdr_notify/src/rust/api/signing.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
@@ -14,7 +14,7 @@ void main() {
     await RustLib.init();
   });
 
-  GatewayClient clientOn(FakePinnedClient fake) => GatewayClient(
+  HostClient clientOn(FakePinnedClient fake) => HostClient(
     baseUrl: 'https://127.0.0.1:8443',
     deviceId: 'hn-7',
     privateKeyBase64: generateDeviceKey().privateKeyB64,

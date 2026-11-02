@@ -6,13 +6,13 @@ use herdr_desktop_core::mail::{
     DeviceLogin, LoginStatus, MailAccount, MailDraft, MailFailure, MailResult, SendRequest,
     SendState, SendToggled,
 };
-use herdr_desktop_core::GatewayClient;
+use herdr_desktop_core::HostClient;
 use tauri::State;
 
 use crate::app_state::AppState;
 use crate::chat_commands::{shared, Shared};
 
-fn client(shared: &AppState) -> MailResult<GatewayClient> {
+fn client(shared: &AppState) -> MailResult<HostClient> {
     shared
         .settings()
         .ok()

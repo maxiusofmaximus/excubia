@@ -10,7 +10,7 @@ use crate::error::{CoreError, Result};
 const STORED_VERSION: u8 = 1;
 const FINGERPRINT_BYTES: usize = 8;
 
-/// The gateway caps `label` at 64 characters (`PairRequest`).
+/// The host caps `label` at 64 characters (`PairRequest`).
 pub const MAX_DEVICE_LABEL_CHARS: usize = 64;
 
 /// A P-256 identity. The private scalar is only ever serialised into the
@@ -91,7 +91,7 @@ impl DeviceIdentity {
         *self.signing_key.verifying_key()
     }
 
-    /// Uncompressed SEC1 point, 65 bytes, base64: what the gateway verifies.
+    /// Uncompressed SEC1 point, 65 bytes, base64: what the host verifies.
     pub fn public_key_b64(&self) -> String {
         let point = self.verifying_key().to_sec1_point(false);
         STANDARD.encode(point.as_bytes())
@@ -172,7 +172,7 @@ pub fn default_device_label() -> String {
     label.chars().take(MAX_DEVICE_LABEL_CHARS).collect()
 }
 
-/// Trims and checks a label before it is stored or sent to the gateway.
+/// Trims and checks a label before it is stored or sent to the host.
 pub fn validate_device_label(value: &str) -> Result<String> {
     let label = value.trim();
     if label.is_empty() {

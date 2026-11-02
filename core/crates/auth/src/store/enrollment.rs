@@ -120,13 +120,18 @@ impl DeviceStore {
     }
 
     /// Mint (and rotate) a device's recovery code. Returned once; only the
-    /// hash is stored.
+    /// hash is stored, so the previous code stops working. `None` when the
+    /// device is unknown or revoked: a revoked device gets no new way back in.
     pub fn issue_recovery_code(&self, device_id: &str) -> Result<Option<String>, StoreError> {
-        let code = mint_recovery_code()?;
         let mut inner = self.lock();
-        let Some(device) = inner.devices.get_mut(device_id) else {
+        let Some(device) = inner
+            .devices
+            .get_mut(device_id)
+            .filter(|device| !device.revoked)
+        else {
             return Ok(None);
         };
+        let code = mint_recovery_code()?;
         device.recovery_code_hash = Some(code_hash(&code));
         self.save(&inner)?;
         Ok(Some(code))
