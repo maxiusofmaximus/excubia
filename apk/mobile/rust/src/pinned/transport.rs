@@ -113,7 +113,9 @@ fn parse_addresses(endpoint: &PinnedEndpoint) -> Result<Vec<SocketAddr>, PinnedF
         .collect()
 }
 
-/// Only a candidate whose TCP connect fails moves on to the next one. Anything
+/// Only a candidate whose TCP connect fails moves on to the next one; if some
+/// candidate refused (the PC is on, its service is not), that is what is
+/// reported over the plain unreachable ones. Anything
 /// after the connect means a host answered, so a failed pin or a bad
 /// certificate stops here: another address is not a second chance for a
 /// different key.
@@ -126,7 +128,12 @@ fn connect_first(
     for address in addresses {
         match handshake(*address, config, io_timeout) {
             Ok(tls) => return Ok((*address, tls)),
-            Err(failure) if failure.kind == Kind::Unreachable => last = failure,
+            Err(failure) if failure.kind == Kind::Refused => last = failure,
+            Err(failure) if failure.kind == Kind::Unreachable => {
+                if last.kind != Kind::Refused {
+                    last = failure;
+                }
+            }
             Err(other) => return Err(other),
         }
     }
@@ -138,8 +145,14 @@ fn handshake(
     config: &Arc<ClientConfig>,
     io_timeout: Duration,
 ) -> Result<Tls, PinnedFailure> {
-    let tcp = TcpStream::connect_timeout(&address, CONNECT_TIMEOUT)
-        .map_err(|error| PinnedFailure::of(Kind::Unreachable, error.to_string()))?;
+    let tcp = TcpStream::connect_timeout(&address, CONNECT_TIMEOUT).map_err(|error| {
+        let kind = if error.kind() == io::ErrorKind::ConnectionRefused {
+            Kind::Refused
+        } else {
+            Kind::Unreachable
+        };
+        PinnedFailure::of(kind, error.to_string())
+    })?;
     tcp.set_read_timeout(Some(io_timeout))
         .and_then(|()| tcp.set_write_timeout(Some(io_timeout)))
         .map_err(|error| during_exchange(&error))?;

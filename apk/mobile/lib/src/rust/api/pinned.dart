@@ -250,6 +250,9 @@ enum PinnedFailureKind {
 
   /// A stream answered with something other than 200.
   rejected,
+
+  /// The PC refused the connection: it is on, but nothing listens on the port.
+  refused,
 }
 
 /// Exactly one of `text` and `failure` is set; a failure is always the last item.

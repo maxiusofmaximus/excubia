@@ -6,7 +6,8 @@ enum ConnectionFailure {
   /// No transport completed the handshake with the paired identity.
   noRoute,
 
-  /// The host answered, but its service is down (502, 503 or 504).
+  /// The host answered, or refused the connection, but its service is down
+  /// (502, 503, 504 or a refused port).
   hostDown,
 
   /// The deadline ran out before an answer.
@@ -24,6 +25,7 @@ ConnectionFailure? connectionFailureOfPinned(rust.PinnedFailureKind kind) =>
       rust.PinnedFailureKind.certificateInvalid =>
         ConnectionFailure.identityMismatch,
       rust.PinnedFailureKind.timeout => ConnectionFailure.timeout,
+      rust.PinnedFailureKind.refused => ConnectionFailure.hostDown,
       rust.PinnedFailureKind.unreachable ||
       rust.PinnedFailureKind.protocol => ConnectionFailure.noRoute,
       _ => null,

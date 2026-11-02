@@ -6455,6 +6455,7 @@ impl SseDecode for crate::api::pinned::PinnedFailureKind {
             8 => crate::api::pinned::PinnedFailureKind::Timeout,
             9 => crate::api::pinned::PinnedFailureKind::Protocol,
             10 => crate::api::pinned::PinnedFailureKind::Rejected,
+            11 => crate::api::pinned::PinnedFailureKind::Refused,
             _ => unreachable!("Invalid variant for PinnedFailureKind: {}", inner),
         };
     }
@@ -8429,6 +8430,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::pinned::PinnedFailureKind {
             Self::Timeout => 8.into_dart(),
             Self::Protocol => 9.into_dart(),
             Self::Rejected => 10.into_dart(),
+            Self::Refused => 11.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -10143,6 +10145,7 @@ impl SseEncode for crate::api::pinned::PinnedFailureKind {
                 crate::api::pinned::PinnedFailureKind::Timeout => 8,
                 crate::api::pinned::PinnedFailureKind::Protocol => 9,
                 crate::api::pinned::PinnedFailureKind::Rejected => 10,
+                crate::api::pinned::PinnedFailureKind::Refused => 11,
                 _ => {
                     unimplemented!("");
                 }

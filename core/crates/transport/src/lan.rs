@@ -27,6 +27,7 @@ impl Transport for LanTransport {
     }
 
     async fn connect(&self, peer: &PeerRef) -> Result<Route, TransportError> {
+        let mut refused = false;
         for &Hint::Ip(addr) in &peer.hints {
             match attempt(addr, peer).await {
                 Ok(rtt) => {
@@ -36,12 +37,18 @@ impl Transport for LanTransport {
                     });
                 }
                 // shortcut: a hint that hangs eats the whole LAN timeout; add a per-hint timeout if real networks show it.
-                Err(TransportError::NoRoute) => {}
+                Err(Miss::NoRoute) => {}
+                // The PC is on but nothing listens there: try the other hints.
+                Err(Miss::Refused) => refused = true,
                 // A pin mismatch or refusal from one address is final, as for transports.
-                Err(stop) => return Err(stop),
+                Err(Miss::Stop(stop)) => return Err(stop),
             }
         }
-        Err(TransportError::NoRoute)
+        Err(if refused {
+            TransportError::HostDown
+        } else {
+            TransportError::NoRoute
+        })
     }
 
     /// shortcut: accepting is the LAN listener in crates/api (serve_client); this never resolves. Do not await it until F3.
@@ -55,21 +62,36 @@ impl Transport for LanTransport {
     }
 }
 
+/// Why one address gave no route. `Refused` proves the PC is on, so it ranks
+/// above `NoRoute` when no hint answers.
+enum Miss {
+    NoRoute,
+    Refused,
+    Stop(TransportError),
+}
+
 /// One address: TCP, then a TLS handshake pinned to the peer's key, then a
 /// health request. Returns the health round trip.
-async fn attempt(addr: SocketAddr, peer: &PeerRef) -> Result<Duration, TransportError> {
+async fn attempt(addr: SocketAddr, peer: &PeerRef) -> Result<Duration, Miss> {
     let config = client_config(PinSet::new(peer.key, None)).expect("TLS 1.3 client config");
     let connector = TlsConnector::from(Arc::new(config));
     let tcp = TcpStream::connect(addr)
         .await
-        .map_err(|_| TransportError::NoRoute)?;
+        .map_err(|error| match error.kind() {
+            std::io::ErrorKind::ConnectionRefused => Miss::Refused,
+            _ => Miss::NoRoute,
+        })?;
     let name = ServerName::try_from(SERVER_NAME)
         .expect("constant name")
         .to_owned();
-    let mut tls = connector
-        .connect(name, tcp)
-        .await
-        .map_err(|error| classify_handshake(&error))?;
+    let mut tls =
+        connector
+            .connect(name, tcp)
+            .await
+            .map_err(|error| match classify_handshake(&error) {
+                TransportError::NoRoute => Miss::NoRoute,
+                stop => Miss::Stop(stop),
+            })?;
 
     // From here the host answered TLS with the pinned key: a failure is the host's.
     let request =
@@ -77,7 +99,7 @@ async fn attempt(addr: SocketAddr, peer: &PeerRef) -> Result<Duration, Transport
     let started = Instant::now();
     tls.write_all(request.as_bytes())
         .await
-        .map_err(|_| TransportError::HostDown)?;
+        .map_err(|_| Miss::Stop(TransportError::HostDown))?;
     let mut response = Vec::new();
     // A peer that closes without close_notify still answered; keep what came.
     let _ = (&mut tls).take(16 * 1024).read_to_end(&mut response).await;
@@ -85,8 +107,8 @@ async fn attempt(addr: SocketAddr, peer: &PeerRef) -> Result<Duration, Transport
 
     match status_code(&response) {
         Some(200) => Ok(rtt),
-        Some(401 | 403) => Err(TransportError::Refused),
-        _ => Err(TransportError::HostDown),
+        Some(401 | 403) => Err(Miss::Stop(TransportError::Refused)),
+        _ => Err(Miss::Stop(TransportError::HostDown)),
     }
 }
 
@@ -225,7 +247,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_address_with_nothing_listening_is_no_route() {
+    async fn an_address_that_refuses_the_connection_is_host_down() {
         let key = Identity::generate()
             .expect("identity")
             .fingerprint()
@@ -234,7 +256,7 @@ mod tests {
         let found = LanTransport::default()
             .connect(&peer(key, vec![closed_address()]))
             .await;
-        assert_eq!(found, Err(TransportError::NoRoute));
+        assert_eq!(found, Err(TransportError::HostDown));
     }
 
     #[tokio::test]

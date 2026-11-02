@@ -101,6 +101,22 @@ void main() {
     );
 
     test(
+      'a pinned transport whose port refuses the connection is host down',
+      () async {
+        final client = _pinnedClient(
+          FakePinnedClient(
+            failure: const PinnedException(
+              rust.PinnedFailureKind.refused,
+              'connection refused',
+            ),
+          ),
+        );
+
+        expect(await _failureOf(client.state()), ConnectionFailure.hostDown);
+      },
+    );
+
+    test(
       'a 502, 503 or 504 means the host answered and its service is down',
       () async {
         for (final status in [502, 503, 504]) {

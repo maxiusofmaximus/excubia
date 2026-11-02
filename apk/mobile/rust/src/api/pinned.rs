@@ -93,6 +93,8 @@ pub enum PinnedFailureKind {
     Protocol,
     /// A stream answered with something other than 200.
     Rejected,
+    /// The PC refused the connection: it is on, but nothing listens on the port.
+    Refused,
 }
 
 /// A failure with the technical detail the UI folds away. `status` and

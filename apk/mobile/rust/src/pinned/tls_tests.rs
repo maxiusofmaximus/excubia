@@ -252,6 +252,17 @@ fn an_unreachable_candidate_falls_back_to_the_next_one() {
 }
 
 #[test]
+fn a_closed_port_is_refused_and_wins_over_an_unreachable_candidate() {
+    let host = identity();
+    let closed = {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        listener.local_addr().expect("address")
+    };
+    let reply = get_health(endpoint(vec![closed.to_string()], pin_of(&host), None));
+    assert_eq!(failure_kind(&reply), PinnedFailureKind::Refused);
+}
+
+#[test]
 fn a_pin_failure_on_a_candidate_is_final_and_not_retried_elsewhere() {
     let pinned = identity();
     let impostor = identity();
