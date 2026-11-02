@@ -201,7 +201,7 @@ fn tls_bind_is_off_by_default_and_needs_a_concrete_address() {
     let Command::Run(options) = parse(args(&[])).expect("parse") else {
         panic!("expected run");
     };
-    assert!(options.tls_bind.is_none(), "the LAN listener is opt-in");
+    assert!(options.tls_bind.is_empty(), "the LAN listener is opt-in");
 
     let Command::Run(options) = parse(args(&["--tls-bind", "192.168.0.10:8443"])).expect("parse")
     else {
@@ -210,9 +210,29 @@ fn tls_bind_is_off_by_default_and_needs_a_concrete_address() {
     assert_eq!(
         options
             .tls_bind
-            .map(|address| address.to_string())
-            .as_deref(),
-        Some("192.168.0.10:8443")
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>(),
+        ["192.168.0.10:8443"]
+    );
+
+    let Command::Run(options) = parse(args(&[
+        "--tls-bind",
+        "192.168.0.10:8443",
+        "--tls-bind",
+        "100.64.0.5:8443",
+    ]))
+    .expect("parse") else {
+        panic!("expected run");
+    };
+    assert_eq!(
+        options
+            .tls_bind
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>(),
+        ["192.168.0.10:8443", "100.64.0.5:8443"],
+        "the flag repeats: LAN and VPN at once"
     );
 
     let error = parse(args(&["--tls-bind", "0.0.0.0:8443"])).unwrap_err();

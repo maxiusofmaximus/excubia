@@ -67,13 +67,13 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     // The LAN listener is off unless named. It serves the device routes only:
     // hooks and the internal surface stay on loopback listeners, so no LAN
     // device can reach them whatever the request says.
-    let lan_listener = match options.tls_bind {
-        Some(address) => {
-            let identity = TlsSlots::open(&options.data_dir).active()?;
-            bind_lan(address, &identity).await
+    let mut lan_listeners = Vec::new();
+    if !options.tls_bind.is_empty() {
+        let identity = TlsSlots::open(&options.data_dir).active()?;
+        for &address in &options.tls_bind {
+            lan_listeners.extend(bind_lan(address, &identity).await);
         }
-        None => None,
-    };
+    }
 
     // The MCP shim is a separate process on a dedicated loopback listener.
     // Keeping it off the public socket means a tailnet peer can never reach it,
@@ -200,8 +200,21 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         pairing_audit: Arc::new(PairingNotice::new(&options.data_dir, chat)),
     });
     let mut internal_task = tokio::spawn(serve_internal(internal, context.clone()));
-    let mut lan_task =
-        lan_listener.map(|listener| tokio::spawn(serve_client(listener, context.clone())));
+    // One task for every LAN/VPN address: the first listener to stop ends it,
+    // and dropping the set aborts the rest.
+    let mut lan_task = (!lan_listeners.is_empty()).then(|| {
+        let context = context.clone();
+        tokio::spawn(async move {
+            let mut set = tokio::task::JoinSet::new();
+            for listener in lan_listeners {
+                set.spawn(serve_client(listener, context.clone()));
+            }
+            match set.join_next().await {
+                Some(done) => done.map_err(std::io::Error::other)?,
+                None => Ok(()),
+            }
+        })
+    });
     let outcome: Result<()> = tokio::select! {
         served = serve(listener, context) => served.context("serve the public API"),
         served = &mut internal_task => match served {

@@ -203,7 +203,7 @@ it verbatim (Desktop and APK copy it from `CORE4-RESULT.md`).
 
 ## LAN TLS pairing link — IMPLEMENTED (CORE11, RFC-transports L1)
 
-The LAN listener is off by default. `host --tls-bind <ip:port>` serves the
+The LAN listener is off by default. `host --tls-bind <ip:port>` (repeatable) serves the
 device routes over TLS 1.3 on a concrete address; a wildcard is refused, as
 `--bind` refuses it. The hook routes and the internal MCP surface are never
 mounted on this listener, so a LAN device cannot reach them.

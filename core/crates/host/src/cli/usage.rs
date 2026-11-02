@@ -1,7 +1,7 @@
 //! The usage text and the canonical grant command.
 
 pub const USAGE: &str = "host [--port N] [--bind ADDR] [--rows R] [--cols C] [--label L] \
-[--tls-bind IP:PORT] [--hook-ttl SECONDS] [--snapshot-lines N] \
+[--tls-bind IP:PORT]... [--hook-ttl SECONDS] [--snapshot-lines N] \
 [--workspaces-root DIR] [--uac-plugin-dir DIR] \
 [--asr-python PY --asr-script PY_FILE --asr-model DIR] [--asr-no-corrector] [--mail-sidecar http://127.0.0.1:PORT] [--spawn \"<cmdline>\"]... [--data-dir DIR]\n\
        host pair-code [--ttl SECONDS, default 180] [--lan IP:PORT]... [--data-dir DIR]\n\

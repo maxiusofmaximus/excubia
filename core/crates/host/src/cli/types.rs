@@ -12,8 +12,8 @@ use crate::mail_sidecar::SidecarEndpoint;
 pub struct RunOptions {
     pub port: u16,
     pub bind: IpAddr,
-    /// The LAN TLS listener. Off unless named; the address must be concrete.
-    pub tls_bind: Option<SocketAddr>,
+    /// The LAN/VPN TLS listeners. Off unless named; each address must be concrete.
+    pub tls_bind: Vec<SocketAddr>,
     pub rows: u16,
     pub cols: u16,
     pub label: String,

@@ -5,17 +5,17 @@ Excubia no necesita ninguna VPN. Dentro de la red de casa el móvil llega al hos
 ## Qué hace falta
 
 1. **Una VPN que dé una IP fija al PC y otra al móvil** (Tailscale, WireGuard, Headscale…). Excubia no la instala ni la configura.
-2. **El host escuchando en la IP de la VPN**, con una dirección concreta (los comodines `0.0.0.0` y `::` se rechazan):
+2. **El host escuchando en la IP de la VPN**, con una dirección concreta (los comodines `0.0.0.0` y `::` se rechazan). `--tls-bind` se repite, así que puede escuchar en la LAN y en la VPN a la vez:
 
    ```
-   host --tls-bind <ip-de-la-vpn>:8443
+   host --tls-bind <ip-lan>:8443 --tls-bind <ip-de-la-vpn>:8443
    ```
 
-   Limitación actual: `--tls-bind` acepta **una sola** dirección, así que el host escucha en la LAN o en la VPN, no en ambas a la vez. Si quieres las dos rutas, hace falta una interfaz que las agrupe o ampliar `--tls-bind` (no está hecho).
+   Si una dirección no se puede abrir (la VPN apagada, por ejemplo), el host lo avisa y sigue con las demás.
 3. **Un enlace de emparejamiento que incluya esa IP**: `--lan` se puede repetir, una vez por dirección alcanzable.
 
    ```
-   host pair-code --lan <ip-de-la-vpn>:8443
+   host pair-code --lan <ip-lan>:8443 --lan <ip-de-la-vpn>:8443
    ```
 
    La identidad que comprueba es la clave fijada (`h` del enlace), nunca la IP: la VPN no es una identidad ni concede aprobaciones automáticas.

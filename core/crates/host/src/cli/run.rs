@@ -17,7 +17,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<Command, Str
     let mut options = RunOptions {
         port: 8791,
         bind: IpAddr::from([127, 0, 0, 1]),
-        tls_bind: None,
+        tls_bind: Vec::new(),
         rows: 30,
         cols: 100,
         label: "core".to_string(),
@@ -76,12 +76,10 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<Command, Str
                     args.next().ok_or("--data-dir needs a value")?,
                 ))
             }
-            "--tls-bind" => {
-                options.tls_bind = Some(concrete_address(
-                    "--tls-bind",
-                    args.next().ok_or("--tls-bind needs an address")?,
-                )?)
-            }
+            "--tls-bind" => options.tls_bind.push(concrete_address(
+                "--tls-bind",
+                args.next().ok_or("--tls-bind needs an address")?,
+            )?),
             "--workspaces-root" => {
                 workspaces_root = Some(PathBuf::from(
                     args.next().ok_or("--workspaces-root needs a value")?,
