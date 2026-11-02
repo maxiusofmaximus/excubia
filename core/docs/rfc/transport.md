@@ -126,6 +126,7 @@ pub enum TransportError {
 - **Gap de bindings:** sin binding Kotlin/Flutter verificado, el p2p en el móvil puede exigir FFI propio [NV].
 - **Headscale:** el control plane debe ser alcanzable para que el móvil reciba su mapa. Sin host público, no sirve fuera de la LAN [I].
 - **Tailscale como única ruta:** ya falló una vez (APK8D, ~6 h). Por eso es opcional (R4 y §4).
+- **`HostDown` no se distingue por TCP con la regla de cortafuegos actual:** con la regla de entrada por programa, un host parado hace que Windows descarte los SYN en silencio. Medido con `nc` desde el TECNO (2026-11-02): 28/28 `Timeout` de 3,2 s, ningún «Connection refused», y el `ping` sí respondía [V]. Por eso «PC apagado» y «servicio parado» se ven igual (`NoRoute`). El cliente ya trata un puerto rechazado como `HostDown` (`PinnedFailureKind.refused`), así que bastaría una regla de entrada **por puerto** (requiere admin una vez en el PC) para que el PC responda RST con el host parado [I].
 - **Cambio de identidad del host:** el pin se rota con `host tls prepare|activate` [`pairing.md:210`]. Un transporte nuevo con otra identidad debe reutilizar R3 y no abrir un segundo canal de confianza [I].
 
 ## 7. Decisiones para el Master
