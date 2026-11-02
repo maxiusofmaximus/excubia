@@ -43,6 +43,7 @@ void main() {
         agenda: AgendaApi(_NoCallTransport()),
         phone: const ChannelPhoneContacts(),
         alertRules: AlertsApi(_NoCallTransport()),
+        onUnpaired: () async {},
       ),
     );
 
@@ -50,6 +51,39 @@ void main() {
     expect(find.text('Vigila a tus agentes mientras no estás'), findsOneWidget);
     expect(find.textContaining('Versión $appVersion'), findsOneWidget);
     expect(find.text('Avisos con la pantalla apagada'), findsOneWidget);
+  });
+
+  testWidgets('Ajustes has a row to pair again', (tester) async {
+    await mountWidget(tester, _settings(() async {}));
+
+    expect(find.widgetWithText(ListTile, 'Emparejar de nuevo'), findsOneWidget);
+  });
+
+  testWidgets('cancelar el diálogo no vuelve a emparejar', (tester) async {
+    var unpaired = 0;
+    await mountWidget(tester, _settings(() async => unpaired++));
+
+    await tester.tap(find.widgetWithText(ListTile, 'Emparejar de nuevo'));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Emparejar de nuevo?'), findsOneWidget);
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+
+    expect(unpaired, 0);
+  });
+
+  testWidgets('confirmar el diálogo vuelve a emparejar una vez', (
+    tester,
+  ) async {
+    var unpaired = 0;
+    await mountWidget(tester, _settings(() async => unpaired++));
+
+    await tester.tap(find.widgetWithText(ListTile, 'Emparejar de nuevo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Emparejar de nuevo'));
+    await tester.pumpAndSettle();
+
+    expect(unpaired, 1);
   });
 
   testWidgets('Ajustes has a Correo entry for accounts and sending', (
@@ -64,6 +98,7 @@ void main() {
           agenda: AgendaApi(_NoCallTransport()),
           phone: const ChannelPhoneContacts(),
           alertRules: AlertsApi(_NoCallTransport()),
+          onUnpaired: () async {},
         ),
       ),
     );
@@ -72,3 +107,12 @@ void main() {
     expect(find.text('Cuentas y envío'), findsOneWidget);
   });
 }
+
+SettingsScreen _settings(Future<void> Function() onUnpaired) => SettingsScreen(
+  mail: MailApi(_NoCallTransport()),
+  voice: VoiceSendSettings(),
+  agenda: AgendaApi(_NoCallTransport()),
+  phone: const ChannelPhoneContacts(),
+  alertRules: AlertsApi(_NoCallTransport()),
+  onUnpaired: onUnpaired,
+);

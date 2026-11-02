@@ -23,6 +23,7 @@ class SettingsScreen extends StatelessWidget {
     required this.agenda,
     required this.phone,
     required this.alertRules,
+    required this.onUnpaired,
   });
 
   final MailApi mail;
@@ -30,6 +31,34 @@ class SettingsScreen extends StatelessWidget {
   final AgendaApi agenda;
   final PhoneContacts phone;
   final AlertsApi alertRules;
+  final Future<void> Function() onUnpaired;
+
+  Future<void> _confirmRepair(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('¿Emparejar de nuevo?'),
+        content: const Text(
+          'Este teléfono olvidará su emparejamiento actual y te pedirá un enlace nuevo. '
+          'El dispositivo actual seguirá siendo válido en el PC hasta que lo revoques allí.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialog).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialog).pop(true),
+            child: const Text('Emparejar de nuevo'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    // Back to the root first, so the pairing screen is not hidden behind Ajustes.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    await onUnpaired();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +162,26 @@ class SettingsScreen extends StatelessWidget {
                     builder: (_) => AlertsScreen(rules: alertRules),
                   ),
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(height: Spacing.xl),
+          Text('EMPAREJAMIENTO', style: context.text.label),
+          const SizedBox(height: Spacing.sm),
+          SurfaceCard(
+            padding: EdgeInsets.zero,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                leading: Icon(
+                  Icons.link_outlined,
+                  color: context.colors.accentText,
+                ),
+                title: const Text('Emparejar de nuevo'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _confirmRepair(context),
               ),
             ),
           ),

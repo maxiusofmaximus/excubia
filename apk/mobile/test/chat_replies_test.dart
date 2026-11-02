@@ -87,6 +87,7 @@ Future<void> pumpThread(
         controller: controller,
         hires: HiresController(transport: transport),
         onOpenTeam: () {},
+        onUnpaired: () async {},
       ),
     ),
   );

@@ -126,6 +126,7 @@ class _HomeShellState extends State<HomeShell> {
             controller: chat,
             hires: _hires!,
             onOpenTeam: () => setState(() => _tab = 1),
+            onUnpaired: widget.onUnpaired,
           ),
           AgentsScreen(
             triage: _triage!,

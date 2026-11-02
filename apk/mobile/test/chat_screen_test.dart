@@ -136,6 +136,7 @@ Future<ChatController> pumpChat(
         controller: controller,
         hires: hires ?? HiresController(transport: chatTransport),
         onOpenTeam: () {},
+        onUnpaired: () async {},
       ),
     ),
   );
@@ -350,7 +351,11 @@ void main() {
         MaterialApp(
           theme: buildTheme(),
           home: Scaffold(
-            body: HistoryDrawer(controller: controller, onOpenTeam: () {}),
+            body: HistoryDrawer(
+              controller: controller,
+              onOpenTeam: () {},
+              onUnpaired: () async {},
+            ),
           ),
         ),
       );

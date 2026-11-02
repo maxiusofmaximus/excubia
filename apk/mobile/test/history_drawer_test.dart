@@ -50,7 +50,11 @@ Future<ChatController> _pump(
       home: ListenableBuilder(
         listenable: controller,
         builder: (context, _) => Scaffold(
-          body: HistoryDrawer(controller: controller, onOpenTeam: () {}),
+          body: HistoryDrawer(
+            controller: controller,
+            onOpenTeam: () {},
+            onUnpaired: () async {},
+          ),
         ),
       ),
     ),

@@ -55,12 +55,14 @@ class ChatScreen extends StatefulWidget {
     required this.controller,
     required this.hires,
     required this.onOpenTeam,
+    required this.onUnpaired,
     this.pickImage = pickChatImage,
   });
 
   final ChatController controller;
   final HiresController hires;
   final VoidCallback onOpenTeam;
+  final Future<void> Function() onUnpaired;
 
   /// Opens the gallery for one image; tests pass a fake.
   final Future<ChatAttachmentSource?> Function() pickImage;
@@ -250,7 +252,11 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       key: _scaffold,
       backgroundColor: c.bg,
-      drawer: HistoryDrawer(controller: _chat, onOpenTeam: widget.onOpenTeam),
+      drawer: HistoryDrawer(
+        controller: _chat,
+        onOpenTeam: widget.onOpenTeam,
+        onUnpaired: widget.onUnpaired,
+      ),
       body: SafeArea(
         child: Column(
           children: [

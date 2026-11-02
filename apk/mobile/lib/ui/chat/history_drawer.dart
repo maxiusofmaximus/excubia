@@ -20,10 +20,12 @@ class HistoryDrawer extends StatefulWidget {
     super.key,
     required this.controller,
     required this.onOpenTeam,
+    required this.onUnpaired,
   });
 
   final ChatController controller;
   final VoidCallback onOpenTeam;
+  final Future<void> Function() onUnpaired;
 
   @override
   State<HistoryDrawer> createState() => _HistoryDrawerState();
@@ -102,6 +104,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                           agenda: widget.controller.agenda,
                           phone: const ChannelPhoneContacts(),
                           alertRules: widget.controller.alertRules,
+                          onUnpaired: widget.onUnpaired,
                         ),
                       ),
                     );
