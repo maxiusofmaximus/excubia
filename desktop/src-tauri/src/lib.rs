@@ -155,6 +155,7 @@ pub fn run() {
             alert_commands::alert_mode_set,
             devices_commands::devices_list,
             devices_commands::devices_revoke,
+            devices_commands::devices_grant,
             mail_commands::mail_accounts,
             mail_commands::mail_login_start,
             mail_commands::mail_login_status,

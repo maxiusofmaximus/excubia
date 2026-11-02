@@ -7,7 +7,8 @@
 
 use std::io::{BufRead, BufReader};
 
-use hn_core_pin::{unix_now, PairingLink, PinError};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
+use hn_core_pin::{sas, unix_now, Fingerprint, PairingLink, PinError};
 
 use crate::frb_generated::StreamSink;
 use crate::pinned::transport::{
@@ -121,6 +122,15 @@ impl PinnedFailure {
 #[flutter_rust_bridge::frb(sync)]
 pub fn parse_pairing_link(uri: String) -> PairingLinkResult {
     parse_link(&uri, unix_now())
+}
+
+/// The six-digit string both screens show after a pinned pairing (RFC
+/// pairing-security §5, F1). `None` when the pin or the key is malformed.
+#[flutter_rust_bridge::frb(sync)]
+pub fn pairing_sas(pin: String, public_key_base64: String) -> Option<String> {
+    let pin: Fingerprint = pin.parse().ok()?;
+    let key = STANDARD.decode(public_key_base64).ok()?;
+    Some(sas(&pin, &key))
 }
 
 pub fn pinned_request(
@@ -336,6 +346,32 @@ mod tests {
     #[test]
     fn an_expired_link_is_a_typed_failure() {
         assert_eq!(failure_kind(&link_uri(NOW)), PinnedFailureKind::LinkExpired);
+    }
+
+    #[test]
+    fn pairing_sas_matches_the_contract_vectors() {
+        let pin = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8".to_string();
+        let mut key_a = vec![0x04_u8];
+        key_a.extend([0x11_u8; 32]);
+        key_a.extend([0x22_u8; 32]);
+        let mut key_b = vec![0x04_u8];
+        key_b.extend([0x33_u8; 32]);
+        key_b.extend([0x44_u8; 32]);
+        assert_eq!(
+            pairing_sas(pin.clone(), STANDARD.encode(key_a)),
+            Some("097665".to_string())
+        );
+        assert_eq!(
+            pairing_sas(pin, STANDARD.encode(key_b)),
+            Some("827242".to_string())
+        );
+    }
+
+    #[test]
+    fn pairing_sas_refuses_a_malformed_pin_or_key() {
+        let key = STANDARD.encode([0x04_u8; 65]);
+        assert_eq!(pairing_sas("short".to_string(), key), None);
+        assert_eq!(pairing_sas("A".repeat(43), "not base64!".to_string()), None);
     }
 
     #[test]

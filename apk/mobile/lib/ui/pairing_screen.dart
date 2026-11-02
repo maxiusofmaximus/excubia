@@ -17,6 +17,7 @@ import 'qr_scan_screen.dart';
 import 'theme.dart';
 import 'widgets/advanced_pairing.dart';
 import 'widgets/pairing_error_box.dart';
+import 'widgets/pairing_sas_dialog.dart';
 import 'widgets/paste_link_dialog.dart';
 import 'widgets/recovery_code_dialog.dart';
 import 'widgets/surface_card.dart';
@@ -210,6 +211,7 @@ class _PairingScreenState extends State<PairingScreen> {
           pins: pins,
         ),
         response.recoveryCode,
+        sas: rust.pairingSas(pin: link.primary, publicKeyBase64: publicKey),
       );
     } on PairingException catch (e) {
       final kind = e.kind;

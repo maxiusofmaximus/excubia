@@ -15,12 +15,20 @@ extension _PairingScreenFlows on _PairingScreenState {
     }
   }
 
-  Future<void> _finishPairing(Pairing pairing, String? recovery) async {
+  Future<void> _finishPairing(
+    Pairing pairing,
+    String? recovery, {
+    String? sas,
+  }) async {
     await widget.store.save(pairing);
     if (recovery != null && recovery.isNotEmpty) {
       await widget.store.saveRecoveryCode(recovery);
     }
     if (!mounted) return;
+    if (sas != null) {
+      await showPairingSasDialog(context, sas);
+      if (!mounted) return;
+    }
     if (recovery != null && recovery.isNotEmpty) {
       await showRecoveryCodeDialog(context, recovery);
     }

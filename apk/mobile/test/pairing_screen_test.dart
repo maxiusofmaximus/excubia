@@ -51,12 +51,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Excubia'), findsOneWidget);
-    expect(
-      find.text('Vigila a tus agentes mientras no estás'),
-      findsOneWidget,
-    );
+    expect(find.text('Vigila a tus agentes mientras no estás'), findsOneWidget);
 
     await pasteLink(tester, pinnedLink(expiresAt: nowSeconds() + 600));
+    await tester.tap(find.text('Entendido'));
+    await tester.pumpAndSettle();
 
     expect(paired?.deviceId, 'hn-7');
     expect(paired?.baseUrl, 'https://127.0.0.1:8443');
@@ -68,6 +67,47 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a pinned pairing shows the verification string before it ends', (
+    tester,
+  ) async {
+    final fake = FakePinnedClient(
+      answer: const PinnedAnswer(
+        status: 200,
+        body: '{"ok":true,"device_id":"hn-7"}',
+        address: '127.0.0.1:8443',
+      ),
+    );
+    final store = PairingStore(MemoryKeyValueStore());
+    Pairing? paired;
+    await tester.pumpWidget(
+      subject(
+        store,
+        api: PairingApi(pinned: fake),
+        onPaired: (pairing) {
+          paired = pairing;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await pasteLink(tester, pinnedLink(expiresAt: nowSeconds() + 600));
+
+    final key = publicKeyFromPrivate(
+      privateKeyB64: (await store.load()).privateKey,
+    )!;
+    final sas = rust.pairingSas(pin: testPin, publicKeyBase64: key)!;
+    expect(find.text('Comprueba esta cadena'), findsOneWidget);
+    expect(
+      find.text('${sas.substring(0, 3)} ${sas.substring(3)}'),
+      findsOneWidget,
+    );
+    expect(paired, isNull);
+
+    await tester.tap(find.text('Entendido'));
+    await tester.pumpAndSettle();
+    expect(paired?.deviceId, 'hn-7');
   });
 
   testWidgets('a pin mismatch names the danger and folds the detail', (

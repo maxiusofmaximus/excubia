@@ -28,3 +28,13 @@ pub async fn devices_revoke(state: State<'_, Shared>, id: String) -> Result<(), 
     let shared = shared(&state);
     client(&shared)?.device_revoke(&id).await
 }
+
+#[tauri::command]
+pub async fn devices_grant(
+    state: State<'_, Shared>,
+    id: String,
+    permissions: Vec<String>,
+) -> Result<(), DeviceFailure> {
+    let shared = shared(&state);
+    client(&shared)?.device_grant(&id, &permissions).await
+}

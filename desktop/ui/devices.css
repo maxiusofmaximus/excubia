@@ -53,6 +53,40 @@
   justify-items: start;
 }
 
+.device-approve {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.device-approve-title,
+.device-approve p {
+  margin: 0;
+}
+
+.device-sas {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.device-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.device-permission {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
 .devices-revoked {
   margin-top: 12px;
 }

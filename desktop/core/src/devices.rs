@@ -5,6 +5,7 @@
 use reqwest::{Method, RequestBuilder};
 use serde::de::{DeserializeOwned, IgnoredAny};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use crate::client::{expect_json, validate_device_id, HostClient};
 use crate::error::CoreError;
@@ -26,6 +27,9 @@ pub struct Device {
     pub revoked: bool,
     #[serde(default)]
     pub permissions: Vec<String>,
+    /// The six-digit verification string of a pending device, when the host has a pin.
+    #[serde(default)]
+    pub sas: Option<String>,
 }
 
 /// The devices, and the id this app signs as: the row the screen marks «Este equipo».
@@ -51,6 +55,8 @@ pub enum DeviceFailure {
     /// This device lacks `ADMIN`.
     Forbidden,
     NotFound,
+    /// A grant to a device that already has permissions.
+    NotPending,
     Refused {
         status: u16,
     },
@@ -92,13 +98,37 @@ impl HostClient {
         Ok(())
     }
 
+    /// Gives a pending device its first permissions. `admin` is never sent: the host
+    /// CLI keeps it, and an empty list is refused before anything leaves.
+    pub async fn device_grant(&self, device_id: &str, permissions: &[String]) -> DeviceResult<()> {
+        let device_id = device_id.trim();
+        validate_device_id(device_id).map_err(DeviceFailure::from_core)?;
+        if permissions.is_empty()
+            || permissions
+                .iter()
+                .any(|id| id.eq_ignore_ascii_case("admin"))
+        {
+            return Err(DeviceFailure::Protocol);
+        }
+        let body = serde_json::to_vec(&json!({ "permissions": permissions }))
+            .map_err(|_| DeviceFailure::Protocol)?;
+        let path = format!("{DEVICES}/{device_id}/grant");
+        let request = self.device_request(Method::POST, &path, Some(&body))?;
+        let _: IgnoredAny = self.device_send(request).await.map_err(not_pending)?;
+        Ok(())
+    }
+
     async fn device_call<T: DeserializeOwned>(
         &self,
         method: Method,
         path: &str,
     ) -> DeviceResult<T> {
-        let response = self
-            .device_request(method, path)?
+        self.device_send(self.device_request(method, path, None)?)
+            .await
+    }
+
+    async fn device_send<T: DeserializeOwned>(&self, request: RequestBuilder) -> DeviceResult<T> {
+        let response = request
             .send()
             .await
             .map_err(|error| DeviceFailure::from_core(CoreError::from(error)))?;
@@ -107,10 +137,23 @@ impl HostClient {
             .map_err(DeviceFailure::from_core)
     }
 
-    /// Both calls here carry no body: the signature covers the empty digest.
-    fn device_request(&self, method: Method, path: &str) -> DeviceResult<RequestBuilder> {
-        self.signed_call(method, path, &[], None)
+    /// The calls here carry a body only when they have one: the signature covers its digest.
+    fn device_request(
+        &self,
+        method: Method,
+        path: &str,
+        body: Option<&[u8]>,
+    ) -> DeviceResult<RequestBuilder> {
+        self.signed_call(method, path, &[], body)
             .map_err(DeviceFailure::from_core)
+    }
+}
+
+/// The host answers `409` to a grant of a device that already has permissions.
+fn not_pending(failure: DeviceFailure) -> DeviceFailure {
+    match failure {
+        DeviceFailure::Refused { status: 409 } => DeviceFailure::NotPending,
+        other => other,
     }
 }
 
@@ -162,7 +205,7 @@ mod tests {
     fn the_list_is_a_signed_get_with_no_body() {
         let (client, key) = client();
         let request = client
-            .device_request(Method::GET, DEVICES)
+            .device_request(Method::GET, DEVICES, None)
             .unwrap()
             .build()
             .unwrap();
@@ -177,7 +220,7 @@ mod tests {
         let (client, key) = client();
         let path = "/v1/devices/dev-abc123/revoke";
         let request = client
-            .device_request(Method::POST, path)
+            .device_request(Method::POST, path, None)
             .unwrap()
             .build()
             .unwrap();
@@ -185,6 +228,22 @@ mod tests {
         assert_eq!(request.url().path(), path);
         assert!(request.body().is_none());
         assert_signed(&request, &key, b"");
+    }
+
+    #[test]
+    fn a_grant_is_a_signed_post_with_its_permissions_as_the_body() {
+        let (client, key) = client();
+        let path = "/v1/devices/dev-abc123/grant";
+        let body = br#"{"permissions":["read_state"]}"#;
+        let request = client
+            .device_request(Method::POST, path, Some(body))
+            .unwrap()
+            .build()
+            .unwrap();
+        assert_eq!(request.method(), Method::POST);
+        assert_eq!(request.url().path(), path);
+        assert_eq!(request.body().unwrap().as_bytes().unwrap(), body);
+        assert_signed(&request, &key, body);
     }
 
     #[tokio::test]
@@ -197,6 +256,43 @@ mod tests {
         assert_eq!(
             client.device_revoke("   ").await,
             Err(DeviceFailure::Protocol)
+        );
+        let read_state = ["read_state".to_string()];
+        assert_eq!(
+            client.device_grant("../devices", &read_state).await,
+            Err(DeviceFailure::Protocol)
+        );
+    }
+
+    #[tokio::test]
+    async fn an_empty_or_admin_grant_is_refused_before_it_is_sent() {
+        let (client, _) = client();
+        assert_eq!(
+            client.device_grant("dev-a1", &[]).await,
+            Err(DeviceFailure::Protocol)
+        );
+        for admin in ["admin", "ADMIN", "Admin"] {
+            let grant = ["read_state".to_string(), admin.to_string()];
+            assert_eq!(
+                client.device_grant("dev-a1", &grant).await,
+                Err(DeviceFailure::Protocol)
+            );
+        }
+    }
+
+    #[test]
+    fn a_grant_conflict_becomes_not_pending_and_the_rest_stays() {
+        assert_eq!(
+            not_pending(DeviceFailure::from_core(status(409))),
+            DeviceFailure::NotPending
+        );
+        assert_eq!(
+            not_pending(DeviceFailure::from_core(status(400))),
+            DeviceFailure::Refused { status: 400 }
+        );
+        assert_eq!(
+            serde_json::to_value(DeviceFailure::NotPending).unwrap(),
+            json!({ "kind": "notPending" })
         );
     }
 
@@ -247,11 +343,15 @@ mod tests {
              "created_at":1730000000.0,"last_seen_at":1730000100.5,"revoked":false,
              "permissions":["read_state"]},
             {"device_id":"dev-b2","label":"Viejo","created_at":1720000000.0,
-             "last_seen_at":null,"revoked":true,"permissions":[]}]}"#;
+             "last_seen_at":null,"revoked":true,"permissions":[]},
+            {"device_id":"dev-c3","label":"Nuevo","created_at":1730000200.0,
+             "last_seen_at":null,"revoked":false,"permissions":[],"sas":"097665"}]}"#;
         let response: DevicesResponse = serde_json::from_str(body).unwrap();
         assert_eq!(response.devices[0].label, "Pixel 9");
         assert_eq!(response.devices[0].last_seen_at, Some(1730000100.5));
+        assert_eq!(response.devices[0].sas, None);
         assert_eq!(response.devices[1].last_seen_at, None);
         assert!(response.devices[1].revoked);
+        assert_eq!(response.devices[2].sas.as_deref(), Some("097665"));
     }
 }

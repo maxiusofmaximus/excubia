@@ -9,12 +9,19 @@ import { openNotes } from "./agenda-notes.js";
 import { openCalendar } from "./calendar.js";
 import { openAlerts } from "./alerts.js";
 import {
+  APPROVE_WARNING,
+  DEFAULT_GRANT,
+  NO_SAS_HINT,
   REVOKE_WARNING,
+  SAS_HINT,
   THIS_DEVICE_REASON,
   addedText,
+  canApprove,
   canRevoke,
   deviceFailureText,
   deviceKind,
+  grantChoices,
+  groupSas,
   orderDevices,
   permissionsText,
   seenText,
@@ -83,22 +90,23 @@ function row(device, thisDevice) {
     element("p", "agenda-row-meta", permissionsText(device.permissions)),
     id,
   );
+  if (canApprove(device, thisDevice)) item.append(approveBlock(device));
   if (!device.revoked) item.append(revokeControl(device, canRevoke(device, thisDevice)));
   if (mine) item.append(notice(THIS_DEVICE_REASON, "agenda-hint"));
   return item;
 }
 
-// The revoke button opens a confirmation; the confirmation is the only way to send it.
-function revokeControl(device, allowed) {
+// The first button opens a confirmation; the confirmation is the only way to send the action.
+function confirmControl({ askLabel, askClass, sendLabel, warning, allowed = true, send }) {
   const wrap = element("div", "device-revoke");
   const problem = notice("");
   const box = element("div", "agenda-confirm");
   box.setAttribute("role", "alertdialog");
-  const ask = button("Revocar", "btn danger btn-small", () => show(true));
+  const ask = button(askLabel, askClass, () => show(true));
   ask.disabled = !allowed;
   const cancel = button("Cancelar", "btn ghost btn-small", () => show(false));
-  const confirm = button("Revocar dispositivo", "btn danger btn-small", () => revoke(device, confirm, problem));
-  box.append(element("p", null, REVOKE_WARNING), actionRow(cancel, confirm), problem);
+  const confirm = button(sendLabel, askClass, () => send(confirm, problem));
+  box.append(element("p", null, warning), actionRow(cancel, confirm), problem);
 
   function show(open) {
     ask.hidden = open;
@@ -110,15 +118,73 @@ function revokeControl(device, allowed) {
   return wrap;
 }
 
-async function revoke(device, confirm, problem) {
+function revokeControl(device, allowed) {
+  return confirmControl({
+    askLabel: "Revocar",
+    askClass: "btn danger btn-small",
+    sendLabel: "Revocar dispositivo",
+    warning: REVOKE_WARNING,
+    allowed,
+    send: (confirm, problem) => runAction(device, confirm, problem, "devices_revoke", {}, "Dispositivo revocado"),
+  });
+}
+
+// A pending device: its verification string to compare, the permissions it gets, and the approval.
+function approveBlock(device) {
+  const block = element("div", "device-approve");
+  block.append(element("p", "device-approve-title", "Pendiente de aprobación"));
+  if (device.sas) block.append(element("p", "device-sas", groupSas(device.sas)), element("p", "agenda-row-meta", SAS_HINT));
+  else block.append(element("p", "agenda-row-meta", NO_SAS_HINT));
+
+  const group = element("div", "device-permissions");
+  group.append(
+    ...grantChoices().map(({ id, label }) => {
+      const input = element("input");
+      input.type = "checkbox";
+      input.value = id;
+      input.checked = DEFAULT_GRANT.includes(id);
+      const choice = element("label", "device-permission");
+      choice.append(input, " ", label);
+      return choice;
+    }),
+  );
+  block.append(
+    group,
+    confirmControl({
+      askLabel: "Aprobar",
+      askClass: "btn secondary btn-small",
+      sendLabel: "Aprobar dispositivo",
+      warning: APPROVE_WARNING,
+      send: (confirm, problem) => {
+        const permissions = checkedPermissions(group);
+        if (!permissions.length) {
+          problem.textContent = "Marca al menos un permiso.";
+          problem.hidden = false;
+          return;
+        }
+        return runAction(device, confirm, problem, "devices_grant", { permissions }, "Dispositivo aprobado");
+      },
+    }),
+  );
+  return block;
+}
+
+function checkedPermissions(group) {
+  return [...group.querySelectorAll("input:checked")].map((input) => input.value);
+}
+
+// A device gone, no longer pending or no longer administrable is a state of the list: the list
+// reloads and says why. Any other failure stays by the confirmation, for another try.
+const STATE_FAILURES = ["notFound", "notPending", "forbidden"];
+
+async function runAction(device, confirm, problem, command, args, done) {
   confirm.disabled = true;
   try {
-    await invoke("devices_revoke", { id: device.device_id });
+    await invoke(command, { id: device.device_id, ...args });
   } catch (failure) {
-    // A device already gone, or a grant that was taken away: the list says which.
-    if (failure.kind === "notFound" || failure.kind === "forbidden") {
+    if (STATE_FAILURES.includes(failure.kind)) {
       await loadDevices();
-      if (failure.kind === "notFound") setStatus(deviceFailureText(failure));
+      if (failure.kind !== "forbidden") setStatus(deviceFailureText(failure));
       return;
     }
     confirm.disabled = false;
@@ -126,7 +192,7 @@ async function revoke(device, confirm, problem) {
     problem.hidden = false;
     return;
   }
-  toast("Dispositivo revocado");
+  toast(done);
   await loadDevices();
 }
 

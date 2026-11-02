@@ -6,12 +6,19 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  APPROVE_WARNING,
+  DEFAULT_GRANT,
+  NO_SAS_HINT,
   REVOKE_WARNING,
+  SAS_HINT,
   THIS_DEVICE_REASON,
   addedText,
+  canApprove,
   canRevoke,
   deviceFailureText,
   deviceKind,
+  grantChoices,
+  groupSas,
   orderDevices,
   permissionWords,
   permissionsText,
@@ -109,4 +116,39 @@ test("each failure has its words, and a refused grant is a state rather than an 
   assert.equal(deviceFailureText({ kind: "refused", status: 500 }), "El PC rechazó la petición (500).");
   assert.equal(deviceFailureText({ kind: "protocol" }), "No se pudo completar la operación.");
   assert.equal(deviceFailureText(undefined), "No se pudo completar la operación.");
+  assert.equal(deviceFailureText({ kind: "notPending" }), "Ya tenía permisos.");
+});
+
+test("a six-digit chain reads in two groups, and anything else is shown as it came", () => {
+  assert.equal(groupSas("097665"), "097 665");
+  assert.equal(groupSas("827242"), "827 242");
+  assert.equal(groupSas("12 34"), "12 34");
+  assert.equal(groupSas(""), "");
+});
+
+test("only a device that holds no permission, is not revoked and is not this one can be approved", () => {
+  assert.equal(canApprove(device("dev-a", { permissions: [] }), "dev-b"), true);
+  assert.equal(canApprove(device("dev-a"), "dev-b"), false);
+  assert.equal(canApprove(device("dev-a", { permissions: [], revoked: true }), "dev-b"), false);
+  assert.equal(canApprove(device("dev-a", { permissions: [] }), "dev-a"), false);
+});
+
+test("the grant offers four permissions without admin, and reads read_state by default", () => {
+  assert.deepEqual(
+    grantChoices(),
+    [
+      { id: "read_state", label: "Leer estado" },
+      { id: "respond", label: "Responder" },
+      { id: "send_key", label: "Enviar teclas" },
+      { id: "approve", label: "Aprobar" },
+    ],
+  );
+  assert.equal(grantChoices().some((choice) => choice.id === "admin"), false);
+  assert.deepEqual(DEFAULT_GRANT, ["read_state"]);
+});
+
+test("the approval texts say what to compare, or that there is nothing to compare", () => {
+  assert.equal(SAS_HINT, "Compárala con la que muestra el móvil. Si no coincide, revoca el dispositivo.");
+  assert.equal(NO_SAS_HINT, "No hay cadena de verificación: aprueba solo si estás seguro de que es tu móvil.");
+  assert.equal(APPROVE_WARNING, "Se concederán los permisos marcados a este dispositivo.");
 });

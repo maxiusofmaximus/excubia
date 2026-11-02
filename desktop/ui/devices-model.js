@@ -76,11 +76,32 @@ export function canRevoke(device, thisDevice) {
   return !device.revoked && device.device_id !== thisDevice;
 }
 
+// A pending device holds no permission yet; the host decides the rest (ADMIN never comes from here).
+export function canApprove(device, thisDevice) {
+  return !device.revoked && device.permissions.length === 0 && device.device_id !== thisDevice;
+}
+
+export const GRANTABLE_PERMISSIONS = ["read_state", "respond", "send_key", "approve"];
+export const DEFAULT_GRANT = ["read_state"];
+export const SAS_HINT = "Compárala con la que muestra el móvil. Si no coincide, revoca el dispositivo.";
+export const NO_SAS_HINT = "No hay cadena de verificación: aprueba solo si estás seguro de que es tu móvil.";
+export const APPROVE_WARNING = "Se concederán los permisos marcados a este dispositivo.";
+
+export function grantChoices() {
+  return GRANTABLE_PERMISSIONS.map((id) => ({ id, label: PERMISSION_WORDS[id] }));
+}
+
+// Six digits read in two groups, as the phone shows them: «097 665». Anything else is shown as it came.
+export function groupSas(sas) {
+  return /^\d{6}$/.test(sas) ? `${sas.slice(0, 3)} ${sas.slice(3)}` : String(sas);
+}
+
 const FAILURE_TEXT = {
   offline: "Sin conexión con el host. Lo cargado sigue visible.",
   unauthorized: "El PC ya no confía en este dispositivo. Vuelve a emparejarlo.",
   forbidden: "Este equipo no puede administrar dispositivos.",
   notFound: "Ya no existe.",
+  notPending: "Ya tenía permisos.",
 };
 
 // The operator's words for a failure. A refusal names its status; anything else is generic.

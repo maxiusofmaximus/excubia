@@ -13,6 +13,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 PairingLinkResult parsePairingLink({required String uri}) =>
     RustLib.instance.api.crateApiPinnedParsePairingLink(uri: uri);
 
+/// The six-digit string both screens show after a pinned pairing (RFC
+/// pairing-security §5, F1). `None` when the pin or the key is malformed.
+String? pairingSas({required String pin, required String publicKeyBase64}) =>
+    RustLib.instance.api.crateApiPinnedPairingSas(
+      pin: pin,
+      publicKeyBase64: publicKeyBase64,
+    );
+
 Future<PinnedReply> pinnedRequest({
   required PinnedEndpoint endpoint,
   required String method,
