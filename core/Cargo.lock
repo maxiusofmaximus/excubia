@@ -1160,6 +1160,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hn-core-transport"
+version = "0.1.0"
+dependencies = [
+ "hn-core-pin",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
 name = "html5ever"
 version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
