@@ -10,11 +10,12 @@ use axum::body::Bytes;
 use axum::extract::{ConnectInfo, State};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::{is_host_owner, tailnet_owner_of, unix_seconds, Class, Curve, Device};
+use hn_core_auth::{is_host_owner, tailnet_owner_of, Class, Curve, Device};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::error::ApiError;
+use crate::routes::devices::device_sas;
 use crate::routes::parse_body;
 use crate::{ApiContext, PairOutcome, PairVia, PairingAttempt, PeerAddr};
 
@@ -76,6 +77,11 @@ pub async fn pair(
     let ip = addr.ip().to_string();
     match grant(&ctx, &ip, curve, &payload) {
         Ok(granted) => {
+            // Only a new device is shown its string: the Master checks it on the phone.
+            let sas = match granted.outcome {
+                PairOutcome::Paired => device_sas(ctx.host_pin.as_ref(), &granted.device),
+                _ => None,
+            };
             audit(
                 &ctx,
                 &ip,
@@ -83,6 +89,7 @@ pub async fn pair(
                 granted.via,
                 Some(&granted.device.device_id),
                 granted.device.label.as_deref(),
+                sas,
             );
             pair_response(&granted.device, &granted.recovery).into_response()
         }
@@ -94,6 +101,7 @@ pub async fn pair(
                 attempted_via(&payload),
                 None,
                 payload.label.as_deref(),
+                None,
             );
             error.into_response()
         }
@@ -194,15 +202,11 @@ fn audit(
     via: PairVia,
     device_id: Option<&str>,
     label: Option<&str>,
+    sas: Option<String>,
 ) {
-    ctx.pairing_audit.record(&PairingAttempt {
-        ts: unix_seconds(),
-        outcome,
-        device_id: device_id.map(str::to_string),
-        label: label.map(str::to_string),
-        via,
-        source_ip: source_ip.to_string(),
-    });
+    let mut attempt = PairingAttempt::new(outcome, via, device_id, label, source_ip);
+    attempt.sas = sas;
+    ctx.pairing_audit.record(&attempt);
 }
 
 /// Uniform refusal for a supplied code: the caller is never told which check

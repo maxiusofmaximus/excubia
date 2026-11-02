@@ -29,6 +29,7 @@ pub use mail::{
     MailLoginStart, MailLoginStatus, SendAnswer, SendFailure, SendStatus,
 };
 pub use pairing_audit::{PairOutcome, PairVia, PairingAttempt, PairingAudit};
+pub use routes::device_sas;
 pub use tls::TlsListener;
 pub use validate::{clamp_read_lines, validate_keys, validate_pane_id, validate_prompt};
 
@@ -43,6 +44,7 @@ use axum::serve::{IncomingStream, Listener};
 use axum::{middleware as axum_middleware, Router};
 use hn_core_auth::{DeviceStore, RateLimiter, RequestVerifier, StreamRegistry};
 use hn_core_chat::{ChatSeat, ChatStore};
+use hn_core_pin::Fingerprint;
 use hn_core_state::StateStore;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
@@ -134,6 +136,9 @@ pub struct ApiContext {
     /// In-process revocation notifications, so a revoke closes open streams
     /// immediately instead of on their next tick.
     pub revocations: broadcast::Sender<String>,
+    /// The host's active certificate pin: the input of a pending device's SAS.
+    /// `None` when there is no certificate to read, and then no SAS is shown.
+    pub host_pin: Option<Fingerprint>,
 }
 
 /// The pieces the API is built from.
@@ -168,7 +173,13 @@ impl ApiContext {
             voice: config.voice,
             pairing_audit: config.pairing_audit,
             revocations,
+            host_pin: None,
         }
+    }
+
+    pub fn with_host_pin(mut self, pin: Option<Fingerprint>) -> Self {
+        self.host_pin = pin;
+        self
     }
 }
 
@@ -279,6 +290,7 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             "/v1/devices/{device_id}/revoke",
             post(routes::revoke_device),
         )
+        .route("/v1/devices/{device_id}/grant", post(routes::grant_device))
         .route("/v1/mail/login/start", post(routes::mail_login_start))
         .route("/v1/mail/login/status", get(routes::mail_login_status))
         .route("/v1/mail/accounts", get(routes::mail_accounts))

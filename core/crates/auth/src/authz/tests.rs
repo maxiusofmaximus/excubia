@@ -40,6 +40,12 @@ fn the_matrix_classifies_every_route() {
         Budget::Write
     );
     assert_eq!(
+        classify("POST", "/v1/devices/dev-1/grant")
+            .unwrap()
+            .permission,
+        Some(Permission::Admin)
+    );
+    assert_eq!(
         classify("POST", "/v1/me/push-endpoint").unwrap().permission,
         Some(Permission::ReadState)
     );

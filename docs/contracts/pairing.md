@@ -104,30 +104,74 @@ host and enters once on the phone.
   caller already knows it sent no code and only the owner check could have
   failed; it still reveals no owner). The endpoint is rate-limited per source IP.
 
-**Pairing audit.** Every decision of `POST /v1/pair` that reaches the handler
-appends one line to `<data-dir>/pairing-audit.jsonl`:
-`{ts, outcome: paired|recovered|rejected, device_id, label, via: code|recovery|tailnet, source_ip}`.
+**Pairing audit.** Every decision of `POST /v1/pair` that reaches the handler,
+and every grant of `POST /v1/devices/{device_id}/grant`, appends one line to
+`<data-dir>/pairing-audit.jsonl`:
+`{ts, outcome: paired|recovered|rejected|granted, device_id, label, via: code|recovery|tailnet|admin, source_ip}`.
+A `granted` line also carries `granted_by` (the admin device) and `permissions`.
 A refusal records `device_id: null`, and its `via` is `code` when a code was
-sent, `tailnet` otherwise. No line holds a code or a public key. A failed write
-is reported on stderr and does not fail the pairing.
+sent, `tailnet` otherwise. No line holds a code, a public key or a verification
+string. A failed write is reported on stderr and does not fail the pairing.
 
 **Rotation.** An append that would pass 1 MiB first moves the file to
 `pairing-audit.jsonl.1`, replacing the previous one, and a new file starts. Both
 happen under the write lock, so no line is lost. A failed rotation is reported on
 stderr and the line is still written.
 
-**Pairing notice.** A `paired` or `recovered` decision also posts a message from
-Alfred in the conversation «Avisos del sistema». The conversation is created by the
-first notice and found by its title among the conversations not archived; the host
-keeps its id until it restarts, so an archived one keeps the notices until then. The
-texts are:
+**Pairing notice.** A `paired` or `recovered` decision, and a grant, also posts a
+message from Alfred in the conversation «Avisos del sistema». The conversation is
+created by the first notice and found by its title among the conversations not
+archived; the host keeps its id until it restarts, so an archived one keeps the
+notices until then. The texts are:
 
-- ``Nuevo dispositivo pendiente: `<label>` (<device_id>), sin permisos. Si no fuiste tú: `host devices revoke <device_id>`.``
+- ``Nuevo dispositivo pendiente: `<label>` (<device_id>), sin permisos. Cadena de verificación: **<sas>** (debe ser la que muestra el móvil). Si no fuiste tú: `host devices revoke <device_id>`.``
 - ``Se usó el código de recuperación de <device_id> (`<label>`). Si no fuiste tú: `host devices revoke <device_id>`.``
+- ``` `<granter>` concedió <permisos> a `<label>` (<device_id>). ``` — `<granter>` is the admin device's id, `<permisos>` the permissions, comma-separated.
 
-The label is a code span cut to 40 characters, with line breaks turned into spaces
-and backticks into quotes. A refusal posts nothing. A failed notice is reported on
-stderr and never fails or undoes the pairing.
+The sentence with `<sas>` is left out when the host has no pin to compute it
+(see *Verification string* below). The label is a code span cut to 40 characters,
+with line breaks turned into spaces and backticks into quotes. A refusal posts
+nothing. A failed notice is reported on stderr and never fails or undoes the
+pairing or the grant.
+
+## Verification string (SAS) — IMPLEMENTED (F1-núcleo)
+
+A pending device gets a six-digit string that the phone shows as well. The Master
+compares the two before granting anything, so he checks that the phone in his hand
+is the one being paired (RFC `pairing-security` §5, F1). Both sides compute it from
+public material only:
+
+```
+sas = six digits of ( u32_big_endian( SHA-256( "excubia-sas-v1" ‖ 0x00 ‖ host_pin ‖ device_public_key )[0..4] ) mod 1 000 000 )
+```
+
+- `host_pin`: the 32 bytes behind the active certificate's pin (the `h` of the link, base64url-decoded).
+- `device_public_key`: the bytes the device sent in `POST /v1/pair`, after base64 decoding: the SEC1 point, 65 bytes for P-256.
+- Six digits with leading zeros kept, so the output is always 6 characters.
+
+Implementation: `hn_core_pin::sas` (crate `pin`, which has no host dependencies, so the
+APK depends on it by path). Where it is shown:
+
+- the notice of a `paired` decision (above);
+- `host devices list`, on a line under each pending device: `cadena de verificación: <sas>`;
+- `GET /v1/devices`, field `sas`, on each device that holds no permission and is not revoked.
+
+It is not written to the audit file and it is not a secret. On the plain
+(loopback) listener there is no certificate in the connection, so the host uses its
+active pin anyway; a phone that never pinned has nothing to compare against.
+
+**Test vector.** The APK must reproduce these values (computed with an independent
+SHA-256 implementation and fixed in `crates/pin/src/sas.rs`):
+
+| Input | Value |
+|-------|-------|
+| `host_pin`, base64url | `AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8` (bytes `00 01 02 … 1f`) |
+| `device_public_key`, hex | `0411111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222` (65 bytes) |
+| expected SAS | `097665` |
+
+Second vector, same pin, device key `04` `33`×32 `44`×32 (hex
+`0433333333333333333333333333333333333333333333333333333333333333334444444444444444444444444444444444444444444444444444444444444444`):
+expected SAS `827242`.
 
 The host-side `add-device` CLI remains the manual path to the same result, and
 is the way to grant anything, `READ_STATE` included, to a pending device.
@@ -190,7 +234,23 @@ The line above is the **canonical grant hint**: it is exactly the nucleus CLI
 command the CLI accepts. Clients that show the operator what to run must quote
 it verbatim (Desktop and APK copy it from `CORE4-RESULT.md`).
 
-- `host devices list` shows each device and its permissions.
+**Grant over HTTP — IMPLEMENTED (F1-núcleo).** A device with `ADMIN` can give a
+pending device its first permissions with `POST /v1/devices/{device_id}/grant`
+(see [`api.md`](api.md)). Only a device that holds no permission and is not revoked
+can be granted this way:
+
+- `admin` is refused (`400 admin_not_grantable`): ADMIN stays the host CLI's act;
+- a device cannot grant itself (`400 cannot_grant_self`);
+- a device that already holds any permission answers `409 not_pending`: widening
+  it stays `host devices grant`;
+- a revoked or unknown device answers `404`, as in revoke.
+
+On success the host answers `200` with the device, appends a `granted` line to the
+pairing audit (`via: admin`, `granted_by`, `permissions`) and posts the Alfred
+notice above. The UI for granting (Desktop and APK) is not part of F1-núcleo and
+remains pending.
+
+- `host devices list` shows each device and its permissions, and under each pending device its verification string.
 - A record without a `permissions` field (pre-M2) loads with `[READ_STATE]`,
   the pairing default before D3 — no re-pairing needed.
 - A permission id that is not one of the five is dropped on load: it grants
@@ -283,5 +343,6 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
 | LAN TLS listener, pinned pairing link, pin rotation (`tls prepare` / `activate`) | IMPLEMENTED (CORE11) — see *LAN TLS pairing link* |
 | Device management (`GET /v1/devices`, `POST /v1/devices/{id}/revoke`) behind `ADMIN` | IMPLEMENTED (Fase 2(c)) |
 | Tailnet peer list (`GET /v1/peers`, `503` when unavailable) | IMPLEMENTED |
-| HTTP grant endpoint | NOT IMPLEMENTED — widening access is a host-side CLI act by design |
+| HTTP grant endpoint, pending devices only, never `admin` (`POST /v1/devices/{id}/grant`) | IMPLEMENTED (F1-núcleo; UI pending). Widening a device that already has access stays a host-side CLI act by design |
+| Verification string (SAS) on the pending device, in `devices list`, `GET /v1/devices` and the pairing notice | IMPLEMENTED (F1-núcleo; the APK reproduces the vector) |
 | `APPROVE` permission endpoints | IMPLEMENTED (CORE8) — `POST /v1/chat/approvals/{id}/decision`, the UAC decision |

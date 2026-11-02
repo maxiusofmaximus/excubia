@@ -44,7 +44,7 @@ pub use chat::{
     update as chat_update_conversation, upload_chunk as chat_upload_chunk,
     upsert as chat_upsert_section,
 };
-pub use devices::{list_devices, revoke_device};
+pub use devices::{device_sas, grant_device, list_devices, revoke_device};
 pub use events::events;
 pub use hires::{
     create as create_hire, dismiss as dismiss_hire, list as list_hires, update as update_hire,

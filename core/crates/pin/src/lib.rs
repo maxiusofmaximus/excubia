@@ -15,6 +15,7 @@ mod fingerprint;
 mod identity;
 mod link;
 mod pins;
+mod sas;
 mod tls;
 mod verifier;
 
@@ -24,5 +25,6 @@ pub use fingerprint::Fingerprint;
 pub use identity::{unix_now, Identity, DEFAULT_VALIDITY_SECONDS};
 pub use link::{PairingLink, LINK_PREFIX, LINK_VERSION};
 pub use pins::PinSet;
+pub use sas::sas;
 pub use tls::{client_config, server_config};
 pub use verifier::PinVerifier;

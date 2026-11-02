@@ -45,6 +45,11 @@ impl TlsSlots {
         Ok(identity)
     }
 
+    /// The pin of the active certificate: the input of a pending device's SAS.
+    pub fn active_pin(&self) -> Result<Fingerprint> {
+        Ok(self.active()?.fingerprint()?)
+    }
+
     /// The pins a pairing link publishes: the active key and its backup.
     pub fn pins(&self) -> Result<PinSet> {
         let primary = self.active()?.fingerprint()?;

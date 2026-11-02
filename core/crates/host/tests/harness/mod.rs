@@ -148,6 +148,8 @@ pub struct TestHost {
     pub tool_url: String,
     pub data_dir: PathBuf,
     pub hook_token: String,
+    /// The host's certificate pin, the input of each pending device's SAS.
+    pub host_pin: hn_core_pin::Fingerprint,
     /// The scratch directory of the host. It is the last field, so it goes
     /// after the stores, whose open database would keep it on Windows; a
     /// restart hands it to the next host.
@@ -245,6 +247,7 @@ impl TestHost {
         voice: Option<Arc<dyn EngineStarter>>,
     ) -> Self {
         let devices = Arc::new(DeviceStore::open(Some(paths::devices_path(&data_dir))));
+        let host_pin = hn_core_pin::Fingerprint::of_spki(b"harness host certificate");
         let store = StateStore::open("test", Some(paths::counters_path(&data_dir)));
         let catalog = Arc::new(hn_core_host::load_agents(&data_dir).expect("catalog"));
         let hook_token = hn_core_host::load_hook_token(&data_dir).expect("hook token");
@@ -375,7 +378,8 @@ impl TestHost {
             mail: mail_logins,
             voice: Arc::new(VoiceService::new(voice)),
             pairing_audit: Arc::new(PairingNotice::new(&data_dir, Arc::clone(&chat))),
-        });
+        })
+        .with_host_pin(Some(host_pin));
         let internal_context = context.clone();
         tokio::spawn(async move {
             let _ = serve_internal(internal, internal_context).await;
@@ -395,6 +399,7 @@ impl TestHost {
             tool_url,
             data_dir,
             hook_token,
+            host_pin,
             scratch,
         }
     }

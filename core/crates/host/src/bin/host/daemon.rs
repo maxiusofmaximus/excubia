@@ -198,6 +198,15 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         mail: Arc::new(mail),
         voice,
         pairing_audit: Arc::new(PairingNotice::new(&options.data_dir, chat)),
+    })
+    // The active pin is the input of each pending device's SAS. A host that cannot
+    // read it still serves; it only shows no verification string.
+    .with_host_pin(match TlsSlots::open(&options.data_dir).active_pin() {
+        Ok(pin) => Some(pin),
+        Err(error) => {
+            println!("host: sin pin TLS activo; sin cadena de verificación: {error:#}");
+            None
+        }
     });
     let mut internal_task = tokio::spawn(serve_internal(internal, context.clone()));
     // One task for every LAN/VPN address: the first listener to stop ends it,

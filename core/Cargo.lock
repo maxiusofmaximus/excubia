@@ -929,6 +929,7 @@ dependencies = [
  "hn-core-auth",
  "hn-core-chat",
  "hn-core-media",
+ "hn-core-pin",
  "hn-core-seat",
  "hn-core-state",
  "hn-core-test-dir",

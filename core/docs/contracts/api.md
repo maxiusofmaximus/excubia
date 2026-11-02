@@ -46,8 +46,9 @@ request to the port is refused at the handshake.
 | `POST` | `/v1/alerts/mode` | signed | `RESPOND` | write | Set the alert mode: body `{"mode": "all" \| "rules_only"}` |
 | `POST` | `/v1/onboarding` | signed | `APPROVE` | write | Finish the onboarding: contract the team of the chosen areas |
 | `GET` | `/v1/peers` | signed | `READ_STATE` | read | Tailnet peers + host addresses to probe |
-| `GET` | `/v1/devices` | signed | `ADMIN` | read | List paired devices ("My devices") |
+| `GET` | `/v1/devices` | signed | `ADMIN` | read | List paired devices ("My devices"); a pending device carries its `sas` |
 | `POST` | `/v1/devices/{device_id}/revoke` | signed | `ADMIN` | write | Revoke one device |
+| `POST` | `/v1/devices/{device_id}/grant` | signed | `ADMIN` | write | Give a pending device its first permissions (never `admin`) |
 | `POST` | `/v1/agents/{pane_id}/respond` | signed | `RESPOND` | write | Submit a prompt |
 | `POST` | `/v1/agents/{pane_id}/keys` | signed | `SEND_KEY` | write | Send allowlisted keys |
 | `POST` | `/v1/agents/{pane_id}/stop` | signed | `RESPOND` | write | Stop a live agent (the pane leaves the list) |
@@ -440,11 +441,38 @@ Body: `{ "curve": "p256", "public_key": "<b64>", "label": "Pixel 9", "code": "HJ
 
 Public material only: never a `public_key` or an `fcm_token`.
 
+A device that holds no permission and is not revoked (pending) also carries
+`"sas": "097665"`: the six-digit verification string the phone shows, computed
+as in [`pairing.md`](pairing.md#verification-string-sas--implemented-f1-núcleo).
+Other devices have no `sas` field. The field is absent when the host has no pin
+to compute it.
+
 ### `POST /v1/devices/{device_id}/revoke` (signed, `ADMIN`)
 
 No body. Response `{"ok": true, "device_id": "dev-…", "revoked": true}`, or
 `404 {"detail":"no such device"}`. After a revoke the device's signed requests
 answer `401` and its live stream closes within one keepalive.
+
+### `POST /v1/devices/{device_id}/grant` (signed, `ADMIN`, F1-núcleo)
+
+Body: `{"permissions": ["read_state", "respond"]}`: one or more of `read_state`,
+`respond`, `send_key`, `approve` (the labels are case-insensitive). Response
+`200` with the device, in the same shape as an element of `GET /v1/devices`, its
+permissions now set. The grant is recorded in the pairing audit as a `granted`
+line and announced by Alfred (see [`pairing.md`](pairing.md)).
+
+Only a **pending** device can be granted here: one that holds no permission and
+is not revoked. Errors (see [`errors.md`](errors.md)):
+
+| Status | `detail` | When |
+|--------|----------|------|
+| `400` | `{"code": "admin_not_grantable", …}` | `admin` in the list; ADMIN is granted by `host devices grant` only |
+| `400` | `{"code": "cannot_grant_self", …}` | the path names the calling device |
+| `400` | `"invalid_body"` | not JSON |
+| `404` | `"no such device"` | unknown or revoked device |
+| `409` | `{"code": "not_pending", …}` | the device already holds a permission |
+| `422` | `{"code": "invalid_body", "field": "permissions", …}` | the list is empty or names an unknown permission |
+| `403` | `"forbidden"` | the caller lacks `ADMIN` |
 
 ### `/v1/chat` (persistent chat, CORE6A/CORE6B/CORE7)
 

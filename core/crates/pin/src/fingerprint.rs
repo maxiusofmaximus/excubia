@@ -15,6 +15,10 @@ impl Fingerprint {
     pub fn of_spki(spki_der: &[u8]) -> Self {
         Self(Sha256::digest(spki_der).into())
     }
+
+    pub(crate) fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
 }
 
 impl FromStr for Fingerprint {

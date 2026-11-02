@@ -51,7 +51,7 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         _ => None,
     };
     let device_action = match (segments.as_slice(), method.as_str()) {
-        (["", "v1", "devices", _id, "revoke"], "POST") => Some("revoke"),
+        (["", "v1", "devices", _id, action], "POST") => Some(*action),
         _ => None,
     };
     if let Some(rule) = chat_rule(method.as_str(), &segments) {
@@ -95,7 +95,9 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         ("POST", "/v1/voice/transcribe") => Ok(rule(Permission::Respond, Budget::Write)),
         // A device names its own push endpoint: a write to its own record only.
         ("POST", "/v1/me/push-endpoint") => Ok(rule(Permission::ReadState, Budget::Write)),
-        _ if device_action == Some("revoke") => Ok(rule(Permission::Admin, Budget::Write)),
+        _ if matches!(device_action, Some("revoke" | "grant")) => {
+            Ok(rule(Permission::Admin, Budget::Write))
+        }
         _ => match agent_action {
             Some("respond") => Ok(rule(Permission::Respond, Budget::Write)),
             Some("stop") => Ok(rule(Permission::Respond, Budget::Write)),

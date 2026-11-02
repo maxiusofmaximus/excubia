@@ -118,6 +118,7 @@ pub(super) fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {
             if devices.is_empty() {
                 println!("no devices paired (data dir: {})", data_dir.display());
             }
+            let pin = TlsSlots::open(data_dir).active_pin().ok();
             for device in devices {
                 let label = device.label.as_deref().unwrap_or("-");
                 let revoked = if device.revoked { " REVOKED" } else { "" };
@@ -134,6 +135,11 @@ pub(super) fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {
                     permissions.join(","),
                     revoked
                 );
+                if device.permissions.is_empty() && !device.revoked {
+                    if let Some(text) = hn_core_api::device_sas(pin.as_ref(), &device) {
+                        println!("    cadena de verificación: {text}");
+                    }
+                }
             }
             Ok(())
         }

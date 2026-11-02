@@ -332,6 +332,20 @@ app renders its own text.
 
 An unknown `level` in `POST /v1/onboarding` is the generic `422 invalid_body`.
 
+## Device grant errors (`POST /v1/devices/{device_id}/grant`, F1-núcleo)
+
+The grant answers its own failures; the authorization rejection is the uniform
+`403` of the section above, since the route needs `ADMIN`.
+
+| Status | `detail` | When |
+|--------|----------|------|
+| `400` | `{"code": "admin_not_grantable", "message": …}` | `admin` is in the permission list |
+| `400` | `{"code": "cannot_grant_self", "message": …}` | the device names itself |
+| `400` | `"invalid_body"` | the body is not JSON |
+| `404` | `"no such device"` | the device is unknown or revoked |
+| `409` | `{"code": "not_pending", "message": …}` | the device already holds a permission |
+| `422` | `{"code": "invalid_body", "field": "permissions", "message": …}` | the list is empty, or names a permission that does not exist |
+
 ## Voice errors (VOZ2)
 
 `POST /v1/voice/transcribe`. The 400, 413, 429 and 503 answers carry

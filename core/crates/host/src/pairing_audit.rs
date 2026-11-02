@@ -83,14 +83,13 @@ mod tests {
     use hn_core_test_dir::TestDir;
 
     fn attempt(label: &str) -> PairingAttempt {
-        PairingAttempt {
-            ts: 0.0,
-            outcome: PairOutcome::Rejected,
-            device_id: None,
-            label: Some(label.to_owned()),
-            via: PairVia::Code,
-            source_ip: "127.0.0.1".to_owned(),
-        }
+        PairingAttempt::new(
+            PairOutcome::Rejected,
+            PairVia::Code,
+            None,
+            Some(label),
+            "127.0.0.1",
+        )
     }
 
     fn labels(path: &Path) -> Vec<String> {

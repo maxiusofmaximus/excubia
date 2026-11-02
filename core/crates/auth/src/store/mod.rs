@@ -13,6 +13,13 @@ mod persist;
 
 pub use device::{Device, Permission, PublicDevice};
 
+/// The answer of `DeviceStore::grant_pending`.
+pub enum GrantOutcome {
+    Granted(Box<Device>),
+    NoSuchDevice,
+    NotPending,
+}
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -118,6 +125,34 @@ impl DeviceStore {
         }
         self.save(&inner)?;
         Ok(true)
+    }
+
+    /// Grant a pending device its first permissions, in one write. A device with
+    /// any permission is refused, so an admin cannot widen a device that already
+    /// holds access: that stays a host-side act (`grant`).
+    pub fn grant_pending(
+        &self,
+        device_id: &str,
+        permissions: &[Permission],
+    ) -> Result<GrantOutcome, StoreError> {
+        let mut inner = self.lock();
+        let Some(device) = inner
+            .devices
+            .get_mut(device_id)
+            .filter(|device| !device.revoked)
+        else {
+            return Ok(GrantOutcome::NoSuchDevice);
+        };
+        if !device.permissions.is_empty() {
+            return Ok(GrantOutcome::NotPending);
+        }
+        let mut granted = permissions.to_vec();
+        granted.sort();
+        granted.dedup();
+        device.permissions = granted;
+        let device = device.clone();
+        self.save(&inner)?;
+        Ok(GrantOutcome::Granted(Box::new(device)))
     }
 
     /// Record that a device was just seen. The in-memory stamp is always

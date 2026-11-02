@@ -23,7 +23,7 @@ pub use codes::{
 pub use curve::{verify_signature, Curve};
 pub use error::{AuthzReason, EnrollmentRejected, Forbidden, StoreError, Unauthorized};
 pub use ratelimit::{Class, RateLimiter, StreamRegistry};
-pub use store::{Device, DeviceStore, Permission, PublicDevice};
+pub use store::{Device, DeviceStore, GrantOutcome, Permission, PublicDevice};
 pub use tailnet::{host_tailnet_owner, is_host_owner, tailnet_owner_of};
 pub use time::unix_seconds;
 pub use verify::{

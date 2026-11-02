@@ -113,12 +113,31 @@ fn notice_text(attempt: &PairingAttempt) -> Option<String> {
     let label = label_span(attempt.label.as_deref().unwrap_or_default());
     let revoke = format!("Si no fuiste tú: `host devices revoke {device}`.");
     match attempt.outcome {
-        PairOutcome::Paired => Some(format!(
-            "Nuevo dispositivo pendiente: {label} ({device}), sin permisos. {revoke}"
-        )),
+        PairOutcome::Paired => {
+            // Without a pin there is no string to check, so the notice leaves it out.
+            let verify = attempt
+                .sas
+                .as_ref()
+                .map(|sas| {
+                    format!(
+                        " Cadena de verificación: **{sas}** (debe ser la que muestra el móvil)."
+                    )
+                })
+                .unwrap_or_default();
+            Some(format!(
+                "Nuevo dispositivo pendiente: {label} ({device}), sin permisos.{verify} {revoke}"
+            ))
+        }
         PairOutcome::Recovered => Some(format!(
             "Se usó el código de recuperación de {device} ({label}). {revoke}"
         )),
+        PairOutcome::Granted => {
+            let granter = label_span(attempt.granted_by.as_deref().unwrap_or_default());
+            let permissions = attempt.permissions.join(", ");
+            Some(format!(
+                "{granter} concedió {permissions} a {label} ({device})."
+            ))
+        }
         PairOutcome::Rejected => None,
     }
 }
@@ -144,14 +163,30 @@ mod tests {
     use hn_core_api::PairVia;
 
     fn attempt(outcome: PairOutcome, device: Option<&str>, label: Option<&str>) -> PairingAttempt {
-        PairingAttempt {
-            ts: 0.0,
-            outcome,
-            device_id: device.map(str::to_owned),
-            label: label.map(str::to_owned),
-            via: PairVia::Code,
-            source_ip: "127.0.0.1".to_owned(),
-        }
+        PairingAttempt::new(outcome, PairVia::Code, device, label, "127.0.0.1")
+    }
+
+    #[test]
+    fn a_new_device_notice_carries_the_verification_string() {
+        let mut paired = attempt(PairOutcome::Paired, Some("dev-1"), Some("Phone"));
+        paired.sas = Some("042817".to_owned());
+        assert_eq!(
+            notice_text(&paired).expect("a notice"),
+            "Nuevo dispositivo pendiente: `Phone` (dev-1), sin permisos. \
+             Cadena de verificación: **042817** (debe ser la que muestra el móvil). \
+             Si no fuiste tú: `host devices revoke dev-1`."
+        );
+    }
+
+    #[test]
+    fn a_grant_notice_names_the_granter_and_the_permissions() {
+        let mut granted = attempt(PairOutcome::Granted, Some("dev-2"), Some("Tablet"));
+        granted.granted_by = Some("dev-1".to_owned());
+        granted.permissions = vec!["read_state".to_owned(), "respond".to_owned()];
+        assert_eq!(
+            notice_text(&granted).expect("a notice"),
+            "`dev-1` concedió read_state, respond a `Tablet` (dev-2)."
+        );
     }
 
     #[test]
