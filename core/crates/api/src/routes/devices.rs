@@ -55,7 +55,7 @@ struct GrantBody {
 pub async fn grant_device(
     State(ctx): State<ApiContext>,
     Extension(verified): Extension<VerifiedDevice>,
-    ConnectInfo(PeerAddr(addr)): ConnectInfo<PeerAddr>,
+    ConnectInfo(PeerAddr { addr, .. }): ConnectInfo<PeerAddr>,
     Path(device_id): Path<String>,
     body: Bytes,
 ) -> Response {

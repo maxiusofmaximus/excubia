@@ -10,11 +10,16 @@ class PairingErrorBox extends StatelessWidget {
     required this.message,
     this.action,
     this.detail,
+    this.security = false,
   });
 
   final String message;
   final String? action;
   final String? detail;
+
+  /// A host that could not be verified: another icon, so it is not read as a
+  /// plain failure to retry.
+  final bool security;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +37,7 @@ class PairingErrorBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            Icons.error_outline,
+            security ? Icons.gpp_bad_outlined : Icons.error_outline,
             color: context.colors.statusBlocked,
             size: 20,
           ),

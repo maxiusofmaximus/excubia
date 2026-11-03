@@ -193,7 +193,7 @@ void main() {
 
     expect(find.text('Código de emparejamiento'), findsOneWidget);
     expect(
-      find.text('Déjalo vacío para que la app busque el equipo sola.'),
+      find.textContaining('la app buscará el equipo sola'),
       findsOneWidget,
     );
     expect(find.text('Escanear QR'), findsOneWidget);

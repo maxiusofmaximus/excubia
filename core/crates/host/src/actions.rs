@@ -3,7 +3,7 @@
 use std::time::Instant;
 
 use async_trait::async_trait;
-use hn_core_api::{AgentActions, HookState, StartedAgent};
+use hn_core_api::{AgentActions, AgentSpec, HookState, StartedAgent};
 use hn_core_detect::DetectedState;
 use hn_core_state::EVENT_CLOSED;
 
@@ -40,22 +40,25 @@ impl AgentActions for AgentHost {
 
     async fn start_agent(
         &self,
-        command: &str,
-        args: &[String],
+        agent: &AgentSpec,
         cwd: &std::path::Path,
         label: Option<&str>,
     ) -> Result<StartedAgent, String> {
         let spec = SpawnSpec {
-            program: command.to_string(),
-            args: args.to_vec(),
+            program: agent.command.clone(),
+            args: agent.args.clone(),
             cwd: Some(cwd.to_path_buf()),
             label: label.map(str::to_string),
-            env: Vec::new(),
+            env: agent
+                .env
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect(),
         };
         let pane_id = self
             .start(spec)
             .await
-            .map_err(|error| format!("could not start {command}: {error:#}"))?;
+            .map_err(|error| format!("could not start {}: {error:#}", agent.command))?;
         let row = self.store_row(&pane_id).await?;
         Ok(StartedAgent {
             pane_id: row.pane_id,

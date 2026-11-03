@@ -1,13 +1,18 @@
+import 'package:herdr_notify/core/api/pake_pairing.dart';
 import 'package:herdr_notify/core/api/pinned_client.dart';
 
 /// Stands in for the Rust transport: it records what would have gone out and
 /// answers with a canned reply or failure, so no socket is opened.
 class FakePinnedClient implements PinnedClient {
-  FakePinnedClient({this.answer, this.bytesAnswer, this.failure});
+  FakePinnedClient({this.answer, this.bytesAnswer, this.failure, this.pake});
 
   final PinnedAnswer? answer;
   final PinnedBytesAnswer? bytesAnswer;
   final PinnedException? failure;
+  final PakePairing? pake;
+
+  /// What `pakePair` was asked: the addresses, the code and the key.
+  final List<({List<String> addresses, String code, String key})> pakeCalls = [];
   final List<String> targets = [];
   final List<String> addresses = [];
   final List<Map<String, String>> headers = [];
@@ -61,4 +66,14 @@ class FakePinnedClient implements PinnedClient {
     required String target,
     required Map<String, String> headers,
   }) => const Stream.empty();
+
+  @override
+  Future<PakePairing> pakePair({
+    required List<String> addresses,
+    required String code,
+    required String devicePublicKey,
+  }) async {
+    pakeCalls.add((addresses: addresses, code: code, key: devicePublicKey));
+    return pake!;
+  }
 }

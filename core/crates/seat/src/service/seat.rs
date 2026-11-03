@@ -22,6 +22,13 @@ use super::RunGrant;
 pub const CONTEXT_MESSAGES: usize = 20;
 pub const CONTEXT_CHARS: usize = 24_000;
 
+/// Environment changes for one turn: set these variables, drop those.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct TurnEnv {
+    pub set: Vec<(String, String)>,
+    pub remove: Vec<String>,
+}
+
 pub struct SeatConfig {
     pub data_dir: PathBuf,
     pub chat: Arc<ChatStore>,
@@ -34,6 +41,11 @@ pub struct SeatConfig {
     pub profiles: Vec<CliProfile>,
     pub queue_capacity: usize,
     pub turn_timeout: Duration,
+    /// Read at the start of each turn: the CLI's environment changes, e.g. the local model.
+    pub turn_env: Arc<dyn Fn() -> TurnEnv + Send + Sync>,
+    /// Called when a turn with no environment change fails with a quota message. Only a
+    /// signal: the turn still fails.
+    pub on_quota_exhausted: Arc<dyn Fn() + Send + Sync>,
 }
 
 pub struct SeatService {
@@ -126,6 +138,8 @@ impl SeatService {
             role,
             timeout: config.turn_timeout,
             agent_id,
+            turn_env: config.turn_env,
+            on_quota_exhausted: config.on_quota_exhausted,
         }));
         *lock(&service.worker) = Some(worker);
         Ok(service)

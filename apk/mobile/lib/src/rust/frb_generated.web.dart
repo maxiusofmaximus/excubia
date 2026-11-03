@@ -264,6 +264,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PairingLinkInfo dco_decode_box_autoadd_pairing_link_info(dynamic raw);
 
   @protected
+  PakeFailure dco_decode_box_autoadd_pake_failure(dynamic raw);
+
+  @protected
+  PakeOutcome dco_decode_box_autoadd_pake_outcome(dynamic raw);
+
+  @protected
   PinnedBytesResponse dco_decode_box_autoadd_pinned_bytes_response(dynamic raw);
 
   @protected
@@ -562,6 +568,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PairingLinkInfo? dco_decode_opt_box_autoadd_pairing_link_info(dynamic raw);
 
   @protected
+  PakeFailure? dco_decode_opt_box_autoadd_pake_failure(dynamic raw);
+
+  @protected
+  PakeOutcome? dco_decode_opt_box_autoadd_pake_outcome(dynamic raw);
+
+  @protected
   PinnedBytesResponse? dco_decode_opt_box_autoadd_pinned_bytes_response(
     dynamic raw,
   );
@@ -610,6 +622,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PairingLinkResult dco_decode_pairing_link_result(dynamic raw);
+
+  @protected
+  PakeFailure dco_decode_pake_failure(dynamic raw);
+
+  @protected
+  PakeFailureKind dco_decode_pake_failure_kind(dynamic raw);
+
+  @protected
+  PakeOutcome dco_decode_pake_outcome(dynamic raw);
+
+  @protected
+  PakePairResult dco_decode_pake_pair_result(dynamic raw);
 
   @protected
   PinnedBytesReply dco_decode_pinned_bytes_reply(dynamic raw);
@@ -926,6 +950,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PairingLinkInfo sse_decode_box_autoadd_pairing_link_info(
     SseDeserializer deserializer,
   );
+
+  @protected
+  PakeFailure sse_decode_box_autoadd_pake_failure(SseDeserializer deserializer);
+
+  @protected
+  PakeOutcome sse_decode_box_autoadd_pake_outcome(SseDeserializer deserializer);
 
   @protected
   PinnedBytesResponse sse_decode_box_autoadd_pinned_bytes_response(
@@ -1304,6 +1334,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PakeFailure? sse_decode_opt_box_autoadd_pake_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PakeOutcome? sse_decode_opt_box_autoadd_pake_outcome(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PinnedBytesResponse? sse_decode_opt_box_autoadd_pinned_bytes_response(
     SseDeserializer deserializer,
   );
@@ -1376,6 +1416,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PairingLinkResult sse_decode_pairing_link_result(
     SseDeserializer deserializer,
   );
+
+  @protected
+  PakeFailure sse_decode_pake_failure(SseDeserializer deserializer);
+
+  @protected
+  PakeFailureKind sse_decode_pake_failure_kind(SseDeserializer deserializer);
+
+  @protected
+  PakeOutcome sse_decode_pake_outcome(SseDeserializer deserializer);
+
+  @protected
+  PakePairResult sse_decode_pake_pair_result(SseDeserializer deserializer);
 
   @protected
   PinnedBytesReply sse_decode_pinned_bytes_reply(SseDeserializer deserializer);
@@ -1776,6 +1828,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_pairing_link_info(
     PairingLinkInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pake_failure(
+    PakeFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pake_outcome(
+    PakeOutcome self,
     SseSerializer serializer,
   );
 
@@ -2260,6 +2324,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_pake_failure(
+    PakeFailure? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_pake_outcome(
+    PakeOutcome? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_pinned_bytes_response(
     PinnedBytesResponse? self,
     SseSerializer serializer,
@@ -2346,6 +2422,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_pairing_link_result(
     PairingLinkResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pake_failure(PakeFailure self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pake_failure_kind(
+    PakeFailureKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pake_outcome(PakeOutcome self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pake_pair_result(
+    PakePairResult self,
     SseSerializer serializer,
   );
 

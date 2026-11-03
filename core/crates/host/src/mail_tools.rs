@@ -48,7 +48,7 @@ pub fn open_ledger(data_dir: &Path) -> Result<Ledger, MailError> {
 
 pub struct MailTools {
     transport: Arc<dyn HttpTransport>,
-    store: Arc<AccountStore>,
+    pub(crate) store: Arc<AccountStore>,
     client_id: Option<String>,
     ledger: Ledger,
     pub(crate) audit: AuditLog,

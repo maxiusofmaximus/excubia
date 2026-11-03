@@ -99,6 +99,7 @@ movimiento se propone con `mail.move_propose` y se hace con `mail.move_apply`
 | `mail.folders` | `account` | `{ok, untrusted_content, notice, folders[]{id, display_name, well_known_name, total_item_count, unread_item_count}}`; ver «Carpetas y acciones (F2A)» |
 | `mail.move_propose` | `account`, `items[]` (1..=20) de `{message_id, dest, reason}` | `{ok, status: "pending", approval_id, count, expires_in, notice}`; no mueve nada; ver «Organizar correo (F2B2)» |
 | `mail.move_apply` | `account`, `approval_id` (opcional) | `{ok, status, results[]}`, con `status` `pending`, `denied`, `expired` o `applied`, o `{ok, status: "nothing_approved", pending}` sin id; ver «Organizar correo (F2B2)» y «Aplicar sin id (F2B-3)» |
+| `mail.undo_list` | `account`, `n` (1..=20, 10 por defecto) | `{ok, account, actions[]{action_id, dest, at, undone}}`, solo movimientos `mail.move` no deshechos, más recientes primero; ver «Organizar correo (F2B2)» |
 | `mail.undo` | `account`, `action_id` | `{ok, action_id, restored_message_id}`; ver «Organizar correo (F2B2)» |
 
 Reglas:
@@ -595,7 +596,13 @@ Solo Alfred usa estas herramientas; un seat de proyecto recibe `scope_denied`.
 - `mail.undo` `{account, action_id}`: no pide aprobación. Devuelve el mensaje a la
   carpeta de origen registrada, con su id nuevo, y responde `{ok, action_id,
   restored_message_id}`. Sus códigos son `mail_action_not_found`, `mail_action_undone`
-  y `mail_not_undoable` (ver «Carpetas y acciones (F2A)»).
+  y `mail_not_undoable` (ver «Carpetas y acciones (F2A)»). Para deshacer, Alfred llama
+  primero a `mail.undo_list` y luego a `mail.undo` por cada `action_id`.
+- `mail.undo_list` `{account, n?}`: solo lectura y sin aprobación. Lee el registro
+  local (`actions.jsonl`) y lista los `mail.move` más recientes de la cuenta que no
+  están deshechos: `action_id`, `dest` (la carpeta de destino), `at` (fecha RFC 3339)
+  y `undone: false`. Nunca asunto, remitente ni cuerpo; no hace llamadas a Graph.
+  Una cuenta que no está conectada responde `mail_invalid_input`.
 - Auditoría: cada lectura de la propuesta queda como `mail.move_propose` con su id de
   mensaje, sin asunto ni remitente. Ningún movimiento es borrado permanente.
 

@@ -11,6 +11,7 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use hn_core_pin::{sas, unix_now, Fingerprint, PairingLink, PinError};
 
 use crate::frb_generated::StreamSink;
+use crate::pinned::pake;
 use crate::pinned::transport::{
     self, read_capped, Exchange, Request, REQUEST_TIMEOUT, STREAM_IDLE_TIMEOUT,
 };
@@ -119,6 +120,60 @@ impl PinnedFailure {
     }
 }
 
+/// Why a pairing with the short code stopped, as a closed set the UI can
+/// branch on. None of these is `PinnedFailureKind::PinMismatch`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PakeFailureKind {
+    /// The text is not a code; nothing touched the network.
+    InvalidCodeFormat,
+    /// No address answered, or the link dropped.
+    Unreachable,
+    /// The host's proof did not verify: wrong code or a man in the middle.
+    HostProofInvalid,
+    /// The second connection showed another certificate than the first.
+    ChannelChanged,
+    /// The code expired, was burned or already used.
+    CodeGone,
+    /// Too many requests; `retry_after` may say when to retry.
+    RateLimited,
+    /// The host has no PAKE pairing on this route.
+    NoPake,
+    /// Anything else that broke the exchange.
+    Protocol,
+}
+
+/// `message` is for the person, in Spanish; it never carries the code.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PakeFailure {
+    pub kind: PakeFailureKind,
+    pub message: String,
+    pub retry_after: Option<u32>,
+}
+
+impl PakeFailure {
+    pub(crate) fn of(kind: PakeFailureKind, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+            retry_after: None,
+        }
+    }
+}
+
+/// `pin` is the SPKI fingerprint the PAKE confirmed: what the device stores.
+pub struct PakeOutcome {
+    pub device_id: String,
+    pub recovery_code: String,
+    pub pin: String,
+    pub address: String,
+}
+
+/// Exactly one of `outcome` and `failure` is set.
+pub struct PakePairResult {
+    pub outcome: Option<PakeOutcome>,
+    pub failure: Option<PakeFailure>,
+}
+
 #[flutter_rust_bridge::frb(sync)]
 pub fn parse_pairing_link(uri: String) -> PairingLinkResult {
     parse_link(&uri, unix_now())
@@ -131,6 +186,32 @@ pub fn pairing_sas(pin: String, public_key_base64: String) -> Option<String> {
     let pin: Fingerprint = pin.parse().ok()?;
     let key = STANDARD.decode(public_key_base64).ok()?;
     Some(sas(&pin, &key))
+}
+
+/// Pairs with the host by its short code (F2d1): two TLS connections, the
+/// second pinned to the key the PAKE confirmed. The session and its key never
+/// leave Rust. `addresses` are tried in order only until one connects; a
+/// protocol failure is final, the code is already burned.
+pub fn pake_pair(
+    addresses: Vec<String>,
+    code: String,
+    device_public_key_b64: String,
+) -> PakePairResult {
+    match pake::pair(&addresses, &code, &device_public_key_b64) {
+        Ok(paired) => PakePairResult {
+            outcome: Some(PakeOutcome {
+                device_id: paired.device_id,
+                recovery_code: paired.recovery_code,
+                pin: paired.pin.to_string(),
+                address: paired.address.to_string(),
+            }),
+            failure: None,
+        },
+        Err(failure) => PakePairResult {
+            outcome: None,
+            failure: Some(failure),
+        },
+    }
 }
 
 pub fn pinned_request(
@@ -302,102 +383,4 @@ fn link_failure(error: PinError) -> PinnedFailure {
 }
 
 #[cfg(test)]
-mod tests {
-    use hn_core_pin::{Fingerprint, PairingLink, PinSet};
-
-    use super::*;
-
-    const NOW: i64 = 1_730_000_000;
-
-    fn link_uri(expires_at: i64) -> String {
-        PairingLink {
-            code: "AEBAGBA".to_string(),
-            pins: PinSet::new(
-                Fingerprint::of_spki(b"primary"),
-                Some(Fingerprint::of_spki(b"backup")),
-            ),
-            addresses: vec!["192.168.1.20:8443".parse().expect("address")],
-            expires_at,
-        }
-        .to_uri()
-    }
-
-    fn failure_kind(uri: &str) -> PinnedFailureKind {
-        let result = parse_link(uri, NOW);
-        assert!(result.link.is_none(), "{uri} must be refused");
-        result.failure.expect("a refused link has a failure").kind
-    }
-
-    #[test]
-    fn a_valid_link_yields_its_pins_addresses_and_code() {
-        let result = parse_link(&link_uri(NOW + 600), NOW);
-        let link = result.link.expect("a valid link must parse");
-        assert!(result.failure.is_none());
-        assert_eq!(link.code, "AEBAGBA");
-        assert_eq!(link.primary, Fingerprint::of_spki(b"primary").to_string());
-        assert_eq!(
-            link.backup,
-            Some(Fingerprint::of_spki(b"backup").to_string())
-        );
-        assert_eq!(link.addresses, vec!["192.168.1.20:8443".to_string()]);
-        assert_eq!(link.expires_at, NOW + 600);
-    }
-
-    #[test]
-    fn an_expired_link_is_a_typed_failure() {
-        assert_eq!(failure_kind(&link_uri(NOW)), PinnedFailureKind::LinkExpired);
-    }
-
-    #[test]
-    fn pairing_sas_matches_the_contract_vectors() {
-        let pin = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8".to_string();
-        let mut key_a = vec![0x04_u8];
-        key_a.extend([0x11_u8; 32]);
-        key_a.extend([0x22_u8; 32]);
-        let mut key_b = vec![0x04_u8];
-        key_b.extend([0x33_u8; 32]);
-        key_b.extend([0x44_u8; 32]);
-        assert_eq!(
-            pairing_sas(pin.clone(), STANDARD.encode(key_a)),
-            Some("097665".to_string())
-        );
-        assert_eq!(
-            pairing_sas(pin, STANDARD.encode(key_b)),
-            Some("827242".to_string())
-        );
-    }
-
-    #[test]
-    fn pairing_sas_refuses_a_malformed_pin_or_key() {
-        let key = STANDARD.encode([0x04_u8; 65]);
-        assert_eq!(pairing_sas("short".to_string(), key), None);
-        assert_eq!(pairing_sas("A".repeat(43), "not base64!".to_string()), None);
-    }
-
-    #[test]
-    fn an_unknown_link_version_is_a_typed_failure() {
-        let uri = link_uri(NOW + 600).replacen("v=1", "v=9", 1);
-        assert_eq!(
-            failure_kind(&uri),
-            PinnedFailureKind::UnsupportedLinkVersion
-        );
-    }
-
-    #[test]
-    fn a_malformed_pin_is_a_typed_failure() {
-        let uri = link_uri(NOW + 600).replacen("h=", "h=!!", 1);
-        assert_eq!(failure_kind(&uri), PinnedFailureKind::MalformedPin);
-    }
-
-    #[test]
-    fn a_link_without_a_pin_or_with_junk_is_a_malformed_link() {
-        assert_eq!(
-            failure_kind("herdr-notify://pair?v=1&c=AB&e=9999999999999"),
-            PinnedFailureKind::MalformedLink
-        );
-        assert_eq!(
-            failure_kind("https://example.com/pair?v=1"),
-            PinnedFailureKind::MalformedLink
-        );
-    }
-}
+mod tests;

@@ -21,14 +21,20 @@ hn-core-pin = { path = "../pin" }
 hn-core-pty = { path = "../pty" }
 hn-core-seat = { path = "../seat" }
 hn-core-state = { path = "../state" }
+mdns-sd = { version = "=0.21.6", default-features = false }
+rand_core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 vt100.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_SystemInformation"] }
+
 [dev-dependencies]
 base64.workspace = true
+hn-core-pake = { path = "../pake" }
 hn-core-test-dir = { path = "../test-dir" }
 hn-core-test-support = { path = "../test-support" }
 image = { workspace = true, features = ["png"] }

@@ -1,8 +1,8 @@
 //! The organize tools (F2b2): `mail.move_propose` asks the operator to approve a batch
 //! of moves, `mail.move_apply` moves the messages once the batch is approved, and
-//! `mail.undo` puts one moved message back. Each takes its named fields and nothing
-//! else. The destinations are the three folders of [`MoveFolder`], and nothing else
-//! can be a destination.
+//! `mail.undo_list` lists the recent moves that can still be undone, and `mail.undo` puts
+//! one moved message back. Each takes its named fields and nothing else. The destinations
+//! are the three folders of [`MoveFolder`], and nothing else can be a destination.
 
 use std::collections::HashSet;
 
@@ -13,6 +13,8 @@ use super::{arguments, bounded, invalid, MailCall, MAX_ID_CHARS};
 
 const MAX_BATCH: usize = 20;
 const MAX_REASON_CHARS: usize = 200;
+const DEFAULT_UNDO_LIST: i64 = 10;
+const MAX_UNDO_LIST: i64 = 20;
 
 /// Where a proposed move sends a message. Closed on purpose: these three folders.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -39,6 +41,7 @@ pub enum Organize {
     Propose(MoveProposal),
     Apply(MoveApply),
     Undo(MoveUndo),
+    UndoList(UndoList),
 }
 
 /// A batch of 1..=20 moves of one account, each message at most once.
@@ -70,6 +73,13 @@ pub struct MoveUndo {
     pub action_id: String,
 }
 
+/// The newest moves of `account` that can still be undone, at most `n` of them (1..=20).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UndoList {
+    pub account: String,
+    pub n: u32,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ProposeArgs {
@@ -99,6 +109,13 @@ struct UndoArgs {
     action_id: String,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct UndoListArgs {
+    account: String,
+    n: Option<i64>,
+}
+
 /// Parses one of the three organize tools. The caller routes only those names here.
 pub fn parse(request: &ToolRequest) -> Result<MailCall, ToolError> {
     let organize = match request.tool.as_str() {
@@ -118,6 +135,13 @@ pub fn parse(request: &ToolRequest) -> Result<MailCall, ToolError> {
             Organize::Undo(MoveUndo {
                 account: bounded("account", &args.account, MAX_ID_CHARS)?,
                 action_id: bounded("action_id", &args.action_id, MAX_ID_CHARS)?,
+            })
+        }
+        "mail.undo_list" => {
+            let args: UndoListArgs = arguments(request)?;
+            Organize::UndoList(UndoList {
+                account: bounded("account", &args.account, MAX_ID_CHARS)?,
+                n: undo_list_count(args.n)?,
             })
         }
         other => {
@@ -179,6 +203,14 @@ fn folder(raw: &str) -> Result<MoveFolder, ToolError> {
     }
 }
 
+/// How many moves to list: 1..=20, and 10 when the call names none.
+fn undo_list_count(raw: Option<i64>) -> Result<u32, ToolError> {
+    match raw.unwrap_or(DEFAULT_UNDO_LIST) {
+        n if (1..=MAX_UNDO_LIST).contains(&n) => Ok(n as u32),
+        _ => Err(invalid("n", format!("n must be 1..={MAX_UNDO_LIST}"))),
+    }
+}
+
 /// The reason is one line the operator reads before deciding.
 fn reason(raw: &str) -> Result<String, ToolError> {
     let line = raw.trim();
@@ -199,7 +231,9 @@ mod tests {
     use hn_core_chat::{ToolError, ToolRequest};
     use serde_json::{json, Value};
 
-    use super::{parse, MailCall, MoveApply, MoveFolder, MoveProposal, Organize, ProposedMove};
+    use super::{
+        parse, MailCall, MoveApply, MoveFolder, MoveProposal, Organize, ProposedMove, UndoList,
+    };
 
     fn request(tool: &str, arguments: Value) -> ToolRequest {
         ToolRequest {
@@ -311,6 +345,37 @@ mod tests {
                 json!({"account": "t", "action_id": "01H", "dest": "inbox"})
             )
             .code,
+            "mail_invalid_input"
+        );
+    }
+
+    #[test]
+    fn undo_list_counts_one_to_twenty_and_defaults_to_ten() {
+        let listed = |arguments: Value| parse(&request("mail.undo_list", arguments));
+        assert_eq!(
+            listed(json!({"account": "t"})),
+            Ok(MailCall::Organize(Organize::UndoList(UndoList {
+                account: "t".into(),
+                n: 10,
+            })))
+        );
+        assert_eq!(
+            listed(json!({"account": "t", "n": 20})),
+            Ok(MailCall::Organize(Organize::UndoList(UndoList {
+                account: "t".into(),
+                n: 20,
+            })))
+        );
+        for n in [json!(0), json!(21), json!(-1)] {
+            let arguments = json!({"account": "t", "n": n});
+            assert_eq!(refused("mail.undo_list", arguments).field, Some("n"), "{n}");
+        }
+        let text = json!({"account": "t", "n": "5"});
+        assert_eq!(refused("mail.undo_list", text).code, "mail_invalid_input");
+        let extra = json!({"account": "t", "subject": "x"});
+        assert_eq!(refused("mail.undo_list", extra).code, "mail_invalid_input");
+        assert_eq!(
+            refused("mail.undo_list", json!({})).code,
             "mail_invalid_input"
         );
     }

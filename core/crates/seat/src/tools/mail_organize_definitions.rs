@@ -1,5 +1,5 @@
 //! The schemas of the organize tools (F2b2): propose a batch of moves, apply the
-//! approved batch, and undo one move. Alfred only; the host enforces who may call them.
+//! approved batch, list the moves that can be undone, and undo one move. Alfred only; the host enforces who may call them.
 
 use serde_json::{json, Value};
 
@@ -49,13 +49,26 @@ pub fn tools() -> Vec<Value> {
             }
         }),
         json!({
-            "name": "mail.undo",
-            "description": "Put back one message moved by mail.move_apply, to the folder it left, under its new id. Call it only when the operator asks to undo a move. A move is undone once.",
+            "name": "mail.undo_list",
+            "description": "List the newest moves of one account that can still be undone: action_id, destination folder and time (unix seconds). Read only, no approval, and no subjects or senders. To undo a move, call mail.undo_list first, then mail.undo once for each action_id the operator picks.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "account": account_property(),
-                    "action_id": { "type": "string", "minLength": 1, "maxLength": 200, "description": "The action_id from the results of mail.move_apply." }
+                    "n": { "type": "integer", "minimum": 1, "maximum": 20, "description": "How many moves to list, 1 to 20. 10 by default." }
+                },
+                "required": ["account"],
+                "additionalProperties": false
+            }
+        }),
+        json!({
+            "name": "mail.undo",
+            "description": "Put back one message moved by mail.move_apply, to the folder it left, under its new id. Call it only when the operator asks to undo a move. To undo, call mail.undo_list first, then mail.undo once for each action_id the operator picks. A move is undone once.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "account": account_property(),
+                    "action_id": { "type": "string", "minLength": 1, "maxLength": 200, "description": "An action_id from mail.undo_list, or from the results of mail.move_apply." }
                 },
                 "required": ["account", "action_id"],
                 "additionalProperties": false

@@ -312,6 +312,52 @@ mod tests {
         assert_eq!(exit.expect("exit event").exit_code, 0);
     }
 
+    /// Run `spec` until it has exited and printed `marker`; return what it printed.
+    async fn run_until_marker(spec: CommandSpec, marker: &str) -> String {
+        let mut session = PtySession::spawn(spec, PtySize::default()).expect("spawn");
+        let mut output = session.take_output().expect("output");
+        let mut exit_rx = session.take_exit().expect("exit");
+        let mut seen = Vec::new();
+        let mut exited = false;
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+        while !(exited && String::from_utf8_lossy(&seen).contains(marker)) {
+            tokio::select! {
+                chunk = output.recv() => match chunk {
+                    Some(bytes) => {
+                        // ConPTY asks for the cursor position before it streams output.
+                        if bytes.windows(4).any(|window| window == b"\x1b[6n") {
+                            session.write(b"\x1b[1;1R").expect("cursor reply");
+                        }
+                        seen.extend_from_slice(&bytes);
+                    }
+                    None => break,
+                },
+                _ = exit_rx.recv(), if !exited => exited = true,
+                _ = tokio::time::sleep_until(deadline) => panic!("pty test timed out"),
+            }
+        }
+        String::from_utf8_lossy(&seen).into_owned()
+    }
+
+    #[tokio::test]
+    async fn the_spec_environment_reaches_the_child() {
+        let mut spec = if cfg!(windows) {
+            let mut spec = CommandSpec::new("cmd.exe");
+            spec.args.push("/d".into());
+            spec.args.push("/c".into());
+            spec.args.push("echo valor=%HN_PTY_TEST%".into());
+            spec
+        } else {
+            let mut spec = CommandSpec::new("sh");
+            spec.args.push("-c".into());
+            spec.args.push("echo valor=$HN_PTY_TEST".into());
+            spec
+        };
+        spec = spec.env("HN_PTY_TEST", "llego-al-hijo");
+        let text = run_until_marker(spec, "valor=llego").await;
+        assert!(text.contains("valor=llego-al-hijo"), "output was: {text:?}");
+    }
+
     #[tokio::test]
     async fn resize_after_spawn_does_not_fail() {
         let session = PtySession::spawn(

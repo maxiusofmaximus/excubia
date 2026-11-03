@@ -18,7 +18,9 @@ mod triage;
 
 pub use folder::InboxFolder;
 pub use folders::FoldersQuery;
-pub use organize::{MoveApply, MoveFolder, MoveProposal, MoveUndo, Organize, ProposedMove};
+pub use organize::{
+    MoveApply, MoveFolder, MoveProposal, MoveUndo, Organize, ProposedMove, UndoList,
+};
 pub use triage::TriageQuery;
 
 const MAX_ID_CHARS: usize = 512;
@@ -234,7 +236,9 @@ pub fn parse(request: &ToolRequest) -> Result<MailCall, ToolError> {
         }
         "mail.triage" => triage::parse(request),
         "mail.folders" => folders::parse(request),
-        "mail.move_propose" | "mail.move_apply" | "mail.undo" => organize::parse(request),
+        "mail.move_propose" | "mail.move_apply" | "mail.undo" | "mail.undo_list" => {
+            organize::parse(request)
+        }
         "mail.message_get" => {
             let args: MessageArgs = arguments(request)?;
             Ok(MailCall::MessageGet(MessageRef {

@@ -36,6 +36,11 @@ pub(super) fn run() -> Result<(), String> {
             std::thread::sleep(Duration::from_secs(60));
         }
     }
+    if scenario == "quota" {
+        // The text and the exit code of a CLI whose account is out of usage.
+        eprintln!("Claude AI usage limit reached. Your limit will reset at 5pm.");
+        std::process::exit(1);
+    }
 
     let mut mcp = Mcp::start(&config_path)?;
     match scenario {
@@ -114,6 +119,23 @@ pub(super) fn run() -> Result<(), String> {
                 delegation["delegation_id"].as_str().unwrap_or("?")
             );
             mcp.reply("Alfred: proyecto creado y tarea asignada al lead")?;
+        }
+        "env" => {
+            // The variables this turn's CLI sees, by name only. The file is written whole,
+            // then the turn replies, so a reader that finds the file reads all of it.
+            let mut names: Vec<String> = std::env::vars()
+                .map(|(name, _)| name)
+                .filter(|name| name.starts_with("ANTHROPIC_") || name.starts_with("CLAUDE_CODE_"))
+                .collect();
+            names.sort();
+            let path = std::env::var("FAKE_CLI_ENV_OUT")
+                .map_err(|error| format!("FAKE_CLI_ENV_OUT: {error}"))?;
+            let partial = format!("{path}.partial");
+            std::fs::write(&partial, names.join(","))
+                .map_err(|error| format!("write the env report: {error}"))?;
+            std::fs::rename(&partial, &path)
+                .map_err(|error| format!("rename the env report: {error}"))?;
+            mcp.reply("Alfred: entorno anotado")?;
         }
         _ => {
             mcp.reply(&format!(

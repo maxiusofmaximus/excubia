@@ -5,6 +5,7 @@ mod format;
 #[cfg(test)]
 mod tests;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Instant;
 
@@ -84,6 +85,9 @@ pub struct VoiceService {
     starter: Option<Arc<dyn EngineStarter>>,
     slot: Mutex<Slot>,
     busy: Arc<Semaphore>,
+    /// Outside the slot lock: a transcription holds that lock while it runs, and the state read
+    /// must not wait for it. `engine` checks it under the lock, so no start slips past `suspend`.
+    suspended: AtomicBool,
 }
 
 impl VoiceService {
@@ -96,6 +100,33 @@ impl VoiceService {
                 failed_starts: 0,
             }),
             busy: Arc::new(Semaphore::new(1)),
+            suspended: AtomicBool::new(false),
+        }
+    }
+
+    /// Releases the engine (its worker process ends) and starts nothing until `resume`. A note
+    /// in flight finishes first, because the slot lock is held for it.
+    pub fn suspend(&self) {
+        self.suspended.store(true, Ordering::SeqCst);
+        let mut slot = self.slot.lock().unwrap_or_else(PoisonError::into_inner);
+        slot.engine = None;
+    }
+
+    /// Lifts `suspend` and loads the engine again in the background.
+    pub fn resume(self: Arc<Self>) {
+        self.suspended.store(false, Ordering::SeqCst);
+        self.warm_up();
+    }
+
+    /// `unavailable` without the speech configuration, `suspended` while a local model holds
+    /// the machine, else `ready`: the engine then starts on the first note.
+    pub fn state(&self) -> &'static str {
+        if self.starter.is_none() {
+            "unavailable"
+        } else if self.suspended.load(Ordering::SeqCst) {
+            "suspended"
+        } else {
+            "ready"
         }
     }
 
@@ -113,6 +144,9 @@ impl VoiceService {
             let _permit = permit;
             let started = Instant::now();
             let mut slot = self.slot.lock().unwrap_or_else(PoisonError::into_inner);
+            if self.suspended.load(Ordering::SeqCst) {
+                return;
+            }
             match self.engine(&mut slot) {
                 Ok(engine) => {
                     slot.engine = Some(engine);
@@ -180,6 +214,9 @@ impl VoiceService {
 
     /// The live engine, or a fresh start after a lost one. Failed starts in a row are counted.
     fn engine(&self, slot: &mut Slot) -> Result<Box<dyn Engine>, VoiceFailure> {
+        if self.suspended.load(Ordering::SeqCst) {
+            return Err(VoiceFailure::Unavailable);
+        }
         if let Some(engine) = slot.engine.take() {
             return Ok(engine);
         }

@@ -15,6 +15,7 @@ mod mail;
 mod middleware;
 mod note_api;
 mod pairing_audit;
+mod pake_slot;
 pub mod role_catalog;
 mod routes;
 mod sse;
@@ -29,6 +30,7 @@ pub use mail::{
     MailLoginStart, MailLoginStatus, SendAnswer, SendFailure, SendStatus,
 };
 pub use pairing_audit::{PairOutcome, PairVia, PairingAttempt, PairingAudit};
+pub use pake_slot::{PakeSlot, PendingPake, ShownCode, PAKE_CODE_TTL, PAKE_PENDING_TTL};
 pub use routes::device_sas;
 pub use tls::TlsListener;
 pub use validate::{clamp_read_lines, validate_keys, validate_pane_id, validate_prompt};
@@ -92,8 +94,7 @@ pub trait AgentActions: Send + Sync + 'static {
     /// the host's configuration, never from the request.
     async fn start_agent(
         &self,
-        command: &str,
-        args: &[String],
+        spec: &AgentSpec,
         cwd: &Path,
         label: Option<&str>,
     ) -> Result<StartedAgent, String>;
@@ -139,6 +140,9 @@ pub struct ApiContext {
     /// The host's active certificate pin: the input of a pending device's SAS.
     /// `None` when there is no certificate to read, and then no SAS is shown.
     pub host_pin: Option<Fingerprint>,
+    /// The PAKE pairing code, in memory only. It is never written to the trust store and `POST /v1/pair` does not
+    /// read it.
+    pub pake_slot: Arc<PakeSlot>,
 }
 
 /// The pieces the API is built from.
@@ -174,6 +178,7 @@ impl ApiContext {
             pairing_audit: config.pairing_audit,
             revocations,
             host_pin: None,
+            pake_slot: Arc::new(PakeSlot::new()),
         }
     }
 
@@ -322,7 +327,8 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         ));
     let public = Router::new()
         .route("/v1/health", get(routes::health))
-        .route("/v1/pair", post(routes::pair));
+        .route("/v1/pair", post(routes::pair))
+        .merge(routes::pake_routes());
     public.merge(protected)
 }
 
@@ -331,6 +337,8 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
 fn hook_routes(ctx: &ApiContext) -> Router<ApiContext> {
     Router::new()
         .route("/v1/hooks/report", post(routes::hook_report))
+        // Arms the PAKE pairing code: loopback only, and the host token alone opens it.
+        .merge(routes::pake_admin_routes())
         // The approval surface of the agent's own hook: it opens, polls and
         // burns an approval with the host token, never with a device one.
         .route("/v1/chat/approvals", post(routes::chat_create_approval))
@@ -358,14 +366,22 @@ pub fn client_router(ctx: ApiContext) -> Router {
     client_routes(&ctx).with_state(ctx)
 }
 
-/// The address a device connected from. It is this crate's type, so each
-/// listener can supply it through its own `Connected` impl (see `tls`).
+/// The address a device connected from, and what its connection can bind a message to. It is this crate's type,
+/// so each listener can supply it through its own `Connected` impl (see `tls`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PeerAddr(pub SocketAddr);
+pub struct PeerAddr {
+    pub addr: SocketAddr,
+    /// The RFC 9266 `tls-exporter` value of this connection. `None` when there is no TLS (loopback) or the
+    /// exporter could not be read: whatever needs a channel binding must refuse then.
+    pub binding: Option<[u8; 32]>,
+}
 
 impl Connected<IncomingStream<'_, TcpListener>> for PeerAddr {
     fn connect_info(stream: IncomingStream<'_, TcpListener>) -> Self {
-        Self(*stream.remote_addr())
+        Self {
+            addr: *stream.remote_addr(),
+            binding: None,
+        }
     }
 }
 

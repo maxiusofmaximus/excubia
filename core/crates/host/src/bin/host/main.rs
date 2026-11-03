@@ -2,7 +2,7 @@
 //!
 //! Run `host` (no subcommand) to supervise agents and serve the local API on
 //! loopback. `host pair-code` mints a single-use pairing code (and its link,
-//! with `--lan`), `host tls prepare|activate` rotates the LAN certificate,
+//! with `--lan`; with `--pake` it asks the running daemon for its PAKE code), `host tls prepare|activate` rotates the LAN certificate,
 //! `host hook-token` prints the token agent hooks use, and
 //! `host devices list|revoke|grant|recovery` manage the trust store — the
 //! same files the daemon re-reads, so both processes agree without a restart.
@@ -13,7 +13,7 @@ mod daemon;
 use anyhow::Result;
 use hn_core_host::cli::{self, Command};
 
-use admin::{claude_settings, devices, hook_token, mail, pair_code, tls};
+use admin::{claude_settings, devices, hook_token, mail, pair_code, pair_code_pake, tls};
 use daemon::run;
 
 #[tokio::main]
@@ -26,11 +26,16 @@ async fn main() -> Result<()> {
             lan,
             data_dir,
         } => pair_code(ttl_seconds, &lan, &data_dir),
+        Command::PairCodePake { port, data_dir } => pair_code_pake(port, &data_dir).await,
         Command::Tls { command, data_dir } => tls(command, &data_dir),
         Command::HookToken { seat, data_dir } => hook_token(seat.as_deref(), &data_dir),
         Command::ClaudeSettings { hook, out } => claude_settings(&hook, out.as_deref()),
         Command::Devices { command, data_dir } => devices(command, &data_dir),
         Command::Mail(invocation) => mail(invocation).await,
+        Command::Strata { command, data_dir } => hn_core_host::strata::run(command, &data_dir),
+        Command::Alfred { command, data_dir } => {
+            hn_core_host::alfred_backend::run(command, &data_dir)
+        }
         Command::Run(options) => run(options).await,
     }
 }

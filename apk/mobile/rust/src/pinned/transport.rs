@@ -9,7 +9,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use hn_core_pin::{client_config, Fingerprint, PinError, PinSet};
+use hn_core_pin::{client_config, CertificateInfo, Fingerprint, PinError, PinSet};
 use rustls::pki_types::ServerName;
 use rustls::{CertificateError, ClientConfig, ClientConnection, Error as TlsError, StreamOwned};
 
@@ -44,7 +44,55 @@ pub(crate) fn exchange(
     io_timeout: Duration,
 ) -> Result<Exchange, PinnedFailure> {
     let config = Arc::new(pinned_config(endpoint)?);
-    let (address, tls) = connect_first(&parse_addresses(endpoint)?, &config, io_timeout)?;
+    let opened = open(&parse_addresses(&endpoint.addresses)?, &config, io_timeout)?;
+    send(opened.tls, opened.address, request)
+}
+
+/// A connection whose handshake the verifier accepted, before any request.
+pub(crate) struct Opened {
+    pub(crate) address: SocketAddr,
+    pub(crate) tls: Tls,
+    /// RFC 9266 `tls-exporter` of this connection, as the host reads it.
+    pub(crate) exporter: [u8; 32],
+    /// The SPKI hash of the certificate the host presented on this connection.
+    pub(crate) spki: Fingerprint,
+}
+
+/// Connects to the first candidate that answers and completes the handshake.
+pub(crate) fn open(
+    addresses: &[SocketAddr],
+    config: &Arc<ClientConfig>,
+    io_timeout: Duration,
+) -> Result<Opened, PinnedFailure> {
+    let (address, tls) = connect_first(addresses, config, io_timeout)?;
+    let exporter = tls
+        .conn
+        .export_keying_material([0u8; 32], b"EXPORTER-Channel-Binding", None)
+        .map_err(|error| PinnedFailure::of(Kind::Protocol, error.to_string()))?;
+    let spki = tls
+        .conn
+        .peer_certificates()
+        .and_then(<[_]>::first)
+        .ok_or_else(|| PinnedFailure::of(Kind::Protocol, "the host sent no certificate"))
+        .and_then(|leaf| {
+            CertificateInfo::read(leaf.as_ref())
+                .map_err(|error| PinnedFailure::of(Kind::CertificateInvalid, error.to_string()))
+        })?
+        .fingerprint();
+    Ok(Opened {
+        address,
+        tls,
+        exporter,
+        spki,
+    })
+}
+
+/// One HTTP/1.1 request on a connection that is already open.
+pub(crate) fn send(
+    tls: Tls,
+    address: SocketAddr,
+    request: Request<'_>,
+) -> Result<Exchange, PinnedFailure> {
     let mut reader = BufReader::new(tls);
     framing::write_request(
         reader.get_mut(),
@@ -95,15 +143,14 @@ fn malformed_pin(_: PinError) -> PinnedFailure {
     PinnedFailure::of(Kind::MalformedPin, "a pin is not 43 base64url characters")
 }
 
-fn parse_addresses(endpoint: &PinnedEndpoint) -> Result<Vec<SocketAddr>, PinnedFailure> {
-    if endpoint.addresses.is_empty() {
+pub(crate) fn parse_addresses(addresses: &[String]) -> Result<Vec<SocketAddr>, PinnedFailure> {
+    if addresses.is_empty() {
         return Err(PinnedFailure::of(
             Kind::Unreachable,
             "the link has no address",
         ));
     }
-    endpoint
-        .addresses
+    addresses
         .iter()
         .map(|address| {
             SocketAddr::from_str(address).map_err(|_| {

@@ -14,11 +14,14 @@ use hn_core_api::{
 };
 use hn_core_auth::DeviceStore;
 use hn_core_chat::{ChatSeat, ChatStore};
+use hn_core_host::alfred_backend;
 use hn_core_host::calendar_reminders;
 use hn_core_host::cli::RunOptions;
+use hn_core_host::local_mode;
 use hn_core_host::mail_routes;
 use hn_core_host::mail_shadow::Shadow;
 use hn_core_host::mail_tools::MailTools;
+use hn_core_host::mdns;
 use hn_core_host::pairing_notice::PairingNotice;
 use hn_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
 use hn_core_host::tls_slots::TlsSlots;
@@ -83,6 +86,8 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         .context("bind the internal MCP listener")?;
     let internal_address = internal.local_addr()?;
     let mcp_command = sibling_binary("hn-mcp")?;
+    // The notices of the pairing and of the local model share «Avisos del sistema».
+    let notices = Arc::new(PairingNotice::new(&options.data_dir, Arc::clone(&chat)));
     let seat_service = SeatService::start(SeatConfig {
         data_dir: options.data_dir.clone(),
         chat: Arc::clone(&chat),
@@ -93,6 +98,14 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         profiles: shipped(),
         queue_capacity: SEAT_QUEUE,
         turn_timeout: SEAT_TIMEOUT,
+        turn_env: {
+            let data_dir = options.data_dir.clone();
+            Arc::new(move || alfred_backend::turn_env(&data_dir))
+        },
+        on_quota_exhausted: alfred_backend::quota_hook(
+            Arc::clone(&notices),
+            options.data_dir.clone(),
+        ),
     })
     .map_err(|error| anyhow::anyhow!("start Alfred's seat: {error}"))?;
     match seat_service.selected() {
@@ -185,8 +198,26 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     let speech = options
         .asr
         .map(|config| Arc::new(*config) as Arc<dyn EngineStarter>);
+    let voice_configured = speech.is_some();
     let voice = Arc::new(VoiceService::new(speech));
-    Arc::clone(&voice).warm_up();
+    if let Err(error) = local_mode::recover(&options.data_dir, &notices) {
+        println!("host: no pude revisar local-mode: {error}");
+    }
+    if let Err(error) = alfred_backend::recover(&options.data_dir, &notices) {
+        println!("host: no pude revisar alfred-local: {error}");
+    }
+    let alfred_task = alfred_backend::watch(Arc::clone(&notices), options.data_dir.clone());
+    // A running local model keeps the ASR down: no warm-up while its marker is there.
+    if !local_mode::is_on(&options.data_dir) {
+        Arc::clone(&voice).warm_up();
+    }
+    let local_task = voice_configured.then(|| {
+        local_mode::watch(
+            Arc::clone(&voice),
+            Arc::clone(&notices),
+            options.data_dir.clone(),
+        )
+    });
     let context = ApiContext::new(ApiConfig {
         store,
         actions,
@@ -197,7 +228,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         hook_token: token,
         mail: Arc::new(mail),
         voice,
-        pairing_audit: Arc::new(PairingNotice::new(&options.data_dir, chat)),
+        pairing_audit: notices.clone(),
     })
     // The active pin is the input of each pending device's SAS. A host that cannot
     // read it still serves; it only shows no verification string.
@@ -208,6 +239,11 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
             None
         }
     });
+    // F2c: announce on the LAN, at the address of the first LAN TLS listener, only while a PAKE code is alive.
+    let mdns_task = lan_listeners
+        .first()
+        .and_then(|listener| listener.local_addr().ok())
+        .and_then(|address| mdns::start(Arc::clone(&context.pake_slot), address));
     let mut internal_task = tokio::spawn(serve_internal(internal, context.clone()));
     // One task for every LAN/VPN address: the first listener to stop ends it,
     // and dropping the set aborts the rest.
@@ -241,6 +277,13 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         task.abort();
     }
     alerts_task.abort();
+    alfred_task.abort();
+    if let Some(task) = mdns_task {
+        task.stop().await;
+    }
+    if let Some(task) = &local_task {
+        task.abort();
+    }
     team.shutdown();
     seat_service.shutdown();
     host.shutdown().await;

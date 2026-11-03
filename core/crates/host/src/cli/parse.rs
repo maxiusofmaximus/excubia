@@ -36,6 +36,14 @@ pub fn parse(args: impl Iterator<Item = String>) -> Result<Command, String> {
             args.next();
             crate::mail_cli::parse(args).map(Command::Mail)
         }
+        Some("strata") => {
+            args.next();
+            super::strata::strata(args)
+        }
+        Some("alfred") => {
+            args.next();
+            super::alfred::alfred(args)
+        }
         _ => run(args),
     }
 }

@@ -36,7 +36,7 @@ pub use definitions::definitions;
 pub use mail::{
     check_draft_fields, BodyFormat, DraftFields, DraftRef, DraftUpdate, FoldersQuery, InboxFolder,
     InboxQuery, MailAttach, MailCall, MessageRef, MoveApply, MoveFolder, MoveProposal, MoveUndo,
-    Organize, ProposedMove, TriageQuery,
+    Organize, ProposedMove, TriageQuery, UndoList,
 };
 pub use note::NoteCall;
 pub use parse::parse;

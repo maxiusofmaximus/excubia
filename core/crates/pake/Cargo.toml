@@ -1,0 +1,26 @@
+[package]
+name = "hn-core-pake"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "SPAKE2 pairing core with key confirmation bound to the TLS channel (PAIRING-F2A); no network, no host dependencies"
+
+[dependencies]
+curve25519-dalek = { version = "4", default-features = false }
+hmac = "0.12"
+rand_core.workspace = true
+sha2.workspace = true
+spake2 = "=0.4.0"
+subtle = "2"
+thiserror.workspace = true
+zeroize = "1"
+
+[features]
+# Exposes `Session::start_with_entropy` and `SessionKey::expose_for_tests` so the vectors can be reproduced.
+# Never enable it in a product build.
+test-vectors = []
+
+[dev-dependencies]
+data-encoding.workspace = true
+# Turns the feature on for this crate's own tests only.
+hn-core-pake = { path = ".", features = ["test-vectors"] }

@@ -31,7 +31,8 @@ impl PairingNotice {
         }
     }
 
-    fn notify(&self, text: &str) -> Result<(), ChatError> {
+    /// Posts a message from Alfred in «Avisos del sistema», the host's notice conversation.
+    pub fn notify(&self, text: &str) -> Result<(), ChatError> {
         let conversation = self.notice_conversation()?;
         self.chat
             .append_alfred_message(&conversation, text)
@@ -106,7 +107,12 @@ impl PairingAudit for PairingNotice {
 }
 
 fn notice_text(attempt: &PairingAttempt) -> Option<String> {
-    if attempt.outcome == PairOutcome::Rejected {
+    // A refusal, a PAKE start and a failed PAKE post nothing: a stranger's tries never flood the chat, and the
+    // device that completes the pairing is announced by its own `paired` line.
+    if matches!(
+        attempt.outcome,
+        PairOutcome::Rejected | PairOutcome::PakeStarted | PairOutcome::PakeFailed
+    ) {
         return None;
     }
     let device = attempt.device_id.as_deref()?;
@@ -138,13 +144,17 @@ fn notice_text(attempt: &PairingAttempt) -> Option<String> {
                 "{granter} concedió {permissions} a {label} ({device})."
             ))
         }
-        PairOutcome::Rejected => None,
+        PairOutcome::Rejected | PairOutcome::PakeStarted | PairOutcome::PakeFailed => None,
     }
 }
 
 /// The label as an inline code span: one line, at most 40 characters, and no backtick
 /// that could close the span early. Markdown inside a code span is plain text.
 fn label_span(label: &str) -> String {
+    // A PAKE pairing sends no label: say so instead of showing an empty span.
+    if label.trim().is_empty() {
+        return "`sin nombre`".to_owned();
+    }
     let text: String = label
         .chars()
         .map(|character| match character {
@@ -220,5 +230,33 @@ mod tests {
     #[test]
     fn a_refusal_posts_nothing() {
         assert!(notice_text(&attempt(PairOutcome::Rejected, None, Some("Intruso"))).is_none());
+    }
+
+    #[test]
+    fn a_pake_start_or_failure_posts_nothing() {
+        for outcome in [PairOutcome::PakeStarted, PairOutcome::PakeFailed] {
+            let mut pake = attempt(outcome, Some("dev-1"), None);
+            pake.via = PairVia::Pake;
+            assert!(notice_text(&pake).is_none(), "{outcome:?}");
+        }
+    }
+
+    #[test]
+    fn a_device_paired_by_pake_is_announced_like_any_other_with_its_verification_string() {
+        let mut by_code = attempt(PairOutcome::Paired, Some("dev-1"), Some("Phone"));
+        by_code.sas = Some("042817".to_owned());
+        let mut by_pake = attempt(PairOutcome::Paired, Some("dev-1"), Some("Phone"));
+        by_pake.via = PairVia::Pake;
+        by_pake.sas = Some("042817".to_owned());
+        assert_eq!(notice_text(&by_pake), notice_text(&by_code));
+
+        // A PAKE device has no label yet.
+        let mut unnamed = attempt(PairOutcome::Paired, Some("dev-2"), None);
+        unnamed.via = PairVia::Pake;
+        unnamed.sas = Some("123456".to_owned());
+        assert_eq!(
+            notice_text(&unnamed).expect("a notice"),
+            "Nuevo dispositivo pendiente: `sin nombre` (dev-2), sin permisos. Cadena de verificación: **123456** (debe ser la que muestra el móvil). Si no fuiste tú: `host devices revoke dev-2`."
+        );
     }
 }

@@ -52,5 +52,7 @@ pub async fn state(State(ctx): State<ApiContext>) -> Response {
         }
         Err(error) => return ApiError::internal(error).into_response(),
     }
+    // Additive: `unavailable`, `suspended` (a local model holds the machine) or `ready`.
+    state["voice"] = json!(ctx.voice.state());
     Json(state).into_response()
 }

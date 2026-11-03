@@ -55,6 +55,16 @@ pub fn hook_token_path(data_dir: &Path) -> PathBuf {
     data_dir.join("hook-token")
 }
 
+/// Present while the local model runs: the voice host lets go of its ASR (`local_mode.rs`).
+pub fn local_mode_path(data_dir: &Path) -> PathBuf {
+    data_dir.join("local-mode")
+}
+
+/// Present while Alfred answers with the local model (`alfred_backend.rs`).
+pub fn alfred_local_path(data_dir: &Path) -> PathBuf {
+    data_dir.join("alfred-local")
+}
+
 /// The LAN listener's certificate and key slots (`tls_slots.rs`).
 pub fn tls_dir(data_dir: &Path) -> PathBuf {
     data_dir.join("tls")
@@ -75,5 +85,7 @@ mod tests {
         assert!(counters_path(dir).ends_with("state.json"));
         assert!(chat_db_path(dir).ends_with("chat.db"));
         assert!(attachments_dir(dir).ends_with(Path::new("chat").join("attachments")));
+        assert!(local_mode_path(dir).ends_with("local-mode"));
+        assert!(alfred_local_path(dir).ends_with("alfred-local"));
     }
 }

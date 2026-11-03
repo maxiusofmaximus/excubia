@@ -15,7 +15,7 @@ use super::usage::USAGE;
 
 pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut options = RunOptions {
-        port: 8791,
+        port: super::types::DEFAULT_PORT,
         bind: IpAddr::from([127, 0, 0, 1]),
         tls_bind: Vec::new(),
         rows: 30,

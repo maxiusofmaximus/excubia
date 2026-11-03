@@ -1,7 +1,7 @@
 name: herdr_notify
 description: "herdr-notify Android client: Flutter UI over the Rust contract core."
 publish_to: 'none'
-version: 1.0.7+24
+version: 1.0.8-alpha.1+25
 
 environment:
   sdk: ^3.13.5

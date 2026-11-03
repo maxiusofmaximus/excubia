@@ -4,20 +4,33 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 
 use super::parse::resolve_data_dir;
-use super::types::{Command, TlsCommand};
+use super::types::{Command, TlsCommand, DEFAULT_PORT};
 
 pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut ttl_seconds = hn_core_auth::ENROLLMENT_TTL_SECONDS;
+    let mut ttl_given = false;
     let mut data_dir = None;
     let mut lan = Vec::new();
+    let mut pake = false;
+    let mut port = None;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--ttl" => {
+                ttl_given = true;
                 ttl_seconds = args
                     .next()
                     .ok_or("--ttl needs a value")?
                     .parse()
                     .map_err(|_| "--ttl needs a number of seconds".to_string())?;
+            }
+            "--pake" => pake = true,
+            "--port" => {
+                port = Some(
+                    args.next()
+                        .ok_or("--port needs a value")?
+                        .parse::<u16>()
+                        .map_err(|_| "--port needs a port number".to_string())?,
+                )
             }
             "--data-dir" => {
                 data_dir = Some(PathBuf::from(
@@ -30,6 +43,19 @@ pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Comman
             )?),
             other => return Err(format!("unknown argument for pair-code: {other}")),
         }
+    }
+    if pake {
+        // The PAKE code lives 180 s in the daemon's memory and has no link: these flags would be ignored.
+        if ttl_given || !lan.is_empty() {
+            return Err("pair-code --pake takes only --port and --data-dir".to_string());
+        }
+        return Ok(Command::PairCodePake {
+            port: port.unwrap_or(DEFAULT_PORT),
+            data_dir: resolve_data_dir(data_dir)?,
+        });
+    }
+    if port.is_some() {
+        return Err("--port is only for pair-code --pake (the daemon's port)".to_string());
     }
     Ok(Command::PairCode {
         ttl_seconds,

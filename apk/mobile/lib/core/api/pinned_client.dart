@@ -1,5 +1,7 @@
 import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
 
+import 'pake_pairing.dart';
+
 /// The keys a paired host must present, taken from its pairing link. [backup]
 /// is set only while a rotation is prepared; either key is accepted.
 class HostPins {
@@ -105,6 +107,13 @@ abstract interface class PinnedClient {
     required String target,
     required Map<String, String> headers,
   });
+
+  /// Pairs with the short code: no pin exists yet, the code proves the host.
+  Future<PakePairing> pakePair({
+    required List<String> addresses,
+    required String code,
+    required String devicePublicKey,
+  });
 }
 
 /// The production transport: the shared Rust core does the handshake and the
@@ -185,6 +194,19 @@ class RustPinnedClient implements PinnedClient {
       }
     }
   }
+
+  @override
+  Future<PakePairing> pakePair({
+    required List<String> addresses,
+    required String code,
+    required String devicePublicKey,
+  }) async => pakeFromRust(
+    await rust.pakePair(
+      addresses: addresses,
+      code: code,
+      devicePublicKeyB64: devicePublicKey,
+    ),
+  );
 
   static rust.PinnedEndpoint _endpoint(List<String> addresses, HostPins pins) =>
       rust.PinnedEndpoint(

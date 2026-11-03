@@ -25,6 +25,12 @@ Future<void> showPairingSasDialog(BuildContext context, String sas) {
           Text(grouped, style: context.text.mono.copyWith(fontSize: 32)),
           const SizedBox(height: Spacing.md),
           Text(
+            'El PC debe aprobar este dispositivo; hasta entonces no tiene '
+            'permisos.',
+            style: context.text.bodySecondary,
+          ),
+          const SizedBox(height: Spacing.md),
+          Text(
             'Si no coincide o no la ves, no concedas permisos y revoca este '
             'dispositivo desde el PC.',
             style: context.text.bodySecondary,

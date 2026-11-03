@@ -79,6 +79,12 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
             permission: None,
             budget: Budget::None,
         }),
+        // The PAKE pairing (F2b): the short code is the authorisation, so the routes never run through the
+        // verifier either. Their own `pake:<ip>` budget is taken inside the handlers.
+        ("POST", "/v1/pair/pake/start" | "/v1/pair/pake/finish") => Ok(EndpointRule {
+            permission: None,
+            budget: Budget::None,
+        }),
         ("GET", "/v1/state") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/events") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/catalog") => Ok(rule(Permission::ReadState, Budget::Read)),

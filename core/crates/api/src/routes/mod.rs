@@ -18,6 +18,7 @@ mod mail_send;
 mod notes;
 mod onboarding;
 mod pair;
+mod pake;
 mod roles;
 mod voice;
 mod workspaces;
@@ -61,6 +62,7 @@ pub use mail_send::{
 };
 pub use onboarding::{complete as complete_onboarding, state as onboarding_state};
 pub use pair::pair;
+pub use pake::{admin_routes as pake_admin_routes, routes as pake_routes};
 pub use roles::list as role_catalog;
 pub use voice::transcribe as transcribe_voice;
 pub use workspaces::create as create_workspace;

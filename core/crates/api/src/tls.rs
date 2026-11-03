@@ -59,8 +59,23 @@ impl Listener for TlsListener {
 
 impl Connected<IncomingStream<'_, TlsListener>> for PeerAddr {
     fn connect_info(stream: IncomingStream<'_, TlsListener>) -> Self {
-        Self(*stream.remote_addr())
+        Self {
+            addr: *stream.remote_addr(),
+            binding: exporter(stream.io().get_ref().1),
+        }
     }
+}
+
+/// The label RFC 9266 registers for `tls-exporter`; the context is empty.
+const EXPORTER_LABEL: &[u8] = b"EXPORTER-Channel-Binding";
+
+/// The channel binding of an established TLS 1.3 connection, or `None` if rustls will not give one.
+pub(crate) fn exporter(connection: &rustls::ServerConnection) -> Option<[u8; 32]> {
+    let mut binding = [0u8; 32];
+    connection
+        .export_keying_material(&mut binding, EXPORTER_LABEL, None)
+        .ok()?;
+    Some(binding)
 }
 
 async fn accept_loop(tcp: TcpListener, acceptor: TlsAcceptor, ready: mpsc::Sender<Ready>) {

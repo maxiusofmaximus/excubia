@@ -3,6 +3,7 @@
 //! ```text
 //! host [daemon flags]                 run the daemon
 //! host pair-code [--ttl S] [--lan IP:PORT]...  mint a single-use pairing code and its link
+//! host pair-code --pake [--port N]    ask the running daemon for its one-attempt PAKE code
 //! host tls prepare|activate           prepare or activate the LAN certificate
 //! host devices list                   list paired devices
 //! host devices revoke <id>            revoke one device
@@ -14,10 +15,12 @@
 //! `--port`, `--bind`, `--tls-bind`, `--rows`, `--cols`, `--label`, `--hook-ttl`,
 //! `--snapshot-lines`, `--workspaces-root` (where projects live, by default
 //! `<data-dir>/workspaces`) and repeatable `--spawn "<command line>"`.
+mod alfred;
 mod devices;
 mod pairing;
 mod parse;
 mod run;
+mod strata;
 mod types;
 mod usage;
 
@@ -27,5 +30,7 @@ mod tests;
 mod tests_pairing;
 
 pub use parse::parse;
-pub use types::{Command, DevicesCommand, RunOptions, TlsCommand};
+pub use types::{
+    AlfredCommand, Command, DevicesCommand, RunOptions, StrataCommand, TlsCommand, DEFAULT_PORT,
+};
 pub use usage::{GRANT_HINT, USAGE};

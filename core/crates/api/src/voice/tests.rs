@@ -313,3 +313,79 @@ async fn a_failed_warm_up_counts_as_a_failed_start() {
     }
     assert_eq!(starts.load(Ordering::SeqCst), 3);
 }
+
+/// Counts its own drops, so a test sees that `suspend` ends the worker.
+struct Tracked(Arc<AtomicUsize>);
+
+impl Engine for Tracked {
+    fn transcribe(&mut self, _pcm: &[f32]) -> Result<String, AsrError> {
+        Ok("tracked".to_owned())
+    }
+}
+
+impl Drop for Tracked {
+    fn drop(&mut self) {
+        self.0.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+struct TrackedStarter {
+    starts: Arc<AtomicUsize>,
+    drops: Arc<AtomicUsize>,
+}
+
+impl EngineStarter for TrackedStarter {
+    fn start(&self) -> Result<Box<dyn Engine>, AsrError> {
+        self.starts.fetch_add(1, Ordering::SeqCst);
+        Ok(Box::new(Tracked(Arc::clone(&self.drops))))
+    }
+}
+
+fn tracked_service() -> (Arc<VoiceService>, Arc<AtomicUsize>, Arc<AtomicUsize>) {
+    let starts = Arc::new(AtomicUsize::new(0));
+    let drops = Arc::new(AtomicUsize::new(0));
+    let starter = TrackedStarter {
+        starts: Arc::clone(&starts),
+        drops: Arc::clone(&drops),
+    };
+    (
+        Arc::new(VoiceService::new(Some(Arc::new(starter)))),
+        starts,
+        drops,
+    )
+}
+
+#[tokio::test]
+async fn a_suspend_releases_the_engine_and_nothing_reopens_it() {
+    let (service, starts, drops) = tracked_service();
+    Arc::clone(&service).warm_up();
+    wait_for_warm_up(&service).await;
+    service.suspend();
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
+    assert_eq!(service.state(), "suspended");
+
+    Arc::clone(&service).warm_up();
+    wait_for_warm_up(&service).await;
+    let failure = service
+        .clone()
+        .transcribe(Bytes::from_static(FIXTURE), AudioFormat::OggOpus)
+        .await
+        .expect_err("suspended");
+    assert_eq!(failure, VoiceFailure::Unavailable);
+    assert_eq!(starts.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn a_resume_loads_the_engine_again() {
+    let (service, starts, _drops) = tracked_service();
+    service.suspend();
+    Arc::clone(&service).resume();
+    wait_for_warm_up(&service).await;
+    assert_eq!(starts.load(Ordering::SeqCst), 1);
+    assert_eq!(service.state(), "ready");
+    service
+        .clone()
+        .transcribe(Bytes::from_static(FIXTURE), AudioFormat::OggOpus)
+        .await
+        .expect("the resumed engine transcribes");
+}

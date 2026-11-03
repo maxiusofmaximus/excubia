@@ -5,9 +5,12 @@ pub const USAGE: &str = "host [--port N] [--bind ADDR] [--rows R] [--cols C] [--
 [--workspaces-root DIR] [--uac-plugin-dir DIR] \
 [--asr-python PY --asr-script PY_FILE --asr-model DIR] [--asr-no-corrector] [--mail-sidecar http://127.0.0.1:PORT] [--spawn \"<cmdline>\"]... [--data-dir DIR]\n\
        host pair-code [--ttl SECONDS, default 180] [--lan IP:PORT]... [--data-dir DIR]\n\
+       host pair-code --pake [--port N, default 8791] [--data-dir DIR]\n\
        host tls prepare|activate [--data-dir DIR]\n\
        host hook-token [--seat AGENT_ID] [--data-dir DIR]\n\
        host claude-settings --hook <hn-uac-hook binary> [--out FILE]\n\
+       host strata start | stop | status | enable-agent [--data-dir DIR]\n\
+       host alfred local | use local|claude | status [--data-dir DIR]\n\
        host devices list [--data-dir DIR]\n\
        host devices revoke <device_id> [--data-dir DIR]\n\
        host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]\n\

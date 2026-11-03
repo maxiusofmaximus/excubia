@@ -103,11 +103,7 @@ pub async fn create(State(ctx): State<ApiContext>, body: Bytes) -> Response {
         }
     };
 
-    match ctx
-        .actions
-        .start_agent(&spec.command, &spec.args, &cwd, label.as_deref())
-        .await
-    {
+    match ctx.actions.start_agent(&spec, &cwd, label.as_deref()).await {
         Ok(started) => Json(json!({
             "ok": true,
             "workspace_id": started.workspace_id,

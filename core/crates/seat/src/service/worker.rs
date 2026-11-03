@@ -9,6 +9,7 @@ use tokio::sync::mpsc;
 use crate::profile::SelectedProfile;
 use crate::prompt::Role;
 
+use super::seat::TurnEnv;
 use super::turn::run_turn;
 use super::RunGrant;
 
@@ -25,6 +26,8 @@ pub(super) struct Worker {
     pub(super) role: Role,
     pub(super) timeout: Duration,
     pub(super) agent_id: String,
+    pub(super) turn_env: Arc<dyn Fn() -> TurnEnv + Send + Sync>,
+    pub(super) on_quota_exhausted: Arc<dyn Fn() + Send + Sync>,
 }
 
 pub(super) async fn run_worker(mut worker: Worker) {

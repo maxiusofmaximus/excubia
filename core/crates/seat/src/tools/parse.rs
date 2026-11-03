@@ -104,9 +104,8 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
         "status.overview" => status::parse(request),
         "mail.accounts" | "mail.draft_create" | "mail.draft_update" | "mail.draft_get"
         | "mail.attach_file" | "mail.inbox_list" | "mail.message_get" | "mail.triage"
-        | "mail.folders" | "mail.move_propose" | "mail.move_apply" | "mail.undo" => {
-            Ok(ToolCall::Mail(mail::parse(request)?))
-        }
+        | "mail.folders" | "mail.move_propose" | "mail.move_apply" | "mail.undo"
+        | "mail.undo_list" => Ok(ToolCall::Mail(mail::parse(request)?)),
         "note.save" => Ok(ToolCall::Note(note::save(request)?)),
         "note.search" => Ok(ToolCall::Note(note::search(request)?)),
         "note.update" => Ok(ToolCall::Note(note::update(request)?)),

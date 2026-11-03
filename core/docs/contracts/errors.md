@@ -38,6 +38,26 @@ to fail, and the caller already knows it sent no code, so the refusal is a
 (`herdr-notify enroll`) and, for a loopback source, the local-proxy cause. It
 never reports whose account owns an address.
 
+## PAKE pairing (F2b, alpha)
+
+`POST /v1/pair/pake/start` and `/finish` are public like `/v1/pair` and answer `{"detail": "<code>"}` with a stable, generic code
+(never which byte, tag or check failed; the code, key, tag and exporter are in no error and no log):
+
+| Status | `detail` | When |
+|--------|----------|------|
+| `400` | `"invalid_body"` | not JSON, a field missing, bad base64, `device_pubkey` not a P-256 point, `message` not 33 bytes, `tag` not 32 bytes (the code is not taken) |
+| `400` | `"pake_invalid_message"` | the host message is rejected once the code is taken (wrong side, small-order or off-subgroup point): the code is spent |
+| `403` | `"pake_requires_tls"` | no TLS exporter on this request (loopback listener) or the host has no TLS identity; the code is untouched |
+| `403` | `"confirmation_failed"` | the device's tag does not verify (wrong code, another connection, another certificate); the session is consumed |
+| `410` | `"no_live_code"` | `start` found no armed code: never armed, expired (180 s) or already spent |
+| `410` | `"pake_session_gone"` | `finish` found no pending session: no `start`, expired (60 s), replaced, or already used |
+| `413` | `"body too large"` | body > 8 KiB |
+| `429` | `"slow down"` | the `pake:<ip>` budget (30 per minute, shared by both routes) |
+| `500` | `"internal error"` | the OS random source or the trust store failed |
+
+`POST /v1/admin/pake-code` (loopback, host hook token): `401 "unauthorized"` (no or wrong token), `403 "host_token_required"` (a
+per-run token), `409 "pake_unavailable"` (no TLS identity), `404` on the LAN listener (the route is not mounted there).
+
 ## Order of checks
 
 A request is evaluated in this order, cheapest and most security-relevant first:

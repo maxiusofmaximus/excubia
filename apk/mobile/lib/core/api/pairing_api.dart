@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
 
+import 'pake_pairing.dart';
 import 'pinned_client.dart';
 import 'tailnet_cleartext.dart';
 
@@ -112,6 +113,17 @@ class PairingApi {
       throw const PairingException(0);
     }
   }
+
+  /// The pairing with the short code: Rust runs both connections and the proof.
+  Future<PakePairing> pairPake({
+    required List<String> addresses,
+    required String code,
+    required String devicePublicKey,
+  }) => _pinned.pakePair(
+    addresses: addresses,
+    code: code,
+    devicePublicKey: devicePublicKey,
+  );
 
   Future<PairResponse> pair(String baseUrl, PairRequest request) async {
     final uri = Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/v1/pair');

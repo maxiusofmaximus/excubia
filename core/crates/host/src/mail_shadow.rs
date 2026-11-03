@@ -210,7 +210,7 @@ fn now_rfc3339() -> String {
 
 /// `YYYY-MM-DDThh:mm:ssZ` for Unix seconds, from the civil-calendar algorithm of
 /// Howard Hinnant (the same days-to-date rule the standard library lacks).
-fn rfc3339(unix_seconds: i64) -> String {
+pub(crate) fn rfc3339(unix_seconds: i64) -> String {
     let days = unix_seconds.div_euclid(86_400) + 719_468;
     let seconds_of_day = unix_seconds.rem_euclid(86_400);
     let era = days.div_euclid(146_097);

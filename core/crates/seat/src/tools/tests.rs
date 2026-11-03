@@ -208,6 +208,7 @@ fn tool_definitions_list_the_team_tools() {
             "alert.mode_set",
             "mail.move_propose",
             "mail.move_apply",
+            "mail.undo_list",
             "mail.undo",
         ]
     );

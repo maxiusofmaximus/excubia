@@ -33,6 +33,8 @@ pub(super) fn scenario(prompt: &str) -> &'static str {
         ("[[fake:invalid]]", "invalid"),
         ("[[fake:inject]]", "inject"),
         ("[[fake:ask]]", "ask"),
+        ("[[fake:env]]", "env"),
+        ("[[fake:quota]]", "quota"),
         ("[[fake:two-replies]]", "two-replies"),
     ] {
         if prompt.contains(marker) {

@@ -15,6 +15,7 @@ hn-core-asr = { path = "../asr" }
 hn-core-auth = { path = "../auth" }
 hn-core-chat = { path = "../chat" }
 hn-core-media = { path = "../media" }
+hn-core-pake = { path = "../pake" }
 hn-core-pin = { path = "../pin" }
 hn-core-seat = { path = "../seat" }
 hn-core-state = { path = "../state" }

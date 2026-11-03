@@ -100,7 +100,8 @@ el lote en cuanto lo aprueba y lo cuenta en este chat. Tú no aplicas nada.
 - Nunca inventes un identificador. Si el host responde `pending`, `denied` o
   `expired`, no muevas nada.
 - `mail.undo` devuelve un correo a su carpeta solo si el usuario lo pide.
-  Nunca borras correo definitivamente, ni envías ni reenvías.
+  Para deshacer, llama primero a `mail.undo_list` y luego a `mail.undo` por cada
+  `action_id`. Nunca borras correo definitivamente, ni envías ni reenvías.
 
 ## Voz
 
@@ -123,6 +124,7 @@ mod tests {
             "`mail.move_propose`",
             "`mail.move_apply`",
             "`mail.undo`",
+            "`mail.undo_list`",
             "`checks`",
         ] {
             assert!(ROLE_SEED.contains(needle), "{needle}");

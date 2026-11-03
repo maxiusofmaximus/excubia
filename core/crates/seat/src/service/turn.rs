@@ -11,9 +11,11 @@ use crate::launch::LaunchInput;
 use crate::output_tail::OutputTail;
 use crate::profile::SelectedProfile;
 use crate::prompt;
+use crate::quota::looks_like_quota_exhausted;
 
 use super::grant::HookTokenGuard;
 use super::output::{capture, settle, with_output};
+use super::seat::TurnEnv;
 use super::worker::Worker;
 use super::{lock, Phase, RunGrant, CONTEXT_CHARS, CONTEXT_MESSAGES};
 
@@ -86,13 +88,22 @@ pub(super) async fn run_turn(
     }
 
     let mut command = Command::new(&plan.program);
+    command.args(&plan.args).envs(
+        plan.env
+            .iter()
+            .map(|(key, value)| (key.as_str(), value.as_str())),
+    );
+    let turn_env = (worker.turn_env)();
+    command.envs(
+        turn_env
+            .set
+            .iter()
+            .map(|(key, value)| (key.as_str(), value.as_str())),
+    );
+    for key in &turn_env.remove {
+        command.env_remove(key);
+    }
     command
-        .args(&plan.args)
-        .envs(
-            plan.env
-                .iter()
-                .map(|(key, value)| (key.as_str(), value.as_str())),
-        )
         .env("HN_TOOL_TOKEN", &token)
         .current_dir(&plan.cwd)
         .stdin(Stdio::piped())
@@ -146,6 +157,10 @@ pub(super) async fn run_turn(
     settle(readers).await;
     let secrets = [token.as_str(), hook_token.as_str(), turn.text.as_str()];
     let excerpt = lock(&tail).excerpt(&secrets);
+    // A turn on the local model is not Claude's quota: only Claude's failures are reported.
+    if turn_env == TurnEnv::default() && looks_like_quota_exhausted(&excerpt) {
+        (worker.on_quota_exhausted)();
+    }
     Err(with_output(outcome.failure_reason(), &excerpt))
 }
 

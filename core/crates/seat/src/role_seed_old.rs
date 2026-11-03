@@ -7,6 +7,7 @@ use crate::role_seed_folders::ROLE_SEED_MAIL_FOLDERS;
 use crate::role_seed_inbox::ROLE_SEED_MAIL_INBOX;
 use crate::role_seed_moves::ROLE_SEED_MAIL_MOVE;
 use crate::role_seed_triage::ROLE_SEED_MAIL_TRIAGE;
+use crate::role_seed_undo::ROLE_SEED_UNDO;
 
 /// The seed shipped with the received-mail checks, before the inbox reads.
 pub(crate) const ROLE_SEED_MAIL_CHECKS: &str = r#"# Alfred — CTO y orquestador
@@ -288,7 +289,8 @@ por el sentido y pregunta solo si el error cambiaría la acción.
 /// The seeds this host shipped before the current one. A role file still holding
 /// one of them byte for byte is rewritten to `ROLE_SEED`; any other edit is the
 /// operator's and stays.
-pub(crate) const OLD_ROLE_SEEDS: [&str; 13] = [
+pub(crate) const OLD_ROLE_SEEDS: [&str; 14] = [
+    ROLE_SEED_UNDO,
     ROLE_SEED_PREVIOUS,
     ROLE_SEED_CORE6B,
     ROLE_SEED_STATUS,

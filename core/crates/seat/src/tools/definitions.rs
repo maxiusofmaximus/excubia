@@ -328,7 +328,7 @@ mod tests {
     /// the F2A folder list and the F2b2 organize tools name. A thirteenth tool, or any
     /// send or delete, fails here before it ships.
     #[test]
-    fn the_mail_surface_is_exactly_twelve_tools() {
+    fn the_mail_surface_is_exactly_thirteen_tools() {
         let names: Vec<String> = definitions()["tools"]
             .as_array()
             .expect("tools")
@@ -350,6 +350,7 @@ mod tests {
                 "mail.folders",
                 "mail.move_propose",
                 "mail.move_apply",
+                "mail.undo_list",
                 "mail.undo"
             ]
         );

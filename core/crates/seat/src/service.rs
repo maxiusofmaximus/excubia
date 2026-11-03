@@ -17,4 +17,4 @@ mod tests;
 
 pub(crate) use grant::{Phase, RunGrant};
 pub(crate) use seat::{lock, tool_chat_error};
-pub use seat::{SeatConfig, SeatService, CONTEXT_CHARS, CONTEXT_MESSAGES};
+pub use seat::{SeatConfig, SeatService, TurnEnv, CONTEXT_CHARS, CONTEXT_MESSAGES};

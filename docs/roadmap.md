@@ -377,3 +377,5 @@ All wire, auth, pairing, state, alert and error contracts are in
 [`docs/contracts/`](contracts/) (Fase 1, done — see the section above). They are
 the agreement Android and Python must both consume. Future changes are additive
 unless an architectural decision is recorded here.
+
+- Strata como backend local bajo demanda, fase 1 (2026-11-02): `host strata start|stop|status|enable-agent` y entrada `claude-local`; contrato en [`docs/contracts/local-backend.md`](contracts/local-backend.md). Sin Strata real verificado: lo lanza el Master.

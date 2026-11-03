@@ -63,6 +63,12 @@ pub fn verify_signature(curve: Curve, public_key: &str, signature: &[u8], messag
     }
 }
 
+/// True when `raw` is an uncompressed SEC1 P-256 point (65 bytes) that lies on the curve: what a device
+/// presents as its public key. Pairing by PAKE checks it before it binds a code to that key.
+pub fn p256_public_key_is_valid(raw: &[u8]) -> bool {
+    raw.len() == 65 && p256_from_bytes(raw).is_some()
+}
+
 fn p256_from_bytes(raw: &[u8]) -> Option<P256Key> {
     P256Key::from_sec1_bytes(raw).ok()
 }
@@ -107,6 +113,18 @@ mod tests {
             signature.to_der().as_bytes(),
             b"otro"
         ));
+    }
+
+    #[test]
+    fn only_an_uncompressed_point_on_the_curve_is_a_valid_device_key() {
+        let (key, _) = p256_key();
+        let uncompressed = key.verifying_key().to_sec1_point(false);
+        let compressed = key.verifying_key().to_sec1_point(true);
+        assert!(p256_public_key_is_valid(uncompressed.as_bytes()));
+        assert!(!p256_public_key_is_valid(compressed.as_bytes()));
+        assert!(!p256_public_key_is_valid(&[4u8; 65]), "off the curve");
+        assert!(!p256_public_key_is_valid(&uncompressed.as_bytes()[..64]));
+        assert!(!p256_public_key_is_valid(&[]));
     }
 
     #[test]

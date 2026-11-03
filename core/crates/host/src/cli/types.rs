@@ -8,6 +8,9 @@ use hn_core_asr::AsrConfig;
 
 use crate::mail_sidecar::SidecarEndpoint;
 
+/// The port the daemon listens on unless `--port` says otherwise; `pair-code --pake` calls it there.
+pub const DEFAULT_PORT: u16 = 8791;
+
 #[derive(Debug)]
 pub struct RunOptions {
     pub port: u16,
@@ -65,6 +68,11 @@ pub enum Command {
         lan: Vec<SocketAddr>,
         data_dir: PathBuf,
     },
+    /// `pair-code --pake`: asks the running daemon (loopback, host hook token) to arm its PAKE code and prints it.
+    PairCodePake {
+        port: u16,
+        data_dir: PathBuf,
+    },
     Tls {
         command: TlsCommand,
         data_dir: PathBuf,
@@ -86,4 +94,34 @@ pub enum Command {
     },
     /// `host mail login|accounts|logout`: the mailboxes this host signs in.
     Mail(crate::mail_cli::MailInvocation),
+    /// `host strata start|stop|status|enable-agent`: the local model backend.
+    Strata {
+        command: StrataCommand,
+        data_dir: PathBuf,
+    },
+    /// `host alfred local|use local|use claude|status`: the model Alfred answers with.
+    Alfred {
+        command: AlfredCommand,
+        data_dir: PathBuf,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AlfredCommand {
+    UseLocal,
+    UseClaude,
+    /// Starts the local model, then makes it Alfred's model once it answers.
+    Local,
+    Status,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StrataCommand {
+    /// Launch the local model and wait until it answers. The voice host lets go of its ASR
+    /// first (`local-mode`), so no confirmation is needed.
+    Start,
+    Stop,
+    Status,
+    /// Write the `claude-local` entry into `agents.toml` when it is missing.
+    EnableAgent,
 }

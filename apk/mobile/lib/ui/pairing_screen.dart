@@ -7,6 +7,8 @@ import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
 import 'package:herdr_notify/src/rust/api/policy.dart';
 import 'package:herdr_notify/src/rust/api/signing.dart';
 
+import '../core/api/pair_discovery.dart';
+import '../core/api/pake_pairing.dart';
 import '../core/api/pairing_address.dart';
 import '../core/api/pairing_api.dart';
 import '../core/api/pairing_entry.dart';
@@ -24,6 +26,7 @@ import 'widgets/surface_card.dart';
 import 'widgets/transport_footer.dart';
 
 part 'pairing_screen_flows.dart';
+part 'pairing_screen_pake.dart';
 
 /// One single flow: the pairing-code card is the primary path, everything
 /// manual lives collapsed under "Avanzado".
@@ -33,6 +36,7 @@ class PairingScreen extends StatefulWidget {
     required this.store,
     required this.onPaired,
     this.api,
+    this.discovery,
   });
 
   final PairingStore store;
@@ -40,6 +44,9 @@ class PairingScreen extends StatefulWidget {
 
   /// Replaces the HTTP and pinned transports in tests.
   final PairingApi? api;
+
+  /// Looks for the PC showing a code; tests put a fake in its place.
+  final PairDiscovery? discovery;
 
   @override
   State<PairingScreen> createState() => _PairingScreenState();
@@ -52,6 +59,8 @@ class _PairingScreenState extends State<PairingScreen> {
     text: PairingStore.suggestDeviceId(),
   );
   late final PairingApi _api = widget.api ?? PairingApi();
+  late final PairDiscovery _discovery =
+      widget.discovery ?? const MethodChannelPairDiscovery();
 
   String? _privateKey;
   String? _publicKey;
@@ -60,6 +69,8 @@ class _PairingScreenState extends State<PairingScreen> {
   String? _error;
   String? _errorAction;
   String? _errorDetail;
+  bool _errorSecurity = false;
+  String? _status;
   rust.PairingLinkInfo? _pinnedLink;
   bool _busy = false;
 
@@ -227,10 +238,16 @@ class _PairingScreenState extends State<PairingScreen> {
   }
 
   /// A failed attempt never leaves the footer claiming a verified connection.
-  void _showError(String message, String? action, {String? detail}) {
+  void _showError(
+    String message,
+    String? action, {
+    String? detail,
+    bool security = false,
+  }) {
     if (!mounted) return;
     setState(() {
       _error = message;
+      _errorSecurity = security;
       _errorAction = action;
       _errorDetail = detail;
       _pinnedLink = null;
@@ -238,6 +255,9 @@ class _PairingScreenState extends State<PairingScreen> {
   }
 
   void _fail(String message) => _showError(message, null);
+
+  /// `setState` for the pairing extensions, which cannot call it directly.
+  void _update(VoidCallback change) => setState(change);
 
   @override
   Widget build(BuildContext context) {
@@ -276,17 +296,23 @@ class _PairingScreenState extends State<PairingScreen> {
                     style: context.text.mono,
                     textCapitalization: TextCapitalization.characters,
                     enabled: !_busy,
-                    decoration: const InputDecoration(hintText: 'ABCD1234'),
+                    decoration: const InputDecoration(
+                      hintText: 'ABCD1234',
+                      helperText: '8 caracteres',
+                    ),
                   ),
                   const SizedBox(height: Spacing.sm),
                   Text(
-                    'Déjalo vacío para que la app busque el equipo sola.',
+                    'Escribe el código de 8 caracteres que muestra el PC; '
+                    'la app buscará el equipo sola.',
                     style: context.text.small,
                   ),
                   const SizedBox(height: Spacing.md),
                   FilledButton(
-                    onPressed: _busy ? null : () => _pair(),
-                    child: Text(_busy ? 'Emparejando…' : 'Emparejar'),
+                    onPressed: _busy ? null : _pairPressed,
+                    child: Text(
+                      _busy ? (_status ?? 'Emparejando…') : 'Emparejar',
+                    ),
                   ),
                 ],
               ),
@@ -320,6 +346,7 @@ class _PairingScreenState extends State<PairingScreen> {
                 message: _error!,
                 action: _errorAction,
                 detail: _errorDetail,
+                security: _errorSecurity,
               ),
             ],
             const SizedBox(height: Spacing.lg),

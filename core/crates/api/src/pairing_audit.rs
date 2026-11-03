@@ -13,6 +13,13 @@ pub enum PairOutcome {
     Rejected,
     /// An admin device granted permissions to a pending one (`POST …/grant`).
     Granted,
+    /// The PAKE code was spent by a `start` (`pairing.md` F2b). The explicit names matter: `lowercase` alone
+    /// would write `pakestarted`.
+    #[serde(rename = "pake_started")]
+    PakeStarted,
+    /// A PAKE attempt that did not end in a device: no live code, a bad message, no session, a wrong tag.
+    #[serde(rename = "pake_failed")]
+    PakeFailed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -22,6 +29,8 @@ pub enum PairVia {
     Recovery,
     Tailnet,
     Admin,
+    /// The short PAKE code over TLS.
+    Pake,
 }
 
 #[derive(Debug, Serialize)]
@@ -71,4 +80,32 @@ impl PairingAttempt {
 /// write reports it itself.
 pub trait PairingAudit: Send + Sync + 'static {
     fn record(&self, attempt: &PairingAttempt);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_pake_events_have_their_own_stable_names() {
+        let line = |outcome, via| {
+            let attempt = PairingAttempt::new(outcome, via, None, None, "192.168.1.5");
+            serde_json::to_value(&attempt).expect("json")
+        };
+        let started = line(PairOutcome::PakeStarted, PairVia::Pake);
+        assert_eq!(
+            (started["outcome"].as_str(), started["via"].as_str()),
+            (Some("pake_started"), Some("pake"))
+        );
+        assert_eq!(
+            line(PairOutcome::PakeFailed, PairVia::Pake)["outcome"],
+            "pake_failed"
+        );
+        assert_eq!(
+            line(PairOutcome::Paired, PairVia::Pake)["outcome"],
+            "paired"
+        );
+        // The names that existed before did not move.
+        assert_eq!(line(PairOutcome::Rejected, PairVia::Code)["via"], "code");
+    }
 }

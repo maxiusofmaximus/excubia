@@ -9,6 +9,7 @@ class MainActivity : FlutterActivity() {
         LegacyPairingChannel(applicationContext).register(flutterEngine.dartExecutor.binaryMessenger)
         flutterEngine.plugins.add(HerdrAlertsPlugin())
         flutterEngine.plugins.add(HerdrContactsPlugin())
+        flutterEngine.plugins.add(HerdrDiscoveryPlugin())
     }
 
     // Alerts stay silent while the screen is in front: the app already shows them.

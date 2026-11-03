@@ -19,6 +19,7 @@ mod output_tail;
 mod preflight;
 mod profile;
 mod prompt;
+mod quota;
 mod role_seed;
 mod role_seed_apply;
 mod role_seed_auto;
@@ -27,6 +28,7 @@ mod role_seed_inbox;
 mod role_seed_moves;
 mod role_seed_old;
 mod role_seed_triage;
+mod role_seed_undo;
 mod service;
 mod service_tools;
 mod tools;
@@ -44,11 +46,11 @@ pub use profile::{
     probe, select, shipped, test_profile, CliId, CliProfile, HookSupport, Isolation,
     McpDeclaration, PromptDelivery, SelectedProfile, TurnMode, Version,
 };
-pub use service::{SeatConfig, SeatService, CONTEXT_CHARS, CONTEXT_MESSAGES};
+pub use service::{SeatConfig, SeatService, TurnEnv, CONTEXT_CHARS, CONTEXT_MESSAGES};
 pub use tools::{
     check_draft_fields, parse as parse_tool, AgentSpawn, AlertCall, ApprovalDecide,
     ApprovalRequest, BodyFormat, CalendarCall, ContactCall, DelegationAssign, DelegationComplete,
     DraftFields, DraftRef, DraftUpdate, FoldersQuery, InboxFolder, InboxQuery, MailAttach,
     MailCall, MessageRef, MoveApply, MoveFolder, MoveProposal, MoveUndo, NoteCall, Organize,
-    ProjectCreate, ProposedMove, ToolCall, TriageQuery,
+    ProjectCreate, ProposedMove, ToolCall, TriageQuery, UndoList,
 };

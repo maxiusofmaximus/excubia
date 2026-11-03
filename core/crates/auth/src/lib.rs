@@ -20,7 +20,7 @@ pub use authz::{authorize, classify, Budget, EndpointRule};
 pub use codes::{
     canonical_code, code_hash, mint_enrollment_code, mint_recovery_code, ENROLLMENT_TTL_SECONDS,
 };
-pub use curve::{verify_signature, Curve};
+pub use curve::{p256_public_key_is_valid, verify_signature, Curve};
 pub use error::{AuthzReason, EnrollmentRejected, Forbidden, StoreError, Unauthorized};
 pub use ratelimit::{Class, RateLimiter, StreamRegistry};
 pub use store::{Device, DeviceStore, GrantOutcome, Permission, PublicDevice};

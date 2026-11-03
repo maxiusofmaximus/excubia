@@ -28,6 +28,45 @@ pub struct AgentSpec {
     /// A human label for clients; the name is the fallback.
     #[serde(default)]
     pub label: Option<String>,
+    /// Extra environment for the agent's process. Names match `^[A-Z][A-Z0-9_]*$`
+    /// and secret-looking names are refused, so no key is ever written here.
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
+}
+
+/// Credential-looking names a local backend may still carry, with the one
+/// value that makes them harmless: a fixed placeholder the local server
+/// does not check (`strata connect claude-code` writes the same one).
+const PLACEHOLDER_CREDENTIALS: [(&str, &str); 1] = [("ANTHROPIC_AUTH_TOKEN", "strata-local")];
+
+/// Names that contain a credential word but hold a count, not a credential.
+const NOT_CREDENTIALS: [&str; 2] = [
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
+];
+
+/// Refuse an `env` entry that could carry a secret or break the child's environment.
+fn check_env_entry(key: &str, value: &str) -> Result<(), String> {
+    let well_formed = key.starts_with(|c: char| c.is_ascii_uppercase())
+        && key
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_');
+    if !well_formed {
+        return Err("the name must match ^[A-Z][A-Z0-9_]*$".to_string());
+    }
+    if value.contains(['\n', '\r']) {
+        return Err("the value has a line break".to_string());
+    }
+    let secret_like = ["KEY", "TOKEN", "SECRET", "PASSWORD"]
+        .iter()
+        .any(|word| key.contains(word));
+    if secret_like
+        && !NOT_CREDENTIALS.contains(&key)
+        && !PLACEHOLDER_CREDENTIALS.contains(&(key, value))
+    {
+        return Err("it looks like a secret; keys never go in agents.toml".to_string());
+    }
+    Ok(())
 }
 
 impl AgentSpec {
@@ -193,6 +232,10 @@ fn parse(text: &str) -> Result<BTreeMap<String, AgentSpec>, String> {
         if spec.command.trim().is_empty() {
             return Err(format!("agent {name:?} has an empty command"));
         }
+        for (key, value) in &spec.env {
+            check_env_entry(key, value)
+                .map_err(|reason| format!("agent {name:?} env {key:?}: {reason}"))?;
+        }
     }
     Ok(file.agents)
 }
@@ -281,6 +324,43 @@ command = "C:\\tools\\fake-agent.exe"
     }
 
     #[test]
+    fn an_agent_carries_its_environment_and_no_key() {
+        let catalog = AgentCatalog::from_toml(
+            r#"
+[agents.claude-local]
+command = "claude"
+env = { ANTHROPIC_BASE_URL = "http://127.0.0.1:8080", ANTHROPIC_AUTH_TOKEN = "strata-local" }
+"#,
+        )
+        .expect("catalog");
+        let env = catalog.resolve("claude-local").expect("spec").env;
+        assert!(AgentCatalog::from_toml(
+            "[agents.x]\ncommand = 'x'\nenv = { CLAUDE_CODE_MAX_CONTEXT_TOKENS = \"65536\" }\n"
+        )
+        .is_ok());
+        assert_eq!(
+            env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+            Some("http://127.0.0.1:8080")
+        );
+
+        for broken in [
+            "[agents.x]\ncommand = 'x'\nenv = { lower = \"1\" }\n",
+            "[agents.x]\ncommand = 'x'\nenv = { \"1BAD\" = \"1\" }\n",
+            "[agents.x]\ncommand = 'x'\nenv = { A-B = \"1\" }\n",
+            "[agents.x]\ncommand = 'x'\nenv = { MODEL = \"line\\nbreak\" }\n",
+            "[agents.x]\ncommand = 'x'\nenv = { ANTHROPIC_API_KEY = \"sk-real\" }\n",
+            "[agents.x]\ncommand = 'x'\nenv = { MY_SECRET = \"1\" }\n",
+            "[agents.x]\ncommand = 'x'\nenv = { PGPASSWORD = \"1\" }\n",
+            "[agents.x]\ncommand = 'x'\nenv = { ANTHROPIC_AUTH_TOKEN = \"sk-real\" }\n",
+        ] {
+            assert!(
+                AgentCatalog::from_toml(broken).is_err(),
+                "accepted: {broken}"
+            );
+        }
+    }
+
+    #[test]
     fn an_empty_or_broken_catalogue_is_refused() {
         assert!(AgentCatalog::from_toml("").is_err());
         assert!(AgentCatalog::from_toml("[agents.x]\ncommand = \"  \"").is_err());
@@ -315,12 +395,14 @@ command = "C:\\tools\\fake-agent.exe"
             command: present.to_string_lossy().to_string(),
             args: Vec::new(),
             label: None,
+            env: BTreeMap::new(),
         };
         assert!(spec.available());
         let spec = AgentSpec {
             command: "hn-no-such-binary-anywhere".to_string(),
             args: Vec::new(),
             label: None,
+            env: BTreeMap::new(),
         };
         assert!(!spec.available());
     }

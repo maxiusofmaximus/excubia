@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use hn_core_chat::ChatStore;
-use hn_core_seat::{test_profile, SeatConfig, SeatService};
+use hn_core_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
 use hn_core_test_dir::TestDir;
 
 #[test]
@@ -25,6 +25,8 @@ fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {
         profiles: vec![test_profile("hn-no-such-cli-anywhere")],
         queue_capacity: 1,
         turn_timeout: Duration::from_secs(5),
+        turn_env: Arc::new(TurnEnv::default),
+        on_quota_exhausted: Arc::new(|| {}),
     };
 
     let runtime = tokio::runtime::Runtime::new().expect("runtime");

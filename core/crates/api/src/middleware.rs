@@ -124,7 +124,7 @@ fn consume_budget(
 /// never accepted here, and neither token is accepted on the device routes.
 pub async fn hook_guard(
     State(ctx): State<ApiContext>,
-    ConnectInfo(PeerAddr(addr)): ConnectInfo<PeerAddr>,
+    ConnectInfo(PeerAddr { addr, .. }): ConnectInfo<PeerAddr>,
     mut request: Request,
     next: Next,
 ) -> Response {

@@ -10,6 +10,7 @@ use hn_core_auth::{DeviceStore, Permission};
 use hn_core_chat::{ChatStore, HookScope};
 use hn_core_host::cli::{DevicesCommand, TlsCommand};
 use hn_core_host::mail_cli::{self, MailInvocation};
+use hn_core_host::pake_cli;
 use hn_core_host::tls_slots::TlsSlots;
 use hn_core_host::{load_hook_token, paths};
 use hn_core_pin::{unix_now, PairingLink};
@@ -35,6 +36,23 @@ pub(super) fn pair_code(ttl_seconds: f64, lan: &[SocketAddr], data_dir: &Path) -
         println!("pairing link: {}", link.to_uri());
     }
     println!("data dir: {}", data_dir.display());
+    Ok(())
+}
+
+/// Ask the running daemon for its PAKE pairing code and print it, once. The code lives only in the daemon's
+/// memory, so this process cannot make it: it calls the daemon's loopback admin route with the host hook token.
+pub(super) async fn pair_code_pake(port: u16, data_dir: &Path) -> Result<()> {
+    let token = pake_cli::read_hook_token(data_dir)?;
+    let armed = pake_cli::arm_code(SocketAddr::from(([127, 0, 0, 1], port)), &token).await?;
+    println!(
+        "código de emparejamiento: {}",
+        pake_cli::grouped(&armed.code)
+    );
+    println!(
+        "válido {} s, un solo intento (se gasta con el primer intento, acierte o no); escríbelo en el dispositivo",
+        armed.expires_in
+    );
+    println!("daemon: 127.0.0.1:{port}; data dir: {}", data_dir.display());
     Ok(())
 }
 

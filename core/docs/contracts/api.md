@@ -29,6 +29,8 @@ request to the port is refused at the handshake.
 |--------|------|------|-------|------|---------|
 | `GET` | `/v1/health` | none | — | — | Liveness, no operator data |
 | `POST` | `/v1/pair` | none (code/owner) | — | write (per IP) | Pair or re-key a device |
+| `POST` | `/v1/pair/pake/start` | none (PAKE code, TLS only) | — | write (`pake:<ip>`) | PAKE pairing, step 1 (F2b, alpha) |
+| `POST` | `/v1/pair/pake/finish` | none (PAKE code, TLS only) | — | write (`pake:<ip>`) | PAKE pairing, step 2: confirm and register a pending device |
 | `GET` | `/v1/state` | signed | `READ_STATE` | read | The full state read model |
 | `GET` | `/v1/events` | signed | `READ_STATE` | read | SSE stream (see `state.md`) |
 | `GET` | `/v1/catalog` | signed | `READ_STATE` | read | The agents this host can start, by name |
@@ -428,6 +430,22 @@ Body: `{ "curve": "p256", "public_key": "<b64>", "label": "Pixel 9", "code": "HJ
 `403 {"detail":"pairing_rejected"}` (uniform), `400 {"detail":"invalid_body"}`,
 `413`, or `429`. The exact resolution order (code → recovery → same-owner) is in
 [`pairing.md`](pairing.md).
+
+### `POST /v1/pair/pake/start` and `/finish` (no auth, TLS listener only; F2b, alpha)
+
+Short-code pairing bound to the TLS connection. `start` takes `{"device_pubkey": "<b64>", "message": "<b64>"}` and answers
+`{"message": "<b64>", "tag": "<b64>"}`; `finish` takes `{"tag": "<b64>"}` and answers like `POST /v1/pair` (a pending device with
+no permissions, its `recovery_code` once). A request on the loopback router has no TLS exporter: `403 pake_requires_tls`.
+Failures: `400 invalid_body` / `pake_invalid_message`, `403 pake_requires_tls` / `confirmation_failed`, `410 no_live_code` /
+`pake_session_gone`, `413`, `429`. Flow, formats, what each tag binds and the audit are in
+[`pairing.md`](pairing.md#f2b--pake-endpoints-alpha-no-client-yet--implemented-in-the-host-no-client-f2d).
+
+### `POST /v1/admin/pake-code` (host-local; not a device route)
+
+Arms the one PAKE code and answers `{"code": "ABCDEFGH", "expires_in": 180}`. Only the loopback router mounts it (`404` on
+the LAN listener), only the host hook token in `X-HN-Hook-Token` opens it (`401` without or with a wrong one, `403
+host_token_required` for a per-run token), `409 pake_unavailable` when the host has no TLS identity. `host pair-code --pake`
+is its client. The response is the only place the code appears; it is never logged or written.
 
 ### `GET /v1/devices` (signed, `ADMIN`)
 

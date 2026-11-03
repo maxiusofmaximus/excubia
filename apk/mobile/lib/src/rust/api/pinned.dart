@@ -7,8 +7,8 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `link_failure`, `of`, `parse_link`, `refused`, `send_bytes`, `stop`, `text_response`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `link_failure`, `of`, `of`, `parse_link`, `refused`, `send_bytes`, `stop`, `text_response`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`
 
 PairingLinkResult parsePairingLink({required String uri}) =>
     RustLib.instance.api.crateApiPinnedParsePairingLink(uri: uri);
@@ -20,6 +20,20 @@ String? pairingSas({required String pin, required String publicKeyBase64}) =>
       pin: pin,
       publicKeyBase64: publicKeyBase64,
     );
+
+/// Pairs with the host by its short code (F2d1): two TLS connections, the
+/// second pinned to the key the PAKE confirmed. The session and its key never
+/// leave Rust. `addresses` are tried in order only until one connects; a
+/// protocol failure is final, the code is already burned.
+Future<PakePairResult> pakePair({
+  required List<String> addresses,
+  required String code,
+  required String devicePublicKeyB64,
+}) => RustLib.instance.api.crateApiPinnedPakePair(
+  addresses: addresses,
+  code: code,
+  devicePublicKeyB64: devicePublicKeyB64,
+);
 
 Future<PinnedReply> pinnedRequest({
   required PinnedEndpoint endpoint,
@@ -130,6 +144,110 @@ class PairingLinkResult {
       other is PairingLinkResult &&
           runtimeType == other.runtimeType &&
           link == other.link &&
+          failure == other.failure;
+}
+
+/// `message` is for the person, in Spanish; it never carries the code.
+class PakeFailure {
+  final PakeFailureKind kind;
+  final String message;
+  final int? retryAfter;
+
+  const PakeFailure({
+    required this.kind,
+    required this.message,
+    this.retryAfter,
+  });
+
+  @override
+  int get hashCode => kind.hashCode ^ message.hashCode ^ retryAfter.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PakeFailure &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          message == other.message &&
+          retryAfter == other.retryAfter;
+}
+
+/// Why a pairing with the short code stopped, as a closed set the UI can
+/// branch on. None of these is `PinnedFailureKind::PinMismatch`.
+enum PakeFailureKind {
+  /// The text is not a code; nothing touched the network.
+  invalidCodeFormat,
+
+  /// No address answered, or the link dropped.
+  unreachable,
+
+  /// The host's proof did not verify: wrong code or a man in the middle.
+  hostProofInvalid,
+
+  /// The second connection showed another certificate than the first.
+  channelChanged,
+
+  /// The code expired, was burned or already used.
+  codeGone,
+
+  /// Too many requests; `retry_after` may say when to retry.
+  rateLimited,
+
+  /// The host has no PAKE pairing on this route.
+  noPake,
+
+  /// Anything else that broke the exchange.
+  protocol,
+}
+
+/// `pin` is the SPKI fingerprint the PAKE confirmed: what the device stores.
+class PakeOutcome {
+  final String deviceId;
+  final String recoveryCode;
+  final String pin;
+  final String address;
+
+  const PakeOutcome({
+    required this.deviceId,
+    required this.recoveryCode,
+    required this.pin,
+    required this.address,
+  });
+
+  @override
+  int get hashCode =>
+      deviceId.hashCode ^
+      recoveryCode.hashCode ^
+      pin.hashCode ^
+      address.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PakeOutcome &&
+          runtimeType == other.runtimeType &&
+          deviceId == other.deviceId &&
+          recoveryCode == other.recoveryCode &&
+          pin == other.pin &&
+          address == other.address;
+}
+
+/// Exactly one of `outcome` and `failure` is set.
+class PakePairResult {
+  final PakeOutcome? outcome;
+  final PakeFailure? failure;
+
+  const PakePairResult({this.outcome, this.failure});
+
+  @override
+  int get hashCode => outcome.hashCode ^ failure.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PakePairResult &&
+          runtimeType == other.runtimeType &&
+          outcome == other.outcome &&
           failure == other.failure;
 }
 

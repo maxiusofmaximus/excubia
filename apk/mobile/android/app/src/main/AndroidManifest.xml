@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.${alertsFgsPermission}" />
     <uses-permission android:name="android.permission.${alertsFgsExtraPermission}" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Pairing: finding the PC by mDNS needs the Wi-Fi multicast lock (normal permissions, no dialog). -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 

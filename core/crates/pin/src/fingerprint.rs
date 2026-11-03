@@ -16,7 +16,7 @@ impl Fingerprint {
         Self(Sha256::digest(spki_der).into())
     }
 
-    pub(crate) fn as_bytes(&self) -> &[u8; 32] {
+    pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
 }

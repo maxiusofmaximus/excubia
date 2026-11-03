@@ -5,9 +5,11 @@ Authoritative code: `crates/auth/src/store/`, `crates/host/src/cli/`.
 
 ## Device identity — IMPLEMENTED
 
-Each install generates a P-256 key **inside the Android Keystore**. The private
-key never leaves the device, is never exportable, and is never sent anywhere. The
-public key is transmitted in the encoding the host verifies:
+Each install generates a P-256 key in Rust (`apk/mobile/rust`, `signing.rs`). The
+app keeps the private key in `flutter_secure_storage` (encrypted at rest with a key
+held by the Android Keystore); the key itself is **not** generated inside the
+Keystore, so it is not hardware-bound or non-exportable. It is never sent anywhere.
+The public key is transmitted in the encoding the host verifies:
 
 - **P-256:** uncompressed SEC1 point, 65 bytes `0x04 || X(32) || Y(32)`, base64.
 - The full curve and encoding rules are in [`auth.md`](auth.md).
@@ -328,11 +330,101 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
   so the next request gets `401`.
 - Revoking one device does not affect any other device's key.
 
+## F2a — PAKE core (library) — IMPLEMENTED
+
+Crate `crates/pake` (`hn-core-pake`): the cryptographic core of the short-code pairing in
+`docs/rfc/pairing-security.md` §5. It exists and is tested. The host endpoints of *F2b* below now call
+it; **the app does not** (no client, no mDNS). Pairing by link/code and the SAS flow above (F0/F1) are
+unchanged.
+
+Flow it supports (one run per code):
+
+1. The host makes `Code::generate()` (8 characters of `A-Z` without `I`/`O` plus `2-9`, 40 bits, one attempt).
+2. Both sides call `Session::start(role, code, host_id, device_pubkey)`: the **device is SPAKE2 side A**
+   (`idA` = its public key), the **host side B** (`idB` = its id). Each sends the 33-byte message
+   (side byte `A`/`B` + compressed Ed25519 point) and calls `finish(peer_message)`, which consumes the session.
+3. Each derives a 32-byte `SessionKey`, equal only if the code and both identities matched.
+4. Each sends `confirm_tag(role, tls_exporter, spki)` = HMAC-SHA256(key, `"excubia-pake-confirm-v1 "` ‖
+   role byte (host 1, device 2) ‖ RFC 9266 `tls-exporter` (32 bytes) ‖ SHA-256 of the host SPKI) and checks the
+   other's with `verify_confirm` (constant time). A relay holding two TLS sessions has two exporters, so the tags
+   do not verify; a different host certificate changes the SPKI part.
+
+F2b1/F2b2 done: the exporter (`PeerAddr::binding`, RFC 9266, `None` on loopback) and the in-memory code slot
+(`PakeSlot`: one use, 180 s, never in `devices.json` or the `codes` store). F2b3 wired them to routes (below).
+
+Rules for whoever builds the endpoint (F2b): a code is spent by its first run, right or wrong; a failed
+confirmation burns it; only continue after both tags verify; the pin the device stores comes from the SPKI
+it confirmed, not from any link.
+
+Not what RFC 9382 specifies: the `spake2` 0.4.0 crate is python-spake2's Ed25519 SPAKE2 (other M/N constants,
+SHA-256 transcript of `H(pw) ‖ H(idA) ‖ H(idB) ‖ X ‖ Y ‖ K`). Checked byte for byte against python-spake2 0.9
+(`crates/pake/tests/vectors.rs`, `tests/interop/interop.py`). The crate also rejects the identity element and any
+point outside the prime-order subgroup, which `spake2` alone accepts. Residual: `spake2` does not zeroize its
+copy of the code or its scalars, and is not constant-time.
+
+## F2b — PAKE endpoints (alpha, no client yet) — IMPLEMENTED in the host; no client (F2d)
+
+Short-code pairing over the pinned TLS listener (`crates/api/src/routes/pake.rs`). Alpha: nothing in the app calls it.
+
+1. **The operator** runs `host pair-code --pake [--port N] [--data-dir D]` (default port 8791). The CLI reads the
+   host hook token from the data dir and calls `POST /v1/admin/pake-code` on `127.0.0.1:<port>`; it prints the code once
+   (`ABCD-EFGH`) and «válido 180 s, un solo intento». The route exists **only on the loopback router**
+   (`404` on the LAN listener), needs the **host** hook token (a per-run token is `403 host_token_required`; no token
+   or a wrong one `401`), and answers `{"code": "ABCDEFGH", "expires_in": 180}` (`409 pake_unavailable` without a
+   TLS identity). The code lives in the daemon's memory only; arming again replaces it and drops a pending session.
+2. **`POST /v1/pair/pake/start`** `{"device_pubkey": b64, "message": b64}` → `{"message": b64, "tag": b64}`.
+3. **`POST /v1/pair/pake/finish`** `{"tag": b64}` → the body of `POST /v1/pair` (`device_id`, `permissions: []`,
+   `recovery_code`, `label: null`, `owner_id: ""`). Both routes are public like `/v1/pair`.
+
+Formats: base64 standard with padding. `device_pubkey` = 65-byte SEC1 uncompressed P-256 point (as `/v1/pair`'s
+`public_key`), also SPAKE2's idA; `message` = 33 bytes; `tag` = 32 bytes. `host_id` (idB) = lowercase hex of the SHA-256
+SPKI hash of the active certificate (64 characters): the device computes it from the certificate it sees, so a relay
+with another certificate gets another `host_id` and the PAKE does not match. The device is side A, the host side B.
+
+What each tag binds (`HMAC(key, domain ‖ role ‖ exporter ‖ SPKI)`): the host's tag in the `start` answer, the exporter of the
+connection that carried **that** `start`; the device's tag in `finish`, the exporter of the connection carrying **that**
+`finish` (RFC 9266, label `EXPORTER-Channel-Binding`, empty context). `start` and `finish` may use different connections.
+A relay with two TLS sessions makes the tags disagree. The device must verify the host's tag before sending its own.
+
+Rules: a request without an exporter (loopback, or no TLS identity) is `403 pake_requires_tls` before the code is touched.
+Each route takes one write-class budget from `pake:<ip>` (30/min, separate from `pair:<ip>`, shared by both routes).
+Shape errors (JSON, base64, an invalid P-256 key, a message that is not 33 bytes) are `400 invalid_body` **before** the
+code is taken and do not burn it. After that the code is spent, right or wrong: a bad point or side is `400
+pake_invalid_message`, a second `start` is `410 no_live_code`. `start` keeps one pending session (60 s, one use, replaced by
+a new `arm`); a wrong tag or expiry consumes it (`403 confirmation_failed`, `410 pake_session_gone`). On success the device
+is **pending with no permissions**; the F1 SAS approval is still the only way to grant them.
+
+Audit (`pairing-audit.jsonl`, no code, key, tag, exporter or device key): `pake_started` (code spent, host answered),
+`pake_failed` (no live code, invalid message, no session, wrong tag) and `paired` with `via: "pake"`. Alfred's notice: only
+`paired`, with the SAS string like any new device; `pake_started` and `pake_failed` post nothing.
+
+Known and accepted: anyone on the LAN can burn the live code with a well-formed `start` (limited per IP); the code is then
+re-armed. Not verified: no real phone, no real LAN, no client implementation (F2d).
+
+## F2c — mDNS — IMPLEMENTED in the host; no client (F2d)
+
+The host announces itself on the LAN so the app finds it without typing an IP (`crates/host/src/mdns.rs`, `mdns-sd =0.21.7`).
+
+- **Service** `_excubia-pair._tcp.local.`, instance `excubia-<8 random hex of this run>` (never the user's or the PC's name),
+  port = the LAN TLS port. **TXT**: `v=1` and nothing else.
+- **When**: only while `PakeSlot::is_live()` (an armed code that has not expired, or a pending session that has not): checked
+  every 1 s; it registers on the way in and withdraws, with a goodbye packet (RFC 6762 §10.1), on the way out (expiry, burn,
+  `clear`, end of the ceremony) and when the daemon stops. No `--tls-bind`, or the first one did not bind: nothing is announced.
+- **Where**: only the interface of the first `--tls-bind` address (the service and the daemon are both restricted to it).
+- **It does NOT contain** the code, the SPKI, any device id or host id, nor the PC or user name. It is not a secret and not an
+  authentication: the PAKE protects the pairing whether or not anyone sees the announcement.
+- **TTL**: the `mdns-sd` defaults (host 120 s, PTR/TXT 4500 s). If the process dies without a goodbye the announcement can
+  linger up to ~75 min on other devices; the Master accepted this. The TTL setters are not public in this version.
+- **Failure**: if `mdns-sd` cannot start or register, the host logs one line without secrets and pairing by IP and PAKE goes on.
+  Errors the daemon reports later from its own thread are not logged.
+- **Windows firewall** asks per program path: allow `host.exe` from the path that is launched (UDP 5353 inbound), or the
+  queries of the app may not reach it. Not verified on a real LAN.
+
 ## Implementation status
 
 | Capability | Status |
 |------------|--------|
-| Device identity (P-256 / Ed25519 public key in the keystore) | IMPLEMENTED |
+| Device identity (P-256 key in `flutter_secure_storage`) | IMPLEMENTED |
 | Host-side `add-device` CLI pairing | IMPLEMENTED |
 | `POST /v1/pair` (code / recovery / tailnet owner) | IMPLEMENTED (Fase 2(c)) |
 | Pairing codes (4 bytes, 180 s, single use) | IMPLEMENTED |
@@ -345,4 +437,7 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
 | Tailnet peer list (`GET /v1/peers`, `503` when unavailable) | IMPLEMENTED |
 | HTTP grant endpoint, pending devices only, never `admin` (`POST /v1/devices/{id}/grant`) | IMPLEMENTED (F1-núcleo; UI pending). Widening a device that already has access stays a host-side CLI act by design |
 | Verification string (SAS) on the pending device, in `devices list`, `GET /v1/devices` and the pairing notice | IMPLEMENTED (F1-núcleo; the APK reproduces the vector) |
+| PAKE core (`crates/pake`, SPAKE2 + TLS-bound key confirmation) | IMPLEMENTED (F2a: library, see *F2a*) |
+| PAKE endpoints `POST /v1/pair/pake/start` and `/finish`, loopback admin route, `host pair-code --pake` | IMPLEMENTED in the host (F2b3, alpha); no client (F2d), see *F2b* |
+| mDNS announcement `_excubia-pair._tcp` only while a PAKE code is alive | IMPLEMENTED in the host (F2c); no client (F2d), see *F2c* |
 | `APPROVE` permission endpoints | IMPLEMENTED (CORE8) — `POST /v1/chat/approvals/{id}/decision`, the UAC decision |

@@ -186,3 +186,21 @@ fn a_grant_is_required_for_protected_routes() {
     let health = classify("GET", "/v1/health").unwrap();
     assert!(authorize(&[], &health).is_ok());
 }
+
+#[test]
+fn the_pake_routes_are_public_posts_and_nothing_else_under_them_is() {
+    for path in ["/v1/pair/pake/start", "/v1/pair/pake/finish"] {
+        let rule = classify("POST", path).expect("listed");
+        assert_eq!(
+            (rule.permission, rule.budget),
+            (None, Budget::None),
+            "{path}"
+        );
+        assert!(classify("GET", path).is_err(), "{path} is POST only");
+    }
+    assert!(classify("POST", "/v1/pair/pake/other").is_err());
+    assert!(
+        classify("POST", "/v1/admin/pake-code").is_err(),
+        "the admin route is not a device route"
+    );
+}

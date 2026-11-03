@@ -46,7 +46,7 @@ struct Granted {
 
 pub async fn pair(
     State(ctx): State<ApiContext>,
-    ConnectInfo(PeerAddr(addr)): ConnectInfo<PeerAddr>,
+    ConnectInfo(PeerAddr { addr, .. }): ConnectInfo<PeerAddr>,
     body: Bytes,
 ) -> Response {
     if body.len() > MAX_PAIR_BODY_BYTES {
@@ -195,7 +195,7 @@ fn attempted_via(payload: &PairBody) -> PairVia {
 }
 
 /// One line of the pairing audit. It carries no code and no public key.
-fn audit(
+pub(super) fn audit(
     ctx: &ApiContext,
     source_ip: &str,
     outcome: PairOutcome,
@@ -241,7 +241,7 @@ fn empty_code_refusal(ip: &str) -> ApiError {
 
 /// The recovery code is the one secret here and is returned exactly once:
 /// only a hash is stored, so this is the only moment it can be shown.
-fn pair_response(device: &Device, recovery: &str) -> Json<Value> {
+pub(super) fn pair_response(device: &Device, recovery: &str) -> Json<Value> {
     let mut permissions: Vec<String> = device
         .permissions
         .iter()

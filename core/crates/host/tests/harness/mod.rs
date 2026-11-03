@@ -18,6 +18,7 @@ use mail_send_support::{seed_owner, Routed, BODY};
 
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -33,7 +34,7 @@ use hn_core_host::team::{TeamConfig, TeamService};
 use hn_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
 use hn_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
 use hn_core_pty::PtySize;
-use hn_core_seat::{test_profile, SeatConfig, SeatService};
+use hn_core_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
 use hn_core_state::StateStore;
 use hn_core_test_dir::TestDir;
 use hn_core_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
@@ -41,6 +42,21 @@ use hn_core_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
 /// The approval hook binary. It belongs to `hn-core-seat`, which this crate does
 /// not depend on, so it is found next to a binary of this crate: the seat
 /// refuses to start when it is not there.
+/// The test seat's turn environment: the `alfred-local` marker of its data directory.
+fn alfred_turn_env(data_dir: &Path) -> Arc<dyn Fn() -> TurnEnv + Send + Sync> {
+    let data_dir = data_dir.to_path_buf();
+    Arc::new(move || hn_core_host::alfred_backend::turn_env(&data_dir))
+}
+
+/// How many times the seat reported a quota-exhausted turn to its test host.
+pub static QUOTA_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+fn quota_counter() -> Arc<dyn Fn() + Send + Sync> {
+    Arc::new(|| {
+        QUOTA_CALLS.fetch_add(1, Ordering::SeqCst);
+    })
+}
+
 fn hook_command() -> PathBuf {
     let name = if cfg!(windows) {
         "hn-uac-hook.exe"
@@ -150,6 +166,8 @@ pub struct TestHost {
     pub hook_token: String,
     /// The host's certificate pin, the input of each pending device's SAS.
     pub host_pin: hn_core_pin::Fingerprint,
+    /// The host's in-memory PAKE pairing code slot (the context's own).
+    pub pake_slot: Arc<hn_core_api::PakeSlot>,
     /// The scratch directory of the host. It is the last field, so it goes
     /// after the stores, whose open database would keep it on Windows; a
     /// restart hands it to the next host.
@@ -276,6 +294,8 @@ impl TestHost {
                     profiles: vec![test_profile(env!("CARGO_BIN_EXE_fake-cli"))],
                     queue_capacity: 1,
                     turn_timeout,
+                    turn_env: alfred_turn_env(&data_dir),
+                    on_quota_exhausted: quota_counter(),
                 })
                 .expect("seat service"),
             ),
@@ -290,6 +310,8 @@ impl TestHost {
                     profiles: vec![test_profile("hn-no-such-cli-anywhere")],
                     queue_capacity: 1,
                     turn_timeout: Duration::from_secs(5),
+                    turn_env: alfred_turn_env(&data_dir),
+                    on_quota_exhausted: quota_counter(),
                 })
                 .expect("seat service"),
             ),
@@ -304,6 +326,8 @@ impl TestHost {
                     profiles: vec![test_profile(env!("CARGO_BIN_EXE_fake-cli"))],
                     queue_capacity: 8,
                     turn_timeout,
+                    turn_env: alfred_turn_env(&data_dir),
+                    on_quota_exhausted: quota_counter(),
                 })
                 .expect("seat service"),
             ),
@@ -380,6 +404,7 @@ impl TestHost {
             pairing_audit: Arc::new(PairingNotice::new(&data_dir, Arc::clone(&chat))),
         })
         .with_host_pin(Some(host_pin));
+        let pake_slot = Arc::clone(&context.pake_slot);
         let internal_context = context.clone();
         tokio::spawn(async move {
             let _ = serve_internal(internal, internal_context).await;
@@ -400,6 +425,7 @@ impl TestHost {
             data_dir,
             hook_token,
             host_pin,
+            pake_slot,
             scratch,
         }
     }
