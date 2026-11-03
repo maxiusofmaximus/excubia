@@ -51,7 +51,7 @@ extension _PairingScreenPake on _PairingScreenState {
       var addresses = [manual];
       if (manual.isEmpty) {
         try {
-          addresses = await _discovery.discover();
+          addresses = await discoverWithRetry(_discovery);
         } on PairDiscoveryException catch (e) {
           _fail(e.message);
           return;

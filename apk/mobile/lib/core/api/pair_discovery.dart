@@ -40,3 +40,18 @@ class MethodChannelPairDiscovery implements PairDiscovery {
     }
   }
 }
+
+/// Looks for the PC in up to [attempts] short windows, stopping at the first
+/// that finds something: one lost multicast must not end the search. A
+/// [PairDiscoveryException] is the phone's own fault and is never retried.
+Future<List<String>> discoverWithRetry(
+  PairDiscovery discovery, {
+  int attempts = 3,
+  Duration timeout = const Duration(seconds: 7),
+}) async {
+  for (var i = 0; i < attempts; i++) {
+    final found = await discovery.discover(timeout: timeout);
+    if (found.isNotEmpty) return found;
+  }
+  return const [];
+}

@@ -66,6 +66,7 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         private val found = LinkedHashSet<String>()
         private val queue = ArrayDeque<NsdServiceInfo>() // before API 34 only one resolve may run
         private val callbacks = mutableListOf<NsdManager.ServiceInfoCallback>()
+        private val retries = HashMap<String, Int>() // failed resolutions retried, per service
         private var lock: WifiManager.MulticastLock? = null
         private var started = false
         private var resolving = false
@@ -116,7 +117,9 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
         private fun watch(info: NsdServiceInfo) {
             val callback = object : NsdManager.ServiceInfoCallback {
-                override fun onServiceInfoCallbackRegistrationFailed(errorCode: Int) {}
+                override fun onServiceInfoCallbackRegistrationFailed(errorCode: Int) {
+                    main.post { callbacks -= this; retry(info) }
+                }
 
                 override fun onServiceUpdated(info: NsdServiceInfo) {
                     val address = info.hostAddresses.firstNotNullOfOrNull { usable(it, info.port) }
@@ -134,6 +137,14 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
         }
 
+        /** A resolution that failed is tried again, twice at most, inside the same window. */
+        private fun retry(info: NsdServiceInfo) {
+            val done = retries[info.serviceName] ?: 0
+            if (finished || done >= MAX_RETRIES) return
+            retries[info.serviceName] = done + 1
+            main.postDelayed({ if (!finished) resolve(info) }, RETRY_DELAY_MS)
+        }
+
         @Suppress("DEPRECATION")
         private fun resolveNext() {
             if (finished || resolving) return
@@ -142,7 +153,7 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             try {
                 nsd.resolveService(info, object : NsdManager.ResolveListener {
                     override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
-                        main.post { resolving = false; resolveNext() }
+                        main.post { resolving = false; retry(info); resolveNext() }
                     }
 
                     override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
@@ -189,6 +200,8 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         private const val PREFIX = "excubia-"
         private const val FAILED = "discovery_failed"
         private const val DEFAULT_TIMEOUT_MS = 15000L
+        private const val MAX_RETRIES = 2
+        private const val RETRY_DELAY_MS = 300L
 
         /** `ip:port` for a usable IPv4 address; IPv6, link-local and loopback are no use to the app. */
         private fun usable(host: InetAddress?, port: Int): String? =
