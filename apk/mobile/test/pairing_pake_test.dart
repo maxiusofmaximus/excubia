@@ -234,6 +234,21 @@ void main() {
     expect(codeField(tester), _code);
   });
 
+  testWidgets('the error sits under the code card, not off-screen below', (
+    tester,
+  ) async {
+    await mount(tester, FakePinnedClient(pake: _paired()), FakePairDiscovery());
+
+    await typeCode(tester, _code);
+    await press(tester);
+
+    final error = tester.getTopLeft(find.byType(PairingErrorBox)).dy;
+    final screen =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(error, lessThan(tester.getTopLeft(find.text('Escanear QR')).dy));
+    expect(error, lessThan(screen));
+  });
+
   testWidgets('a discovery that breaks shows its own message', (tester) async {
     final pinned = FakePinnedClient(pake: _paired());
     await mount(tester, pinned, FakePairDiscovery(fails: true));

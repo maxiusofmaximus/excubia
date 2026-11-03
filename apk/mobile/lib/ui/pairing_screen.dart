@@ -317,6 +317,16 @@ class _PairingScreenState extends State<PairingScreen> {
                 ],
               ),
             ),
+            // Right under the card that triggered it: at the end of the list it sat off-screen.
+            if (_error != null) ...[
+              const SizedBox(height: Spacing.md),
+              PairingErrorBox(
+                message: _error!,
+                action: _errorAction,
+                detail: _errorDetail,
+                security: _errorSecurity,
+              ),
+            ],
             const SizedBox(height: Spacing.md),
             OutlinedButton.icon(
               onPressed: _busy ? null : _scanQr,
@@ -340,15 +350,6 @@ class _PairingScreenState extends State<PairingScreen> {
               onDeviceIdChanged: () => setState(() {}),
               onSaveAndContinue: _saveAndContinue,
             ),
-            if (_error != null) ...[
-              const SizedBox(height: Spacing.lg),
-              PairingErrorBox(
-                message: _error!,
-                action: _errorAction,
-                detail: _errorDetail,
-                security: _errorSecurity,
-              ),
-            ],
             const SizedBox(height: Spacing.lg),
             TransportFooter(url: _url, pinned: _pinnedLink != null),
             const SizedBox(height: Spacing.xl),
