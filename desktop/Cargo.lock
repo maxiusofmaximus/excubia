@@ -1705,6 +1705,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "herdr-desktop-core",
+ "hn-core-pin",
  "qrcode",
  "serde",
  "serde_json",

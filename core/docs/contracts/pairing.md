@@ -420,6 +420,23 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
 - **Windows firewall** asks per program path: allow `host.exe` from the path that is launched (UDP 5353 inbound), or the
   queries of the app may not reach it. Not verified on a real LAN.
 
+## F3a — v2 link, the QR without an address — IMPLEMENTED in the host; no client yet (F3b-F3d)
+
+- **Format**: `herdr-notify://pair?v=2&c=<8 chars>&h=<host pin, base64url 43>&e=<unix expiry>`. `c` is the PAKE code (alphabet of
+  `hn-core-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
+  About 90 bytes. No `a`, no `b`: the device finds the host by mDNS (F2c) and must see `h` before it sends anything.
+- **Parser**: `hn_core_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
+  `PinError`, `a`/`b`, unknown or repeated fields, a code that is not 8 characters of the alphabet, a bad `h` and a non-numeric `e`.
+  It does not check the expiry: the caller does, with its own clock. `PairingLink::parse` (v1) is unchanged and refuses `v=2`.
+- **Source**: `POST /v1/admin/pake-code` (loopback, host token only, `Cache-Control: no-store`) now answers
+  `{code, expires_in, expires_at, uri}`; `uri` is built with the host's pin. `host pair-code --pake --uri` also prints
+  `pairing uri: <uri>`; `--uri` without `--pake` is a usage error. A daemon from before F3a sends no `uri`; the CLI says so.
+- **Secret**: the URI holds the live code, so it is as secret as the code: never logged, audited or stored (tests scan the data
+  dir). It is for whoever shows it on screen. TTL stays 180 s. The v1 QR with addresses (`--lan`) stays for now.
+- **Compatibility**: an app from before F3a that sees `h` hands the link to `PairingLink::parse`, gets
+  `UnsupportedLinkVersion("2")` and fails closed ("update the app"). What authorizes the device is still the PAKE plus the SAS
+  approval of F1; the pin in the link only makes the device refuse a host that is not the one on screen.
+
 ## Implementation status
 
 | Capability | Status |
@@ -440,4 +457,5 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
 | PAKE core (`crates/pake`, SPAKE2 + TLS-bound key confirmation) | IMPLEMENTED (F2a: library, see *F2a*) |
 | PAKE endpoints `POST /v1/pair/pake/start` and `/finish`, loopback admin route, `host pair-code --pake` | IMPLEMENTED in the host (F2b3, alpha); no client (F2d), see *F2b* |
 | mDNS announcement `_excubia-pair._tcp` only while a PAKE code is alive | IMPLEMENTED in the host (F2c); no client (F2d), see *F2c* |
+| v2 pairing link `herdr-notify://pair?v=2&c&h&e` (QR without an address), `pake-code` answers `uri` and `expires_at`, `pair-code --pake --uri` | IMPLEMENTED in the host (F3a); no client yet, see *F3a* |
 | `APPROVE` permission endpoints | IMPLEMENTED (CORE8) — `POST /v1/chat/approvals/{id}/decision`, the UAC decision |

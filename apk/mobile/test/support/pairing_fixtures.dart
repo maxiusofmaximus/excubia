@@ -12,6 +12,10 @@ String pinnedLink({required int expiresAt, String code = 'ABCD1234'}) =>
     'herdr-notify://pair?v=1&c=$code&h=$testPin'
     '&a=127.0.0.1:8443&e=$expiresAt';
 
+/// The v2 QR: code and host pin, no address, expiring at [expiresAt].
+String pakeLink({required int expiresAt, String code = 'KQ7M2XW9'}) =>
+    'herdr-notify://pair?v=2&c=$code&h=$testPin&e=$expiresAt';
+
 /// Types [link] into the "Pegar enlace" dialog and confirms it, the way the
 /// operator does on a phone without a camera view of the QR.
 Future<void> pasteLink(WidgetTester tester, String link) async {

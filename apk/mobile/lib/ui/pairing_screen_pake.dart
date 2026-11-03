@@ -18,22 +18,26 @@ extension _PairingScreenPake on _PairingScreenState {
     return url.isEmpty ? '' : Uri.parse(url).authority;
   }
 
-  Future<void> _pairByCode(String code) async {
+  /// With [expectedHost] (the v2 QR) the PC is always found on the network:
+  /// the address typed or saved in Avanzado is never used on this path.
+  Future<void> _pairByCode(String code, {String? expectedHost}) async {
     final publicKey = _publicKey;
     if (publicKey == null) {
       _fail('La clave del dispositivo aún no está lista.');
       return;
     }
-    final typed = PairingAddress.normaliseUrl(_url.text);
-    final loopback = PairingAddress.loopbackProblem(
-      typed,
-      allowLoopback: loopbackAllowed(),
-    );
+    final fromQr = expectedHost != null;
+    final loopback = fromQr
+        ? null
+        : PairingAddress.loopbackProblem(
+            PairingAddress.normaliseUrl(_url.text),
+            allowLoopback: loopbackAllowed(),
+          );
     if (loopback != null) {
       _fail(loopback);
       return;
     }
-    final manual = _manualAddress();
+    final manual = fromQr ? '' : _manualAddress();
     _update(() {
       _busy = true;
       _status = manual.isEmpty ? 'Buscando el PC en la red…' : 'Emparejando…';
@@ -63,6 +67,7 @@ extension _PairingScreenPake on _PairingScreenState {
         addresses: addresses,
         code: code,
         devicePublicKey: publicKey,
+        expectedHost: expectedHost,
       );
       switch (result) {
         case PakePaired():

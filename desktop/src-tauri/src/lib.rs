@@ -90,6 +90,7 @@ pub fn run() {
             commands::stop_agent,
             pairing_commands::pair_link,
             pairing_commands::lan_pairing,
+            pairing_commands::pake_pairing,
             pairing_commands::set_lan_pairing,
             chat_commands::conversations::chat_home,
             chat_commands::conversations::chat_search,

@@ -5,6 +5,7 @@
 //! never leave this function.
 
 use std::net::SocketAddr;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
@@ -15,7 +16,9 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use super::capture::capture_config;
-use super::transport::{open, parse_addresses, read_capped, send, Request, Tls, REQUEST_TIMEOUT};
+use super::transport::{
+    open, parse_addresses, read_capped, send, Opened, Request, Tls, REQUEST_TIMEOUT,
+};
 use crate::api::pinned::{
     HeaderField, PakeFailure, PakeFailureKind as Kind, PinnedFailure,
     PinnedFailureKind as Transport,
@@ -58,6 +61,7 @@ pub(crate) fn pair(
     addresses: &[String],
     code: &str,
     device_public_key_b64: &str,
+    expected_host: Option<&str>,
 ) -> Result<Paired, PakeFailure> {
     let code = Code::parse(code).map_err(|_| {
         PakeFailure::of(
@@ -66,11 +70,12 @@ pub(crate) fn pair(
         )
     })?;
     let device_key = device_key(device_public_key_b64)?;
+    let expected = expected_host.map(expected_pin).transpose()?;
     let addresses = parse_addresses(addresses).map_err(from_transport)?;
 
     // First connection: no pin exists yet; see `capture` for why that is safe.
     let capture = Arc::new(capture_config().map_err(from_transport)?);
-    let first = open(&addresses, &capture, REQUEST_TIMEOUT).map_err(from_transport)?;
+    let first = open_expected(&addresses, &capture, expected)?;
     let (address, spki, first_exporter) = (first.address, first.spki, first.exporter);
     let host_id = hex::encode(spki.as_bytes());
     let started = Session::start(Role::Device, &code, &host_id, &device_key);
@@ -117,6 +122,46 @@ pub(crate) fn pair(
         pin: spki,
         address,
     })
+}
+
+/// The pin the QR carried (`h`), parsed before any network; the error never echoes it.
+fn expected_pin(text: &str) -> Result<Fingerprint, PakeFailure> {
+    Fingerprint::from_str(text)
+        .map_err(|_| protocol("la huella del equipo esperada no tiene el formato debido"))
+}
+
+/// Without an expected host this is `open`. With one, each candidate is opened on its own and
+/// one that shows another key is dropped before a byte is written; only if none matches does
+/// the pairing fail, and a mismatch outranks an unreachable candidate (the QR may be another PC's).
+fn open_expected(
+    addresses: &[SocketAddr],
+    config: &Arc<rustls::ClientConfig>,
+    expected: Option<Fingerprint>,
+) -> Result<Opened, PakeFailure> {
+    let Some(expected) = expected else {
+        return open(addresses, config, REQUEST_TIMEOUT).map_err(from_transport);
+    };
+    let mut mismatch = false;
+    let mut unreached = None;
+    for address in addresses {
+        match open(&[*address], config, REQUEST_TIMEOUT) {
+            Ok(opened) if opened.spki == expected => return Ok(opened),
+            Ok(_) => mismatch = true,
+            Err(failure) if matches!(failure.kind, Transport::Unreachable | Transport::Refused) => {
+                unreached = Some(failure);
+            }
+            Err(other) => return Err(from_transport(other)),
+        }
+    }
+    if mismatch {
+        return Err(PakeFailure::of(
+            Kind::HostMismatch,
+            "Este PC no es el del QR. Vuelve a generar el QR en tu PC y escanéalo de nuevo.",
+        ));
+    }
+    Err(from_transport(unreached.unwrap_or_else(|| {
+        PinnedFailure::of(Transport::Unreachable, "no candidate answered")
+    })))
 }
 
 /// The host validates the P-256 point before it spends the code; so do we.

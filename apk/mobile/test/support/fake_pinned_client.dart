@@ -11,8 +11,11 @@ class FakePinnedClient implements PinnedClient {
   final PinnedException? failure;
   final PakePairing? pake;
 
-  /// What `pakePair` was asked: the addresses, the code and the key.
-  final List<({List<String> addresses, String code, String key})> pakeCalls = [];
+  /// What `pakePair` was asked: the addresses, the code, the key and the QR's pin.
+  final List<
+    ({List<String> addresses, String code, String key, String? expectedHost})
+  >
+  pakeCalls = [];
   final List<String> targets = [];
   final List<String> addresses = [];
   final List<Map<String, String>> headers = [];
@@ -72,8 +75,14 @@ class FakePinnedClient implements PinnedClient {
     required List<String> addresses,
     required String code,
     required String devicePublicKey,
+    String? expectedHost,
   }) async {
-    pakeCalls.add((addresses: addresses, code: code, key: devicePublicKey));
+    pakeCalls.add((
+      addresses: addresses,
+      code: code,
+      key: devicePublicKey,
+      expectedHost: expectedHost,
+    ));
     return pake!;
   }
 }

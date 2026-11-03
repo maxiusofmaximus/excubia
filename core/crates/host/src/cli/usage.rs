@@ -5,7 +5,7 @@ pub const USAGE: &str = "host [--port N] [--bind ADDR] [--rows R] [--cols C] [--
 [--workspaces-root DIR] [--uac-plugin-dir DIR] \
 [--asr-python PY --asr-script PY_FILE --asr-model DIR] [--asr-no-corrector] [--mail-sidecar http://127.0.0.1:PORT] [--spawn \"<cmdline>\"]... [--data-dir DIR]\n\
        host pair-code [--ttl SECONDS, default 180] [--lan IP:PORT]... [--data-dir DIR]\n\
-       host pair-code --pake [--port N, default 8791] [--data-dir DIR]\n\
+       host pair-code --pake [--uri] [--port N, default 8791] [--data-dir DIR]\n\
        host tls prepare|activate [--data-dir DIR]\n\
        host hook-token [--seat AGENT_ID] [--data-dir DIR]\n\
        host claude-settings --hook <hn-uac-hook binary> [--out FILE]\n\

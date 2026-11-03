@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1010325420;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 516781409;
 
 // Section: executor
 
@@ -1994,6 +1994,7 @@ fn wire__crate__api__pinned__pake_pair_impl(
             let api_addresses = <Vec<String>>::sse_decode(&mut deserializer);
             let api_code = <String>::sse_decode(&mut deserializer);
             let api_device_public_key_b64 = <String>::sse_decode(&mut deserializer);
+            let api_expected_host = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
@@ -2001,6 +2002,7 @@ fn wire__crate__api__pinned__pake_pair_impl(
                         api_addresses,
                         api_code,
                         api_device_public_key_b64,
+                        api_expected_host,
                     ))?;
                     std::result::Result::Ok(output_ok)
                 })())
@@ -2683,6 +2685,36 @@ fn wire__crate__api__pinned__parse_pairing_link_impl(
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
                 let output_ok = Ok::<_, ()>(crate::api::pinned::parse_pairing_link(api_uri))?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__pake_link__parse_pake_link_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "parse_pake_link",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_uri = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::pake_link::parse_pake_link(api_uri))?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -6260,6 +6292,19 @@ impl SseDecode for Option<crate::api::pinned::PakeFailure> {
     }
 }
 
+impl SseDecode for Option<crate::api::pake_link::PakeLinkParsed> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::pake_link::PakeLinkParsed>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::pinned::PakeOutcome> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6502,7 +6547,35 @@ impl SseDecode for crate::api::pinned::PakeFailureKind {
             5 => crate::api::pinned::PakeFailureKind::RateLimited,
             6 => crate::api::pinned::PakeFailureKind::NoPake,
             7 => crate::api::pinned::PakeFailureKind::Protocol,
+            8 => crate::api::pinned::PakeFailureKind::HostMismatch,
             _ => unreachable!("Invalid variant for PakeFailureKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::pake_link::PakeLinkParsed {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_code = <String>::sse_decode(deserializer);
+        let mut var_host = <String>::sse_decode(deserializer);
+        let mut var_expiresAt = <i64>::sse_decode(deserializer);
+        return crate::api::pake_link::PakeLinkParsed {
+            code: var_code,
+            host: var_host,
+            expires_at: var_expiresAt,
+        };
+    }
+}
+
+impl SseDecode for crate::api::pake_link::PakeLinkResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_link =
+            <Option<crate::api::pake_link::PakeLinkParsed>>::sse_decode(deserializer);
+        let mut var_failure = <Option<crate::api::pinned::PinnedFailure>>::sse_decode(deserializer);
+        return crate::api::pake_link::PakeLinkResult {
+            link: var_link,
+            failure: var_failure,
         };
     }
 }
@@ -6876,9 +6949,9 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         39 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
         48 => wire__crate__api__pinned__pake_pair_impl(port, ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__pinned__pinned_event_lines_impl(port, ptr, rust_vec_len, data_len),
-        74 => wire__crate__api__pinned__pinned_request_impl(port, ptr, rust_vec_len, data_len),
-        75 => {
+        74 => wire__crate__api__pinned__pinned_event_lines_impl(port, ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__pinned__pinned_request_impl(port, ptr, rust_vec_len, data_len),
+        76 => {
             wire__crate__api__pinned__pinned_request_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -7100,154 +7173,155 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         70 => wire__crate__api__pinned__parse_pairing_link_impl(ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__onboarding__model__parse_role_catalog_impl(
+        71 => wire__crate__api__pake_link__parse_pake_link_impl(ptr, rust_vec_len, data_len),
+        72 => wire__crate__api__onboarding__model__parse_role_catalog_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__state__parse_state_impl(ptr, rust_vec_len, data_len),
-        76 => wire__crate__api__approvals__plan__plan_approval_decision_impl(
+        73 => wire__crate__api__state__parse_state_impl(ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__approvals__plan__plan_approval_decision_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => {
+        78 => {
             wire__crate__api__approvals__plan__plan_approval_inbox_impl(ptr, rust_vec_len, data_len)
         }
-        78 => wire__crate__api__approvals__plan__plan_approval_settings_read_impl(
+        79 => wire__crate__api__approvals__plan__plan_approval_settings_read_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => wire__crate__api__approvals__plan__plan_approval_settings_write_impl(
+        80 => wire__crate__api__approvals__plan__plan_approval_settings_write_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => wire__crate__api__chat__attach_plan__plan_attachment_chunk_impl(
+        81 => wire__crate__api__chat__attach_plan__plan_attachment_chunk_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        81 => wire__crate__api__chat__attach_plan__plan_attachment_complete_impl(
+        82 => wire__crate__api__chat__attach_plan__plan_attachment_complete_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        82 => wire__crate__api__chat__attach_plan__plan_attachment_content_impl(
+        83 => wire__crate__api__chat__attach_plan__plan_attachment_content_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        83 => wire__crate__api__chat__attach_plan__plan_attachment_create_impl(
+        84 => wire__crate__api__chat__attach_plan__plan_attachment_create_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        84 => wire__crate__api__chat__attach_plan__plan_attachment_delete_impl(
+        85 => wire__crate__api__chat__attach_plan__plan_attachment_delete_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        85 => wire__crate__api__chat__plan__plan_chat_archive_conversation_impl(
+        86 => wire__crate__api__chat__plan__plan_chat_archive_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        86 => wire__crate__api__chat__plan__plan_chat_bootstrap_impl(ptr, rust_vec_len, data_len),
-        87 => wire__crate__api__chat__plan__plan_chat_cancel_delegation_impl(
+        87 => wire__crate__api__chat__plan__plan_chat_bootstrap_impl(ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__chat__plan__plan_chat_cancel_delegation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        88 => {
+        89 => {
             wire__crate__api__chat__plan__plan_chat_conversations_impl(ptr, rust_vec_len, data_len)
         }
-        89 => wire__crate__api__chat__plan__plan_chat_counts_impl(ptr, rust_vec_len, data_len),
-        90 => wire__crate__api__chat__plan__plan_chat_create_conversation_impl(
+        90 => wire__crate__api__chat__plan__plan_chat_counts_impl(ptr, rust_vec_len, data_len),
+        91 => wire__crate__api__chat__plan__plan_chat_create_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        91 => wire__crate__api__chat__plan__plan_chat_delegation_impl(ptr, rust_vec_len, data_len),
-        92 => wire__crate__api__chat__plan__plan_chat_delete_conversation_impl(
+        92 => wire__crate__api__chat__plan__plan_chat_delegation_impl(ptr, rust_vec_len, data_len),
+        93 => wire__crate__api__chat__plan__plan_chat_delete_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        93 => wire__crate__api__chat__plan__plan_chat_messages_impl(ptr, rust_vec_len, data_len),
-        94 => wire__crate__api__chat__plan__plan_chat_move_conversation_impl(
+        94 => wire__crate__api__chat__plan__plan_chat_messages_impl(ptr, rust_vec_len, data_len),
+        95 => wire__crate__api__chat__plan__plan_chat_move_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        95 => wire__crate__api__chat__plan__plan_chat_pin_conversation_impl(
+        96 => wire__crate__api__chat__plan__plan_chat_pin_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => wire__crate__api__chat__plan__plan_chat_read_impl(ptr, rust_vec_len, data_len),
-        97 => wire__crate__api__chat__plan__plan_chat_rename_conversation_impl(
+        97 => wire__crate__api__chat__plan__plan_chat_read_impl(ptr, rust_vec_len, data_len),
+        98 => wire__crate__api__chat__plan__plan_chat_rename_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        98 => wire__crate__api__chat__plan__plan_chat_section_impl(ptr, rust_vec_len, data_len),
-        99 => wire__crate__api__chat__plan__plan_chat_sections_impl(ptr, rust_vec_len, data_len),
-        100 => wire__crate__api__chat__plan__plan_chat_send_impl(ptr, rust_vec_len, data_len),
-        101 => wire__crate__api__chat__attach_plan__plan_chat_send_with_attachments_impl(
+        99 => wire__crate__api__chat__plan__plan_chat_section_impl(ptr, rust_vec_len, data_len),
+        100 => wire__crate__api__chat__plan__plan_chat_sections_impl(ptr, rust_vec_len, data_len),
+        101 => wire__crate__api__chat__plan__plan_chat_send_impl(ptr, rust_vec_len, data_len),
+        102 => wire__crate__api__chat__attach_plan__plan_chat_send_with_attachments_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        102 => wire__crate__api__chat__plan__plan_chat_stop_impl(ptr, rust_vec_len, data_len),
-        103 => wire__crate__api__chat__plan__plan_chat_timeline_impl(ptr, rust_vec_len, data_len),
-        104 => wire__crate__api__workspace__plan_create_impl(ptr, rust_vec_len, data_len),
-        105 => wire__crate__api__mail__plan_draft_confirm_impl(ptr, rust_vec_len, data_len),
-        106 => wire__crate__api__mail__plan_draft_send_impl(ptr, rust_vec_len, data_len),
-        107 => wire__crate__api__mail__plan_draft_update_impl(ptr, rust_vec_len, data_len),
-        108 => wire__crate__api__onboarding__plan__plan_hire_impl(ptr, rust_vec_len, data_len),
-        109 => {
+        103 => wire__crate__api__chat__plan__plan_chat_stop_impl(ptr, rust_vec_len, data_len),
+        104 => wire__crate__api__chat__plan__plan_chat_timeline_impl(ptr, rust_vec_len, data_len),
+        105 => wire__crate__api__workspace__plan_create_impl(ptr, rust_vec_len, data_len),
+        106 => wire__crate__api__mail__plan_draft_confirm_impl(ptr, rust_vec_len, data_len),
+        107 => wire__crate__api__mail__plan_draft_send_impl(ptr, rust_vec_len, data_len),
+        108 => wire__crate__api__mail__plan_draft_update_impl(ptr, rust_vec_len, data_len),
+        109 => wire__crate__api__onboarding__plan__plan_hire_impl(ptr, rust_vec_len, data_len),
+        110 => {
             wire__crate__api__onboarding__plan__plan_hire_avatar_impl(ptr, rust_vec_len, data_len)
         }
-        110 => {
+        111 => {
             wire__crate__api__onboarding__plan__plan_hire_dismiss_impl(ptr, rust_vec_len, data_len)
         }
-        111 => {
+        112 => {
             wire__crate__api__onboarding__plan__plan_hire_rename_impl(ptr, rust_vec_len, data_len)
         }
-        112 => wire__crate__api__onboarding__plan__plan_hires_impl(ptr, rust_vec_len, data_len),
-        113 => wire__crate__api__onboarding__plan__plan_onboarding_contract_impl(
+        113 => wire__crate__api__onboarding__plan__plan_hires_impl(ptr, rust_vec_len, data_len),
+        114 => wire__crate__api__onboarding__plan__plan_onboarding_contract_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        114 => wire__crate__api__onboarding__plan__plan_onboarding_read_impl(
+        115 => wire__crate__api__onboarding__plan__plan_onboarding_read_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        115 => wire__crate__api__onboarding__plan__plan_onboarding_skip_impl(
+        116 => wire__crate__api__onboarding__plan__plan_onboarding_skip_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        116 => wire__crate__api__onboarding__plan__plan_roles_impl(ptr, rust_vec_len, data_len),
-        117 => wire__crate__api__write__plan_stop_impl(ptr, rust_vec_len, data_len),
-        118 => wire__crate__api__write__plan_write_impl(ptr, rust_vec_len, data_len),
-        119 => wire__crate__api__signing__public_key_from_private_impl(ptr, rust_vec_len, data_len),
-        120 => wire__crate__api__signing__sign_request_impl(ptr, rust_vec_len, data_len),
-        121 => {
+        117 => wire__crate__api__onboarding__plan__plan_roles_impl(ptr, rust_vec_len, data_len),
+        118 => wire__crate__api__write__plan_stop_impl(ptr, rust_vec_len, data_len),
+        119 => wire__crate__api__write__plan_write_impl(ptr, rust_vec_len, data_len),
+        120 => wire__crate__api__signing__public_key_from_private_impl(ptr, rust_vec_len, data_len),
+        121 => wire__crate__api__signing__sign_request_impl(ptr, rust_vec_len, data_len),
+        122 => {
             wire__crate__api__chat__attach_upload__upload_accepted_impl(ptr, rust_vec_len, data_len)
         }
-        122 => wire__crate__api__chat__attach_upload__upload_next_impl(ptr, rust_vec_len, data_len),
-        123 => {
+        123 => wire__crate__api__chat__attach_upload__upload_next_impl(ptr, rust_vec_len, data_len),
+        124 => {
             wire__crate__api__chat__attach_upload__upload_progress_impl(ptr, rust_vec_len, data_len)
         }
-        124 => {
+        125 => {
             wire__crate__api__chat__attach_upload__upload_refused_impl(ptr, rust_vec_len, data_len)
         }
-        125 => {
+        126 => {
             wire__crate__api__chat__attach_upload__upload_start_impl(ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -8517,6 +8591,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::pinned::PakeFailureKind {
             Self::RateLimited => 5.into_dart(),
             Self::NoPake => 6.into_dart(),
             Self::Protocol => 7.into_dart(),
+            Self::HostMismatch => 8.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -8529,6 +8604,49 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::pinned::PakeFailureKind>
     for crate::api::pinned::PakeFailureKind
 {
     fn into_into_dart(self) -> crate::api::pinned::PakeFailureKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::pake_link::PakeLinkParsed {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.code.into_into_dart().into_dart(),
+            self.host.into_into_dart().into_dart(),
+            self.expires_at.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::pake_link::PakeLinkParsed
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::pake_link::PakeLinkParsed>
+    for crate::api::pake_link::PakeLinkParsed
+{
+    fn into_into_dart(self) -> crate::api::pake_link::PakeLinkParsed {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::pake_link::PakeLinkResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.link.into_into_dart().into_dart(),
+            self.failure.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::pake_link::PakeLinkResult
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::pake_link::PakeLinkResult>
+    for crate::api::pake_link::PakeLinkResult
+{
+    fn into_into_dart(self) -> crate::api::pake_link::PakeLinkResult {
         self
     }
 }
@@ -10193,6 +10311,16 @@ impl SseEncode for Option<crate::api::pinned::PakeFailure> {
     }
 }
 
+impl SseEncode for Option<crate::api::pake_link::PakeLinkParsed> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::pake_link::PakeLinkParsed>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::pinned::PakeOutcome> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -10384,12 +10512,30 @@ impl SseEncode for crate::api::pinned::PakeFailureKind {
                 crate::api::pinned::PakeFailureKind::RateLimited => 5,
                 crate::api::pinned::PakeFailureKind::NoPake => 6,
                 crate::api::pinned::PakeFailureKind::Protocol => 7,
+                crate::api::pinned::PakeFailureKind::HostMismatch => 8,
                 _ => {
                     unimplemented!("");
                 }
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::api::pake_link::PakeLinkParsed {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.code, serializer);
+        <String>::sse_encode(self.host, serializer);
+        <i64>::sse_encode(self.expires_at, serializer);
+    }
+}
+
+impl SseEncode for crate::api::pake_link::PakeLinkResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<crate::api::pake_link::PakeLinkParsed>>::sse_encode(self.link, serializer);
+        <Option<crate::api::pinned::PinnedFailure>>::sse_encode(self.failure, serializer);
     }
 }
 

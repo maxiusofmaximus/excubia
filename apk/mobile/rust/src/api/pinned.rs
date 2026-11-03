@@ -140,6 +140,8 @@ pub enum PakeFailureKind {
     NoPake,
     /// Anything else that broke the exchange.
     Protocol,
+    /// No candidate showed the key the QR carried; nothing was sent to any.
+    HostMismatch,
 }
 
 /// `message` is for the person, in Spanish; it never carries the code.
@@ -191,13 +193,21 @@ pub fn pairing_sas(pin: String, public_key_base64: String) -> Option<String> {
 /// Pairs with the host by its short code (F2d1): two TLS connections, the
 /// second pinned to the key the PAKE confirmed. The session and its key never
 /// leave Rust. `addresses` are tried in order only until one connects; a
-/// protocol failure is final, the code is already burned.
+/// protocol failure is final, the code is already burned. `expected_host` is
+/// the pin from the QR (`h`): a candidate that shows another key is skipped
+/// before `/start`; `None` keeps the plain code-only behaviour.
 pub fn pake_pair(
     addresses: Vec<String>,
     code: String,
     device_public_key_b64: String,
+    expected_host: Option<String>,
 ) -> PakePairResult {
-    match pake::pair(&addresses, &code, &device_public_key_b64) {
+    match pake::pair(
+        &addresses,
+        &code,
+        &device_public_key_b64,
+        expected_host.as_deref(),
+    ) {
         Ok(paired) => PakePairResult {
             outcome: Some(PakeOutcome {
                 device_id: paired.device_id,

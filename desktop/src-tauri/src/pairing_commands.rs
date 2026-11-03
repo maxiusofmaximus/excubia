@@ -8,7 +8,7 @@ use herdr_desktop_core::{pair_through_link, PairLink};
 use serde::Serialize;
 use tauri::{AppHandle, State};
 
-use crate::app_state::{lock, AppState};
+use crate::app_state::{lock, AppState, HostStatus};
 use crate::commands::PairOutcome;
 use crate::config::StoredPins;
 use crate::lan;
@@ -18,6 +18,13 @@ type Shared = Arc<AppState>;
 #[derive(Serialize)]
 pub struct LanPairing {
     link: String,
+    svg: String,
+    expires_at: i64,
+}
+
+/// The QR without an address: the only output is the drawing and its expiry.
+#[derive(Serialize)]
+pub struct PakePairing {
     svg: String,
     expires_at: i64,
 }
@@ -91,6 +98,31 @@ pub async fn lan_pairing(state: State<'_, Shared>) -> Result<LanPairing, String>
     })
 }
 
+/// Mints a PAKE code and shows it as a QR with no address; the phone finds
+/// this PC on the local network. The URI never reaches the UI.
+#[tauri::command]
+pub async fn pake_pairing(state: State<'_, Shared>) -> Result<PakePairing, String> {
+    let shared = state.inner().clone();
+    let (lan_pairing, host) = {
+        let inner = lock(&shared.inner);
+        (inner.config.lan_pairing, inner.host.clone())
+    };
+    if !lan_pairing {
+        return Err("Activa el emparejamiento por red local antes de mostrar el QR.".to_string());
+    }
+    let HostStatus::Ready { port } = host else {
+        return Err("El host local aún no está listo; espera un momento.".to_string());
+    };
+    let stdout = shared
+        .run_host_cli(&["pair-code", "--pake", "--uri", "--port", &port.to_string()])
+        .await?;
+    let (uri, expires_at) = lan::pake_uri_from(&stdout)?;
+    Ok(PakePairing {
+        svg: lan::qr_svg(&uri)?,
+        expires_at,
+    })
+}
+
 /// Turns the LAN listener on or off. The local core restarts to apply it.
 #[tauri::command]
 pub fn set_lan_pairing(
@@ -109,4 +141,22 @@ pub fn set_lan_pairing(
         shared.start_local_host(app);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The QR is the only output: adding a field here (say the URI) breaks this test.
+    #[test]
+    fn the_pake_pairing_has_only_the_drawing_and_the_expiry() {
+        let PakePairing { svg, expires_at } = PakePairing {
+            svg: "<svg/>".to_string(),
+            expires_at: 1,
+        };
+        let value = serde_json::to_value(PakePairing { svg, expires_at }).expect("json");
+        let mut keys: Vec<_> = value.as_object().expect("object").keys().cloned().collect();
+        keys.sort();
+        assert_eq!(keys, ["expires_at", "svg"]);
+    }
 }

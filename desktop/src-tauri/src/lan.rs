@@ -4,6 +4,7 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 
 use herdr_desktop_core::PairLink;
+use hn_core_pin::{unix_now, PakeLink};
 use qrcode::render::svg;
 use qrcode::QrCode;
 
@@ -54,6 +55,22 @@ pub fn pair_link_from(stdout: &str) -> Result<String, String> {
         .ok_or_else(|| "el host no devolvió un enlace de emparejamiento".to_string())
 }
 
+/// Pulls the v2 URI (no address) out of `host pair-code --pake --uri`'s output.
+/// Returns it with its expiry. Errors are fixed text: the URI holds a live code.
+pub fn pake_uri_from(stdout: &str) -> Result<(String, i64), String> {
+    let uri = stdout
+        .lines()
+        .find_map(|line| line.strip_prefix("pairing uri: "))
+        .map(str::trim)
+        .ok_or_else(|| "el host no devolvió un enlace de emparejamiento".to_string())?;
+    let link = PakeLink::parse(uri)
+        .map_err(|_| "el host devolvió un enlace de emparejamiento no válido".to_string())?;
+    if link.is_expired(unix_now()) {
+        return Err("el código de emparejamiento ya había caducado".to_string());
+    }
+    Ok((uri.to_string(), link.expires_at))
+}
+
 /// The link as an SVG QR code, drawn here so no service sees the link.
 pub fn qr_svg(link: &str) -> Result<String, String> {
     let code = QrCode::new(link.as_bytes()).map_err(|error| error.to_string())?;
@@ -73,6 +90,54 @@ mod tests {
         let stdout = "pairing code: ABCD-2345\nsingle use\npairing link: herdr-notify://pair?v=1&c=ABCD-2345&h=-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI&a=192.168.1.20:8443&e=4102444800\ndata dir: x\n";
         let link = pair_link_from(stdout).expect("link");
         assert!(link.starts_with("herdr-notify://pair?v=1&c=ABCD-2345"));
+    }
+
+    const PIN: &str = "-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI";
+
+    fn pake_output(expires: i64) -> String {
+        format!(
+            "código de emparejamiento: ABCD2345
+válido 180 s (un solo uso)
+pairing uri: herdr-notify://pair?v=2&c=ABCD2345&h={PIN}&e={expires}
+"
+        )
+    }
+
+    #[test]
+    fn the_pake_uri_line_is_found_among_three_lines() {
+        let (uri, expires) = pake_uri_from(&pake_output(4_102_444_800)).expect("uri");
+        assert!(uri.starts_with("herdr-notify://pair?v=2&c=ABCD2345"));
+        assert_eq!(expires, 4_102_444_800);
+    }
+
+    #[test]
+    fn a_pake_output_without_the_uri_line_is_an_error() {
+        assert!(pake_uri_from(
+            "código de emparejamiento: ABCD2345
+"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn a_v1_uri_with_an_address_is_not_a_pake_uri() {
+        let stdout = format!("pairing uri: herdr-notify://pair?v=1&c=ABCD2345&h={PIN}&a=192.168.1.20:8443&e=4102444800
+");
+        assert!(pake_uri_from(&stdout).is_err());
+    }
+
+    #[test]
+    fn an_expired_pake_uri_is_an_error_and_the_error_hides_the_uri() {
+        let error = pake_uri_from(&pake_output(1)).unwrap_err();
+        assert!(
+            !error.contains("ABCD2345") && !error.contains("herdr-notify"),
+            "{error}"
+        );
+        let error = pake_uri_from(&pake_output(4_102_444_800).replace("v=2", "v=1")).unwrap_err();
+        assert!(
+            !error.contains("ABCD2345") && !error.contains(PIN),
+            "{error}"
+        );
     }
 
     #[test]

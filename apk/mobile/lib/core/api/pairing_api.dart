@@ -119,10 +119,12 @@ class PairingApi {
     required List<String> addresses,
     required String code,
     required String devicePublicKey,
+    String? expectedHost,
   }) => _pinned.pakePair(
     addresses: addresses,
     code: code,
     devicePublicKey: devicePublicKey,
+    expectedHost: expectedHost,
   );
 
   Future<PairResponse> pair(String baseUrl, PairRequest request) async {

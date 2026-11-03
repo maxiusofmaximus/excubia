@@ -33,7 +33,8 @@ class PakeRefused extends PakePairing {
   /// is a security warning, never a "try again".
   bool get isSecurity =>
       kind == rust.PakeFailureKind.hostProofInvalid ||
-      kind == rust.PakeFailureKind.channelChanged;
+      kind == rust.PakeFailureKind.channelChanged ||
+      kind == rust.PakeFailureKind.hostMismatch;
 }
 
 PakePairing pakeFromRust(rust.PakePairResult result) {

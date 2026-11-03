@@ -109,10 +109,13 @@ abstract interface class PinnedClient {
   });
 
   /// Pairs with the short code: no pin exists yet, the code proves the host.
+  /// [expectedHost] is the fingerprint the QR carried: a candidate that shows
+  /// another key is dropped before anything is sent to it. Null for a typed code.
   Future<PakePairing> pakePair({
     required List<String> addresses,
     required String code,
     required String devicePublicKey,
+    String? expectedHost,
   });
 }
 
@@ -200,11 +203,13 @@ class RustPinnedClient implements PinnedClient {
     required List<String> addresses,
     required String code,
     required String devicePublicKey,
+    String? expectedHost,
   }) async => pakeFromRust(
     await rust.pakePair(
       addresses: addresses,
       code: code,
       devicePublicKeyB64: devicePublicKey,
+      expectedHost: expectedHost,
     ),
   );
 

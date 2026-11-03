@@ -22,6 +22,7 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
 use hn_core_auth::{p256_public_key_is_valid, Class, Curve};
 use hn_core_pake::{Role, Session, MESSAGE_LEN};
+use hn_core_pin::{unix_now, PakeLink};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -200,6 +201,7 @@ fn finish_inner(ctx: &ApiContext, peer: &PeerAddr, body: &Bytes) -> Result<Json<
 
 /// `POST /v1/admin/pake-code`: arms the one PAKE code and shows it. Loopback listener only, behind the hook
 /// guard, and only the host token opens it: a per-run agent token must not be able to mint pairing codes.
+/// Answers `code`, `expires_in` and, for the QR (F3a), `expires_at` (unix) and `uri` (a `PakeLink`, no address).
 pub async fn arm_code(
     State(ctx): State<ApiContext>,
     Extension(auth): Extension<HookAuth>,
@@ -216,9 +218,18 @@ pub async fn arm_code(
         .arm(PAKE_CODE_TTL, &hex::encode(pin.as_bytes()))
     {
         Ok(shown) => {
+            // The URI holds the live code: it is a secret like the code, and goes nowhere but this answer.
+            let expires_at = unix_now() + PAKE_CODE_TTL.as_secs() as i64;
+            let link = PakeLink {
+                code: shown.reveal().to_owned(),
+                host: pin,
+                expires_at,
+            };
             let mut response = Json(json!({
                 "code": shown.reveal(),
                 "expires_in": PAKE_CODE_TTL.as_secs(),
+                "expires_at": expires_at,
+                "uri": link.to_uri(),
             }))
             .into_response();
             response

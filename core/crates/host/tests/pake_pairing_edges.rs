@@ -195,6 +195,11 @@ async fn the_cli_helper_reads_the_token_and_asks_the_daemon_for_a_code() {
         .await
         .expect("armed");
     assert_eq!((armed.code.len(), armed.expires_in), (8, 180));
+    let link = hn_core_pin::PakeLink::parse(armed.uri.as_deref().expect("uri")).expect("link");
+    assert_eq!(
+        (link.code.as_str(), link.host),
+        (armed.code.as_str(), rig.pins.primary())
+    );
     let (taken, _) = rig
         .ctx
         .pake_slot
@@ -220,4 +225,62 @@ async fn the_cli_helper_reads_the_token_and_asks_the_daemon_for_a_code() {
         .expect("no daemon")
         .to_string();
     assert!(error.contains("not running"), "{error}");
+}
+
+fn files_under(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            files_under(&path, out);
+        } else {
+            out.push(path);
+        }
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_admin_answer_carries_a_link_for_this_host_and_leaves_no_trace() {
+    use hn_core_pin::{unix_now, PakeLink};
+
+    let rig = Rig::new("pake-link").await;
+    let run = rig.host.run_hook("pake-link");
+    let (status, refused) = plain_post(rig.plain, ADMIN, Some(&run.token)).await;
+    assert_eq!(status, 403, "an agent token still cannot arm");
+    assert!(refused.get("uri").is_none() && refused.get("code").is_none());
+
+    let before = unix_now();
+    let (status, answer) = plain_post(rig.plain, ADMIN, Some(&rig.host.hook_token)).await;
+    assert_eq!(status, 200, "{answer}");
+    let uri = answer["uri"].as_str().expect("uri").to_owned();
+    let code = answer["code"].as_str().expect("code").to_owned();
+    let link = PakeLink::parse(&uri).expect("the daemon's own link parses");
+    assert_eq!(link.host, rig.pins.primary(), "h is the host's pin");
+    assert_eq!(link.code, code);
+    assert_eq!(answer["expires_at"], link.expires_at);
+    assert!((before + 180..=unix_now() + 180).contains(&link.expires_at));
+    assert!(!link.is_expired(before));
+
+    // A whole ceremony, so there is an audit trail to look in; then neither secret is in any file of the host.
+    let device = device();
+    let mut conn = rig.connect().await;
+    let started = start(
+        &mut conn,
+        &device,
+        &hn_core_pake::Code::parse(&code).expect("code"),
+    )
+    .await;
+    assert_eq!(started.status, 200, "{}", started.answer);
+    assert!(!rig.audit().is_empty());
+    let mut files = Vec::new();
+    files_under(&rig.host.data_dir, &mut files);
+    for path in files {
+        let bytes = std::fs::read(&path).unwrap_or_default();
+        for secret in [&code, &uri] {
+            assert!(
+                !bytes.windows(secret.len()).any(|w| w == secret.as_bytes()),
+                "a secret reached {}",
+                path.display()
+            );
+        }
+    }
 }

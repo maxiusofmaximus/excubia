@@ -8,8 +8,12 @@
 //! pin when a rotation is prepared, `a` each LAN candidate and `e` the code's
 //! expiry. Every value is URL-safe, so no percent-encoding is needed. Unknown
 //! or repeated fields are refused: a version bump is the only way to add one.
+//!
+//! `PakeLink` (v2, F3a) is the QR without an address: the PAKE code, the host's
+//! pin and the code's expiry. The device finds the host by discovery and must
+//! see that pin before it sends anything.
 
-use std::fmt::Write as _;
+use std::fmt::{self, Write as _};
 use std::net::SocketAddr;
 
 use crate::{Fingerprint, PinError, PinSet};
@@ -17,6 +21,11 @@ use crate::{Fingerprint, PinError, PinSet};
 pub const LINK_PREFIX: &str = "herdr-notify://pair?";
 pub const LINK_VERSION: u32 = 1;
 const MAX_CODE_CHARS: usize = 64;
+pub const PAKE_LINK_VERSION: u32 = 2;
+/// Characters of a PAKE code and the symbols they come from: a copy of `hn_core_pake::Code`, which this crate
+/// cannot depend on; a test compares both.
+const PAKE_CODE_CHARS: usize = 8;
+const PAKE_CODE_ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingLink {
@@ -130,6 +139,76 @@ fn is_code(code: &str) -> bool {
 
 fn malformed(reason: &str) -> PinError {
     PinError::MalformedLink(reason.to_string())
+}
+
+/// The v2 link: `herdr-notify://pair?v=2&c=<8 chars>&h=<pin>&e=<unix>`. The code is a live secret, so is the URI.
+#[derive(Clone, PartialEq, Eq)]
+pub struct PakeLink {
+    pub code: String,
+    pub host: Fingerprint,
+    pub expires_at: i64,
+}
+
+impl fmt::Debug for PakeLink {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PakeLink")
+            .field("code", &"..")
+            .field("host", &self.host)
+            .field("expires_at", &self.expires_at)
+            .finish()
+    }
+}
+
+impl PakeLink {
+    pub fn to_uri(&self) -> String {
+        format!(
+            "{LINK_PREFIX}v={PAKE_LINK_VERSION}&c={}&h={}&e={}",
+            self.code, self.host, self.expires_at
+        )
+    }
+
+    /// Whether `now` (unix seconds) is at or past the code's expiry. The caller asks: parsing does not.
+    pub fn is_expired(&self, now: i64) -> bool {
+        now >= self.expires_at
+    }
+
+    pub fn parse(uri: &str) -> Result<Self, PinError> {
+        let query = uri
+            .strip_prefix(LINK_PREFIX)
+            .ok_or_else(|| malformed("not a herdr-notify pairing link"))?;
+        let (mut version, mut code, mut host, mut expires) = (None, None, None, None);
+        for pair in query.split('&') {
+            let (key, value) = pair
+                .split_once('=')
+                .ok_or_else(|| malformed("a field has no value"))?;
+            match key {
+                "v" => once(&mut version, value)?,
+                "c" => once(&mut code, value)?,
+                "h" => once(&mut host, value)?,
+                "e" => once(&mut expires, value)?,
+                "a" | "b" => return Err(malformed("a v2 link carries no address or backup pin")),
+                other => return Err(malformed(&format!("unknown field {other}"))),
+            }
+        }
+        let version = required(version, "v")?;
+        if version != PAKE_LINK_VERSION.to_string() {
+            return Err(PinError::UnsupportedLinkVersion(version.to_string()));
+        }
+        let code = required(code, "c")?;
+        if code.len() != PAKE_CODE_CHARS || !code.bytes().all(|b| PAKE_CODE_ALPHABET.contains(&b)) {
+            return Err(malformed(
+                "the code is not 8 characters of the pairing alphabet",
+            ));
+        }
+        Ok(PakeLink {
+            code: code.to_string(),
+            host: required(host, "h")?.parse()?,
+            expires_at: required(expires, "e")?
+                .parse::<i64>()
+                .map_err(|_| malformed("the expiry is not a unix time"))?,
+        })
+    }
 }
 
 #[cfg(test)]

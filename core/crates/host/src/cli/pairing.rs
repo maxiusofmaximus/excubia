@@ -12,6 +12,7 @@ pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Comman
     let mut data_dir = None;
     let mut lan = Vec::new();
     let mut pake = false;
+    let mut uri = false;
     let mut port = None;
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -24,6 +25,7 @@ pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Comman
                     .map_err(|_| "--ttl needs a number of seconds".to_string())?;
             }
             "--pake" => pake = true,
+            "--uri" => uri = true,
             "--port" => {
                 port = Some(
                     args.next()
@@ -45,14 +47,20 @@ pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Comman
         }
     }
     if pake {
-        // The PAKE code lives 180 s in the daemon's memory and has no link: these flags would be ignored.
+        // The PAKE code lives 180 s in the daemon's memory and its link has no address: these flags would be ignored.
         if ttl_given || !lan.is_empty() {
-            return Err("pair-code --pake takes only --port and --data-dir".to_string());
+            return Err("pair-code --pake takes only --port, --uri and --data-dir".to_string());
         }
         return Ok(Command::PairCodePake {
             port: port.unwrap_or(DEFAULT_PORT),
+            uri,
             data_dir: resolve_data_dir(data_dir)?,
         });
+    }
+    if uri {
+        return Err(
+            "--uri is only for pair-code --pake (the QR link of the PAKE code)".to_string(),
+        );
     }
     if port.is_some() {
         return Err("--port is only for pair-code --pake (the daemon's port)".to_string());

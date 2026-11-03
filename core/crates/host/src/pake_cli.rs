@@ -20,10 +20,12 @@ const IO_TIMEOUT: Duration = Duration::from_secs(5);
 /// An answer is a short JSON object; anything bigger is not the daemon.
 const MAX_ANSWER_BYTES: usize = 16 * 1024;
 
-/// What the daemon armed: the code (a secret: print it once, keep it nowhere) and how long it lives.
+/// What the daemon armed: the code and the link that holds it (secrets: print once, keep nowhere) and how long
+/// it lives. `uri` is `None` for a daemon older than F3a.
 pub struct ArmedCode {
     pub code: String,
     pub expires_in: u64,
+    pub uri: Option<String>,
 }
 
 /// The host hook token of `data_dir`, read as the daemon wrote it. It is never created here: a data dir with
@@ -94,7 +96,12 @@ fn parse_answer(response: &str) -> Result<ArmedCode> {
     let expires_in = json["expires_in"]
         .as_u64()
         .context("the answer has no expires_in")?;
-    Ok(ArmedCode { code, expires_in })
+    let uri = json["uri"].as_str().map(str::to_owned);
+    Ok(ArmedCode {
+        code,
+        expires_in,
+        uri,
+    })
 }
 
 /// The code as a person reads it: two groups of four. The device accepts it with or without the dash.
@@ -116,6 +123,12 @@ mod tests {
         )
         .expect("answer");
         assert_eq!((armed.code.as_str(), armed.expires_in), ("ABCDEFGH", 180));
+        assert_eq!(armed.uri, None, "a daemon before F3a sends no uri");
+        let armed = parse_answer(
+            "HTTP/1.1 200 OK\r\n\r\n{\"code\":\"ABCDEFGH\",\"expires_in\":180,\"uri\":\"herdr-notify://pair?v=2\"}",
+        )
+        .expect("answer");
+        assert_eq!(armed.uri.as_deref(), Some("herdr-notify://pair?v=2"));
     }
 
     #[test]

@@ -4,6 +4,7 @@ pub mod chat;
 pub mod error;
 pub mod mail;
 pub mod onboarding;
+pub mod pake_link;
 pub mod pinned;
 pub mod policy;
 pub mod signing;

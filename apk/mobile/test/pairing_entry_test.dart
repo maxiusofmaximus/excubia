@@ -39,7 +39,7 @@ void main() {
 
   test('a newer link version asks for an app update', () {
     final entry = parsePairingEntry(
-      'herdr-notify://pair?v=2&c=ABCD1234&h=$testPin'
+      'herdr-notify://pair?v=3&c=ABCD1234&h=$testPin'
       '&a=127.0.0.1:8443&e=${nowSeconds() + 600}',
     );
 
@@ -59,6 +59,61 @@ void main() {
       (entry as PairingEntryInvalid).reason,
       'El enlace de emparejamiento no se pudo leer.',
     );
+  });
+
+  group('v2 QR', () {
+    const invalid = 'El QR no es válido. Genera otro en el PC.';
+
+    test('a valid one carries code, host pin and expiry', () {
+      final expires = nowSeconds() + 120;
+      final entry = parsePairingEntry(pakeLink(expiresAt: expires));
+
+      expect(entry, isA<PairingEntryPake>());
+      final pake = entry as PairingEntryPake;
+      expect(pake.code, 'KQ7M2XW9');
+      expect(pake.hostFingerprint, testPin);
+      expect(pake.expiresAt.millisecondsSinceEpoch, expires * 1000);
+      expect(pake.toString(), isNot(contains('KQ7M2XW9')));
+    });
+
+    test('an expired one is refused by the injected clock, not the real one', () {
+      final expires = nowSeconds() + 120;
+      PairingEntry at(int seconds) => parsePairingEntry(
+        pakeLink(expiresAt: expires),
+        clock: () => DateTime.fromMillisecondsSinceEpoch(seconds * 1000),
+      );
+
+      expect(at(expires - 1), isA<PairingEntryPake>());
+      for (final late in [expires, expires + 60]) {
+        expect(
+          (at(late) as PairingEntryInvalid).reason,
+          'El QR caducó. Genera otro en el PC.',
+        );
+      }
+    });
+
+    test('an address, a short code or a bad pin is refused without echo', () {
+      final e = nowSeconds() + 120;
+      for (final link in [
+        '${pakeLink(expiresAt: e)}&a=127.0.0.1:8443',
+        pakeLink(expiresAt: e, code: 'KQ7M2'),
+        'herdr-notify://pair?v=2&c=KQ7M2XW9&h=short&e=$e',
+      ]) {
+        final reason = (parsePairingEntry(link) as PairingEntryInvalid).reason;
+        expect(reason, invalid);
+        expect(reason, isNot(contains('KQ7M2')));
+      }
+    });
+
+    test('a v3 link asks for an app update', () {
+      final entry = parsePairingEntry(
+        'herdr-notify://pair?v=3&c=KQ7M2XW9&h=$testPin&e=${nowSeconds() + 120}',
+      );
+      expect(
+        (entry as PairingEntryInvalid).reason,
+        contains('versión más nueva'),
+      );
+    });
   });
 
   test('the earlier unpinned QR is still read, as a plain entry', () {

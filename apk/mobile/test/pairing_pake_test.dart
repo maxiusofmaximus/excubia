@@ -264,6 +264,7 @@ void main() {
   for (final kind in [
     rust.PakeFailureKind.hostProofInvalid,
     rust.PakeFailureKind.channelChanged,
+    rust.PakeFailureKind.hostMismatch,
   ]) {
     testWidgets('$kind is a security warning and empties the code', (
       tester,
@@ -288,6 +289,120 @@ void main() {
       expectCodeNowhere(tester);
     });
   }
+
+  group('v2 QR', () {
+    final qr = pakeLink(expiresAt: nowSeconds() + 600);
+
+    testWidgets('discovers, hands the QR pin to pakePair and ignores Avanzado', (
+      tester,
+    ) async {
+      final pinned = FakePinnedClient(pake: _paired());
+      final discovery = FakePairDiscovery(found: const [_found, '10.0.0.5:1']);
+      await mount(tester, pinned, discovery);
+
+      await typeAddress(tester, '192.168.1.77:47443');
+      await pasteLink(tester, qr);
+
+      expect(discovery.timeouts, hasLength(1));
+      final call = pinned.pakeCalls.single;
+      expect(call.addresses, [_found, '10.0.0.5:1']);
+      expect(call.expectedHost, testPin);
+      expect(call.code, _code);
+      expect(find.text('Comprueba esta cadena'), findsOneWidget);
+      expectCodeNowhere(tester);
+    });
+
+    testWidgets('a loopback address left in Avanzado does not block it', (
+      tester,
+    ) async {
+      final pinned = FakePinnedClient(pake: _paired());
+      await mount(tester, pinned, FakePairDiscovery(found: const [_found]));
+
+      await typeAddress(tester, 'http://127.0.0.1:47443');
+      await pasteLink(tester, qr);
+
+      expect(pinned.pakeCalls, hasLength(1));
+    });
+
+    testWidgets('a typed code still sends no expected host', (tester) async {
+      final pinned = FakePinnedClient(pake: _paired());
+      await mount(tester, pinned, FakePairDiscovery(found: const [_found]));
+
+      await typeCode(tester, _code);
+      await press(tester);
+
+      expect(pinned.pakeCalls.single.expectedHost, isNull);
+    });
+
+    testWidgets('another PC is a security warning, with no retry and no code', (
+      tester,
+    ) async {
+      final pinned = FakePinnedClient(
+        pake: _refused(
+          rust.PakeFailureKind.hostMismatch,
+          message: 'Este PC no es el del QR.',
+        ),
+      );
+      final discovery = FakePairDiscovery(found: const [_found]);
+      await mount(tester, pinned, discovery);
+
+      await pasteLink(tester, qr);
+
+      expect(find.text('No se pudo verificar el equipo'), findsOneWidget);
+      expect(find.text('Este PC no es el del QR.'), findsOneWidget);
+      expect(
+        tester.widget<PairingErrorBox>(find.byType(PairingErrorBox)).security,
+        isTrue,
+      );
+      expect(find.textContaining('Reintentar'), findsNothing);
+      expect(pinned.pakeCalls, hasLength(1));
+      expect(discovery.timeouts, hasLength(1));
+      expect(codeField(tester), isEmpty);
+      expect(paired, isNull);
+      expectCodeNowhere(tester);
+    });
+
+    testWidgets('no PC found says so and sends nothing', (tester) async {
+      final pinned = FakePinnedClient(pake: _paired());
+      await mount(tester, pinned, FakePairDiscovery());
+
+      await pasteLink(tester, qr);
+
+      expect(find.textContaining('No encontré el PC'), findsOneWidget);
+      expect(pinned.pakeCalls, isEmpty);
+    });
+
+    testWidgets('an expired QR touches neither the network nor discovery', (
+      tester,
+    ) async {
+      final pinned = FakePinnedClient(pake: _paired());
+      final discovery = FakePairDiscovery(found: const [_found]);
+      await mount(tester, pinned, discovery);
+
+      await pasteLink(tester, pakeLink(expiresAt: nowSeconds() - 5));
+
+      expect(find.text('El QR caducó. Genera otro en el PC.'), findsOneWidget);
+      expect(discovery.timeouts, isEmpty);
+      expect(pinned.pakeCalls, isEmpty);
+      expectCodeNowhere(tester);
+    });
+
+    testWidgets('an invalid QR shows a sentence without the link', (
+      tester,
+    ) async {
+      final pinned = FakePinnedClient(pake: _paired());
+      await mount(tester, pinned, FakePairDiscovery(found: const [_found]));
+
+      await pasteLink(tester, '$qr&a=10.0.0.5:1');
+
+      expect(
+        find.text('El QR no es válido. Genera otro en el PC.'),
+        findsOneWidget,
+      );
+      expect(pinned.pakeCalls, isEmpty);
+      expectCodeNowhere(tester);
+    });
+  });
 
   testWidgets('a spent code shows the message and empties the field', (
     tester,

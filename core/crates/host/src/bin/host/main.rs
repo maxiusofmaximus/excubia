@@ -26,7 +26,11 @@ async fn main() -> Result<()> {
             lan,
             data_dir,
         } => pair_code(ttl_seconds, &lan, &data_dir),
-        Command::PairCodePake { port, data_dir } => pair_code_pake(port, &data_dir).await,
+        Command::PairCodePake {
+            port,
+            uri,
+            data_dir,
+        } => pair_code_pake(port, uri, &data_dir).await,
         Command::Tls { command, data_dir } => tls(command, &data_dir),
         Command::HookToken { seat, data_dir } => hook_token(seat.as_deref(), &data_dir),
         Command::ClaudeSettings { hook, out } => claude_settings(&hook, out.as_deref()),

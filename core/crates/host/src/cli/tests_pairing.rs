@@ -42,7 +42,11 @@ fn devices_recovery_needs_a_device_id() {
 
 #[test]
 fn pair_code_pake_names_the_daemon_port_and_data_dir() {
-    let Command::PairCodePake { port, data_dir } = parse(args(&[
+    let Command::PairCodePake {
+        port,
+        uri,
+        data_dir,
+    } = parse(args(&[
         "pair-code",
         "--pake",
         "--port",
@@ -50,10 +54,11 @@ fn pair_code_pake_names_the_daemon_port_and_data_dir() {
         "--data-dir",
         "d",
     ]))
-    .expect("parse") else {
+    .expect("parse")
+    else {
         panic!("expected pair-code --pake");
     };
-    assert_eq!((port, data_dir), (9000, PathBuf::from("d")));
+    assert_eq!((port, uri, data_dir), (9000, false, PathBuf::from("d")));
     let Command::PairCodePake { port, .. } =
         parse(args(&["pair-code", "--pake", "--data-dir", "d"])).expect("parse")
     else {
@@ -81,4 +86,34 @@ fn pair_code_pake_refuses_the_flags_it_would_ignore() {
         parse(args(&["pair-code", "--ttl", "60"])).expect("parse"),
         Command::PairCode { .. }
     ));
+}
+
+#[test]
+fn pair_code_pake_prints_the_link_only_when_asked_and_only_with_pake() {
+    let Command::PairCodePake { uri, port, .. } = parse(args(&[
+        "pair-code",
+        "--pake",
+        "--uri",
+        "--port",
+        "9000",
+        "--data-dir",
+        "d",
+    ]))
+    .expect("parse") else {
+        panic!("expected pair-code --pake");
+    };
+    assert_eq!((uri, port), (true, 9000));
+    assert!(USAGE.contains("pair-code --pake [--uri]"), "{USAGE}");
+    // `--uri` alone has no link to print; the LAN flags still do not mix with it.
+    assert!(parse(args(&["pair-code", "--uri"])).is_err());
+    assert!(parse(args(&["pair-code", "--uri", "--ttl", "60"])).is_err());
+    assert!(parse(args(&["pair-code", "--pake", "--uri", "--ttl", "60"])).is_err());
+    assert!(parse(args(&[
+        "pair-code",
+        "--pake",
+        "--uri",
+        "--lan",
+        "192.168.1.5:8443"
+    ]))
+    .is_err());
 }

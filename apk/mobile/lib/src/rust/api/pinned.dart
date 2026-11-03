@@ -24,15 +24,19 @@ String? pairingSas({required String pin, required String publicKeyBase64}) =>
 /// Pairs with the host by its short code (F2d1): two TLS connections, the
 /// second pinned to the key the PAKE confirmed. The session and its key never
 /// leave Rust. `addresses` are tried in order only until one connects; a
-/// protocol failure is final, the code is already burned.
+/// protocol failure is final, the code is already burned. `expected_host` is
+/// the pin from the QR (`h`): a candidate that shows another key is skipped
+/// before `/start`; `None` keeps the plain code-only behaviour.
 Future<PakePairResult> pakePair({
   required List<String> addresses,
   required String code,
   required String devicePublicKeyB64,
+  String? expectedHost,
 }) => RustLib.instance.api.crateApiPinnedPakePair(
   addresses: addresses,
   code: code,
   devicePublicKeyB64: devicePublicKeyB64,
+  expectedHost: expectedHost,
 );
 
 Future<PinnedReply> pinnedRequest({
@@ -198,6 +202,9 @@ enum PakeFailureKind {
 
   /// Anything else that broke the exchange.
   protocol,
+
+  /// No candidate showed the key the QR carried; nothing was sent to any.
+  hostMismatch,
 }
 
 /// `pin` is the SPKI fingerprint the PAKE confirmed: what the device stores.

@@ -14,6 +14,8 @@ mod error;
 mod fingerprint;
 mod identity;
 mod link;
+#[cfg(test)]
+mod pake_link_tests;
 mod pins;
 mod sas;
 mod tls;
@@ -23,7 +25,7 @@ pub use certificate::CertificateInfo;
 pub use error::PinError;
 pub use fingerprint::Fingerprint;
 pub use identity::{unix_now, Identity, DEFAULT_VALIDITY_SECONDS};
-pub use link::{PairingLink, LINK_PREFIX, LINK_VERSION};
+pub use link::{PairingLink, PakeLink, LINK_PREFIX, LINK_VERSION, PAKE_LINK_VERSION};
 pub use pins::PinSet;
 pub use sas::sas;
 pub use tls::{client_config, server_config};

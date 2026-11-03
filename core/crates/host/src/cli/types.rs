@@ -71,6 +71,8 @@ pub enum Command {
     /// `pair-code --pake`: asks the running daemon (loopback, host hook token) to arm its PAKE code and prints it.
     PairCodePake {
         port: u16,
+        /// Also print the v2 link (`pairing uri:`): the QR payload, without an address.
+        uri: bool,
         data_dir: PathBuf,
     },
     Tls {

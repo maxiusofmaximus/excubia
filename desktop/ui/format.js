@@ -38,6 +38,12 @@ export function expiryText(expiresAt, now = Date.now()) {
   return `Caduca a las ${time}.`;
 }
 
+/// «Caduca en 2:37» for whole seconds left.
+export function countdownText(seconds) {
+  const left = Math.max(0, Math.floor(seconds));
+  return `Caduca en ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+}
+
 /// An SVG as an image source; the QR is drawn in Rust and never leaves the app.
 export function svgDataUrl(svg) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;

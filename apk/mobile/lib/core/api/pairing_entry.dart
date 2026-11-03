@@ -1,3 +1,4 @@
+import 'package:herdr_notify/src/rust/api/pake_link.dart' as rust;
 import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
 
 import 'pair_qr.dart';
@@ -14,6 +15,24 @@ final class PairingEntryPinned extends PairingEntry {
   final rust.PairingLinkInfo link;
 }
 
+/// The v2 QR: the short code and the fingerprint of the PC that shows it, no
+/// address. The phone finds the PC on the network and checks its key against
+/// [hostFingerprint] before sending anything.
+final class PairingEntryPake extends PairingEntry {
+  const PairingEntryPake({
+    required this.code,
+    required this.hostFingerprint,
+    required this.expiresAt,
+  });
+
+  final String code;
+  final String hostFingerprint;
+  final DateTime expiresAt;
+
+  @override
+  String toString() => 'PairingEntryPake(expiresAt: $expiresAt)';
+}
+
 /// The earlier QR without a pin. It is still read, but it carries no
 /// verification, so the screen treats its connection as plain.
 final class PairingEntryPlain extends PairingEntry {
@@ -28,10 +47,13 @@ final class PairingEntryInvalid extends PairingEntry {
   final String reason;
 }
 
-/// A link with `h=` is the pinned format and is parsed by the Rust core, which
-/// owns the version, expiry and pin rules. Anything else takes the old path.
-PairingEntry parsePairingEntry(String raw) {
+/// A `v=2` link is the PAKE QR; a link with `h=` is the pinned format. Both are
+/// parsed by the Rust core, which owns the version and pin rules; the v2 expiry
+/// is judged here with [clock], so a test can move time. Anything else takes the
+/// old path.
+PairingEntry parsePairingEntry(String raw, {DateTime Function()? clock}) {
   final text = raw.trim();
+  if (_isPakeLink(text)) return _parsePake(text, (clock ?? DateTime.now)());
   if (_isPinnedLink(text)) {
     final result = rust.parsePairingLink(uri: text);
     final link = result.link;
@@ -44,6 +66,33 @@ PairingEntry parsePairingEntry(String raw) {
     PairingQrInvalid(:final reason) => PairingEntryInvalid(reason),
   };
 }
+
+PairingEntry _parsePake(String text, DateTime now) {
+  final result = rust.parsePakeLink(uri: text);
+  final link = result.link;
+  if (link == null) return PairingEntryInvalid(_pakeReason(result.failure));
+  final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+    link.expiresAt * 1000,
+    isUtc: true,
+  );
+  if (!expiresAt.isAfter(now)) {
+    return const PairingEntryInvalid('El QR caducó. Genera otro en el PC.');
+  }
+  return PairingEntryPake(
+    code: link.code,
+    hostFingerprint: link.host,
+    expiresAt: expiresAt,
+  );
+}
+
+String _pakeReason(rust.PinnedFailure? failure) =>
+    failure?.kind == rust.PinnedFailureKind.unsupportedLinkVersion
+    ? 'Este código QR es de una versión más nueva; actualiza la app.'
+    : 'El QR no es válido. Genera otro en el PC.';
+
+bool _isPakeLink(String text) =>
+    text.startsWith('${PairingQrPayload.scheme}://pair?') &&
+    Uri.tryParse(text)?.queryParameters['v'] == '2';
 
 bool _isPinnedLink(String text) =>
     text.startsWith('${PairingQrPayload.scheme}://pair?') &&

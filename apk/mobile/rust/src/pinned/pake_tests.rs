@@ -17,11 +17,21 @@ fn identity() -> Identity {
 }
 
 fn pair(addresses: Vec<String>, code: &str) -> PakePairResult {
+    pair_expecting(addresses, code, None)
+}
+
+fn pair_expecting(addresses: Vec<String>, code: &str, expected: Option<&str>) -> PakePairResult {
     pake_pair(
         addresses,
         code.to_string(),
         generate_device_key().public_key_b64,
+        expected.map(str::to_string),
     )
+}
+
+/// The pin of a host that is not the fake one.
+fn stranger() -> String {
+    identity().fingerprint().expect("fingerprint").to_string()
 }
 
 fn failure_kind(result: &PakePairResult) -> Kind {
@@ -186,7 +196,7 @@ fn a_bad_device_key_never_touches_the_network() {
         STANDARD.encode([4u8; 33]),
         STANDARD.encode([4u8; 65]),
     ] {
-        let result = pake_pair(target.clone(), HOST_CODE.to_string(), key);
+        let result = pake_pair(target.clone(), HOST_CODE.to_string(), key, None);
         assert_eq!(failure_kind(&result), Kind::Protocol);
     }
     assert!(no_connection_was_made(&listener));
@@ -239,4 +249,83 @@ fn an_unreachable_candidate_falls_back_but_a_protocol_failure_does_not() {
 
     let result = pair(vec![closed_address], HOST_CODE);
     assert_eq!(failure_kind(&result), Kind::Unreachable);
+}
+
+#[test]
+fn another_host_than_the_qr_aborts_before_start_and_says_so() {
+    let fake = honest(Quirk::Honest);
+    let result = pair_expecting(address(&fake), HOST_CODE, Some(&stranger()));
+    assert_eq!(failure_kind(&result), Kind::HostMismatch);
+    let message = result.failure.expect("failure").message;
+    assert!(message.starts_with("Este PC no es el del QR."));
+    assert!(!message.contains(HOST_CODE) && !message.contains(&fake.pin));
+    assert!(
+        fake.seen().connections.is_empty(),
+        "nothing may be sent to a host that is not the QR's"
+    );
+}
+
+#[test]
+fn the_host_of_the_qr_pairs() {
+    let fake = honest(Quirk::Honest);
+    let result = pair_expecting(address(&fake), HOST_CODE, Some(&fake.pin));
+    assert_eq!(result.outcome.expect("paired").pin, fake.pin);
+    assert_eq!(
+        paths(&fake),
+        ["/v1/pair/pake/start", "/v1/pair/pake/finish"]
+    );
+}
+
+#[test]
+fn a_candidate_that_does_not_match_is_skipped_and_gets_nothing() {
+    let other = serve(vec![identity()], Quirk::Honest);
+    let host = honest(Quirk::Honest);
+    let both = vec![other.address.to_string(), host.address.to_string()];
+    let paired = pair_expecting(both, HOST_CODE, Some(&host.pin));
+    assert_eq!(
+        paired.outcome.expect("paired").address,
+        host.address.to_string()
+    );
+    assert!(other.seen().connections.is_empty());
+}
+
+#[test]
+fn no_candidate_matching_is_a_mismatch_even_if_another_was_unreachable() {
+    let closed = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let closed_address = closed.local_addr().expect("address").to_string();
+    drop(closed);
+    let first = serve(vec![identity()], Quirk::Honest);
+    let second = serve(vec![identity()], Quirk::Honest);
+    let all = vec![
+        closed_address.clone(),
+        first.address.to_string(),
+        second.address.to_string(),
+    ];
+    let result = pair_expecting(all, HOST_CODE, Some(&stranger()));
+    assert_eq!(failure_kind(&result), Kind::HostMismatch);
+    assert!(first.seen().connections.is_empty() && second.seen().connections.is_empty());
+
+    let result = pair_expecting(vec![closed_address], HOST_CODE, Some(&stranger()));
+    assert_eq!(failure_kind(&result), Kind::Unreachable);
+}
+
+#[test]
+fn no_expected_host_keeps_the_code_only_behaviour() {
+    let fake = honest(Quirk::Honest);
+    assert!(pair_expecting(address(&fake), HOST_CODE, None)
+        .outcome
+        .is_some());
+}
+
+#[test]
+fn a_malformed_expected_host_never_touches_the_network_nor_echoes_it() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let target = vec![listener.local_addr().expect("address").to_string()];
+    for text in ["", "short", "not a pin!!", &"A".repeat(44)] {
+        let result = pair_expecting(target.clone(), HOST_CODE, Some(text));
+        assert_eq!(failure_kind(&result), Kind::Protocol, "{text:?}");
+        let message = result.failure.expect("failure").message;
+        assert!(text.is_empty() || !message.contains(text));
+    }
+    assert!(no_connection_was_made(&listener));
 }

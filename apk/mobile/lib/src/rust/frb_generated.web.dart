@@ -25,6 +25,7 @@ import 'api/mail.dart';
 import 'api/onboarding/error.dart';
 import 'api/onboarding/model.dart';
 import 'api/onboarding/plan.dart';
+import 'api/pake_link.dart';
 import 'api/pinned.dart';
 import 'api/policy.dart';
 import 'api/signing.dart';
@@ -265,6 +266,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PakeFailure dco_decode_box_autoadd_pake_failure(dynamic raw);
+
+  @protected
+  PakeLinkParsed dco_decode_box_autoadd_pake_link_parsed(dynamic raw);
 
   @protected
   PakeOutcome dco_decode_box_autoadd_pake_outcome(dynamic raw);
@@ -571,6 +575,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PakeFailure? dco_decode_opt_box_autoadd_pake_failure(dynamic raw);
 
   @protected
+  PakeLinkParsed? dco_decode_opt_box_autoadd_pake_link_parsed(dynamic raw);
+
+  @protected
   PakeOutcome? dco_decode_opt_box_autoadd_pake_outcome(dynamic raw);
 
   @protected
@@ -628,6 +635,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PakeFailureKind dco_decode_pake_failure_kind(dynamic raw);
+
+  @protected
+  PakeLinkParsed dco_decode_pake_link_parsed(dynamic raw);
+
+  @protected
+  PakeLinkResult dco_decode_pake_link_result(dynamic raw);
 
   @protected
   PakeOutcome dco_decode_pake_outcome(dynamic raw);
@@ -953,6 +966,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PakeFailure sse_decode_box_autoadd_pake_failure(SseDeserializer deserializer);
+
+  @protected
+  PakeLinkParsed sse_decode_box_autoadd_pake_link_parsed(
+    SseDeserializer deserializer,
+  );
 
   @protected
   PakeOutcome sse_decode_box_autoadd_pake_outcome(SseDeserializer deserializer);
@@ -1339,6 +1357,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PakeLinkParsed? sse_decode_opt_box_autoadd_pake_link_parsed(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PakeOutcome? sse_decode_opt_box_autoadd_pake_outcome(
     SseDeserializer deserializer,
   );
@@ -1422,6 +1445,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PakeFailureKind sse_decode_pake_failure_kind(SseDeserializer deserializer);
+
+  @protected
+  PakeLinkParsed sse_decode_pake_link_parsed(SseDeserializer deserializer);
+
+  @protected
+  PakeLinkResult sse_decode_pake_link_result(SseDeserializer deserializer);
 
   @protected
   PakeOutcome sse_decode_pake_outcome(SseDeserializer deserializer);
@@ -1834,6 +1863,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_pake_failure(
     PakeFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pake_link_parsed(
+    PakeLinkParsed self,
     SseSerializer serializer,
   );
 
@@ -2330,6 +2365,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_pake_link_parsed(
+    PakeLinkParsed? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_pake_outcome(
     PakeOutcome? self,
     SseSerializer serializer,
@@ -2431,6 +2472,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_pake_failure_kind(
     PakeFailureKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pake_link_parsed(
+    PakeLinkParsed self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pake_link_result(
+    PakeLinkResult self,
     SseSerializer serializer,
   );
 

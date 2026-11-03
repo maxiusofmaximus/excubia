@@ -1,13 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../core/api/pairing_entry.dart';
+import '../core/api/secure_screen.dart';
 import 'theme.dart';
 
 /// Camera view for the pairing QR. A readable code is handed back as a
 /// [PairingEntry]; anything else the scanner saw is discarded by the parser.
+///
+/// The camera shows a live code, so the screen is secure while it is open.
 class QrScanScreen extends StatefulWidget {
-  const QrScanScreen({super.key});
+  const QrScanScreen({
+    super.key,
+    this.secureScreen = const MethodChannelSecureScreen(),
+  });
+
+  final SecureScreen secureScreen;
 
   @override
   State<QrScanScreen> createState() => _QrScanScreenState();
@@ -23,7 +33,14 @@ class _QrScanScreenState extends State<QrScanScreen> {
   bool _handled = false;
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(widget.secureScreen.setSecure(true));
+  }
+
+  @override
   void dispose() {
+    unawaited(widget.secureScreen.setSecure(false));
     _controller.dispose();
     super.dispose();
   }
@@ -37,7 +54,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
       switch (entry) {
         case PairingEntryInvalid(:final reason):
           setState(() => _error = reason);
-        case PairingEntryPinned() || PairingEntryPlain():
+        case PairingEntryPinned() || PairingEntryPake() || PairingEntryPlain():
           _handled = true;
           Navigator.of(context).pop(entry);
           return;
