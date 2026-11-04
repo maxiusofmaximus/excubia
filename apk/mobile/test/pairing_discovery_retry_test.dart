@@ -66,6 +66,38 @@ void main() {
       );
       expect(discovery.timeouts, hasLength(1));
     });
+
+    test('after an empty window the fallback sweep finds it', () async {
+      final discovery = FakePairDiscovery();
+      final sweep = FakePairDiscovery(found: const [_found]);
+
+      expect(await discoverWithRetry(discovery, fallback: sweep), [_found]);
+      expect(discovery.timeouts, hasLength(1));
+      expect(sweep.timeouts, [const Duration(seconds: 4)]);
+    });
+
+    test('an empty sweep leaves the other windows to run', () async {
+      final discovery = FakePairDiscovery(
+        script: const [
+          _none,
+          _none,
+          [_found],
+        ],
+      );
+      final sweep = FakePairDiscovery();
+
+      expect(await discoverWithRetry(discovery, fallback: sweep), [_found]);
+      expect(discovery.timeouts, hasLength(3));
+      expect(sweep.timeouts, hasLength(1));
+    });
+
+    test('a window with a find never asks the fallback', () async {
+      final discovery = FakePairDiscovery(found: const [_found]);
+      final sweep = FakePairDiscovery(found: const ['10.0.0.5:47443']);
+
+      expect(await discoverWithRetry(discovery, fallback: sweep), [_found]);
+      expect(sweep.timeouts, isEmpty);
+    });
   });
 
   group('the pairing screen', () {

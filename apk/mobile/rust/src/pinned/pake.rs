@@ -130,27 +130,23 @@ fn expected_pin(text: &str) -> Result<Fingerprint, PakeFailure> {
         .map_err(|_| protocol("la huella del equipo esperada no tiene el formato debido"))
 }
 
-/// Without an expected host this is `open`. With one, each candidate is opened on its own and
-/// one that shows another key is dropped before a byte is written; only if none matches does
-/// the pairing fail, and a mismatch outranks an unreachable candidate (the QR may be another PC's).
+/// Each candidate is opened on its own. One that is not TLS, does not answer or (with
+/// `expected`, the QR's pin) shows another key is skipped before a byte is written; the first
+/// that passes is used. A mismatch outranks the rest (the QR may be another PC's).
 fn open_expected(
     addresses: &[SocketAddr],
     config: &Arc<rustls::ClientConfig>,
     expected: Option<Fingerprint>,
 ) -> Result<Opened, PakeFailure> {
-    let Some(expected) = expected else {
-        return open(addresses, config, REQUEST_TIMEOUT).map_err(from_transport);
-    };
     let mut mismatch = false;
-    let mut unreached = None;
+    let mut last = None;
     for address in addresses {
         match open(&[*address], config, REQUEST_TIMEOUT) {
-            Ok(opened) if opened.spki == expected => return Ok(opened),
-            Ok(_) => mismatch = true,
-            Err(failure) if matches!(failure.kind, Transport::Unreachable | Transport::Refused) => {
-                unreached = Some(failure);
+            Ok(opened) if expected.is_none_or(|expected| opened.spki == expected) => {
+                return Ok(opened)
             }
-            Err(other) => return Err(from_transport(other)),
+            Ok(_) => mismatch = true,
+            Err(failure) => last = Some(failure),
         }
     }
     if mismatch {
@@ -159,7 +155,7 @@ fn open_expected(
             "Este PC no es el del QR. Vuelve a generar el QR en tu PC y escanéalo de nuevo.",
         ));
     }
-    Err(from_transport(unreached.unwrap_or_else(|| {
+    Err(from_transport(last.unwrap_or_else(|| {
         PinnedFailure::of(Transport::Unreachable, "no candidate answered")
     })))
 }

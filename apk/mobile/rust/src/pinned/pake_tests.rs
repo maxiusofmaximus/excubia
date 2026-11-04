@@ -1,6 +1,8 @@
 //! `pake_pair` against the fake host of `pake_fake` on real TLS loopback.
 
+use std::io::Write;
 use std::net::TcpListener;
+use std::thread;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use hn_core_pin::Identity;
@@ -307,6 +309,38 @@ fn no_candidate_matching_is_a_mismatch_even_if_another_was_unreachable() {
 
     let result = pair_expecting(vec![closed_address], HOST_CODE, Some(&stranger()));
     assert_eq!(failure_kind(&result), Kind::Unreachable);
+}
+
+/// A candidate that answers in plain text: not TLS, so it must be skipped.
+fn plain_text_listener() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let address = listener.local_addr().expect("address").to_string();
+    thread::spawn(move || {
+        for mut stream in listener.incoming().take(2).flatten() {
+            let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\n\r\n");
+        }
+    });
+    address
+}
+
+#[test]
+fn a_candidate_that_is_not_tls_is_skipped_with_or_without_an_expected_host() {
+    let plain = plain_text_listener();
+    let first = honest(Quirk::Honest);
+    let both = vec![plain.clone(), first.address.to_string()];
+    let paired = pair_expecting(both, HOST_CODE, Some(&first.pin));
+    assert_eq!(
+        paired.outcome.expect("paired").address,
+        first.address.to_string()
+    );
+
+    let second = honest(Quirk::Honest);
+    let both = vec![plain, second.address.to_string()];
+    let paired = pair(both, HOST_CODE);
+    assert_eq!(
+        paired.outcome.expect("paired").address,
+        second.address.to_string()
+    );
 }
 
 #[test]

@@ -51,7 +51,14 @@ extension _PairingScreenPake on _PairingScreenState {
       var addresses = [manual];
       if (manual.isEmpty) {
         try {
-          addresses = await discoverWithRetry(_discovery);
+          // Only a QR link carries the host pin that vets a scanned
+          // candidate; an injected discovery (tests) means no real scan.
+          addresses = await discoverWithRetry(
+            _discovery,
+            fallback: fromQr && widget.discovery == null
+                ? const SubnetScanPairDiscovery()
+                : null,
+          );
         } on PairDiscoveryException catch (e) {
           _fail(e.message);
           return;
