@@ -1,7 +1,7 @@
 import 'package:herdr_notify/src/rust/api/pake_link.dart' as rust;
 import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
 
-import 'pair_qr.dart';
+import '../app_info.dart';
 
 /// What the pairing screen can do with a scanned or pasted string.
 sealed class PairingEntry {
@@ -33,14 +33,6 @@ final class PairingEntryPake extends PairingEntry {
   String toString() => 'PairingEntryPake(expiresAt: $expiresAt)';
 }
 
-/// The earlier QR without a pin. It is still read, but it carries no
-/// verification, so the screen treats its connection as plain.
-final class PairingEntryPlain extends PairingEntry {
-  const PairingEntryPlain(this.payload);
-
-  final PairingQrPayload payload;
-}
-
 final class PairingEntryInvalid extends PairingEntry {
   const PairingEntryInvalid(this.reason);
 
@@ -49,8 +41,8 @@ final class PairingEntryInvalid extends PairingEntry {
 
 /// A `v=2` link is the PAKE QR; a link with `h=` is the pinned format. Both are
 /// parsed by the Rust core, which owns the version and pin rules; the v2 expiry
-/// is judged here with [clock], so a test can move time. Anything else takes the
-/// old path.
+/// is judged here with [clock], so a test can move time. Anything else is
+/// refused, the old unpinned `u=` QR included.
 PairingEntry parsePairingEntry(String raw, {DateTime Function()? clock}) {
   final text = raw.trim();
   if (_isPakeLink(text)) return _parsePake(text, (clock ?? DateTime.now)());
@@ -60,11 +52,9 @@ PairingEntry parsePairingEntry(String raw, {DateTime Function()? clock}) {
     if (link != null) return PairingEntryPinned(link);
     return PairingEntryInvalid(_linkReason(result.failure));
   }
-  final legacy = PairingQrPayload.parse(text);
-  return switch (legacy) {
-    PairingQrValid(:final payload) => PairingEntryPlain(payload),
-    PairingQrInvalid(:final reason) => PairingEntryInvalid(reason),
-  };
+  return PairingEntryInvalid(
+    'El código no es de $appName o ya no se admite. Genera uno nuevo en el PC.',
+  );
 }
 
 PairingEntry _parsePake(String text, DateTime now) {
@@ -90,9 +80,7 @@ String _pakeReason(rust.PinnedFailure? failure) =>
     ? 'Este código QR es de una versión más nueva; actualiza la app.'
     : 'El QR no es válido. Genera otro en el PC.';
 
-bool _isPairLink(String text) => PairingQrPayload.schemes.any(
-  (scheme) => text.startsWith('$scheme://pair?'),
-);
+bool _isPairLink(String text) => text.startsWith('excubia://pair?');
 
 bool _isPakeLink(String text) =>
     _isPairLink(text) && Uri.tryParse(text)?.queryParameters['v'] == '2';

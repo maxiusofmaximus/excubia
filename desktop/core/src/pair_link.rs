@@ -1,6 +1,5 @@
-//! The pairing link a host prints (`excubia://pair?...`, or the older
-//! `herdr-notify://pair?...` that `hn_core_pin` still reads). The desktop
-//! checks it before it dials: a known version, a pin of the right shape and an
+//! The pairing link a host prints (`excubia://pair?...`). The desktop checks
+//! it before it dials: a known version, a pin of the right shape and an
 //! unexpired code. The pin then decides which host answers.
 
 use std::net::SocketAddr;
@@ -112,15 +111,9 @@ mod tests {
     }
 
     #[test]
-    fn a_link_printed_before_the_rename_still_parses() {
-        let legacy = LINK.replace("excubia://", "herdr-notify://");
-        let link = PairLink::parse(&legacy, 1000).expect("parses");
-        assert_eq!(link.code, "ABCD-2345");
-    }
-
-    #[test]
     fn a_link_with_any_other_scheme_is_refused() {
-        for scheme in ["herdr://", "excubia-x://", "EXCUBIA://"] {
+        // herdr-notify:// is retired in 2.0: refused like any foreign scheme.
+        for scheme in ["herdr-notify://", "herdr://", "excubia-x://", "EXCUBIA://"] {
             let uri = LINK.replace("excubia://", scheme);
             assert!(
                 matches!(PairLink::parse(&uri, 1000), Err(CoreError::LinkInvalid(_))),

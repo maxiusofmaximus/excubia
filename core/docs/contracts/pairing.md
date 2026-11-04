@@ -18,32 +18,11 @@ The device id is a host-side label (`dev-<16 hex>` by default), not a secret.
 
 ## Pairing — IMPLEMENTED
 
-Pairing has two implemented paths, and both land in the same trust store.
-
-**Host-side CLI — IMPLEMENTED.** The operator runs a command on the machine that
-runs the host. The app's pairing screen cannot submit anything; its whole job
-is to present the command with the device's own public key pre-filled.
-
-```
-iOS/Android app                    operator's machine
-──────────────                     ──────────────────
-shows its public key      ──▶      runs:
-+ suggested device id                herdr-notify add-device \
-                                       --curve p256 \
-                                       --public-key <SEC1 base64> \
-                                       --label <name>
-                                   trust store written atomically
-app connects signed       ──▶      running host picks up the file
-                                   change without a restart
-```
-
-```
-herdr-notify add-device --curve p256 --public-key <b64> --label <name>
-```
-
-The running host notices a changed trust store (`reload_if_changed`) and
-rebuilds its device list, so pairing a phone does not require restarting the
-service.
+Pairing is PAKE-based (see the F2 sections below) plus the pinned `POST /v1/pair`
+path; both land in the same trust store. The manual host-side `add-device`
+command was removed in 2.0. The running host notices a changed trust store
+(`reload_if_changed`) and rebuilds its device list, so pairing a phone does not
+require restarting the service.
 
 **HTTP `POST /v1/pair` — IMPLEMENTED (Fase 2(c)).** The one unauthenticated
 write, gated by a host-printed code, a per-device recovery code, or tailnet
@@ -275,7 +254,7 @@ mounted on this listener, so a LAN device cannot reach them.
 ```
 excubia://pair?v=1&c=<code>&h=<pin>[&b=<backup pin>]&a=<ip:port>...&e=<unix seconds>
 ```
-Lo anterior al cambio de nombre, `herdr-notify://`, se acepta al leer y nunca se emite; la carpeta vieja `~/.config/herdr-notify` se mueve sola a `~/.config/excubia` al arrancar.
+Lo anterior al cambio de nombre, `herdr-notify://`, se rechaza como cualquier esquema ajeno; la carpeta vieja `~/.config/herdr-notify` se mueve sola a `~/.config/excubia` al arrancar.
 
 | Field | Meaning |
 |-------|---------|

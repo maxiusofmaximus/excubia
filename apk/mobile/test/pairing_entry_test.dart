@@ -20,24 +20,24 @@ void main() {
     expect(link.addresses, ['127.0.0.1:8443']);
   });
 
-  test('the excubia scheme reads both the pinned and the v2 link', () {
+  test('a link printed before the rename is refused like any unknown link', () {
     final expires = nowSeconds() + 600;
-    final pinned = parsePairingEntry(
-      pinnedLink(expiresAt: expires).replaceFirst('herdr-notify:', 'excubia:'),
-    );
-    final pake = parsePairingEntry(
-      pakeLink(expiresAt: expires).replaceFirst('herdr-notify:', 'excubia:'),
-    );
-
-    expect(pinned, isA<PairingEntryPinned>());
-    expect(pake, isA<PairingEntryPake>());
+    for (final link in [
+      pinnedLink(expiresAt: expires).replaceFirst('excubia:', 'herdr-notify:'),
+      pakeLink(expiresAt: expires).replaceFirst('excubia:', 'herdr-notify:'),
+      'herdr-notify://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=ABCD1234&v=1',
+    ]) {
+      final entry = parsePairingEntry(link);
+      expect(entry, isA<PairingEntryInvalid>(), reason: link);
+      expect((entry as PairingEntryInvalid).reason, contains('no es de Excubia'));
+    }
   });
 
   test('a scheme that only looks like ours is refused', () {
     final entry = parsePairingEntry(
       pinnedLink(
         expiresAt: nowSeconds() + 600,
-      ).replaceFirst('herdr-notify:', 'excubia-x:'),
+      ).replaceFirst('excubia:', 'excubia-x:'),
     );
 
     expect(entry, isA<PairingEntryInvalid>());
@@ -62,7 +62,7 @@ void main() {
 
   test('a newer link version asks for an app update', () {
     final entry = parsePairingEntry(
-      'herdr-notify://pair?v=3&c=ABCD1234&h=$testPin'
+      'excubia://pair?v=3&c=ABCD1234&h=$testPin'
       '&a=127.0.0.1:8443&e=${nowSeconds() + 600}',
     );
 
@@ -74,7 +74,7 @@ void main() {
 
   test('a malformed pin is a link that cannot be read', () {
     final entry = parsePairingEntry(
-      'herdr-notify://pair?v=1&c=ABCD1234&h=short'
+      'excubia://pair?v=1&c=ABCD1234&h=short'
       '&a=127.0.0.1:8443&e=${nowSeconds() + 600}',
     );
 
@@ -120,7 +120,7 @@ void main() {
       for (final link in [
         '${pakeLink(expiresAt: e)}&a=127.0.0.1:8443',
         pakeLink(expiresAt: e, code: 'KQ7M2'),
-        'herdr-notify://pair?v=2&c=KQ7M2XW9&h=short&e=$e',
+        'excubia://pair?v=2&c=KQ7M2XW9&h=short&e=$e',
       ]) {
         final reason = (parsePairingEntry(link) as PairingEntryInvalid).reason;
         expect(reason, invalid);
@@ -130,7 +130,7 @@ void main() {
 
     test('a v3 link asks for an app update', () {
       final entry = parsePairingEntry(
-        'herdr-notify://pair?v=3&c=KQ7M2XW9&h=$testPin&e=${nowSeconds() + 120}',
+        'excubia://pair?v=3&c=KQ7M2XW9&h=$testPin&e=${nowSeconds() + 120}',
       );
       expect(
         (entry as PairingEntryInvalid).reason,
@@ -139,13 +139,13 @@ void main() {
     });
   });
 
-  test('the earlier unpinned QR is still read, as a plain entry', () {
+  test('the retired unpinned u= QR is refused', () {
     final entry = parsePairingEntry(
-      'herdr-notify://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=ABCD1234&v=1',
+      'excubia://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=ABCD1234&v=1',
     );
 
-    expect(entry, isA<PairingEntryPlain>());
-    expect((entry as PairingEntryPlain).payload.code, 'ABCD1234');
+    expect(entry, isA<PairingEntryInvalid>());
+    expect((entry as PairingEntryInvalid).reason, contains('ya no se admite'));
   });
 
   test('text that is no link at all is refused', () {

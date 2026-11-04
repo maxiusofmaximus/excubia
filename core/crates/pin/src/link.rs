@@ -4,9 +4,6 @@
 //! excubia://pair?v=1&c=<code>&h=<pin>[&b=<pin>]&a=<ip:port>...&e=<unix>
 //! ```
 //!
-//! The links printed before the rename use `herdr-notify://`: they are still
-//! read, never written.
-//!
 //! `c` is the single-use enrollment code, `h` the primary pin, `b` the backup
 //! pin when a rotation is prepared, `a` each LAN candidate and `e` the code's
 //! expiry. Every value is URL-safe, so no percent-encoding is needed. Unknown
@@ -22,8 +19,6 @@ use std::net::SocketAddr;
 use crate::{Fingerprint, PinError, PinSet};
 
 pub const LINK_PREFIX: &str = "excubia://pair?";
-/// The scheme of the links printed before the rename: read, never written.
-pub const LEGACY_LINK_PREFIX: &str = "herdr-notify://pair?";
 pub const LINK_VERSION: u32 = 1;
 const MAX_CODE_CHARS: usize = 64;
 pub const PAKE_LINK_VERSION: u32 = 2;
@@ -144,10 +139,9 @@ fn malformed(reason: &str) -> PinError {
     PinError::MalformedLink(reason.to_string())
 }
 
-/// The query of a pairing link under either scheme; any other scheme is refused.
+/// The query of a pairing link; any other scheme, the retired `herdr-notify://` included, is refused.
 fn query_of(uri: &str) -> Result<&str, PinError> {
     uri.strip_prefix(LINK_PREFIX)
-        .or_else(|| uri.strip_prefix(LEGACY_LINK_PREFIX))
         .ok_or_else(|| malformed("not an excubia pairing link"))
 }
 
@@ -275,13 +269,16 @@ mod tests {
     }
 
     #[test]
-    fn both_schemes_parse_but_only_the_new_one_is_written() {
+    fn only_the_excubia_scheme_is_read() {
         let link = sample();
         let uri = link.to_uri();
         assert!(uri.starts_with("excubia://pair?v=1&"), "{uri}");
-        let legacy = uri.replacen("excubia://", "herdr-notify://", 1);
-        assert_eq!(PairingLink::parse(&legacy).expect("legacy parse"), link);
-        for scheme in ["herdr://pair?", "excubia-x://pair?", "EXCUBIA://pair?"] {
+        for scheme in [
+            "herdr-notify://pair?",
+            "herdr://pair?",
+            "excubia-x://pair?",
+            "EXCUBIA://pair?",
+        ] {
             let other = uri.replacen("excubia://pair?", scheme, 1);
             assert!(
                 matches!(PairingLink::parse(&other), Err(PinError::MalformedLink(_))),

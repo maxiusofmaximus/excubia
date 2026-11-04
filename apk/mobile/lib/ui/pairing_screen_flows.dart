@@ -8,10 +8,6 @@ extension _PairingScreenFlows on _PairingScreenState {
         await _pairPinned(link);
       case PairingEntryPake(:final code, :final hostFingerprint):
         await _pairByCode(code, expectedHost: hostFingerprint);
-      case PairingEntryPlain(:final payload):
-        _url.text = payload.baseUrl;
-        _code.text = payload.code;
-        await _pair(code: payload.code, url: payload.baseUrl);
       case PairingEntryInvalid(:final reason):
         _fail(reason);
     }

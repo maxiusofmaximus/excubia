@@ -8,7 +8,6 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        LegacyPairingChannel(applicationContext).register(flutterEngine.dartExecutor.binaryMessenger)
         flutterEngine.plugins.add(HerdrAlertsPlugin())
         flutterEngine.plugins.add(HerdrContactsPlugin())
         flutterEngine.plugins.add(HerdrDiscoveryPlugin())

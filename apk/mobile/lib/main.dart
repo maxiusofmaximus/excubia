@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 
 import 'core/alerts/alert_entry.dart';
-import 'core/migration/legacy_migration.dart';
 import 'core/storage/pairing_store.dart';
 import 'ui/app.dart';
 
@@ -24,10 +23,5 @@ Future<void> main(List<String> args) async {
   );
   final values = SecureKeyValueStore();
   final store = PairingStore(values);
-  runApp(
-    HerdrNotifyApp(
-      store: store,
-      migration: LegacyMigration.standard(store: store, values: values),
-    ),
-  );
+  runApp(HerdrNotifyApp(store: store));
 }

@@ -27,10 +27,10 @@ fn a_v2_link_round_trips_in_the_documented_shape() {
 }
 
 #[test]
-fn the_old_scheme_is_read_and_the_new_one_is_written() {
+fn the_old_scheme_is_refused_and_the_new_one_is_written() {
     let link = sample();
     let legacy = link.to_uri().replacen("excubia://", "herdr-notify://", 1);
-    assert_eq!(PakeLink::parse(&legacy).expect("legacy parse"), link);
+    assert!(matches!(refused(&legacy), PinError::MalformedLink(_)));
     assert!(link.to_uri().starts_with("excubia://pair?v=2&"));
 }
 

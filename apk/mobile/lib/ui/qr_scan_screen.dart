@@ -54,7 +54,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
       switch (entry) {
         case PairingEntryInvalid(:final reason):
           setState(() => _error = reason);
-        case PairingEntryPinned() || PairingEntryPake() || PairingEntryPlain():
+        case PairingEntryPinned() || PairingEntryPake():
           _handled = true;
           Navigator.of(context).pop(entry);
           return;

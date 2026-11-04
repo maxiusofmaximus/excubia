@@ -45,10 +45,7 @@ impl StoredPins {
 pub struct Config {
     /// The app hosts its own core by default; `false` means "another host".
     pub local: bool,
-    // Old config.json files wrote gateway_*; they still read, and save as host_*.
-    #[serde(rename = "host_url", alias = "gateway_url")]
     pub host_url: String,
-    #[serde(rename = "host_pins", alias = "gateway_pins")]
     pub host_pins: Option<StoredPins>,
     pub device_id: Option<String>,
     pub label: String,

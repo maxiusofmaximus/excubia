@@ -115,11 +115,6 @@ configurations.all {
 }
 
 dependencies {
-    // Read-only access to the Kotlin v1 pairing files for the migration offer.
-    // Same versions as the Kotlin v1 app, which wrote those files.
-    implementation("androidx.datastore:datastore-preferences:1.1.3")
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
-
     // Watchdog every 15 minutes (Apache-2.0, free): restarts the alerts service if it stopped.
     implementation("androidx.work:work-runtime:2.10.0")
 
