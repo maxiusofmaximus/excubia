@@ -30,7 +30,7 @@ $env:CARGO_BUILD_JOBS = "4"
 Write-Output "compilando hn-core-host + hn-mcp ($Profile) desde $CoreDir"
 $buildArgs = @()
 if ($Profile -eq "release") { $buildArgs += "--release" }
-& cargo build @buildArgs -p hn-core-host --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
+& cargo build @buildArgs -p hn-core-host -p hn-core-seat --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
 if ($LASTEXITCODE -ne 0) { throw "cargo build falló con $LASTEXITCODE" }
 
 $built = Join-Path $targetDir "$Profile\host.exe"
@@ -40,6 +40,10 @@ if (-not (Test-Path $built)) { throw "no se generó $built" }
 $mcp = Join-Path $targetDir "$Profile\hn-mcp.exe"
 if (-not (Test-Path $mcp)) { throw "no se generó $mcp" }
 
+# The host refuses to start Alfred's seat without the approval hook next to it.
+$hook = Join-Path $targetDir "$Profile\hn-uac-hook.exe"
+if (-not (Test-Path $hook)) { throw "no se generó $hook" }
+
 $destDir = Join-Path $desktop "src-tauri\binaries"
 New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 $sidecar = Join-Path $destDir "hn-core-host-$triple.exe"
@@ -47,6 +51,8 @@ Copy-Item $built $sidecar -Force
 Copy-Item $mcp (Join-Path $destDir "hn-mcp-$triple.exe") -Force
 # The host resolves its MCP shim by the plain name next to its own executable.
 Copy-Item $mcp (Join-Path $destDir "hn-mcp.exe") -Force
+Copy-Item $hook (Join-Path $destDir "hn-uac-hook-$triple.exe") -Force
+Copy-Item $hook (Join-Path $destDir "hn-uac-hook.exe") -Force
 
 # `cargo build`/`cargo run` do not lay out externalBin: leave a copy next to
 # the app binaries so development runs find it too.
@@ -56,6 +62,7 @@ foreach ($appProfile in @("debug", "release")) {
     Copy-Item $built (Join-Path $appDir "hn-core-host-$triple.exe") -Force
     Copy-Item $mcp (Join-Path $appDir "hn-mcp-$triple.exe") -Force
     Copy-Item $mcp (Join-Path $appDir "hn-mcp.exe") -Force
+    Copy-Item $hook (Join-Path $appDir "hn-uac-hook.exe") -Force
   }
 }
 

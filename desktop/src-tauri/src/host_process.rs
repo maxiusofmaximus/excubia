@@ -15,7 +15,13 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio_util::sync::CancellationToken;
 
 const RESTART_BASE: Duration = Duration::from_millis(500);
-const RESTART_MAX: Duration = Duration::from_secs(5);
+const RESTART_MAX: Duration = Duration::from_secs(30);
+/// A host that ran this long was healthy: its next restart starts from the base
+/// delay again. One that dies at once keeps backing off instead of looping.
+const STABLE_RUN: Duration = Duration::from_secs(10);
+/// The app is a GUI process: without this every host start opens a console window.
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HostEvent {
@@ -59,7 +65,7 @@ async fn run(config: HostConfig, events: UnboundedSender<HostEvent>, shutdown: C
                 let _ = events.send(HostEvent::Started {
                     pid: child.id().unwrap_or_default(),
                 });
-                delay = RESTART_BASE;
+                let started_at = tokio::time::Instant::now();
 
                 let status = tokio::select! {
                     status = child.wait() => Some(status),
@@ -70,6 +76,9 @@ async fn run(config: HostConfig, events: UnboundedSender<HostEvent>, shutdown: C
                     }
                 };
                 let Some(status) = status else { return };
+                if started_at.elapsed() >= STABLE_RUN {
+                    delay = RESTART_BASE;
+                }
                 match status {
                     Ok(status) => {
                         let _ = events.send(HostEvent::Exited {
@@ -111,6 +120,8 @@ async fn launch(config: &HostConfig, events: &UnboundedSender<HostEvent>) -> Res
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW);
 
     let mut child = command
         .spawn()
@@ -253,6 +264,32 @@ mod tests {
             .await
             .expect("el supervisor debe parar al cancelar")
             .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_child_that_dies_at_once_is_restarted_with_a_growing_delay() {
+        let (events, mut received) = mpsc::unbounded_channel();
+        let shutdown = CancellationToken::new();
+        let handle = tokio::spawn(supervise(
+            config("cmd.exe", &["/c", "exit 1"]),
+            events,
+            shutdown.clone(),
+        ));
+
+        let mut delays = Vec::new();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+        while delays.len() < 2 {
+            match tokio::time::timeout_at(deadline, received.recv()).await {
+                Ok(Some(HostEvent::Restarting { delay })) => delays.push(delay),
+                Ok(Some(_)) => {}
+                Ok(None) | Err(_) => break,
+            }
+        }
+        shutdown.cancel();
+        let _ = tokio::time::timeout(Duration::from_secs(3), handle).await;
+
+        assert_eq!(delays.len(), 2, "debe reiniciarse dos veces: {delays:?}");
+        assert!(delays[1] > delays[0], "el retraso debe crecer: {delays:?}");
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

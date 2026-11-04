@@ -149,6 +149,44 @@ mod tests {
         assert_eq!(new.now(), None, "the wrong copy is taken back");
     }
 
+    /// The same move against the real Credential Manager, under throwaway names.
+    #[cfg(windows)]
+    #[test]
+    fn the_real_credential_manager_moves_a_binary_key_and_forgets_the_legacy_name() {
+        use hn_core_persist::credential::CredentialManager;
+
+        struct Cleanup(Vec<CredentialManager>);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                for store in &self.0 {
+                    let _ = store.delete();
+                }
+            }
+        }
+
+        let pid = std::process::id();
+        let target_new = format!("excubia/master-key-test-new-{pid}");
+        let target_old = format!("excubia/master-key-test-old-{pid}");
+        let _cleanup = Cleanup(vec![
+            CredentialManager::new(&target_new),
+            CredentialManager::new(&target_old),
+        ]);
+        let (new, old) = (
+            CredentialManager::new(&target_new),
+            CredentialManager::new(&target_old),
+        );
+        let key: Vec<u8> = (0..=255u8).step_by(8).collect();
+        old.write(&key).expect("write legacy");
+
+        let adopted = adopt_master_key(&new, &old).expect("adopt");
+        assert_eq!(adopted.as_deref(), Some(key.as_slice()));
+        assert_eq!(new.read().expect("read new"), Some(key.clone()));
+        assert_eq!(old.read().expect("read legacy"), None);
+
+        let again = adopt_master_key(&new, &old).expect("adopt twice");
+        assert_eq!(again.as_deref(), Some(key.as_slice()));
+    }
+
     #[test]
     fn a_failed_delete_keeps_both_copies_and_still_uses_the_key() {
         let new = Fake::empty();

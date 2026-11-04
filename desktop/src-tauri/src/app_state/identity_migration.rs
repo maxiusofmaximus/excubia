@@ -186,4 +186,35 @@ mod tests {
         assert!(store.load().expect("load").is_none());
         assert_eq!(current.now(), None);
     }
+
+    /// The same move against the real OS keyring, under throwaway service names.
+    #[test]
+    fn the_real_keyring_moves_the_identity_and_forgets_the_legacy_entry() {
+        use herdr_desktop_core::identity::KeyringIdentityStore;
+
+        let pid = std::process::id();
+        let current =
+            KeyringIdentityStore::new(format!("dev.excubia.desktop.test-new-{pid}"), "test");
+        let legacy =
+            KeyringIdentityStore::new(format!("dev.excubia.desktop.test-old-{pid}"), "test");
+        let old = legacy_identity();
+        legacy.save(&old).expect("write legacy");
+
+        let store = MigratingStore {
+            current: &current,
+            legacy: &legacy,
+        };
+        let loaded = store.load().expect("load").expect("identity");
+        let in_current = current.load().expect("read current");
+        let in_legacy = legacy.load().expect("read legacy");
+        let _ = current.remove();
+        let _ = legacy.remove();
+
+        assert_eq!(loaded.device_id(), "device-old");
+        assert!(in_current.is_some_and(|read| same_key(&read, &old)));
+        assert!(
+            in_legacy.is_none(),
+            "the legacy entry is removed after the check"
+        );
+    }
 }
