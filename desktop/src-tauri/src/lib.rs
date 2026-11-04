@@ -76,7 +76,6 @@ pub fn run() {
             commands::bootstrap,
             commands::connect,
             commands::pair,
-            commands::save_advanced,
             commands::refresh_state,
             commands::agent_detail,
             commands::forget_pairing,

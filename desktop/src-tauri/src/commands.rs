@@ -1,13 +1,11 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use herdr_desktop_core::client::{normalize_base_url, pair_device, validate_device_id};
+use herdr_desktop_core::client::pair_device;
 use herdr_desktop_core::state::{AgentRow, StateSnapshot};
 use herdr_desktop_core::stream::ConnectionStatus;
 use herdr_desktop_core::transport::is_loopback_url;
-use herdr_desktop_core::{
-    validate_device_label, CatalogAgent, CoreError, HostClient, Transport, WriteAction,
-};
+use herdr_desktop_core::{validate_device_label, CatalogAgent, CoreError, Transport, WriteAction};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_dialog::DialogExt;
@@ -27,7 +25,6 @@ pub struct Bootstrap {
     host_url: String,
     device_id: String,
     label: String,
-    public_key: Option<String>,
     fingerprint: Option<String>,
     paired: bool,
     notifications_enabled: bool,
@@ -47,12 +44,6 @@ pub struct PairOutcome {
     pub label: String,
     pub permissions: Vec<String>,
     pub recovery_code: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct AdvancedOutcome {
-    verified: bool,
-    message: String,
 }
 
 #[derive(Serialize)]
@@ -158,7 +149,6 @@ pub fn bootstrap(state: State<'_, Shared>) -> Bootstrap {
             .map(|identity| identity.device_id().to_string())
             .unwrap_or_default(),
         label: inner.config.label.clone(),
-        public_key: identity.map(|identity| identity.public_key_b64()),
         fingerprint: identity.map(|identity| identity.fingerprint()),
         paired: inner.config.paired,
         notifications_enabled: inner.config.notifications,
@@ -263,83 +253,6 @@ pub async fn pair(
         permissions: response.permissions,
         recovery_code: response.recovery_code.filter(|code| !code.is_empty()),
     })
-}
-
-#[tauri::command]
-pub async fn save_advanced(
-    app: AppHandle,
-    state: State<'_, Shared>,
-    host_url: String,
-    device_id: String,
-    label: String,
-) -> Result<AdvancedOutcome, String> {
-    let shared = shared(&state);
-    // A saved URL is "another host": the managed local core is not its
-    // target, and its runtime URL must stop shadowing the new one.
-    shared.stop_local_host();
-    shared.stop_stream();
-    let host_url = normalize_base_url(&host_url).map_err(|error| error.to_string())?;
-    validate_device_id(&device_id).map_err(|error| error.to_string())?;
-    let label = validate_device_label(&label).map_err(|error| error.to_string())?;
-
-    let (mut identity, previous_paired) = {
-        let inner = lock(&shared.inner);
-        let identity = inner
-            .identity
-            .clone()
-            .ok_or_else(|| "No hay identidad de dispositivo disponible.".to_string())?;
-        (identity, inner.config.paired)
-    };
-    identity.set_device_id(device_id.trim());
-    identity.set_label(label.clone());
-    shared.update_identity(identity.clone())?;
-    {
-        let mut inner = lock(&shared.inner);
-        inner.config.local = false;
-        inner.config.host_url = host_url.clone();
-        inner.config.host_pins = None;
-        inner.config.device_id = Some(identity.device_id().to_string());
-        inner.config.label = label;
-        inner.config.paired = false;
-    }
-    shared.save_config()?;
-    lock(&shared.store()).clear();
-
-    let client = HostClient::new(&host_url, identity).map_err(|error| error.to_string())?;
-    match client.state().await {
-        Ok(state) => {
-            lock(&shared.inner).config.paired = true;
-            shared.save_config()?;
-            if let Some(state) = lock(&shared.store()).apply(state) {
-                let _ = app.emit("hn-state", state);
-            }
-            shared.start_stream(app)?;
-            Ok(AdvancedOutcome {
-                verified: true,
-                message: "Dispositivo reconocido. Conectado.".to_string(),
-            })
-        }
-        Err(CoreError::Unauthorized) => Ok(AdvancedOutcome {
-            verified: false,
-            message: "El PC aún no conoce este dispositivo. Ejecuta el comando en el host y vuelve a intentarlo.".to_string(),
-        }),
-        Err(CoreError::Forbidden) => {
-            lock(&shared.inner).config.paired = true;
-            shared.save_config()?;
-            Ok(AdvancedOutcome {
-                verified: false,
-                message: "El dispositivo está emparejado pero no tiene permiso de lectura (READ_STATE).".to_string(),
-            })
-        }
-        Err(error) => {
-            lock(&shared.inner).config.paired = previous_paired;
-            shared.save_config()?;
-            Ok(AdvancedOutcome {
-                verified: false,
-                message: format!("Ajustes guardados, pero no se pudo verificar ahora: {error}"),
-            })
-        }
-    }
 }
 
 #[tauri::command]

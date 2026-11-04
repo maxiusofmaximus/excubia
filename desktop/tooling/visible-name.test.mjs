@@ -9,18 +9,7 @@ const NAME = /herdr[ -]notify/gi;
 const BARE = /herdr/i;
 
 // Each entry is an exact visible line that keeps the old spelling, and why.
-const KEEP = [
-  {
-    file: "index.html",
-    line: 'placeholder="herdr-notify://pair',
-    why: "esquema de enlace herdr-notify://, identificador que no se renombra",
-  },
-  {
-    file: "format.js",
-    line: "return `herdr-notify add-device",
-    why: "comando real del host (binario herdr-notify), se copia tal cual al terminal",
-  },
-];
+const KEEP = [];
 
 // Comments are not on screen; the scan skips them.
 const isComment = (text) => /^(\/\/|\/\*|\*|<!--)/.test(text.trim());
@@ -77,4 +66,16 @@ test("index.html, agents.js y format.js no muestran «herdr» salvo las excepcio
     });
   }
   assert.deepEqual(hits, [], "«herdr» visible: renómbralo a «Excubia» o añádelo a KEEP con motivo");
+});
+
+// The manual `add-device` key pairing is a legacy flow the host no longer has.
+test("ui/ no contiene el comando heredado add-device", () => {
+  const hits = [];
+  for (const file of uiFiles) {
+    const lines = readFileSync(new URL(`../ui/${file}`, import.meta.url), "utf8").split("\n");
+    lines.forEach((text, index) => {
+      if (/add-device/.test(text)) hits.push(`${file}:${index + 1} ${text.trim()}`);
+    });
+  }
+  assert.deepEqual(hits, [], "add-device no existe en el host 2.0: quita el flujo, no cambies el texto");
 });

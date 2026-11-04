@@ -90,33 +90,10 @@
           </div>
 
           <div class="field">
-            <label class="field-label" for="device-id">Identificador</label>
-            <input id="device-id" class="mono-input" type="text" autocomplete="off" spellcheck="false"
-                   maxlength="64" aria-describedby="device-id-hint">
-            <p id="device-id-hint" class="hint">Debe coincidir con el identificador registrado en el PC.</p>
-          </div>
-
-          <div class="field">
             <label class="field-label" for="device-label">Nombre de este equipo</label>
             <input id="device-label" type="text" autocomplete="off" spellcheck="false"
                    maxlength="64" aria-describedby="device-label-hint">
             <p id="device-label-hint" class="hint">Se envía al PC al emparejar; por defecto, el nombre del host.</p>
-          </div>
-
-          <div class="field">
-            <div class="field-head">
-              <span class="field-label">Comando en el host</span>
-              <button id="btn-copy-command" class="btn ghost btn-small" type="button">Copiar</button>
-            </div>
-            <div class="command"><pre id="command">Cargando…</pre></div>
-            <p class="hint">Ejecútalo en la máquina del PC si el emparejamiento por código no está disponible.</p>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="host-url">Dirección del PC</label>
-            <input id="host-url" class="mono-input" type="text" inputmode="url" autocomplete="off"
-                   spellcheck="false" placeholder="http://127.0.0.1:8787">
-            <p class="hint">Por defecto, el PC local en el puerto 8787.</p>
           </div>
 
           <div class="field">
@@ -127,8 +104,6 @@
             <p class="hint">Avisa cuando un agente pasa a bloqueado o termina. Se guarda en este equipo.</p>
           </div>
 
-          <button id="btn-save-advanced" class="btn secondary btn-block" type="button">Guardar y continuar</button>
-          <p id="advanced-note" class="hint note" role="status"></p>
           <button id="btn-pair-back" class="btn ghost btn-block" type="button">Volver al chat</button>
           <button id="btn-use-local" class="btn ghost btn-block hidden" type="button">Volver al host local de este equipo</button>
         </div>

@@ -259,10 +259,6 @@ impl HostClient {
     }
 }
 
-pub fn normalize_base_url(raw: &str) -> Result<String> {
-    normalize_endpoint(raw, &Transport::Plain)
-}
-
 /// The base URL for a transport. A URL with no scheme is clear HTTP, so it
 /// cannot name a pinned host; clear HTTP is refused outside loopback and the
 /// tailnet.
@@ -310,22 +306,23 @@ mod tests {
     #[test]
     fn base_url_gets_a_scheme_and_loses_trailing_slashes() {
         assert_eq!(
-            normalize_base_url("127.0.0.1:8787/").unwrap(),
+            normalize_endpoint("127.0.0.1:8787/", &Transport::Plain).unwrap(),
             "http://127.0.0.1:8787"
         );
         assert_eq!(
-            normalize_base_url("http://mi-pc.tail1234.ts.net:8787/base/").unwrap(),
+            normalize_endpoint("http://mi-pc.tail1234.ts.net:8787/base/", &Transport::Plain)
+                .unwrap(),
             "http://mi-pc.tail1234.ts.net:8787/base"
         );
-        assert!(normalize_base_url("  ").is_err());
-        assert!(normalize_base_url("ftp://host").is_err());
+        assert!(normalize_endpoint("  ", &Transport::Plain).is_err());
+        assert!(normalize_endpoint("ftp://host", &Transport::Plain).is_err());
     }
 
     #[test]
     fn clear_http_is_refused_on_a_lan_address() {
-        assert!(normalize_base_url("http://192.168.1.20:8787").is_err());
-        assert!(normalize_base_url("192.168.1.20:8787").is_err());
-        assert!(normalize_base_url("https://192.168.1.20:8443").is_ok());
+        assert!(normalize_endpoint("http://192.168.1.20:8787", &Transport::Plain).is_err());
+        assert!(normalize_endpoint("192.168.1.20:8787", &Transport::Plain).is_err());
+        assert!(normalize_endpoint("https://192.168.1.20:8443", &Transport::Plain).is_ok());
     }
 
     #[test]

@@ -79,9 +79,3 @@ export function stripAnsi(text) {
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n");
 }
-
-export function buildCommand({ publicKey, deviceId, label }) {
-  if (!publicKey) return "No disponible: falta la identidad del dispositivo.";
-  const safeLabel = String(label || "Escritorio Windows").replace(/"/g, '\\"');
-  return `herdr-notify add-device --curve p256 --public-key "${publicKey}" --label "${safeLabel}" --device-id "${deviceId}"`;
-}

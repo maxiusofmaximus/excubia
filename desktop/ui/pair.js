@@ -1,5 +1,5 @@
 import { app, $, invoke, copyText, setBusy, showView, toast } from "./core.js";
-import { buildCommand, errorMessage } from "./format.js";
+import { errorMessage } from "./format.js";
 import { renderAgents, renderConnection } from "./agents.js";
 import { chatAfterConnect, chatReset } from "./chat.js";
 import { installLinkForm } from "./pair-link.js";
@@ -16,17 +16,13 @@ export function hydratePairing(boot) {
   $("plain-warning").classList.toggle("hidden", !boot.unencrypted);
   hydrateLan(boot.lan_pairing === true);
   renderLocalStatus(boot.host);
-  $("host-url").value = boot.host_url || "";
-  $("device-id").value = boot.device_id || "";
   $("device-label").value = boot.label || "";
   $("fingerprint").textContent = boot.fingerprint || "No disponible";
   $("notifications-toggle").checked = boot.notifications_enabled !== false;
   $("btn-pair-back").classList.toggle("hidden", !(boot.paired || local));
-  refreshCommand();
   if (boot.identity_error) {
     showPairError(`No se pudo abrir el almacén seguro: ${boot.identity_error}`);
     $("btn-pair").disabled = true;
-    $("btn-save-advanced").disabled = true;
   }
 }
 
@@ -59,18 +55,6 @@ export function showPairError(message) {
   element.classList.toggle("hidden", !message);
 }
 
-function commandText() {
-  return buildCommand({
-    publicKey: app.boot ? app.boot.public_key : null,
-    deviceId: $("device-id").value.trim(),
-    label: $("device-label").value.trim(),
-  });
-}
-
-function refreshCommand() {
-  $("command").textContent = commandText();
-}
-
 async function doPair(event) {
   event.preventDefault();
   const code = $("pair-code").value.trim();
@@ -100,42 +84,6 @@ function completePairing(outcome) {
     : "El PC no devolvió un código de recuperación.";
   $("btn-copy-recovery").disabled = !outcome.recovery_code;
   showView("recovery");
-}
-
-async function saveAdvanced() {
-  const button = $("btn-save-advanced");
-  const note = $("advanced-note");
-  note.classList.remove("is-error");
-  setBusy(button, true, "Guardando…");
-  try {
-    const outcome = await invoke("save_advanced", {
-      hostUrl: $("host-url").value,
-      deviceId: $("device-id").value,
-      label: $("device-label").value,
-    });
-    note.textContent = outcome.message;
-    note.classList.toggle("is-error", !outcome.verified);
-    if (outcome.verified) {
-      app.boot = {
-        ...(app.boot || {}),
-        paired: true,
-        host_url: $("host-url").value.trim(),
-        device_id: $("device-id").value.trim(),
-        label: $("device-label").value.trim(),
-      };
-      app.connection = { kind: "connecting" };
-      chatReset();
-      showView("chat");
-      renderConnection();
-      renderAgents();
-      chatAfterConnect();
-    }
-  } catch (error) {
-    note.textContent = errorMessage(error);
-    note.classList.add("is-error");
-  } finally {
-    setBusy(button, false);
-  }
 }
 
 export async function forgetPairing() {
@@ -228,13 +176,6 @@ export function installPairHandlers() {
     input.value = input.value.toUpperCase();
     input.setSelectionRange(start, start);
   });
-  for (const id of ["device-id", "device-label"]) {
-    $(id).addEventListener("input", refreshCommand);
-  }
-  $("btn-copy-command").addEventListener("click", () => {
-    copyText(commandText(), "Comando copiado");
-  });
-  $("btn-save-advanced").addEventListener("click", saveAdvanced);
   $("btn-copy-recovery").addEventListener("click", () => {
     copyText($("recovery-code").textContent, "Código copiado");
   });

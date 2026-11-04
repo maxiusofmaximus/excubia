@@ -110,22 +110,10 @@
   padding: 16px 2px 4px;
 }
 
-/* Long values (a command, a fingerprint) must wrap or scroll inside their own
+/* Long values (a fingerprint) must wrap or scroll inside their own
    block instead of stretching the grid past the viewport. */
 .advanced-body > * {
   min-width: 0;
-}
-
-.field-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.field-head .field-label {
-  margin: 0;
 }
 
 .toggle {
@@ -158,26 +146,6 @@
   font-family: var(--mono);
   font-size: 12px;
   line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.command {
-  min-width: 0;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 11px 12px;
-}
-
-.command pre {
-  margin: 0;
-  max-height: 132px;
-  overflow-y: auto;
-  color: var(--text-2);
-  font-family: var(--mono);
-  font-size: 11.5px;
-  line-height: 1.6;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 

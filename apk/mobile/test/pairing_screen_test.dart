@@ -233,4 +233,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Núcleo Rust'), findsOneWidget);
   });
+
+  testWidgets('no pairing screen offers the legacy add-device command', (
+    tester,
+  ) async {
+    await tester.pumpWidget(subject(PairingStore(MemoryKeyValueStore())));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Avanzado'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('add-device'), findsNothing);
+    expect(find.text('Guardar y continuar'), findsNothing);
+  });
 }

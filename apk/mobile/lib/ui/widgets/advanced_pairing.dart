@@ -1,32 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../theme.dart';
 
-/// The collapsed manual path: fingerprint, device id, the host command and the
-/// host URL. Kept out of the pairing page so that page stays about the
-/// single primary flow.
+/// The collapsed manual path: fingerprint, device id and the host URL. Kept out
+/// of the pairing page so that page stays about the single primary flow.
 class AdvancedPairingSection extends StatelessWidget {
   const AdvancedPairingSection({
     super.key,
     required this.fingerprint,
-    required this.publicKeyCommand,
     required this.coreVersion,
     required this.deviceIdController,
     required this.urlController,
-    required this.busy,
-    required this.onDeviceIdChanged,
-    required this.onSaveAndContinue,
   });
 
   final String fingerprint;
-  final String publicKeyCommand;
   final String coreVersion;
   final TextEditingController deviceIdController;
   final TextEditingController urlController;
-  final bool busy;
-  final VoidCallback onDeviceIdChanged;
-  final VoidCallback onSaveAndContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -62,15 +52,10 @@ class AdvancedPairingSection extends StatelessWidget {
           TextField(
             controller: deviceIdController,
             style: context.text.mono,
-            onChanged: (_) => onDeviceIdChanged(),
             decoration: const InputDecoration(
               labelText: 'Identificador del dispositivo',
             ),
           ),
-          const SizedBox(height: Spacing.md),
-          Text('Comando para el equipo', style: context.text.label),
-          const SizedBox(height: Spacing.xs),
-          _CommandBlock(command: publicKeyCommand),
           const SizedBox(height: Spacing.md),
           TextField(
             controller: urlController,
@@ -86,60 +71,6 @@ class AdvancedPairingSection extends StatelessWidget {
               labelText: 'Dirección del PC',
               hintText: '192.168.1.20:47443',
             ),
-          ),
-          const SizedBox(height: Spacing.md),
-          OutlinedButton(
-            onPressed: busy ? null : onSaveAndContinue,
-            child: const Text('Guardar y continuar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CommandBlock extends StatelessWidget {
-  const _CommandBlock({required this.command});
-
-  final String command;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.raised,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: context.colors.outlineSoft),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.md,
-        vertical: Spacing.sm,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Text(
-                command.isEmpty ? '…' : command,
-                style: context.text.mono,
-              ),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Copiar comando',
-            icon: const Icon(Icons.copy, size: 20),
-            color: context.colors.textSecondary,
-            onPressed: command.isEmpty
-                ? null
-                : () async {
-                    await Clipboard.setData(ClipboardData(text: command));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Comando copiado')),
-                      );
-                    }
-                  },
           ),
         ],
       ),

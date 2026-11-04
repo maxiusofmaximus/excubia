@@ -14,13 +14,9 @@ void main() {
           body: SingleChildScrollView(
             child: AdvancedPairingSection(
               fingerprint: 'AB:CD',
-              publicKeyCommand: 'host devices add',
               coreVersion: '0.1.2',
               deviceIdController: device,
               urlController: url,
-              busy: false,
-              onDeviceIdChanged: () {},
-              onSaveAndContinue: () {},
             ),
           ),
         ),

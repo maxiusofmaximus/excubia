@@ -175,8 +175,8 @@ Second vector, same pin, device key `04` `33`×32 `44`×32 (hex
 `0433333333333333333333333333333333333333333333333333333333333333334444444444444444444444444444444444444444444444444444444444444444`):
 expected SAS `827242`.
 
-The host-side `add-device` CLI remains the manual path to the same result, and
-is the way to grant anything, `READ_STATE` included, to a pending device.
+The old host-side `add-device` CLI was removed in 2.0; permissions are granted
+with `devices grant`.
 
 ## Trust store — IMPLEMENTED
 
@@ -443,7 +443,7 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
 | Capability | Status |
 |------------|--------|
 | Device identity (P-256 key in `flutter_secure_storage`) | IMPLEMENTED |
-| Host-side `add-device` CLI pairing | IMPLEMENTED |
+| Host-side `add-device` CLI pairing | REMOVED in 2.0 (superseded by PAKE pairing; the host has no such command) |
 | `POST /v1/pair` (code / recovery / tailnet owner) | IMPLEMENTED (Fase 2(c)) |
 | Pairing codes (4 bytes, 180 s, single use) | IMPLEMENTED |
 | Recovery codes (re-key, rotate, SHA-256 hash only) | IMPLEMENTED |

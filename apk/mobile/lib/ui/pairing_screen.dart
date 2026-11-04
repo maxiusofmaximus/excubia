@@ -261,10 +261,6 @@ class _PairingScreenState extends State<PairingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final command = _publicKey == null
-        ? ''
-        : 'herdr-notify add-device --curve p256 '
-              '--public-key $_publicKey --label ${_deviceId.text.trim()}';
     return Scaffold(
       backgroundColor: context.colors.bg,
       body: SafeArea(
@@ -342,13 +338,9 @@ class _PairingScreenState extends State<PairingScreen> {
             const SizedBox(height: Spacing.lg),
             AdvancedPairingSection(
               fingerprint: _fingerprint ?? 'Generando…',
-              publicKeyCommand: command,
               coreVersion: _coreVersion ?? '…',
               deviceIdController: _deviceId,
               urlController: _url,
-              busy: _busy,
-              onDeviceIdChanged: () => setState(() {}),
-              onSaveAndContinue: _saveAndContinue,
             ),
             const SizedBox(height: Spacing.lg),
             TransportFooter(url: _url, pinned: _pinnedLink != null),

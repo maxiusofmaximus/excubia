@@ -37,42 +37,6 @@ extension _PairingScreenFlows on _PairingScreenState {
     widget.onPaired(pairing);
   }
 
-  Future<void> _saveAndContinue() async {
-    final baseUrl = PairingAddress.normaliseUrl(_url.text);
-    if (baseUrl.isEmpty) {
-      _fail('La dirección del PC está vacía.');
-      return;
-    }
-    final loopback = PairingAddress.loopbackProblem(
-      baseUrl,
-      allowLoopback: loopbackAllowed(),
-    );
-    if (loopback != null) {
-      _fail(loopback);
-      return;
-    }
-    final cleartext = PairingAddress.privateCleartextProblem(
-      baseUrl,
-      allowLoopback: loopbackAllowed(),
-    );
-    if (cleartext != null) {
-      _fail(cleartext);
-      return;
-    }
-    final privateKey = _privateKey;
-    if (privateKey == null) {
-      _fail('La clave del dispositivo aún no está lista.');
-      return;
-    }
-    final pairing = Pairing(
-      baseUrl: baseUrl,
-      deviceId: _deviceId.text.trim(),
-      privateKey: privateKey,
-    );
-    await widget.store.save(pairing);
-    if (mounted) widget.onPaired(pairing);
-  }
-
   Future<void> _scanQr() async {
     final entry = await Navigator.of(context).push<PairingEntry>(
       MaterialPageRoute<PairingEntry>(builder: (_) => const QrScanScreen()),
