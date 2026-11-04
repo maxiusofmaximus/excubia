@@ -14,6 +14,7 @@ mod agents;
 pub mod alert_policy;
 mod alerts;
 pub mod alfred_backend;
+pub mod alfred_switch;
 pub mod calendar_reminders;
 pub mod cli;
 mod hook_token;

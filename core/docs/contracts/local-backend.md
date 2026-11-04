@@ -69,8 +69,8 @@ contesta con el modelo local. Solo lo elige el dueño, a mano.
   no cambia. Con el fichero el CLI recibe el entorno de `claude-local`
   (`strata::local_env`) y no recibe `ANTHROPIC_API_KEY`. Sin él, no cambia nada.
 - **Aviso:** el daemon lo mira cada 2 s y avisa en «Avisos del sistema» solo si
-  cambia: «Alfred ahora responde con el modelo local (más lento y menos preciso)»
-  o «Alfred vuelve a Claude».
+  cambia: «Alfred usa ahora el modelo local» o «Volvió a Claude». El cambio desde el móvil
+  (`alfred-backend.md`) usa el mismo aviso.
 - **Huérfano:** al arrancar el daemon, con Strata parado, el fichero se borra y
   se avisa «Alfred vuelve a Claude».
 - **No hace:** arrancar Strata por su cuenta, cambiar de modelo a mitad de turno ni tocar

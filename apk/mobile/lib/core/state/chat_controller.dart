@@ -21,6 +21,7 @@ import '../api/connection_text.dart';
 import '../api/host_client.dart';
 import '../api/agenda_api.dart';
 import '../api/alerts_api.dart';
+import '../api/alfred_backend_api.dart';
 import '../api/mail_api.dart';
 import '../api/plan_runner.dart';
 import '../model/connection_state.dart';
@@ -141,6 +142,9 @@ class ChatController extends ChangeNotifier {
 
   /// The alert rules and the alerts mode, over the same signed transport.
   AlertsApi get alertRules => AlertsApi(_transport);
+
+  /// The engine of Alfred (Claude or the local model), over the same signed transport.
+  AlfredBackendApi get alfredBackend => AlfredBackendApi(_transport);
 
   /// The draft sheets opened from the timeline. A send under way keeps its
   /// watch here, so it ends even when its sheet is closed.

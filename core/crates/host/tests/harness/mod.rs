@@ -18,18 +18,20 @@ use mail_send_support::{seed_owner, Routed, BODY};
 
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 use hn_core_api::voice::{EngineStarter, VoiceService};
-use hn_core_api::{serve, serve_internal, AgentActions, ApiConfig, ApiContext};
+use hn_core_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext};
 use hn_core_auth::{DeviceStore, Permission};
 use hn_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
+use hn_core_host::alfred_switch::{Engine, Switch};
 use hn_core_host::mail_api::MailLogins;
 use hn_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
 use hn_core_host::mail_tools::{MailTools, LEDGER_FILE};
 use hn_core_host::pairing_notice::PairingNotice;
+use hn_core_host::strata::State;
 use hn_core_host::team::{TeamConfig, TeamService};
 use hn_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
 use hn_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
@@ -55,6 +57,70 @@ fn quota_counter() -> Arc<dyn Fn() + Send + Sync> {
     Arc::new(|| {
         QUOTA_CALLS.fetch_add(1, Ordering::SeqCst);
     })
+}
+
+/// Strata's stand-in for the alfred switch tests: it launches nothing. `start` marks the voice the
+/// way Strata does and fails the way Strata does, leaving no marker behind.
+#[derive(Default)]
+pub struct FakeEngine {
+    /// The model answers: `state` reports it ready.
+    pub ready: AtomicBool,
+    /// No Strata binary: `start` fails at once.
+    pub missing: AtomicBool,
+    /// `start` waits here until the test clears it: a cold load in progress.
+    pub hold: AtomicBool,
+    /// How many `start` calls the switch made.
+    pub starts: AtomicUsize,
+    /// Set once a start is under way (its voice mark is down, the model not yet up).
+    pub entered: AtomicBool,
+}
+
+impl Engine for FakeEngine {
+    fn state(&self) -> anyhow::Result<State> {
+        Ok(if self.ready.load(Ordering::SeqCst) {
+            State::Ready
+        } else {
+            State::Stopped
+        })
+    }
+
+    fn start(&self, data_dir: &Path) -> anyhow::Result<()> {
+        self.starts.fetch_add(1, Ordering::SeqCst);
+        hn_core_host::local_mode::set(data_dir)?;
+        self.entered.store(true, Ordering::SeqCst);
+        let outcome = self.launch();
+        if outcome.is_err() {
+            hn_core_host::alfred_backend::clear(data_dir)?;
+            hn_core_host::local_mode::clear(data_dir)?;
+        }
+        outcome
+    }
+
+    fn stop(&self, data_dir: &Path) -> anyhow::Result<()> {
+        self.ready.store(false, Ordering::SeqCst);
+        hn_core_host::alfred_backend::clear(data_dir)?;
+        hn_core_host::local_mode::clear(data_dir)?;
+        Ok(())
+    }
+}
+
+impl FakeEngine {
+    fn launch(&self) -> anyhow::Result<()> {
+        if self.missing.load(Ordering::SeqCst) {
+            anyhow::bail!("no encuentro Strata en la ruta de prueba");
+        }
+        // Bounded: a test that panics while holding must not hang the runtime's shutdown.
+        let until = std::time::Instant::now() + Duration::from_secs(30);
+        while self.hold.load(Ordering::SeqCst) {
+            anyhow::ensure!(
+                std::time::Instant::now() < until,
+                "the test never released the start"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        self.ready.store(true, Ordering::SeqCst);
+        Ok(())
+    }
 }
 
 fn hook_command() -> PathBuf {
@@ -168,6 +234,9 @@ pub struct TestHost {
     pub host_pin: hn_core_pin::Fingerprint,
     /// The host's in-memory PAKE pairing code slot (the context's own).
     pub pake_slot: Arc<hn_core_api::PakeSlot>,
+    /// The alfred switch of the host, over [`Self::alfred_engine`] (a double).
+    pub alfred: Arc<Switch>,
+    pub alfred_engine: Arc<FakeEngine>,
     /// The scratch directory of the host. It is the last field, so it goes
     /// after the stores, whose open database would keep it on Windows; a
     /// restart hands it to the next host.
@@ -390,6 +459,13 @@ impl TestHost {
             }
         };
 
+        let notices = Arc::new(PairingNotice::new(&data_dir, Arc::clone(&chat)));
+        let alfred_engine = Arc::new(FakeEngine::default());
+        let alfred = Arc::new(Switch::new(
+            data_dir.clone(),
+            Arc::clone(&notices),
+            Arc::clone(&alfred_engine) as Arc<dyn Engine>,
+        ));
         let actions: Arc<dyn AgentActions> = Arc::clone(&host) as Arc<dyn AgentActions>;
         let context = ApiContext::new(ApiConfig {
             store: Arc::clone(&store),
@@ -401,7 +477,8 @@ impl TestHost {
             hook_token: Arc::new(hook_token.clone()),
             mail: mail_logins,
             voice: Arc::new(VoiceService::new(voice)),
-            pairing_audit: Arc::new(PairingNotice::new(&data_dir, Arc::clone(&chat))),
+            alfred: Arc::clone(&alfred) as Arc<dyn AlfredBackend>,
+            pairing_audit: notices,
         })
         .with_host_pin(Some(host_pin));
         let pake_slot = Arc::clone(&context.pake_slot);
@@ -426,6 +503,8 @@ impl TestHost {
             hook_token,
             host_pin,
             pake_slot,
+            alfred,
+            alfred_engine,
             scratch,
         }
     }

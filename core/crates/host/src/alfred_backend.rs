@@ -20,9 +20,8 @@ use crate::strata::{self, State};
 const POLL: Duration = Duration::from_secs(2);
 /// Removed from a turn's CLI while the local model answers: Claude would send it to the cloud.
 const API_KEY: &str = "ANTHROPIC_API_KEY";
-pub const ENTER_NOTICE: &str =
-    "Alfred ahora responde con el modelo local (más lento y menos preciso)";
-pub const EXIT_NOTICE: &str = "Alfred vuelve a Claude";
+pub const ENTER_NOTICE: &str = "Alfred usa ahora el modelo local";
+pub const EXIT_NOTICE: &str = "Volvió a Claude";
 /// At most one quota notice in this span, so a run of failed turns posts one message.
 const QUOTA_NOTICE_EVERY: Duration = Duration::from_secs(30 * 60);
 pub const QUOTA_NOTICE: &str = "Claude alcanzó su límite de uso. Para seguir con el modelo local, en el PC: host alfred local (tarda unos 4 min, apaga la voz y necesita ~34 GB de RAM libre)";

@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use axum::serve::Listener;
 use harness::TestHost;
-use hn_core_api::{serve_client, AgentActions, ApiConfig, ApiContext, TlsListener};
+use hn_core_api::{serve_client, AgentActions, AlfredBackend, ApiConfig, ApiContext, TlsListener};
 use hn_core_host::tls_slots::TlsSlots;
 use hn_core_pin::{client_config, Identity, PinSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -42,6 +42,7 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
             harness::mail_transport(None),
         )),
         voice: Arc::new(hn_core_api::voice::VoiceService::new(None)),
+        alfred: Arc::clone(&host.alfred) as Arc<dyn AlfredBackend>,
         pairing_audit: Arc::new(hn_core_host::pairing_audit::JsonlPairingAudit::new(
             &host.data_dir,
         )),

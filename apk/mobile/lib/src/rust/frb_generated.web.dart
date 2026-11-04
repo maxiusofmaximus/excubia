@@ -7,6 +7,7 @@
 // ignore_for_file: argument_type_not_assignable
 
 import 'api.dart';
+import 'api/alfred.dart';
 import 'api/approvals/error.dart';
 import 'api/approvals/model.dart';
 import 'api/approvals/plan.dart';

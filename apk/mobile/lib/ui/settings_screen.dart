@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../core/api/agenda_api.dart';
+import '../core/api/alfred_backend_api.dart';
 import '../core/api/alerts_api.dart';
 import '../core/api/mail_api.dart';
 import '../core/api/phone_contacts.dart';
 import '../core/app_info.dart';
 import '../core/state/voice_send_settings.dart';
 import 'agenda/agenda_settings_section.dart';
+import 'alfred/alfred_engine_section.dart';
 import 'alerts/alerts_screen.dart';
 import 'chat/voice_settings_screen.dart';
 import 'mail/mail_settings_screen.dart';
@@ -23,6 +25,7 @@ class SettingsScreen extends StatelessWidget {
     required this.agenda,
     required this.phone,
     required this.alertRules,
+    required this.alfred,
     required this.onUnpaired,
   });
 
@@ -31,6 +34,7 @@ class SettingsScreen extends StatelessWidget {
   final AgendaApi agenda;
   final PhoneContacts phone;
   final AlertsApi alertRules;
+  final AlfredBackendApi alfred;
   final Future<void> Function() onUnpaired;
 
   Future<void> _confirmRepair(BuildContext context) async {
@@ -140,6 +144,8 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: Spacing.xl),
+          AlfredEngineSection(api: alfred),
           const SizedBox(height: Spacing.xl),
           Text('AVISOS', style: context.text.label),
           const SizedBox(height: Spacing.sm),

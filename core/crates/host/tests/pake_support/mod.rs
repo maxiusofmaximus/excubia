@@ -11,7 +11,7 @@ use axum::serve::Listener;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
 use hn_core_api::{
-    serve, serve_client, AgentActions, ApiConfig, ApiContext, PakeSlot, TlsListener,
+    serve, serve_client, AgentActions, AlfredBackend, ApiConfig, ApiContext, PakeSlot, TlsListener,
 };
 use hn_core_host::pairing_audit::AUDIT_FILE;
 use hn_core_host::pairing_notice::PairingNotice;
@@ -69,6 +69,7 @@ impl Rig {
                 crate::harness::mail_transport(None),
             )),
             voice: Arc::new(hn_core_api::voice::VoiceService::new(None)),
+            alfred: Arc::clone(&host.alfred) as Arc<dyn AlfredBackend>,
             pairing_audit: Arc::new(PairingNotice::new(&host.data_dir, Arc::clone(&host.chat))),
         })
         .with_host_pin(Some(pin));

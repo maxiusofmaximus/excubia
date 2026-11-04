@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/agenda_api.dart';
+import 'package:herdr_notify/core/api/alfred_backend_api.dart';
 import 'package:herdr_notify/core/api/alerts_api.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
 import 'package:herdr_notify/core/api/host_client.dart';
@@ -43,6 +44,7 @@ void main() {
         agenda: AgendaApi(_NoCallTransport()),
         phone: const ChannelPhoneContacts(),
         alertRules: AlertsApi(_NoCallTransport()),
+        alfred: AlfredBackendApi(_NoCallTransport()),
         onUnpaired: () async {},
       ),
     );
@@ -98,6 +100,7 @@ void main() {
           agenda: AgendaApi(_NoCallTransport()),
           phone: const ChannelPhoneContacts(),
           alertRules: AlertsApi(_NoCallTransport()),
+          alfred: AlfredBackendApi(_NoCallTransport()),
           onUnpaired: () async {},
         ),
       ),
@@ -114,5 +117,6 @@ SettingsScreen _settings(Future<void> Function() onUnpaired) => SettingsScreen(
   agenda: AgendaApi(_NoCallTransport()),
   phone: const ChannelPhoneContacts(),
   alertRules: AlertsApi(_NoCallTransport()),
+  alfred: AlfredBackendApi(_NoCallTransport()),
   onUnpaired: onUnpaired,
 );

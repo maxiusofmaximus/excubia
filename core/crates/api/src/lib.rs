@@ -7,6 +7,7 @@
 
 mod agenda_api;
 mod alert_api;
+mod alfred;
 mod catalog;
 mod contact_api;
 mod error;
@@ -23,6 +24,7 @@ mod tls;
 mod validate;
 pub mod voice;
 
+pub use alfred::{AlfredBackend, BackendStatus, Requested};
 pub use catalog::{AgentCatalog, AgentSpec};
 pub use error::ApiError;
 pub use mail::{
@@ -132,6 +134,8 @@ pub struct ApiContext {
     /// The mail logins and accounts the host keeps (MAIL1D §1).
     pub mail: Arc<dyn MailActions>,
     pub voice: Arc<voice::VoiceService>,
+    /// The engine that answers Alfred, and its switch (`/v1/alfred/backend`).
+    pub alfred: Arc<dyn AlfredBackend>,
     /// Where each `POST /v1/pair` decision is recorded.
     pub pairing_audit: Arc<dyn PairingAudit>,
     /// In-process revocation notifications, so a revoke closes open streams
@@ -156,6 +160,7 @@ pub struct ApiConfig {
     pub hook_token: Arc<String>,
     pub mail: Arc<dyn MailActions>,
     pub voice: Arc<voice::VoiceService>,
+    pub alfred: Arc<dyn AlfredBackend>,
     pub pairing_audit: Arc<dyn PairingAudit>,
 }
 
@@ -175,6 +180,7 @@ impl ApiContext {
             hook_token: config.hook_token,
             mail: config.mail,
             voice: config.voice,
+            alfred: config.alfred,
             pairing_audit: config.pairing_audit,
             revocations,
             host_pin: None,
@@ -320,6 +326,10 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         )
         .route("/v1/mail/send/disable", post(routes::mail_send_disable))
         .route(voice::TRANSCRIBE_PATH, post(routes::transcribe_voice))
+        .route(
+            "/v1/alfred/backend",
+            get(routes::alfred_status).post(routes::alfred_request),
+        )
         .merge(routes::agenda_routes())
         .route_layer(axum_middleware::from_fn_with_state(
             ctx.clone(),

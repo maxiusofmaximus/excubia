@@ -104,6 +104,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                           agenda: widget.controller.agenda,
                           phone: const ChannelPhoneContacts(),
                           alertRules: widget.controller.alertRules,
+                          alfred: widget.controller.alfredBackend,
                           onUnpaired: widget.onUnpaired,
                         ),
                       ),

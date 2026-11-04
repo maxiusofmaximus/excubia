@@ -3,6 +3,7 @@
 mod actions;
 mod agenda;
 mod alerts;
+mod alfred;
 mod basic;
 mod calendar;
 mod calendar_ics;
@@ -25,6 +26,7 @@ mod workspaces;
 
 pub use actions::{keys, read, respond, seen, stop};
 pub use agenda::agenda_routes;
+pub use alfred::{request as alfred_request, status as alfred_status};
 pub use basic::{health, state};
 pub use calendar_ics::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
 pub use catalog::list as catalog;

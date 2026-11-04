@@ -15,6 +15,7 @@ use hn_core_api::{
 use hn_core_auth::DeviceStore;
 use hn_core_chat::{ChatSeat, ChatStore};
 use hn_core_host::alfred_backend;
+use hn_core_host::alfred_switch::{Strata, Switch};
 use hn_core_host::calendar_reminders;
 use hn_core_host::cli::RunOptions;
 use hn_core_host::local_mode;
@@ -207,6 +208,11 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         println!("host: no pude revisar alfred-local: {error}");
     }
     let alfred_task = alfred_backend::watch(Arc::clone(&notices), options.data_dir.clone());
+    let alfred = Switch::new(
+        options.data_dir.clone(),
+        Arc::clone(&notices),
+        Arc::new(Strata),
+    );
     // A running local model keeps the ASR down: no warm-up while its marker is there.
     if !local_mode::is_on(&options.data_dir) {
         Arc::clone(&voice).warm_up();
@@ -228,6 +234,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         hook_token: token,
         mail: Arc::new(mail),
         voice,
+        alfred: Arc::new(alfred),
         pairing_audit: notices.clone(),
     })
     // The active pin is the input of each pending device's SAS. A host that cannot

@@ -99,6 +99,10 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         ("POST", "/v1/workspaces") => Ok(rule(Permission::Respond, Budget::Write)),
         // A voice note is a message in other form: the same permission, the same budget.
         ("POST", "/v1/voice/transcribe") => Ok(rule(Permission::Respond, Budget::Write)),
+        // Which engine answers Alfred: reading is READ_STATE; the switch is the owner's APPROVE
+        // (a button and a confirmation on the phone), never an agent's RESPOND.
+        ("GET", "/v1/alfred/backend") => Ok(rule(Permission::ReadState, Budget::Read)),
+        ("POST", "/v1/alfred/backend") => Ok(rule(Permission::Approve, Budget::Write)),
         // A device names its own push endpoint: a write to its own record only.
         ("POST", "/v1/me/push-endpoint") => Ok(rule(Permission::ReadState, Budget::Write)),
         _ if matches!(device_action, Some("revoke" | "grant")) => {

@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 516781409;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1783688349;
 
 // Section: executor
 
@@ -1275,6 +1275,39 @@ fn wire__crate__api__core_version_impl(
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
                 let output_ok = Ok::<_, ()>(crate::api::core_version())?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__alfred__explain_alfred_backend_error_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "explain_alfred_backend_error",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_status = <u16>::sse_decode(&mut deserializer);
+            let api_body = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::alfred::explain_alfred_backend_error(
+                    api_status, api_body,
+                ))?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -2910,6 +2943,66 @@ fn wire__crate__api__pinned__pinned_request_bytes_impl(
                     std::result::Result::Ok(output_ok)
                 })())
             }
+        },
+    )
+}
+fn wire__crate__api__alfred__plan_alfred_backend_read_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "plan_alfred_backend_read",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::alfred::plan_alfred_backend_read())?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__alfred__plan_alfred_backend_set_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "plan_alfred_backend_set",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_backend = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok =
+                    Ok::<_, ()>(crate::api::alfred::plan_alfred_backend_set(api_backend))?;
+                std::result::Result::Ok(output_ok)
+            })())
         },
     )
 }
@@ -6947,11 +7040,11 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__pinned__pake_pair_impl(port, ptr, rust_vec_len, data_len),
-        74 => wire__crate__api__pinned__pinned_event_lines_impl(port, ptr, rust_vec_len, data_len),
-        75 => wire__crate__api__pinned__pinned_request_impl(port, ptr, rust_vec_len, data_len),
-        76 => {
+        40 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__pinned__pake_pair_impl(port, ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__pinned__pinned_event_lines_impl(port, ptr, rust_vec_len, data_len),
+        76 => wire__crate__api__pinned__pinned_request_impl(port, ptr, rust_vec_len, data_len),
+        77 => {
             wire__crate__api__pinned__pinned_request_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -7069,259 +7162,264 @@ fn pde_ffi_dispatcher_sync_impl(
         }
         25 => wire__crate__api__error__classify_stop_error_impl(ptr, rust_vec_len, data_len),
         26 => wire__crate__api__core_version_impl(ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__approvals__error__explain_approval_failure_impl(
+        27 => {
+            wire__crate__api__alfred__explain_alfred_backend_error_impl(ptr, rust_vec_len, data_len)
+        }
+        28 => wire__crate__api__approvals__error__explain_approval_failure_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__chat__attach_model__explain_attachment_error_impl(
+        29 => wire__crate__api__chat__attach_model__explain_attachment_error_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__error__chat__explain_chat_error_impl(ptr, rust_vec_len, data_len),
-        30 => {
+        30 => wire__crate__api__error__chat__explain_chat_error_impl(ptr, rust_vec_len, data_len),
+        31 => {
             wire__crate__api__error__chat__explain_chat_stop_error_impl(ptr, rust_vec_len, data_len)
         }
-        31 => wire__crate__api__error__explain_create_error_impl(ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__error__explain_error_impl(ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__onboarding__error__explain_hire_error_impl(
+        32 => wire__crate__api__error__explain_create_error_impl(ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__error__explain_error_impl(ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__onboarding__error__explain_hire_error_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__error__explain_http_error_impl(ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__onboarding__error__explain_onboarding_error_impl(
+        35 => wire__crate__api__error__explain_http_error_impl(ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__onboarding__error__explain_onboarding_error_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__error__explain_pairing_error_impl(ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__signing__fingerprint_from_private_impl(ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__signing__generate_device_key_impl(ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__error__chat__local_chat_failure_impl(ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__policy__loopback_allowed_impl(ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__approvals__reducer__new_approval_reducer_impl(
+        37 => wire__crate__api__error__explain_pairing_error_impl(ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__signing__fingerprint_from_private_impl(ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__signing__generate_device_key_impl(ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__error__chat__local_chat_failure_impl(ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__policy__loopback_allowed_impl(ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__approvals__reducer__new_approval_reducer_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__chat__plan__new_chat_client_id_impl(ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__chat__reducer__new_chat_reducer_impl(ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__stream__new_stream_decoder_impl(ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__error__chat__offline_chat_failure_impl(ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__pinned__pairing_sas_impl(ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__approvals__model__parse_approval_inbox_impl(
+        44 => wire__crate__api__chat__plan__new_chat_client_id_impl(ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__chat__reducer__new_chat_reducer_impl(ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__stream__new_stream_decoder_impl(ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__error__chat__offline_chat_failure_impl(ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__pinned__pairing_sas_impl(ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__approvals__model__parse_approval_inbox_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__approvals__model__parse_approval_record_impl(
+        51 => wire__crate__api__approvals__model__parse_approval_record_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__approvals__model__parse_approval_settings_impl(
+        52 => wire__crate__api__approvals__model__parse_approval_settings_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__chat__attach_model__parse_attachment_completed_impl(
+        53 => wire__crate__api__chat__attach_model__parse_attachment_completed_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__chat__attach_model__parse_attachment_created_impl(
+        54 => wire__crate__api__chat__attach_model__parse_attachment_created_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__chat__attach_model__parse_attachment_deleted_impl(
+        55 => wire__crate__api__chat__attach_model__parse_attachment_deleted_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => wire__crate__api__chat__attach_model__parse_attachment_next_offset_impl(
+        56 => wire__crate__api__chat__attach_model__parse_attachment_next_offset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__catalog__parse_catalog_impl(ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__chat__model__parse_chat_bootstrap_impl(ptr, rust_vec_len, data_len),
-        58 => {
+        57 => wire__crate__api__catalog__parse_catalog_impl(ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__chat__model__parse_chat_bootstrap_impl(ptr, rust_vec_len, data_len),
+        59 => {
             wire__crate__api__chat__model__parse_chat_conversation_impl(ptr, rust_vec_len, data_len)
         }
-        59 => wire__crate__api__chat__model__parse_chat_conversations_impl(
+        60 => wire__crate__api__chat__model__parse_chat_conversations_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        60 => wire__crate__api__chat__model__parse_chat_counts_impl(ptr, rust_vec_len, data_len),
-        61 => {
+        61 => wire__crate__api__chat__model__parse_chat_counts_impl(ptr, rust_vec_len, data_len),
+        62 => {
             wire__crate__api__chat__model__parse_chat_delegation_impl(ptr, rust_vec_len, data_len)
         }
-        62 => wire__crate__api__chat__model__parse_chat_event_impl(ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__chat__model__parse_chat_section_impl(ptr, rust_vec_len, data_len),
-        64 => wire__crate__api__chat__model__parse_chat_sections_impl(ptr, rust_vec_len, data_len),
-        65 => wire__crate__api__chat__model__parse_chat_stop_impl(ptr, rust_vec_len, data_len),
-        66 => wire__crate__api__workspace__parse_created_impl(ptr, rust_vec_len, data_len),
-        67 => wire__crate__api__onboarding__model__parse_hire_impl(ptr, rust_vec_len, data_len),
-        68 => wire__crate__api__onboarding__model__parse_hires_impl(ptr, rust_vec_len, data_len),
-        69 => wire__crate__api__onboarding__model__parse_onboarding_answer_impl(
+        63 => wire__crate__api__chat__model__parse_chat_event_impl(ptr, rust_vec_len, data_len),
+        64 => wire__crate__api__chat__model__parse_chat_section_impl(ptr, rust_vec_len, data_len),
+        65 => wire__crate__api__chat__model__parse_chat_sections_impl(ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__chat__model__parse_chat_stop_impl(ptr, rust_vec_len, data_len),
+        67 => wire__crate__api__workspace__parse_created_impl(ptr, rust_vec_len, data_len),
+        68 => wire__crate__api__onboarding__model__parse_hire_impl(ptr, rust_vec_len, data_len),
+        69 => wire__crate__api__onboarding__model__parse_hires_impl(ptr, rust_vec_len, data_len),
+        70 => wire__crate__api__onboarding__model__parse_onboarding_answer_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__pinned__parse_pairing_link_impl(ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__pake_link__parse_pake_link_impl(ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__onboarding__model__parse_role_catalog_impl(
+        71 => wire__crate__api__pinned__parse_pairing_link_impl(ptr, rust_vec_len, data_len),
+        72 => wire__crate__api__pake_link__parse_pake_link_impl(ptr, rust_vec_len, data_len),
+        73 => wire__crate__api__onboarding__model__parse_role_catalog_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        73 => wire__crate__api__state__parse_state_impl(ptr, rust_vec_len, data_len),
-        77 => wire__crate__api__approvals__plan__plan_approval_decision_impl(
+        74 => wire__crate__api__state__parse_state_impl(ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__alfred__plan_alfred_backend_read_impl(ptr, rust_vec_len, data_len),
+        79 => wire__crate__api__alfred__plan_alfred_backend_set_impl(ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__approvals__plan__plan_approval_decision_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => {
+        81 => {
             wire__crate__api__approvals__plan__plan_approval_inbox_impl(ptr, rust_vec_len, data_len)
         }
-        79 => wire__crate__api__approvals__plan__plan_approval_settings_read_impl(
+        82 => wire__crate__api__approvals__plan__plan_approval_settings_read_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => wire__crate__api__approvals__plan__plan_approval_settings_write_impl(
+        83 => wire__crate__api__approvals__plan__plan_approval_settings_write_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        81 => wire__crate__api__chat__attach_plan__plan_attachment_chunk_impl(
+        84 => wire__crate__api__chat__attach_plan__plan_attachment_chunk_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        82 => wire__crate__api__chat__attach_plan__plan_attachment_complete_impl(
+        85 => wire__crate__api__chat__attach_plan__plan_attachment_complete_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        83 => wire__crate__api__chat__attach_plan__plan_attachment_content_impl(
+        86 => wire__crate__api__chat__attach_plan__plan_attachment_content_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        84 => wire__crate__api__chat__attach_plan__plan_attachment_create_impl(
+        87 => wire__crate__api__chat__attach_plan__plan_attachment_create_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        85 => wire__crate__api__chat__attach_plan__plan_attachment_delete_impl(
+        88 => wire__crate__api__chat__attach_plan__plan_attachment_delete_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        86 => wire__crate__api__chat__plan__plan_chat_archive_conversation_impl(
+        89 => wire__crate__api__chat__plan__plan_chat_archive_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        87 => wire__crate__api__chat__plan__plan_chat_bootstrap_impl(ptr, rust_vec_len, data_len),
-        88 => wire__crate__api__chat__plan__plan_chat_cancel_delegation_impl(
+        90 => wire__crate__api__chat__plan__plan_chat_bootstrap_impl(ptr, rust_vec_len, data_len),
+        91 => wire__crate__api__chat__plan__plan_chat_cancel_delegation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        89 => {
+        92 => {
             wire__crate__api__chat__plan__plan_chat_conversations_impl(ptr, rust_vec_len, data_len)
         }
-        90 => wire__crate__api__chat__plan__plan_chat_counts_impl(ptr, rust_vec_len, data_len),
-        91 => wire__crate__api__chat__plan__plan_chat_create_conversation_impl(
+        93 => wire__crate__api__chat__plan__plan_chat_counts_impl(ptr, rust_vec_len, data_len),
+        94 => wire__crate__api__chat__plan__plan_chat_create_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        92 => wire__crate__api__chat__plan__plan_chat_delegation_impl(ptr, rust_vec_len, data_len),
-        93 => wire__crate__api__chat__plan__plan_chat_delete_conversation_impl(
+        95 => wire__crate__api__chat__plan__plan_chat_delegation_impl(ptr, rust_vec_len, data_len),
+        96 => wire__crate__api__chat__plan__plan_chat_delete_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        94 => wire__crate__api__chat__plan__plan_chat_messages_impl(ptr, rust_vec_len, data_len),
-        95 => wire__crate__api__chat__plan__plan_chat_move_conversation_impl(
+        97 => wire__crate__api__chat__plan__plan_chat_messages_impl(ptr, rust_vec_len, data_len),
+        98 => wire__crate__api__chat__plan__plan_chat_move_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => wire__crate__api__chat__plan__plan_chat_pin_conversation_impl(
+        99 => wire__crate__api__chat__plan__plan_chat_pin_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        97 => wire__crate__api__chat__plan__plan_chat_read_impl(ptr, rust_vec_len, data_len),
-        98 => wire__crate__api__chat__plan__plan_chat_rename_conversation_impl(
+        100 => wire__crate__api__chat__plan__plan_chat_read_impl(ptr, rust_vec_len, data_len),
+        101 => wire__crate__api__chat__plan__plan_chat_rename_conversation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        99 => wire__crate__api__chat__plan__plan_chat_section_impl(ptr, rust_vec_len, data_len),
-        100 => wire__crate__api__chat__plan__plan_chat_sections_impl(ptr, rust_vec_len, data_len),
-        101 => wire__crate__api__chat__plan__plan_chat_send_impl(ptr, rust_vec_len, data_len),
-        102 => wire__crate__api__chat__attach_plan__plan_chat_send_with_attachments_impl(
+        102 => wire__crate__api__chat__plan__plan_chat_section_impl(ptr, rust_vec_len, data_len),
+        103 => wire__crate__api__chat__plan__plan_chat_sections_impl(ptr, rust_vec_len, data_len),
+        104 => wire__crate__api__chat__plan__plan_chat_send_impl(ptr, rust_vec_len, data_len),
+        105 => wire__crate__api__chat__attach_plan__plan_chat_send_with_attachments_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        103 => wire__crate__api__chat__plan__plan_chat_stop_impl(ptr, rust_vec_len, data_len),
-        104 => wire__crate__api__chat__plan__plan_chat_timeline_impl(ptr, rust_vec_len, data_len),
-        105 => wire__crate__api__workspace__plan_create_impl(ptr, rust_vec_len, data_len),
-        106 => wire__crate__api__mail__plan_draft_confirm_impl(ptr, rust_vec_len, data_len),
-        107 => wire__crate__api__mail__plan_draft_send_impl(ptr, rust_vec_len, data_len),
-        108 => wire__crate__api__mail__plan_draft_update_impl(ptr, rust_vec_len, data_len),
-        109 => wire__crate__api__onboarding__plan__plan_hire_impl(ptr, rust_vec_len, data_len),
-        110 => {
+        106 => wire__crate__api__chat__plan__plan_chat_stop_impl(ptr, rust_vec_len, data_len),
+        107 => wire__crate__api__chat__plan__plan_chat_timeline_impl(ptr, rust_vec_len, data_len),
+        108 => wire__crate__api__workspace__plan_create_impl(ptr, rust_vec_len, data_len),
+        109 => wire__crate__api__mail__plan_draft_confirm_impl(ptr, rust_vec_len, data_len),
+        110 => wire__crate__api__mail__plan_draft_send_impl(ptr, rust_vec_len, data_len),
+        111 => wire__crate__api__mail__plan_draft_update_impl(ptr, rust_vec_len, data_len),
+        112 => wire__crate__api__onboarding__plan__plan_hire_impl(ptr, rust_vec_len, data_len),
+        113 => {
             wire__crate__api__onboarding__plan__plan_hire_avatar_impl(ptr, rust_vec_len, data_len)
         }
-        111 => {
+        114 => {
             wire__crate__api__onboarding__plan__plan_hire_dismiss_impl(ptr, rust_vec_len, data_len)
         }
-        112 => {
+        115 => {
             wire__crate__api__onboarding__plan__plan_hire_rename_impl(ptr, rust_vec_len, data_len)
         }
-        113 => wire__crate__api__onboarding__plan__plan_hires_impl(ptr, rust_vec_len, data_len),
-        114 => wire__crate__api__onboarding__plan__plan_onboarding_contract_impl(
+        116 => wire__crate__api__onboarding__plan__plan_hires_impl(ptr, rust_vec_len, data_len),
+        117 => wire__crate__api__onboarding__plan__plan_onboarding_contract_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        115 => wire__crate__api__onboarding__plan__plan_onboarding_read_impl(
+        118 => wire__crate__api__onboarding__plan__plan_onboarding_read_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        116 => wire__crate__api__onboarding__plan__plan_onboarding_skip_impl(
+        119 => wire__crate__api__onboarding__plan__plan_onboarding_skip_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        117 => wire__crate__api__onboarding__plan__plan_roles_impl(ptr, rust_vec_len, data_len),
-        118 => wire__crate__api__write__plan_stop_impl(ptr, rust_vec_len, data_len),
-        119 => wire__crate__api__write__plan_write_impl(ptr, rust_vec_len, data_len),
-        120 => wire__crate__api__signing__public_key_from_private_impl(ptr, rust_vec_len, data_len),
-        121 => wire__crate__api__signing__sign_request_impl(ptr, rust_vec_len, data_len),
-        122 => {
+        120 => wire__crate__api__onboarding__plan__plan_roles_impl(ptr, rust_vec_len, data_len),
+        121 => wire__crate__api__write__plan_stop_impl(ptr, rust_vec_len, data_len),
+        122 => wire__crate__api__write__plan_write_impl(ptr, rust_vec_len, data_len),
+        123 => wire__crate__api__signing__public_key_from_private_impl(ptr, rust_vec_len, data_len),
+        124 => wire__crate__api__signing__sign_request_impl(ptr, rust_vec_len, data_len),
+        125 => {
             wire__crate__api__chat__attach_upload__upload_accepted_impl(ptr, rust_vec_len, data_len)
         }
-        123 => wire__crate__api__chat__attach_upload__upload_next_impl(ptr, rust_vec_len, data_len),
-        124 => {
+        126 => wire__crate__api__chat__attach_upload__upload_next_impl(ptr, rust_vec_len, data_len),
+        127 => {
             wire__crate__api__chat__attach_upload__upload_progress_impl(ptr, rust_vec_len, data_len)
         }
-        125 => {
+        128 => {
             wire__crate__api__chat__attach_upload__upload_refused_impl(ptr, rust_vec_len, data_len)
         }
-        126 => {
+        129 => {
             wire__crate__api__chat__attach_upload__upload_start_impl(ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
