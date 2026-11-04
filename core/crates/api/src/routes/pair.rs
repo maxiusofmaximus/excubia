@@ -14,6 +14,7 @@ use hn_core_auth::{is_host_owner, tailnet_owner_of, Class, Curve, Device};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use crate::audit::AuditEvent;
 use crate::error::ApiError;
 use crate::routes::devices::device_sas;
 use crate::routes::parse_body;
@@ -207,6 +208,8 @@ pub(super) fn audit(
     let mut attempt = PairingAttempt::new(outcome, via, device_id, label, source_ip);
     attempt.sas = sas;
     ctx.pairing_audit.record(&attempt);
+    ctx.audit
+        .record(&AuditEvent::new("pair", device_id, outcome.name()).with("via", via.name()));
 }
 
 /// Uniform refusal for a supplied code: the caller is never told which check

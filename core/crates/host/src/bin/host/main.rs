@@ -18,6 +18,11 @@ use daemon::run;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Before the arguments are read: an explicit `--data-dir` keeps its folder and is never moved.
+    if !std::env::args().any(|arg| arg == "--data-dir") {
+        hn_core_host::paths::migrate_default_data_dir();
+        hn_core_mail::config::migrate_default_dir();
+    }
     let command = cli::parse(std::env::args().skip(1))
         .map_err(|error| anyhow::anyhow!("{error}\n\n{}", cli::USAGE))?;
     match command {
@@ -39,6 +44,12 @@ async fn main() -> Result<()> {
         Command::Strata { command, data_dir } => hn_core_host::strata::run(command, &data_dir),
         Command::Alfred { command, data_dir } => {
             hn_core_host::alfred_backend::run(command, &data_dir)
+        }
+        Command::AuditTail { n, data_dir } => {
+            for line in hn_core_host::audit::tail_lines(&data_dir, n) {
+                println!("{line}");
+            }
+            Ok(())
         }
         Command::Run(options) => run(options).await,
     }

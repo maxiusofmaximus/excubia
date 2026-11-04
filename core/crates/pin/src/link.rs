@@ -1,8 +1,11 @@
 //! The pairing link the host prints and a device reads (the QR payload).
 //!
 //! ```text
-//! herdr-notify://pair?v=1&c=<code>&h=<pin>[&b=<pin>]&a=<ip:port>...&e=<unix>
+//! excubia://pair?v=1&c=<code>&h=<pin>[&b=<pin>]&a=<ip:port>...&e=<unix>
 //! ```
+//!
+//! The links printed before the rename use `herdr-notify://`: they are still
+//! read, never written.
 //!
 //! `c` is the single-use enrollment code, `h` the primary pin, `b` the backup
 //! pin when a rotation is prepared, `a` each LAN candidate and `e` the code's
@@ -18,7 +21,9 @@ use std::net::SocketAddr;
 
 use crate::{Fingerprint, PinError, PinSet};
 
-pub const LINK_PREFIX: &str = "herdr-notify://pair?";
+pub const LINK_PREFIX: &str = "excubia://pair?";
+/// The scheme of the links printed before the rename: read, never written.
+pub const LEGACY_LINK_PREFIX: &str = "herdr-notify://pair?";
 pub const LINK_VERSION: u32 = 1;
 const MAX_CODE_CHARS: usize = 64;
 pub const PAKE_LINK_VERSION: u32 = 2;
@@ -53,9 +58,7 @@ impl PairingLink {
     }
 
     pub fn parse(uri: &str) -> Result<Self, PinError> {
-        let query = uri
-            .strip_prefix(LINK_PREFIX)
-            .ok_or_else(|| malformed("not a herdr-notify pairing link"))?;
+        let query = query_of(uri)?;
         let mut fields = Fields::default();
         for pair in query.split('&') {
             let (key, value) = pair
@@ -141,7 +144,14 @@ fn malformed(reason: &str) -> PinError {
     PinError::MalformedLink(reason.to_string())
 }
 
-/// The v2 link: `herdr-notify://pair?v=2&c=<8 chars>&h=<pin>&e=<unix>`. The code is a live secret, so is the URI.
+/// The query of a pairing link under either scheme; any other scheme is refused.
+fn query_of(uri: &str) -> Result<&str, PinError> {
+    uri.strip_prefix(LINK_PREFIX)
+        .or_else(|| uri.strip_prefix(LEGACY_LINK_PREFIX))
+        .ok_or_else(|| malformed("not an excubia pairing link"))
+}
+
+/// The v2 link: `excubia://pair?v=2&c=<8 chars>&h=<pin>&e=<unix>`. The code is a live secret, so is the URI.
 #[derive(Clone, PartialEq, Eq)]
 pub struct PakeLink {
     pub code: String,
@@ -174,9 +184,7 @@ impl PakeLink {
     }
 
     pub fn parse(uri: &str) -> Result<Self, PinError> {
-        let query = uri
-            .strip_prefix(LINK_PREFIX)
-            .ok_or_else(|| malformed("not a herdr-notify pairing link"))?;
+        let query = query_of(uri)?;
         let (mut version, mut code, mut host, mut expires) = (None, None, None, None);
         for pair in query.split('&') {
             let (key, value) = pair
@@ -264,6 +272,22 @@ mod tests {
             Err(PinError::MalformedLink(_))
         ));
         assert!(PairingLink::parse("https://example.com/pair?v=1").is_err());
+    }
+
+    #[test]
+    fn both_schemes_parse_but_only_the_new_one_is_written() {
+        let link = sample();
+        let uri = link.to_uri();
+        assert!(uri.starts_with("excubia://pair?v=1&"), "{uri}");
+        let legacy = uri.replacen("excubia://", "herdr-notify://", 1);
+        assert_eq!(PairingLink::parse(&legacy).expect("legacy parse"), link);
+        for scheme in ["herdr://pair?", "excubia-x://pair?", "EXCUBIA://pair?"] {
+            let other = uri.replacen("excubia://pair?", scheme, 1);
+            assert!(
+                matches!(PairingLink::parse(&other), Err(PinError::MalformedLink(_))),
+                "{scheme}"
+            );
+        }
     }
 
     #[test]

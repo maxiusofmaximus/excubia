@@ -204,6 +204,8 @@ pub fn normalize_device_label(value: &str) -> String {
 pub trait IdentityStore: Send + Sync {
     fn load(&self) -> Result<Option<DeviceIdentity>>;
     fn save(&self, identity: &DeviceIdentity) -> Result<()>;
+    /// Forgets the stored identity; an entry that is already gone is not an error.
+    fn remove(&self) -> Result<()>;
 }
 
 #[cfg(feature = "os-keyring")]
@@ -242,6 +244,13 @@ impl IdentityStore for KeyringIdentityStore {
             .set_password(&identity.stored_json()?)
             .map_err(|error| CoreError::SecureStore(error.to_string()))
     }
+
+    fn remove(&self) -> Result<()> {
+        match self.entry()?.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(error) => Err(CoreError::SecureStore(error.to_string())),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -261,6 +270,11 @@ impl IdentityStore for MemoryIdentityStore {
 
     fn save(&self, identity: &DeviceIdentity) -> Result<()> {
         *self.value.lock().unwrap() = Some(identity.stored_json()?);
+        Ok(())
+    }
+
+    fn remove(&self) -> Result<()> {
+        *self.value.lock().unwrap() = None;
         Ok(())
     }
 }

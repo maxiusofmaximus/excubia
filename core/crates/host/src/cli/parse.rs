@@ -44,6 +44,10 @@ pub fn parse(args: impl Iterator<Item = String>) -> Result<Command, String> {
             args.next();
             super::alfred::alfred(args)
         }
+        Some("audit") => {
+            args.next();
+            super::audit::audit(args)
+        }
         _ => run(args),
     }
 }

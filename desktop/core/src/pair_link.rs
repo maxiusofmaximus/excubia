@@ -1,4 +1,5 @@
-//! The pairing link a host prints (`herdr-notify://pair?...`). The desktop
+//! The pairing link a host prints (`excubia://pair?...`, or the older
+//! `herdr-notify://pair?...` that `hn_core_pin` still reads). The desktop
 //! checks it before it dials: a known version, a pin of the right shape and an
 //! unexpired code. The pin then decides which host answers.
 
@@ -100,7 +101,7 @@ fn invalid(error: PinError) -> CoreError {
 mod tests {
     use super::*;
 
-    const LINK: &str = "herdr-notify://pair?v=1&c=ABCD-2345&h=-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI&a=192.168.1.20:8443&e=2000";
+    const LINK: &str = "excubia://pair?v=1&c=ABCD-2345&h=-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI&a=192.168.1.20:8443&e=2000";
 
     #[test]
     fn a_current_link_parses_into_its_pins_and_addresses() {
@@ -108,6 +109,24 @@ mod tests {
         assert_eq!(link.code, "ABCD-2345");
         assert_eq!(link.addresses, vec!["192.168.1.20:8443".parse().unwrap()]);
         assert!(link.pins.backup().is_none());
+    }
+
+    #[test]
+    fn a_link_printed_before_the_rename_still_parses() {
+        let legacy = LINK.replace("excubia://", "herdr-notify://");
+        let link = PairLink::parse(&legacy, 1000).expect("parses");
+        assert_eq!(link.code, "ABCD-2345");
+    }
+
+    #[test]
+    fn a_link_with_any_other_scheme_is_refused() {
+        for scheme in ["herdr://", "excubia-x://", "EXCUBIA://"] {
+            let uri = LINK.replace("excubia://", scheme);
+            assert!(
+                matches!(PairLink::parse(&uri, 1000), Err(CoreError::LinkInvalid(_))),
+                "{scheme} must be refused"
+            );
+        }
     }
 
     #[test]

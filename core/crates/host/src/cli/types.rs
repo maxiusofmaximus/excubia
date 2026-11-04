@@ -106,6 +106,11 @@ pub enum Command {
         command: AlfredCommand,
         data_dir: PathBuf,
     },
+    /// `host audit tail [--n N]`: the last N events of the audit log, readable.
+    AuditTail {
+        n: usize,
+        data_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

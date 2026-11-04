@@ -46,6 +46,7 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
         pairing_audit: Arc::new(hn_core_host::pairing_audit::JsonlPairingAudit::new(
             &host.data_dir,
         )),
+        audit: Arc::new(hn_core_host::audit::AuditLog::new(&host.data_dir)),
     });
     (addr, tokio::spawn(serve_client(listener, context)))
 }

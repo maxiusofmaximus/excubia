@@ -33,6 +33,32 @@ pub enum PairVia {
     Pake,
 }
 
+impl PairOutcome {
+    /// The name the pairing audit writes, also used by the action log.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Paired => "paired",
+            Self::Recovered => "recovered",
+            Self::Rejected => "rejected",
+            Self::Granted => "granted",
+            Self::PakeStarted => "pake_started",
+            Self::PakeFailed => "pake_failed",
+        }
+    }
+}
+
+impl PairVia {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Code => "code",
+            Self::Recovery => "recovery",
+            Self::Tailnet => "tailnet",
+            Self::Admin => "admin",
+            Self::Pake => "pake",
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct PairingAttempt {
     /// Unix seconds.

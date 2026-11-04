@@ -20,13 +20,30 @@ fn a_v2_link_round_trips_in_the_documented_shape() {
     let uri = link.to_uri();
     assert_eq!(
         uri,
-        format!(
-            "herdr-notify://pair?v=2&c=ABCD2345&h={}&e=1730000180",
-            link.host
-        )
+        format!("excubia://pair?v=2&c=ABCD2345&h={}&e=1730000180", link.host)
     );
     assert!(uri.len() < 120, "{} bytes", uri.len());
     assert_eq!(PakeLink::parse(&uri).expect("parse"), link);
+}
+
+#[test]
+fn the_old_scheme_is_read_and_the_new_one_is_written() {
+    let link = sample();
+    let legacy = link.to_uri().replacen("excubia://", "herdr-notify://", 1);
+    assert_eq!(PakeLink::parse(&legacy).expect("legacy parse"), link);
+    assert!(link.to_uri().starts_with("excubia://pair?v=2&"));
+}
+
+#[test]
+fn an_unknown_scheme_is_refused_like_any_other_foreign_link() {
+    let uri = sample().to_uri();
+    for scheme in ["herdr://pair?", "excubia-x://pair?", "https://pair?"] {
+        let other = uri.replacen("excubia://pair?", scheme, 1);
+        assert!(
+            matches!(refused(&other), PinError::MalformedLink(_)),
+            "{scheme}"
+        );
+    }
 }
 
 #[test]

@@ -9,6 +9,7 @@
 //! host devices revoke <id>            revoke one device
 //! host devices grant <id> -p <perm>   grant one permission (host-side act)
 //! host devices recovery <id>          rotate and print a recovery code (once)
+//! host audit tail [--n 50]            the last events of the audit log
 //! ```
 //!
 //! Every subcommand accepts `--data-dir DIR`; the daemon also accepts
@@ -16,6 +17,7 @@
 //! `--snapshot-lines`, `--workspaces-root` (where projects live, by default
 //! `<data-dir>/workspaces`) and repeatable `--spawn "<command line>"`.
 mod alfred;
+mod audit;
 mod devices;
 mod pairing;
 mod parse;

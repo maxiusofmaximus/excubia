@@ -125,10 +125,10 @@ mod tests {
         assert_eq!((armed.code.as_str(), armed.expires_in), ("ABCDEFGH", 180));
         assert_eq!(armed.uri, None, "a daemon before F3a sends no uri");
         let armed = parse_answer(
-            "HTTP/1.1 200 OK\r\n\r\n{\"code\":\"ABCDEFGH\",\"expires_in\":180,\"uri\":\"herdr-notify://pair?v=2\"}",
+            "HTTP/1.1 200 OK\r\n\r\n{\"code\":\"ABCDEFGH\",\"expires_in\":180,\"uri\":\"excubia://pair?v=2\"}",
         )
         .expect("answer");
-        assert_eq!(armed.uri.as_deref(), Some("herdr-notify://pair?v=2"));
+        assert_eq!(armed.uri.as_deref(), Some("excubia://pair?v=2"));
     }
 
     #[test]

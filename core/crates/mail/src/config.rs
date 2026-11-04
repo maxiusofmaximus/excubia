@@ -4,6 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
+use hn_core_persist::migrate::{adopt_dir, chosen_dir};
 use serde::Deserialize;
 
 use crate::auth::assert_scopes_safe;
@@ -98,33 +99,54 @@ impl MailConfig {
 
 /// `EXCUBIA_DATA_DIR`, then the platform data directory, then a local folder:
 /// a host that does not configure the path still gets a private directory.
+/// Until [`migrate_default_dir`] moves it, the old folder is read.
 fn default_accounts_dir() -> PathBuf {
     if let Some(dir) = std::env::var_os("EXCUBIA_DATA_DIR") {
         return PathBuf::from(dir).join("mail").join("accounts");
     }
+    let (new, old) = mail_dirs().unwrap_or_else(|| {
+        (
+            PathBuf::from(".excubia").join("mail"),
+            PathBuf::from(".herdr-notify").join("mail"),
+        )
+    });
+    chosen_dir(&new, &old).join("accounts")
+}
+
+/// The mail folder under its new name and under the old one, on this platform.
+fn mail_dirs() -> Option<(PathBuf, PathBuf)> {
     #[cfg(windows)]
     if let Some(dir) = std::env::var_os("LOCALAPPDATA") {
-        return PathBuf::from(dir)
-            .join("herdr-notify")
-            .join("mail")
-            .join("accounts");
+        return Some(mail_dirs_under(PathBuf::from(dir)));
     }
     #[cfg(not(windows))]
     {
         if let Some(dir) = std::env::var_os("XDG_DATA_HOME") {
-            return PathBuf::from(dir)
-                .join("herdr-notify")
-                .join("mail")
-                .join("accounts");
+            return Some(mail_dirs_under(PathBuf::from(dir)));
         }
         if let Some(home) = std::env::var_os("HOME") {
-            return PathBuf::from(home)
-                .join(".local")
-                .join("share")
-                .join("herdr-notify")
-                .join("mail")
-                .join("accounts");
+            return Some(mail_dirs_under(
+                PathBuf::from(home).join(".local").join("share"),
+            ));
         }
     }
-    PathBuf::from(".herdr-notify").join("mail").join("accounts")
+    None
+}
+
+fn mail_dirs_under(base: PathBuf) -> (PathBuf, PathBuf) {
+    (
+        base.join("excubia").join("mail"),
+        base.join("herdr-notify").join("mail"),
+    )
+}
+
+/// Moves the default mail folder to its new name, once. The host calls it at
+/// start-up, unless `--data-dir` or `EXCUBIA_DATA_DIR` names the data.
+pub fn migrate_default_dir() {
+    if std::env::var_os("EXCUBIA_DATA_DIR").is_some() {
+        return;
+    }
+    if let Some((new, old)) = mail_dirs() {
+        adopt_dir(&new, &old);
+    }
 }

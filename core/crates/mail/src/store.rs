@@ -136,18 +136,23 @@ mod windows_key {
 
     use super::{key_from_bytes, random_bytes, store_error, KeySource, KEY_BYTES};
     use crate::error::MailError;
+    use crate::master_key::adopt_master_key;
 
-    const TARGET: &str = "herdr-notify/mail-master-key";
+    const TARGET: &str = "excubia/mail-master-key";
+    /// The name before the rename; its key is moved to `TARGET` once.
+    const LEGACY_TARGET: &str = "herdr-notify/mail-master-key";
 
     /// The Windows secret store that holds the master key.
     pub struct CredentialKey {
         store: CredentialManager,
+        legacy: CredentialManager,
     }
 
     impl CredentialKey {
         pub fn new() -> Self {
             Self {
                 store: CredentialManager::new(TARGET),
+                legacy: CredentialManager::new(LEGACY_TARGET),
             }
         }
     }
@@ -160,7 +165,7 @@ mod windows_key {
 
     impl KeySource for CredentialKey {
         fn master_key(&self) -> Result<[u8; KEY_BYTES], MailError> {
-            if let Some(raw) = self.store.read().map_err(store_error)? {
+            if let Some(raw) = adopt_master_key(&self.store, &self.legacy).map_err(store_error)? {
                 return key_from_bytes(&raw);
             }
             let key = random_bytes::<KEY_BYTES>()?;

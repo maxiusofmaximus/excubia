@@ -27,6 +27,7 @@ use hn_core_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig,
 use hn_core_auth::{DeviceStore, Permission};
 use hn_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
 use hn_core_host::alfred_switch::{Engine, Switch};
+use hn_core_host::audit::AuditLog;
 use hn_core_host::mail_api::MailLogins;
 use hn_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
 use hn_core_host::mail_tools::{MailTools, LEDGER_FILE};
@@ -479,6 +480,7 @@ impl TestHost {
             voice: Arc::new(VoiceService::new(voice)),
             alfred: Arc::clone(&alfred) as Arc<dyn AlfredBackend>,
             pairing_audit: notices,
+            audit: Arc::new(AuditLog::new(&data_dir)),
         })
         .with_host_pin(Some(host_pin));
         let pake_slot = Arc::clone(&context.pake_slot);

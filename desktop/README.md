@@ -90,8 +90,9 @@ The desktop app lives in this worktree: a Tauri 2 shell that hosts the Rust
 `scripts\build-host.ps1` (the daemon and `hn-mcp`, which Alfred needs) and the
 app with `pnpm dlx @tauri-apps/cli@latest build` or, for a development run,
 `cargo build -p herdr-notify-desktop`. Data goes to
-`%APPDATA%\dev.herdrnotify.desktop\core` and the host log to
-`%LOCALAPPDATA%\dev.herdrnotify.desktop\logs\host.log`.
+`%APPDATA%\dev.excubia.desktop\core` and the host log to
+`%LOCALAPPDATA%\dev.excubia.desktop\logs\host.log`. The folders of the old
+name (`dev.herdrnotify.desktop`) are moved there on the first start.
 
 The first screen is the chat with Alfred (three zones: history, conversation
 and a collapsible team panel). **Equipo** is one tap away and keeps the agent
@@ -102,7 +103,7 @@ chat flow with the simulated CLI.
 
 ### Emparejar con un host por enlace (CORE11B)
 
-Pega en la pantalla de emparejamiento el enlace `herdr-notify://pair?…` que
+Pega en la pantalla de emparejamiento el enlace `excubia://pair?…` que
 imprime `host pair-code --lan`. Trae la huella SPKI del certificado del host
 (`h=`, y `b=` si hay respaldo): el Desktop solo completa el emparejamiento si
 el host presenta un certificado que coincide, por TLS 1.3 con pin. Un host

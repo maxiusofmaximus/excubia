@@ -38,7 +38,7 @@ class _PasteLinkDialogState extends State<_PasteLinkDialog> {
         minLines: 1,
         maxLines: 4,
         style: context.text.mono,
-        decoration: const InputDecoration(hintText: 'herdr-notify://pair?'),
+        decoration: const InputDecoration(hintText: 'excubia://pair?'),
       ),
       actions: [
         TextButton(

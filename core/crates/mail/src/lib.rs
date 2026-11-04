@@ -33,6 +33,7 @@ mod ledger;
 mod ledger_question;
 mod ledger_send;
 mod markup;
+mod master_key;
 pub mod mover;
 pub mod paths;
 mod private;

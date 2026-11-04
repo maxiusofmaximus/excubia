@@ -3,11 +3,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use super::{lock, AppState};
+use crate::app_folders::{local_dir, roaming_dir};
 use crate::host_process::{self, HostConfig, HostEvent};
 use crate::lan;
 
@@ -122,11 +123,7 @@ impl AppState {
 pub fn host_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     match super::profile_root() {
         Some(root) => Ok(root.join("core")),
-        None => app
-            .path()
-            .app_data_dir()
-            .map(|directory| directory.join("core"))
-            .map_err(|error| error.to_string()),
+        None => roaming_dir(app).map(|directory| directory.join("core")),
     }
 }
 
@@ -146,10 +143,7 @@ fn host_config_for(app: &AppHandle, lan_bind: Option<SocketAddr>) -> Result<Host
     crate::agents_seed::seed_for_env(&data_dir);
     let log_dir = match super::profile_root() {
         Some(root) => root.join("logs"),
-        None => app
-            .path()
-            .app_log_dir()
-            .map_err(|error| error.to_string())?,
+        None => local_dir(app)?.join("logs"),
     };
     let log_path = log_dir.join("host.log");
     let mut args = vec![

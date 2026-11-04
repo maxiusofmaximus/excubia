@@ -1,7 +1,7 @@
 import { $, invoke, setBusy } from "./core.js";
 import { errorMessage } from "./format.js";
 
-/// The link form: a `herdr-notify://pair?…` link pasted from the host. The core
+/// The link form: an `excubia://pair?…` link pasted from the host. The core
 /// checks its version and expiry, then pairs only with the host whose
 /// certificate matches the pin in the link.
 export function installLinkForm(onPaired) {

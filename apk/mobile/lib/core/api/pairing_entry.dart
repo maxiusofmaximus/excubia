@@ -90,12 +90,15 @@ String _pakeReason(rust.PinnedFailure? failure) =>
     ? 'Este código QR es de una versión más nueva; actualiza la app.'
     : 'El QR no es válido. Genera otro en el PC.';
 
+bool _isPairLink(String text) => PairingQrPayload.schemes.any(
+  (scheme) => text.startsWith('$scheme://pair?'),
+);
+
 bool _isPakeLink(String text) =>
-    text.startsWith('${PairingQrPayload.scheme}://pair?') &&
-    Uri.tryParse(text)?.queryParameters['v'] == '2';
+    _isPairLink(text) && Uri.tryParse(text)?.queryParameters['v'] == '2';
 
 bool _isPinnedLink(String text) =>
-    text.startsWith('${PairingQrPayload.scheme}://pair?') &&
+    _isPairLink(text) &&
     (Uri.tryParse(text)?.queryParameters.containsKey('h') ?? false);
 
 String _linkReason(rust.PinnedFailure? failure) => switch (failure?.kind) {

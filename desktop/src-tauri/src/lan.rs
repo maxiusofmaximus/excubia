@@ -87,9 +87,9 @@ mod tests {
 
     #[test]
     fn the_link_line_is_found_in_the_host_output() {
-        let stdout = "pairing code: ABCD-2345\nsingle use\npairing link: herdr-notify://pair?v=1&c=ABCD-2345&h=-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI&a=192.168.1.20:8443&e=4102444800\ndata dir: x\n";
+        let stdout = "pairing code: ABCD-2345\nsingle use\npairing link: excubia://pair?v=1&c=ABCD-2345&h=-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI&a=192.168.1.20:8443&e=4102444800\ndata dir: x\n";
         let link = pair_link_from(stdout).expect("link");
-        assert!(link.starts_with("herdr-notify://pair?v=1&c=ABCD-2345"));
+        assert!(link.starts_with("excubia://pair?v=1&c=ABCD-2345"));
     }
 
     const PIN: &str = "-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI";
@@ -98,7 +98,7 @@ mod tests {
         format!(
             "código de emparejamiento: ABCD2345
 válido 180 s (un solo uso)
-pairing uri: herdr-notify://pair?v=2&c=ABCD2345&h={PIN}&e={expires}
+pairing uri: excubia://pair?v=2&c=ABCD2345&h={PIN}&e={expires}
 "
         )
     }
@@ -106,7 +106,7 @@ pairing uri: herdr-notify://pair?v=2&c=ABCD2345&h={PIN}&e={expires}
     #[test]
     fn the_pake_uri_line_is_found_among_three_lines() {
         let (uri, expires) = pake_uri_from(&pake_output(4_102_444_800)).expect("uri");
-        assert!(uri.starts_with("herdr-notify://pair?v=2&c=ABCD2345"));
+        assert!(uri.starts_with("excubia://pair?v=2&c=ABCD2345"));
         assert_eq!(expires, 4_102_444_800);
     }
 
@@ -121,8 +121,10 @@ pairing uri: herdr-notify://pair?v=2&c=ABCD2345&h={PIN}&e={expires}
 
     #[test]
     fn a_v1_uri_with_an_address_is_not_a_pake_uri() {
-        let stdout = format!("pairing uri: herdr-notify://pair?v=1&c=ABCD2345&h={PIN}&a=192.168.1.20:8443&e=4102444800
-");
+        let stdout = format!(
+            "pairing uri: excubia://pair?v=1&c=ABCD2345&h={PIN}&a=192.168.1.20:8443&e=4102444800
+"
+        );
         assert!(pake_uri_from(&stdout).is_err());
     }
 
@@ -130,7 +132,7 @@ pairing uri: herdr-notify://pair?v=2&c=ABCD2345&h={PIN}&e={expires}
     fn an_expired_pake_uri_is_an_error_and_the_error_hides_the_uri() {
         let error = pake_uri_from(&pake_output(1)).unwrap_err();
         assert!(
-            !error.contains("ABCD2345") && !error.contains("herdr-notify"),
+            !error.contains("ABCD2345") && !error.contains("excubia://"),
             "{error}"
         );
         let error = pake_uri_from(&pake_output(4_102_444_800).replace("v=2", "v=1")).unwrap_err();
@@ -162,7 +164,7 @@ pairing uri: herdr-notify://pair?v=2&c=ABCD2345&h={PIN}&e={expires}
 
     #[test]
     fn the_qr_is_an_svg_document() {
-        let svg = qr_svg("herdr-notify://pair?v=1").expect("qr");
+        let svg = qr_svg("excubia://pair?v=1").expect("qr");
         assert!(
             svg.starts_with("<?xml") || svg.contains("<svg"),
             "{svg:.80}"

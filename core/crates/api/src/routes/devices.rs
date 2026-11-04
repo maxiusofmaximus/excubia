@@ -13,6 +13,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use super::parse_body;
+use crate::audit::AuditEvent;
 use crate::error::ApiError;
 use crate::{ApiContext, PairOutcome, PairVia, PairingAttempt, PeerAddr};
 
@@ -101,6 +102,11 @@ pub async fn grant_device(
         .map(|permission| permission.label().to_string())
         .collect();
     ctx.pairing_audit.record(&attempt);
+    ctx.audit.record(
+        &AuditEvent::new("devices.grant", Some(&granted.device_id), "granted")
+            .with("by", attempt.granted_by.clone().unwrap_or_default())
+            .with("permissions", attempt.permissions.join(",")),
+    );
     Json(json!(granted.to_public())).into_response()
 }
 
@@ -142,12 +148,17 @@ fn parse_permissions(labels: &[String]) -> Result<Vec<Permission>, ApiError> {
 /// holds closes at once. Revocation marks rather than deletes.
 pub async fn revoke_device(
     State(ctx): State<ApiContext>,
+    Extension(verified): Extension<VerifiedDevice>,
     Path(device_id): Path<String>,
 ) -> Response {
     match ctx.devices.revoke(&device_id) {
         Ok(true) => {
             // Streams watch this channel so a revoke closes them immediately.
             let _ = ctx.revocations.send(device_id.clone());
+            ctx.audit.record(
+                &AuditEvent::new("devices.revoke", Some(&device_id), "revoked")
+                    .with("by", verified.device_id),
+            );
             Json(json!({"ok": true, "device_id": device_id, "revoked": true})).into_response()
         }
         Ok(false) => ApiError::no_such_device().into_response(),

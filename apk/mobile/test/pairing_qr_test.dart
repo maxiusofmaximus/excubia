@@ -63,11 +63,32 @@ void main() {
     );
   });
 
+  test('both the new and the pre-rename scheme are read', () {
+    final fresh = valid(
+      'excubia://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=ABCD1234&v=1',
+    );
+    final legacy = valid(
+      'herdr-notify://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=ABCD1234&v=1',
+    );
+    expect(fresh.baseUrl, legacy.baseUrl);
+    expect(fresh.code, legacy.code);
+  });
+
   test('a foreign scheme is refused', () {
     expect(
       reason('https://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=C&v=1'),
       contains('Excubia'),
     );
+  });
+
+  test('a scheme that only looks like ours is refused', () {
+    for (final scheme in ['excubia-x', 'EXCUBIA-X', 'herdr']) {
+      expect(
+        reason('$scheme://pair?u=http%3A%2F%2F100.64.0.1%3A8788&c=C&v=1'),
+        contains('Excubia'),
+        reason: scheme,
+      );
+    }
   });
 
   test('a foreign host is refused', () {

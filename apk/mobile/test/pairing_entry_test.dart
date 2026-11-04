@@ -20,6 +20,29 @@ void main() {
     expect(link.addresses, ['127.0.0.1:8443']);
   });
 
+  test('the excubia scheme reads both the pinned and the v2 link', () {
+    final expires = nowSeconds() + 600;
+    final pinned = parsePairingEntry(
+      pinnedLink(expiresAt: expires).replaceFirst('herdr-notify:', 'excubia:'),
+    );
+    final pake = parsePairingEntry(
+      pakeLink(expiresAt: expires).replaceFirst('herdr-notify:', 'excubia:'),
+    );
+
+    expect(pinned, isA<PairingEntryPinned>());
+    expect(pake, isA<PairingEntryPake>());
+  });
+
+  test('a scheme that only looks like ours is refused', () {
+    final entry = parsePairingEntry(
+      pinnedLink(
+        expiresAt: nowSeconds() + 600,
+      ).replaceFirst('herdr-notify:', 'excubia-x:'),
+    );
+
+    expect(entry, isA<PairingEntryInvalid>());
+  });
+
   test('surrounding whitespace from a paste does not matter', () {
     final entry = parsePairingEntry(
       '  ${pinnedLink(expiresAt: nowSeconds() + 600)}\n',

@@ -12,6 +12,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use crate::alfred::Requested;
+use crate::audit::AuditEvent;
 use crate::error::ApiError;
 use crate::routes::parse_body;
 use crate::ApiContext;
@@ -41,19 +42,22 @@ pub async fn request(
             ))
         }
     };
-    let requested = ctx
-        .alfred
-        .request(backend)
-        .await
-        .map_err(|message| ApiError::coded(StatusCode::CONFLICT, "backend_busy", message))?;
-    let (code, outcome) = match requested {
-        Requested::Unchanged => (StatusCode::OK, "unchanged"),
-        Requested::Started => (StatusCode::ACCEPTED, "started"),
+    let requested = ctx.alfred.request(backend).await;
+    let outcome = match &requested {
+        Ok(Requested::Unchanged) => "unchanged",
+        Ok(Requested::Started) => "started",
+        Err(_) => "failed",
     };
-    eprintln!(
-        "action alfred.backend device={} backend={backend} outcome={outcome}",
-        verified.device_id
+    ctx.audit.record(
+        &AuditEvent::new("alfred.backend", Some(&verified.device_id), outcome)
+            .with("backend", backend),
     );
+    let requested = requested
+        .map_err(|message| ApiError::coded(StatusCode::CONFLICT, "backend_busy", message))?;
+    let code = match requested {
+        Requested::Unchanged => StatusCode::OK,
+        Requested::Started => StatusCode::ACCEPTED,
+    };
     let status = ctx.alfred.status().await.to_json();
     Ok((code, Json(status)).into_response())
 }

@@ -1,6 +1,7 @@
 pub mod agenda_commands;
 pub mod agents_seed;
 pub mod alert_commands;
+pub mod app_folders;
 pub mod app_state;
 pub mod calendar_commands;
 pub mod calendar_ics_commands;
@@ -24,8 +25,10 @@ use app_state::{lock, AppState};
 
 pub fn run() {
     // WebView2 keeps cookies, storage and the mic permission in its own folder; move it too.
-    if let Some(root) = app_state::profile_root() {
-        std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", root.join("webview"));
+    // Outside profile mode the folders follow the renamed identifier (see app_folders).
+    match app_state::profile_root() {
+        Some(root) => std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", root.join("webview")),
+        None => app_folders::settle(),
     }
     let mut builder = tauri::Builder::default();
     // A profile-isolated test instance must not hand over to the installed app.
@@ -173,7 +176,7 @@ pub fn run() {
     {
         Ok(app) => app,
         Err(error) => {
-            eprintln!("no se pudo iniciar herdr notify: {error}");
+            eprintln!("no se pudo iniciar Excubia: {error}");
             std::process::exit(1);
         }
     };

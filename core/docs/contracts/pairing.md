@@ -180,7 +180,7 @@ is the way to grant anything, `READ_STATE` included, to a pending device.
 
 ## Trust store — IMPLEMENTED
 
-- Path: `~/.config/herdr-notify/devices.json` (override with `--devices`).
+- Path: `~/.config/excubia/devices.json` (override with `--devices`).
 - Shape: `{ "version": 1, "devices": [ {device…} ], "codes": [ {code_hash…} ] }`,
   keys sorted, pretty JSON. `codes` holds the SHA-256 digest and the validity
   window of each **live** pairing code (`{code_hash, created_at, expires_at}`);
@@ -273,8 +273,9 @@ mounted on this listener, so a LAN device cannot reach them.
 `host pair-code --lan <ip:port>` (repeatable) prints the code and a pairing link:
 
 ```
-herdr-notify://pair?v=1&c=<code>&h=<pin>[&b=<backup pin>]&a=<ip:port>...&e=<unix seconds>
+excubia://pair?v=1&c=<code>&h=<pin>[&b=<backup pin>]&a=<ip:port>...&e=<unix seconds>
 ```
+Lo anterior al cambio de nombre, `herdr-notify://`, se acepta al leer y nunca se emite; la carpeta vieja `~/.config/herdr-notify` se mueve sola a `~/.config/excubia` al arrancar.
 
 | Field | Meaning |
 |-------|---------|
@@ -422,7 +423,7 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
 
 ## F3a — v2 link, the QR without an address — IMPLEMENTED in the host; no client yet (F3b-F3d)
 
-- **Format**: `herdr-notify://pair?v=2&c=<8 chars>&h=<host pin, base64url 43>&e=<unix expiry>`. `c` is the PAKE code (alphabet of
+- **Format**: `excubia://pair?v=2&c=<8 chars>&h=<host pin, base64url 43>&e=<unix expiry>`. `c` is the PAKE code (alphabet of
   `hn-core-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
   About 90 bytes. No `a`, no `b`: the device finds the host by mDNS (F2c) and must see `h` before it sends anything.
 - **Parser**: `hn_core_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
@@ -457,5 +458,5 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
 | PAKE core (`crates/pake`, SPAKE2 + TLS-bound key confirmation) | IMPLEMENTED (F2a: library, see *F2a*) |
 | PAKE endpoints `POST /v1/pair/pake/start` and `/finish`, loopback admin route, `host pair-code --pake` | IMPLEMENTED in the host (F2b3, alpha); no client (F2d), see *F2b* |
 | mDNS announcement `_excubia-pair._tcp` only while a PAKE code is alive | IMPLEMENTED in the host (F2c); no client (F2d), see *F2c* |
-| v2 pairing link `herdr-notify://pair?v=2&c&h&e` (QR without an address), `pake-code` answers `uri` and `expires_at`, `pair-code --pake --uri` | IMPLEMENTED in the host (F3a); no client yet, see *F3a* |
+| v2 pairing link `excubia://pair?v=2&c&h&e` (QR without an address), `pake-code` answers `uri` and `expires_at`, `pair-code --pake --uri` | IMPLEMENTED in the host (F3a); no client yet, see *F3a* |
 | `APPROVE` permission endpoints | IMPLEMENTED (CORE8) — `POST /v1/chat/approvals/{id}/decision`, the UAC decision |

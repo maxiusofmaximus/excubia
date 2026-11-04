@@ -8,6 +8,7 @@
 mod agenda_api;
 mod alert_api;
 mod alfred;
+mod audit;
 mod catalog;
 mod contact_api;
 mod error;
@@ -25,6 +26,7 @@ mod validate;
 pub mod voice;
 
 pub use alfred::{AlfredBackend, BackendStatus, Requested};
+pub use audit::{AuditEvent, AuditSink};
 pub use catalog::{AgentCatalog, AgentSpec};
 pub use error::ApiError;
 pub use mail::{
@@ -138,6 +140,8 @@ pub struct ApiContext {
     pub alfred: Arc<dyn AlfredBackend>,
     /// Where each `POST /v1/pair` decision is recorded.
     pub pairing_audit: Arc<dyn PairingAudit>,
+    /// The host's record of sensitive actions (`audit.jsonl`).
+    pub audit: Arc<dyn AuditSink>,
     /// In-process revocation notifications, so a revoke closes open streams
     /// immediately instead of on their next tick.
     pub revocations: broadcast::Sender<String>,
@@ -162,6 +166,7 @@ pub struct ApiConfig {
     pub voice: Arc<voice::VoiceService>,
     pub alfred: Arc<dyn AlfredBackend>,
     pub pairing_audit: Arc<dyn PairingAudit>,
+    pub audit: Arc<dyn AuditSink>,
 }
 
 impl ApiContext {
@@ -182,6 +187,7 @@ impl ApiContext {
             voice: config.voice,
             alfred: config.alfred,
             pairing_audit: config.pairing_audit,
+            audit: config.audit,
             revocations,
             host_pin: None,
             pake_slot: Arc::new(PakeSlot::new()),

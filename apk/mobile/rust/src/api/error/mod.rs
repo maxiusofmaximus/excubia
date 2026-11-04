@@ -109,7 +109,7 @@ pub fn explain_pairing_error(status: u16) -> ErrorInfo {
         ),
         403 => info(
             "El código no es válido o ha caducado.",
-            Some("Pide uno nuevo en el equipo con herdr-notify enroll."),
+            Some("Pide uno nuevo en el equipo con host pair-code."),
             FailureKind::Retry,
         ),
         413 => info(

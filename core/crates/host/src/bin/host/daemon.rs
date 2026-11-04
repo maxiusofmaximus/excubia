@@ -16,6 +16,7 @@ use hn_core_auth::DeviceStore;
 use hn_core_chat::{ChatSeat, ChatStore};
 use hn_core_host::alfred_backend;
 use hn_core_host::alfred_switch::{Strata, Switch};
+use hn_core_host::audit::AuditLog;
 use hn_core_host::calendar_reminders;
 use hn_core_host::cli::RunOptions;
 use hn_core_host::local_mode;
@@ -236,6 +237,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         voice,
         alfred: Arc::new(alfred),
         pairing_audit: notices.clone(),
+        audit: Arc::new(AuditLog::new(&options.data_dir)),
     })
     // The active pin is the input of each pending device's SAS. A host that cannot
     // read it still serves; it only shows no verification string.

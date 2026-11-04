@@ -14,6 +14,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 pub mod credential;
+pub mod migrate;
 mod random;
 
 pub use random::{fill_random, RandomError};

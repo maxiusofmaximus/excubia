@@ -6,6 +6,8 @@
 pub trait SecretStore: Send + Sync {
     fn read(&self) -> std::io::Result<Option<Vec<u8>>>;
     fn write(&self, value: &[u8]) -> std::io::Result<()>;
+    /// Forgets the secret; a secret that is already absent is not an error.
+    fn delete(&self) -> std::io::Result<()>;
 }
 
 #[cfg(windows)]
@@ -15,7 +17,8 @@ pub use windows_store::CredentialManager;
 mod windows_store {
     use windows_sys::Win32::Foundation::{GetLastError, ERROR_NOT_FOUND};
     use windows_sys::Win32::Security::Credentials::{
-        CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE, CRED_TYPE_GENERIC,
+        CredDeleteW, CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE,
+        CRED_TYPE_GENERIC,
     };
 
     use super::SecretStore;
@@ -26,7 +29,7 @@ mod windows_store {
     }
 
     impl CredentialManager {
-        /// `target` is the credential's name, for example `herdr-notify/mail-master-key`.
+        /// `target` is the credential's name, for example `excubia/mail-master-key`.
         pub fn new(target: &str) -> Self {
             Self {
                 target: target.encode_utf16().chain(std::iter::once(0)).collect(),
@@ -81,6 +84,19 @@ mod windows_store {
                 return Err(last_error("write"));
             }
             Ok(())
+        }
+
+        fn delete(&self) -> std::io::Result<()> {
+            // SAFETY: `target` is NUL-terminated and lives across the call.
+            if unsafe { CredDeleteW(self.target.as_ptr(), CRED_TYPE_GENERIC, 0) } != 0 {
+                return Ok(());
+            }
+            // SAFETY: reads this thread's last error code; no pointers involved.
+            if unsafe { GetLastError() } == ERROR_NOT_FOUND {
+                Ok(())
+            } else {
+                Err(last_error("delete"))
+            }
         }
     }
 

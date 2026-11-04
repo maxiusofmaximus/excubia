@@ -11,7 +11,8 @@ class PairingQrPayload {
   final String baseUrl;
   final String code;
 
-  static const String scheme = 'herdr-notify';
+  /// `herdr-notify` is the scheme of the links printed before the rename.
+  static const List<String> schemes = ['excubia', 'herdr-notify'];
   static const String host = 'pair';
   static const String version = '1';
   static const int maxLength = 2048;
@@ -26,7 +27,7 @@ class PairingQrPayload {
     final uri = Uri.tryParse(text);
     if (uri == null) return _invalid('El código QR no se pudo leer.');
 
-    if (uri.scheme.toLowerCase() != scheme) {
+    if (!schemes.contains(uri.scheme.toLowerCase())) {
       return _invalid('Este código QR no es de $appName.');
     }
     if ((uri.host).toLowerCase() != host) {

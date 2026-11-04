@@ -5,20 +5,25 @@ use herdr_desktop_core::identity::{DeviceIdentity, IdentityStore, KeyringIdentit
 use herdr_desktop_core::state::StateStore;
 use herdr_desktop_core::stream::ConnectionStatus;
 use herdr_desktop_core::{ChatFeed, CoreError, HostClient, Transport};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tokio_util::sync::CancellationToken;
 
+use crate::app_folders::roaming_dir;
 use crate::config::Config;
 use crate::host_process::HostConfig;
+use identity_migration::MigratingStore;
 
 mod host;
+mod identity_migration;
 mod pairing;
 mod stream;
 
 pub use host::{host_data_dir, HostStatus};
 pub use pairing::pair_code_from;
 
-const KEYRING_SERVICE: &str = "dev.herdrnotify.desktop";
+const KEYRING_SERVICE: &str = "dev.excubia.desktop";
+/// The service before the rename: its identity is adopted, never written again.
+const LEGACY_KEYRING_SERVICE: &str = "dev.herdrnotify.desktop";
 const KEYRING_ACCOUNT: &str = "device-identity-v1";
 const PROFILE_ENV: &str = "EXCUBIA_DESKTOP_PROFILE";
 
@@ -84,12 +89,13 @@ impl AppState {
     pub fn new(app: &AppHandle) -> Self {
         let config_path = profile_root()
             .map(Ok)
-            .unwrap_or_else(|| app.path().app_config_dir())
+            .unwrap_or_else(|| roaming_dir(app))
             .map(|directory| directory.join("config.json"))
             .unwrap_or_else(|_| PathBuf::from("desktop-config.json"));
         let mut config = Config::load(&config_path);
         let keyring = KeyringIdentityStore::new(KEYRING_SERVICE, keyring_account());
-        let (identity, identity_error) = load_identity(&keyring, &mut config);
+        let legacy = KeyringIdentityStore::new(LEGACY_KEYRING_SERVICE, keyring_account());
+        let (identity, identity_error) = load_identity(&keyring, &legacy, &mut config);
         if let Err(error) = config.save(&config_path) {
             eprintln!("no se pudo guardar la configuración inicial: {error}");
         }
@@ -156,10 +162,15 @@ impl AppState {
 
 fn load_identity(
     keyring: &KeyringIdentityStore,
+    legacy: &KeyringIdentityStore,
     config: &mut Config,
 ) -> (Option<DeviceIdentity>, Option<String>) {
+    let store = MigratingStore {
+        current: keyring,
+        legacy,
+    };
     match DeviceIdentity::load_or_create(
-        keyring,
+        &store,
         config.device_id.as_deref().unwrap_or(""),
         &config.label,
     ) {
@@ -173,7 +184,7 @@ fn load_identity(
             }
             identity.set_label(config.label.clone());
             config.device_id = Some(identity.device_id().to_string());
-            if let Err(error) = keyring.save(&identity) {
+            if let Err(error) = store.save(&identity) {
                 eprintln!("no se pudo normalizar la identidad en el almacén seguro: {error}");
             }
             (Some(identity), None)
