@@ -68,6 +68,8 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         private val callbacks = mutableListOf<NsdManager.ServiceInfoCallback>()
         private val retries = HashMap<String, Int>() // failed resolutions retried, per service
         private var lock: WifiManager.MulticastLock? = null
+        // Own mDNS query, in parallel: NsdManager can get stuck inside the process; first answer wins.
+        private val probe = RawMdnsProbe { address -> main.post { accept(address) } }
         private var started = false
         private var resolving = false
         private var finished = false
@@ -97,6 +99,7 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     acquire()
                 }
                 started = true
+                probe.start()
                 nsd.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discovery)
                 main.postDelayed(timeout, timeoutMs)
             } catch (e: Exception) {
@@ -181,6 +184,7 @@ class HerdrDiscoveryPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             if (finished) return
             finished = true
             main.removeCallbacks(timeout)
+            probe.cancel()
             if (started) {
                 try { nsd.stopServiceDiscovery(discovery) } catch (_: Exception) {}
             }
