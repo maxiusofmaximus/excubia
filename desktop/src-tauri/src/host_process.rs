@@ -207,6 +207,19 @@ pub fn host_binary_path(exe_dir: &Path) -> Option<PathBuf> {
     candidates.into_iter().find(|candidate| candidate.is_file())
 }
 
+/// Where the OpenCode UAC plugin lives: bundled next to the app binary, or the
+/// copy `scripts/build-host.ps1` leaves in the source tree. Without it the
+/// host leaves OpenCode seats unverified.
+pub fn uac_plugin_path(exe_dir: &Path) -> Option<PathBuf> {
+    let candidates = [
+        exe_dir.join("uac-plugin"),
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("uac-plugin"),
+    ];
+    candidates
+        .into_iter()
+        .find(|candidate| candidate.join("index.js").is_file())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -223,6 +236,20 @@ mod tests {
                 args.join("-").replace(['/', '\\', ' ', ':', '(', ')'], "_")
             )),
         }
+    }
+
+    #[test]
+    fn the_bundled_uac_plugin_is_found_next_to_the_app_only_with_its_entry_point() {
+        let exe_dir =
+            std::env::temp_dir().join(format!("hn-uac-plugin-test-{}", std::process::id()));
+        let plugin = exe_dir.join("uac-plugin");
+        std::fs::create_dir_all(&plugin).unwrap();
+        let without_entry = uac_plugin_path(&exe_dir);
+        std::fs::write(plugin.join("index.js"), "").unwrap();
+        let with_entry = uac_plugin_path(&exe_dir);
+        let _ = std::fs::remove_dir_all(&exe_dir);
+        assert_ne!(without_entry, Some(plugin.clone()));
+        assert_eq!(with_entry, Some(plugin));
     }
 
     #[test]

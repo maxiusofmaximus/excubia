@@ -54,6 +54,16 @@ Copy-Item $mcp (Join-Path $destDir "excubia-mcp.exe") -Force
 Copy-Item $hook (Join-Path $destDir "excubia-uac-hook-$triple.exe") -Force
 Copy-Item $hook (Join-Path $destDir "excubia-uac-hook.exe") -Force
 
+# The OpenCode UAC plugin (plain JS, no dependencies) travels as a bundled
+# resource; the host verifies it with `--uac-plugin-dir`. Tests stay behind.
+$pluginSource = Join-Path $CoreDir "tooling\opencode-uac-plugin"
+$pluginDest = Join-Path $desktop "src-tauri\uac-plugin"
+if (-not (Test-Path (Join-Path $pluginSource "index.js"))) { throw "no encuentro el plugin UAC en $pluginSource" }
+if (Test-Path $pluginDest) { Remove-Item $pluginDest -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $pluginDest | Out-Null
+Copy-Item (Join-Path $pluginSource "index.js"), (Join-Path $pluginSource "package.json") $pluginDest -Force
+Copy-Item (Join-Path $pluginSource "src") (Join-Path $pluginDest "src") -Recurse -Force
+
 # `cargo build`/`cargo run` do not lay out externalBin: leave a copy next to
 # the app binaries so development runs find it too.
 foreach ($appProfile in @("debug", "release")) {

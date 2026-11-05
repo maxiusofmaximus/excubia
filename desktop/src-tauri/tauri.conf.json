@@ -29,6 +29,7 @@
     "active": true,
     "targets": ["nsis"],
     "icon": ["icons/icon.ico"],
+    "resources": { "uac-plugin/": "uac-plugin/" },
     "externalBin": ["binaries/excubia-host", "binaries/excubia-mcp", "binaries/excubia-uac-hook"],
     "shortDescription": "Chat con Alfred y estado de tus agentes herdr",
     "longDescription": "Cliente de escritorio para Excubia: chat persistente con Alfred, equipo en vivo, detalle de agentes y emparejamiento firmado.",

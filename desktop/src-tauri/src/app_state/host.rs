@@ -158,6 +158,10 @@ fn host_config_for(app: &AppHandle, lan_bind: Option<SocketAddr>) -> Result<Host
         args.push("--tls-bind".to_string());
         args.push(address.to_string());
     }
+    if let Some(plugin) = host_process::uac_plugin_path(&exe_dir) {
+        args.push("--uac-plugin-dir".to_string());
+        args.push(plugin.display().to_string());
+    }
     if let Ok(value) = std::env::var("HN_CORE_SPAWN") {
         for spawn in value
             .split(';')
