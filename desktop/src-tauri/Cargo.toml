@@ -1,8 +1,8 @@
 [package]
-name = "herdr-notify-desktop"
+name = "excubia-desktop"
 version = "0.1.0"
 edition = "2021"
-description = "herdr notify para escritorio (Tauri 2)"
+description = "Excubia para escritorio (Tauri 2)"
 
 [build-dependencies]
 tauri-build = { version = "2.7", features = [] }

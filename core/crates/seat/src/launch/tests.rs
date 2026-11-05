@@ -22,11 +22,11 @@ fn input<'a>(
         role,
         prompt,
         tool_url: "http://127.0.0.1:9/internal/chat/tools",
-        mcp_command: Path::new("C:\\bin\\hn-mcp.exe"),
+        mcp_command: Path::new("C:\\bin\\excubia-mcp.exe"),
         session_id: "alfred",
         hook_url: "http://127.0.0.1:9",
         hook_token: "test-hook-token",
-        hook_command: Path::new("C:\\bin\\hn-uac-hook.exe"),
+        hook_command: Path::new("C:\\bin\\excubia-uac-hook.exe"),
         attachment_dirs: &[],
     }
 }
@@ -49,7 +49,7 @@ fn test_plan_has_config_and_no_token() {
     assert!(plan.args.iter().any(|arg| arg == "--mcp-config"));
     assert_eq!(plan.stdin, "prompt");
     let config = file_text(&plan, "mcp.json");
-    assert!(config.contains("hn-mcp.exe"));
+    assert!(config.contains("excubia-mcp.exe"));
     assert!(!config.contains("token"));
     assert!(!plan
         .files
@@ -59,7 +59,7 @@ fn test_plan_has_config_and_no_token() {
 
 /// A stand-in hook binary: the Claude launch refuses a hook it cannot find.
 fn hook_in(dir: &Path) -> PathBuf {
-    let path = dir.join("hn-uac-hook.exe");
+    let path = dir.join("excubia-uac-hook.exe");
     std::fs::write(&path, b"").expect("hook");
     path
 }
@@ -85,7 +85,7 @@ fn claude_plan_isolates_settings_and_mcp() {
         serde_json::from_str(&file_text(&plan, "claude-mcp.json")).expect("json");
     assert_eq!(
         mcp["mcpServers"]["hn-core"]["command"],
-        "C:\\bin\\hn-mcp.exe"
+        "C:\\bin\\excubia-mcp.exe"
     );
 }
 
@@ -168,7 +168,7 @@ fn a_claude_launch_without_its_hook_is_refused() {
     let profile = crate::profile::shipped().remove(0);
     let scratch = TestDir::new("seat-claude-nohook");
     let root = PathBuf::from("run-dir");
-    let absent = scratch.join("hn-uac-hook.exe");
+    let absent = scratch.join("excubia-uac-hook.exe");
     let mut launch = input(&profile, &root, "role", "prompt");
     launch.hook_command = &absent;
     let error = prepare(&launch).expect_err("no hook, no launch");
@@ -192,7 +192,7 @@ fn codex_plan_uses_an_isolated_home() {
     let config: toml::Value = toml::from_str(&file_text(&plan, "config.toml")).expect("toml");
     assert_eq!(
         config["mcp_servers"]["hn-core"]["command"].as_str(),
-        Some("C:\\bin\\hn-mcp.exe")
+        Some("C:\\bin\\excubia-mcp.exe")
     );
     assert_eq!(
         config["profiles"]["alfred"]["developer_instructions"].as_str(),

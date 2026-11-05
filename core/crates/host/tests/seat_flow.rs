@@ -1,6 +1,6 @@
 //! CORE6B acceptance: Alfred's real seat, the MCP shim and the simulated CLI.
 //!
-//! Every test uses `fake-cli` and `hn-mcp` as real child processes. No model
+//! Every test uses `fake-cli` and `excubia-mcp` as real child processes. No model
 //! quota is spent; the simulated CLI speaks the MCP JSON-RPC protocol and the
 //! host verifies the same restricted tool surface a real CLI would see.
 

@@ -673,7 +673,7 @@ durable. The host's seat owns the rest of the lifecycle:
 `queued → running → completed | failed | interrupted`. `exited` is accepted as
 a legacy alias of `completed` when reading an old database.
 
-If no supported CLI is installed (or its version is too old, or `hn-mcp` is
+If no supported CLI is installed (or its version is too old, or `excubia-mcp` is
 missing), the send is refused with `409` and `detail: "seat_unavailable"`. If
 the seat's pending queue is full, it is `409` and `detail: "agent_busy"` with
 `Retry-After: 5`. In both cases the turn was not delivered: its message and
@@ -1230,7 +1230,7 @@ approval and the call **blocks** until the operator answers. The answer is
 `approval_denied` or `approval_expired`. The approval is consumed before the
 tool returns, so the action behind it runs once.
 
-**Hook.** `hn-uac-hook` is the blocking hook of the CLIs that support one
+**Hook.** `excubia-uac-hook` is the blocking hook of the CLIs that support one
 (Claude, Codex). It opens the approval, waits for the decision and answers with
 the exit code the CLI expects:
 

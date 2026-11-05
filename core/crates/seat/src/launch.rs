@@ -33,7 +33,7 @@ pub struct LaunchInput<'a> {
     /// is the only credential that reaches the approval routes.
     pub hook_url: &'a str,
     pub hook_token: &'a str,
-    /// The `hn-uac-hook` binary the CLI runs before each shell command.
+    /// The `excubia-uac-hook` binary the CLI runs before each shell command.
     pub hook_command: &'a Path,
     /// Folders that hold this turn's attachments. Only the restricted Claude CLI
     /// needs them: it reads files only under its working directory.

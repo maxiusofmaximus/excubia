@@ -1,4 +1,4 @@
-//! `hn-mcp`: a tiny MCP stdio server, one process per run.
+//! `excubia-mcp`: a tiny MCP stdio server, one process per run.
 //!
 //! It exposes only the chat tools (`chat.reply`, `chat.ask_user`,
 //! `chat.progress`), validates their arguments and forwards them to the host
@@ -22,9 +22,10 @@ const CALL_TIMEOUT: Duration = Duration::from_secs(75);
 
 pub async fn run_stdio() -> Result<(), String> {
     let url = std::env::var("HN_TOOL_URL")
-        .map_err(|_| "HN_TOOL_URL is not set; hn-mcp only runs under the seat".to_string())?;
-    let token = std::env::var("HN_TOOL_TOKEN")
-        .map_err(|_| "HN_TOOL_TOKEN is not set; hn-mcp only runs under the seat".to_string())?;
+        .map_err(|_| "HN_TOOL_URL is not set; excubia-mcp only runs under the seat".to_string())?;
+    let token = std::env::var("HN_TOOL_TOKEN").map_err(|_| {
+        "HN_TOOL_TOKEN is not set; excubia-mcp only runs under the seat".to_string()
+    })?;
     if token.contains(['\r', '\n']) {
         return Err("HN_TOOL_TOKEN contains a newline".to_string());
     }

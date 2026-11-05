@@ -1,5 +1,5 @@
 # Genera N aprobaciones de prueba pendientes en el host de pruebas, igual que
-# el hook de un agente (hn-uac-hook -> POST /v1/chat/approvals con token de
+# el hook de un agente (excubia-uac-hook -> POST /v1/chat/approvals con token de
 # asiento). Nunca aprueba ni deniega: cada aprobación expira sola por su TTL,
 # que es la vía normal del host. Ver tooling/emit-alerts.README.md.
 

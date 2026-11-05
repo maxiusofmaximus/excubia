@@ -3,7 +3,7 @@
 //! The crate has five responsibilities, each in its own module:
 //! - [`profile`]: the declarative CLI capability matrix and version selection.
 //! - [`service`]: the one-turn FIFO worker and run lifecycle.
-//! - [`mcp`]: the `hn-mcp` stdio shim and its loopback client.
+//! - [`mcp`]: the `excubia-mcp` stdio shim and its loopback client.
 //! - [`http`]: the loopback HTTP client the seat's own processes share.
 //! - [`preflight`]: the UAC canary that proves a blocking adapter works.
 //!

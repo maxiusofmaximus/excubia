@@ -1,4 +1,4 @@
-# Builds the Rust core daemon (`hn-core-host`) from the core worktree and
+# Builds the Rust core daemon (`host`, shipped as `excubia-host`) from the core worktree and
 # copies it into this app as a Tauri sidecar. Only the binary travels: the
 # core sources are never copied into `desktop`.
 #
@@ -27,7 +27,7 @@ $triple = (& rustc -vV | Select-String '^host: ').ToString().Split(' ')[1].Trim(
 if (-not $triple) { throw "no pude leer el target triple de rustc" }
 
 $env:CARGO_BUILD_JOBS = "4"
-Write-Output "compilando hn-core-host + hn-mcp ($Profile) desde $CoreDir"
+Write-Output "compilando excubia-host + excubia-mcp ($Profile) desde $CoreDir"
 $buildArgs = @()
 if ($Profile -eq "release") { $buildArgs += "--release" }
 & cargo build @buildArgs -p hn-core-host -p hn-core-seat --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
@@ -37,32 +37,32 @@ $built = Join-Path $targetDir "$Profile\host.exe"
 if (-not (Test-Path $built)) { throw "no se generó $built" }
 # Alfred drives the host through this shim; without it every chat send is
 # `409 seat_unavailable`.
-$mcp = Join-Path $targetDir "$Profile\hn-mcp.exe"
+$mcp = Join-Path $targetDir "$Profile\excubia-mcp.exe"
 if (-not (Test-Path $mcp)) { throw "no se generó $mcp" }
 
 # The host refuses to start Alfred's seat without the approval hook next to it.
-$hook = Join-Path $targetDir "$Profile\hn-uac-hook.exe"
+$hook = Join-Path $targetDir "$Profile\excubia-uac-hook.exe"
 if (-not (Test-Path $hook)) { throw "no se generó $hook" }
 
 $destDir = Join-Path $desktop "src-tauri\binaries"
 New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-$sidecar = Join-Path $destDir "hn-core-host-$triple.exe"
+$sidecar = Join-Path $destDir "excubia-host-$triple.exe"
 Copy-Item $built $sidecar -Force
-Copy-Item $mcp (Join-Path $destDir "hn-mcp-$triple.exe") -Force
+Copy-Item $mcp (Join-Path $destDir "excubia-mcp-$triple.exe") -Force
 # The host resolves its MCP shim by the plain name next to its own executable.
-Copy-Item $mcp (Join-Path $destDir "hn-mcp.exe") -Force
-Copy-Item $hook (Join-Path $destDir "hn-uac-hook-$triple.exe") -Force
-Copy-Item $hook (Join-Path $destDir "hn-uac-hook.exe") -Force
+Copy-Item $mcp (Join-Path $destDir "excubia-mcp.exe") -Force
+Copy-Item $hook (Join-Path $destDir "excubia-uac-hook-$triple.exe") -Force
+Copy-Item $hook (Join-Path $destDir "excubia-uac-hook.exe") -Force
 
 # `cargo build`/`cargo run` do not lay out externalBin: leave a copy next to
 # the app binaries so development runs find it too.
 foreach ($appProfile in @("debug", "release")) {
   $appDir = Join-Path $desktop "target\$appProfile"
   if (Test-Path $appDir) {
-    Copy-Item $built (Join-Path $appDir "hn-core-host-$triple.exe") -Force
-    Copy-Item $mcp (Join-Path $appDir "hn-mcp-$triple.exe") -Force
-    Copy-Item $mcp (Join-Path $appDir "hn-mcp.exe") -Force
-    Copy-Item $hook (Join-Path $appDir "hn-uac-hook.exe") -Force
+    Copy-Item $built (Join-Path $appDir "excubia-host-$triple.exe") -Force
+    Copy-Item $mcp (Join-Path $appDir "excubia-mcp-$triple.exe") -Force
+    Copy-Item $mcp (Join-Path $appDir "excubia-mcp.exe") -Force
+    Copy-Item $hook (Join-Path $appDir "excubia-uac-hook.exe") -Force
   }
 }
 

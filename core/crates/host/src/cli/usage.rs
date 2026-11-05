@@ -8,7 +8,7 @@ pub const USAGE: &str = "host [--port N] [--bind ADDR] [--rows R] [--cols C] [--
        host pair-code --pake [--uri] [--port N, default 8791] [--data-dir DIR]\n\
        host tls prepare|activate [--data-dir DIR]\n\
        host hook-token [--seat AGENT_ID] [--data-dir DIR]\n\
-       host claude-settings --hook <hn-uac-hook binary> [--out FILE]\n\
+       host claude-settings --hook <excubia-uac-hook binary> [--out FILE]\n\
        host strata start | stop | status | enable-agent [--data-dir DIR]\n\
        host alfred local | use local|claude | status [--data-dir DIR]\n\
        host audit tail [--n N, default 50] [--data-dir DIR]\n\

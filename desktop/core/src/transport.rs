@@ -13,7 +13,7 @@ use rustls::{CertificateError, OtherError};
 
 use crate::error::{CoreError, Result};
 
-const USER_AGENT: &str = "herdr-notify-desktop/0.1";
+const USER_AGENT: &str = "excubia-desktop/2.0";
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -173,7 +173,7 @@ async fn start_host_binary(
 
 async fn pair_and_grant(host: &RunningHost, respond: bool) -> (DeviceIdentity, HostClient) {
     let identity = DeviceIdentity::generate("dev-chat-it", "chat");
-    let code = herdr_notify_desktop::app_state::pair_code_from(&run_cli(
+    let code = excubia_desktop::app_state::pair_code_from(&run_cli(
         &host.binary,
         &host.data_dir,
         &["pair-code"],

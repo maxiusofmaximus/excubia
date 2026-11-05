@@ -8,7 +8,7 @@ use serde_json::json;
 use super::LaunchError;
 use crate::hook_action::CLAUDE_HOOK_MATCHER;
 
-/// Seconds Claude waits for `hn-uac-hook`: the approval TTL plus a margin, so
+/// Seconds Claude waits for `excubia-uac-hook`: the approval TTL plus a margin, so
 /// the hook always answers before Claude gives up on it.
 pub(super) const CLAUDE_HOOK_TIMEOUT_SECONDS: u64 = hn_core_chat::DEFAULT_TTL_SECONDS as u64 + 30;
 

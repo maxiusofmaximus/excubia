@@ -126,9 +126,9 @@ impl FakeEngine {
 
 fn hook_command() -> PathBuf {
     let name = if cfg!(windows) {
-        "hn-uac-hook.exe"
+        "excubia-uac-hook.exe"
     } else {
-        "hn-uac-hook"
+        "excubia-uac-hook"
     };
     PathBuf::from(env!("CARGO_BIN_EXE_fake-cli")).with_file_name(name)
 }
@@ -357,7 +357,7 @@ impl TestHost {
                 SeatService::start(SeatConfig {
                     data_dir: data_dir.clone(),
                     chat: Arc::clone(&chat),
-                    mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_hn-mcp")),
+                    mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_excubia-mcp")),
                     tool_url: tool_url.clone(),
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),
@@ -373,7 +373,7 @@ impl TestHost {
                 SeatService::start(SeatConfig {
                     data_dir: data_dir.clone(),
                     chat: Arc::clone(&chat),
-                    mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_hn-mcp")),
+                    mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_excubia-mcp")),
                     tool_url: tool_url.clone(),
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),
@@ -389,7 +389,7 @@ impl TestHost {
                 SeatService::start(SeatConfig {
                     data_dir: data_dir.clone(),
                     chat: Arc::clone(&chat),
-                    mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_hn-mcp")),
+                    mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_excubia-mcp")),
                     tool_url: tool_url.clone(),
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),

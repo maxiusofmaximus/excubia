@@ -185,14 +185,14 @@ async fn run(options: RunOptions) -> Result<()> {
         .await
         .context("bind the internal MCP listener")?;
     let internal_address = internal.local_addr()?;
-    let mcp_command = sibling_binary("hn-mcp")?;
+    let mcp_command = sibling_binary("excubia-mcp")?;
     let seat_service = SeatService::start(SeatConfig {
         data_dir: options.data_dir.clone(),
         chat: Arc::clone(&chat),
         mcp_command,
         tool_url: format!("http://{internal_address}/internal/chat/tools"),
         hook_url: format!("http://{local}"),
-        hook_command: sibling_binary("hn-uac-hook")?,
+        hook_command: sibling_binary("excubia-uac-hook")?,
         profiles: vec![test_profile(fake_cli()?)],
         queue_capacity: SEAT_QUEUE,
         turn_timeout: SEAT_TIMEOUT,
@@ -206,7 +206,7 @@ async fn run(options: RunOptions) -> Result<()> {
             selected.profile.mode
         ),
         None => println!(
-            "host: warning: no supported CLI found (or hn-mcp is missing); chat answers 409 seat_unavailable"
+            "host: warning: no supported CLI found (or excubia-mcp is missing); chat answers 409 seat_unavailable"
         ),
     }
 
@@ -303,7 +303,7 @@ async fn lan_outcome(task: &mut Option<JoinHandle<std::io::Result<()>>>) -> std:
     }
 }
 
-/// The daemon's sibling binary (`hn-mcp.exe` next to `host.exe`). Cargo builds
+/// The daemon's sibling binary (`excubia-mcp.exe` next to `host.exe`). Cargo builds
 /// it only when all binaries are requested, so the host reports a clear
 /// `seat_unavailable` if it is missing instead of guessing a path.
 fn sibling_binary(name: &str) -> Result<PathBuf> {

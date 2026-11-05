@@ -2,7 +2,7 @@
 //! specialist), the cards, the timeout, the cancellation and the typed
 //! refusals of the delegation surface.
 //!
-//! Every test drives real `fake-cli` and `hn-mcp` processes. No model quota
+//! Every test drives real `fake-cli` and `excubia-mcp` processes. No model quota
 //! is spent: the simulated CLI speaks the MCP protocol and the host enforces
 //! the same rules a real CLI would meet.
 

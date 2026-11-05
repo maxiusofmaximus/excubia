@@ -1,4 +1,4 @@
-//! `hn-uac-hook`: the blocking hook of the CLIs that support one.
+//! `excubia-uac-hook`: the blocking hook of the CLIs that support one.
 //!
 //! A CLI with a pre-tool hook runs this binary before the risky action. It
 //! opens an approval in the host, waits for the operator and answers with the
@@ -44,7 +44,7 @@ fn exit_code(result: Result<Outcome, Refusal>) -> u8 {
     match result {
         Ok(Outcome::Allowed) => EXIT_ALLOWED,
         Ok(Outcome::Denied(reason)) | Err(Refusal::NoDecision(reason) | Refusal::Usage(reason)) => {
-            eprintln!("hn-uac-hook: {reason}");
+            eprintln!("excubia-uac-hook: {reason}");
             EXIT_DENIED
         }
     }

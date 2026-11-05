@@ -73,14 +73,14 @@ fn claude_settings_needs_the_hook_and_takes_an_optional_out() {
     let Command::ClaudeSettings { hook, out } = parse(args(&[
         "claude-settings",
         "--hook",
-        "C:/bin/hn-uac-hook.exe",
+        "C:/bin/excubia-uac-hook.exe",
         "--out",
         "C:/tmp/settings.json",
     ]))
     .expect("parse") else {
         panic!("expected claude-settings");
     };
-    assert!(hook.ends_with("hn-uac-hook.exe"));
+    assert!(hook.ends_with("excubia-uac-hook.exe"));
     assert!(out.is_some_and(|path| path.ends_with("settings.json")));
     assert!(
         parse(args(&["claude-settings"])).is_err(),

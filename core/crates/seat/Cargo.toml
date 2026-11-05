@@ -21,5 +21,5 @@ toml.workspace = true
 hn-core-test-dir = { path = "../test-dir" }
 
 [[bin]]
-name = "hn-uac-hook"
-path = "src/bin/hn-uac-hook/main.rs"
+name = "excubia-uac-hook"
+path = "src/bin/excubia-uac-hook/main.rs"

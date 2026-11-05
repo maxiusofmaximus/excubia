@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use herdr_notify_desktop::host_process::{supervise, HostConfig, HostEvent};
+use excubia_desktop::host_process::{supervise, HostConfig, HostEvent};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio_util::sync::CancellationToken;
 
@@ -21,12 +21,12 @@ pub fn host_binary() -> Option<PathBuf> {
     [
         manifest
             .join("binaries")
-            .join(format!("hn-core-host-{triple}.exe")),
+            .join(format!("excubia-host-{triple}.exe")),
         manifest
             .join("..")
             .join("target")
             .join("debug")
-            .join(format!("hn-core-host-{triple}.exe")),
+            .join(format!("excubia-host-{triple}.exe")),
     ]
     .into_iter()
     .find(|candidate| candidate.is_file())

@@ -5,9 +5,9 @@ mod common;
 use std::time::Duration;
 
 use common::{fake_agent_binary, run_cli, start_host};
+use excubia_desktop::app_state::pair_code_from;
 use herdr_desktop_core::identity::DeviceIdentity;
 use herdr_desktop_core::{CoreError, HostClient, WriteAction};
-use herdr_notify_desktop::app_state::pair_code_from;
 
 async fn pair(
     host: &common::RunningHost,
@@ -61,17 +61,19 @@ async fn conversations_are_created_from_the_catalogue_and_panes_restore() {
 
     let identity = DeviceIdentity::generate("dev-integration", "integration");
     let first = pair(&host, &identity).await;
-    run_cli(
-        &host.binary,
-        &host.data_dir,
-        &[
-            "devices",
-            "grant",
-            &first.device_id,
-            "--permission",
-            "respond",
-        ],
-    );
+    for permission in ["read_state", "respond"] {
+        run_cli(
+            &host.binary,
+            &host.data_dir,
+            &[
+                "devices",
+                "grant",
+                &first.device_id,
+                "--permission",
+                permission,
+            ],
+        );
+    }
     let client = client_for(&host, &identity, &first.device_id);
 
     let catalog = client.catalog().await.expect("el catálogo del host");

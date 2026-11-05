@@ -36,7 +36,7 @@ pub struct SeatConfig {
     pub tool_url: String,
     /// The loopback address of the hook surface the agent's own hook calls.
     pub hook_url: String,
-    /// The `hn-uac-hook` binary, wired as the Claude blocking pre-tool hook.
+    /// The `excubia-uac-hook` binary, wired as the Claude blocking pre-tool hook.
     pub hook_command: PathBuf,
     pub profiles: Vec<CliProfile>,
     pub queue_capacity: usize,

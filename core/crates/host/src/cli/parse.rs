@@ -63,7 +63,7 @@ fn claude_settings(mut args: impl Iterator<Item = String>) -> Result<Command, St
         }
     }
     Ok(Command::ClaudeSettings {
-        hook: hook.ok_or("claude-settings needs --hook <hn-uac-hook binary>")?,
+        hook: hook.ok_or("claude-settings needs --hook <excubia-uac-hook binary>")?,
         out,
     })
 }

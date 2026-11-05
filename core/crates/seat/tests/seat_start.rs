@@ -14,11 +14,11 @@ use hn_core_test_dir::TestDir;
 fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {
     let dir = TestDir::new("seat-missing-hook");
     let chat = Arc::new(ChatStore::open(&dir.path().join("chat.db")).expect("chat database"));
-    let hook: PathBuf = dir.path().join("hn-uac-hook-absent");
+    let hook: PathBuf = dir.path().join("excubia-uac-hook-absent");
     let config = SeatConfig {
         data_dir: dir.path().to_path_buf(),
         chat,
-        mcp_command: dir.path().join("hn-mcp-absent"),
+        mcp_command: dir.path().join("excubia-mcp-absent"),
         tool_url: "http://127.0.0.1:9/internal/chat/tools".to_string(),
         hook_url: "http://127.0.0.1:9".to_string(),
         hook_command: hook.clone(),

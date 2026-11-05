@@ -53,8 +53,8 @@ name = "fake-agent"
 path = "src/bin/fake-agent.rs"
 
 [[bin]]
-name = "hn-mcp"
-path = "src/bin/hn-mcp.rs"
+name = "excubia-mcp"
+path = "src/bin/excubia-mcp.rs"
 
 [[bin]]
 name = "fake-cli"

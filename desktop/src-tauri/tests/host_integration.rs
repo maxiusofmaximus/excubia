@@ -9,9 +9,9 @@ mod common;
 use std::time::Duration;
 
 use common::{fake_agent_binary, run_cli, start_host};
+use excubia_desktop::app_state::pair_code_from;
 use herdr_desktop_core::identity::DeviceIdentity;
 use herdr_desktop_core::HostClient;
-use herdr_notify_desktop::app_state::pair_code_from;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn the_real_host_pairs_answers_and_survives_a_kill() {

@@ -1,4 +1,4 @@
-//! The local Rust core (`hn-core-host`) as a managed child process.
+//! The local Rust core (`excubia-host`) as a managed child process.
 //!
 //! The daemon is spawned with an ephemeral port and reports the real one on
 //! stdout, so nothing has to guess a free port. Liveness comes from the child's
@@ -198,11 +198,11 @@ pub fn host_binary_path(exe_dir: &Path) -> Option<PathBuf> {
     }
     let triple = env!("HN_TARGET_TRIPLE");
     let candidates = [
-        exe_dir.join(format!("hn-core-host-{triple}.exe")),
-        exe_dir.join("hn-core-host.exe"),
+        exe_dir.join(format!("excubia-host-{triple}.exe")),
+        exe_dir.join("excubia-host.exe"),
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("binaries")
-            .join(format!("hn-core-host-{triple}.exe")),
+            .join(format!("excubia-host-{triple}.exe")),
     ];
     candidates.into_iter().find(|candidate| candidate.is_file())
 }

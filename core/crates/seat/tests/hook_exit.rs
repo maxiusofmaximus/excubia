@@ -1,4 +1,4 @@
-//! The exit codes of `hn-uac-hook`: what a CLI learns when the hook answers.
+//! The exit codes of `excubia-uac-hook`: what a CLI learns when the hook answers.
 //!
 //! `0` is the action allowed and `2` is the action denied: every failure of the
 //! host — a timeout, a refused connection, a malformed answer — and a bad
@@ -99,7 +99,7 @@ async fn serve(listener: TcpListener, behaviour: Behaviour) {
 }
 
 fn hook() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_hn-uac-hook"))
+    PathBuf::from(env!("CARGO_BIN_EXE_excubia-uac-hook"))
 }
 
 fn arguments(ttl: &str) -> Vec<String> {

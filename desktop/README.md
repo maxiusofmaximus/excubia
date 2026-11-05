@@ -87,9 +87,9 @@ Formal audit: phase F9.
 
 The desktop app lives in this worktree: a Tauri 2 shell that hosts the Rust
 `core` as a child process (sidecar). Build both sidecars with
-`scripts\build-host.ps1` (the daemon and `hn-mcp`, which Alfred needs) and the
+`scripts\build-host.ps1` (the daemon and `excubia-mcp`, which Alfred needs) and the
 app with `pnpm dlx @tauri-apps/cli@latest build` or, for a development run,
-`cargo build -p herdr-notify-desktop`. Data goes to
+`cargo build -p excubia-desktop`. Data goes to
 `%APPDATA%\dev.excubia.desktop\core` and the host log to
 `%LOCALAPPDATA%\dev.excubia.desktop\logs\host.log`. The folders of the old
 name (`dev.herdrnotify.desktop`) are moved there on the first start.

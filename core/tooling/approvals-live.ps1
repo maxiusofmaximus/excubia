@@ -2,7 +2,7 @@
 #
 # Arranca el host REAL (host.exe) con un directorio de datos aislado y el
 # puerto fijo 18878, empareja dos dispositivos de prueba y lanza un agente
-# Claude REAL (claude-haiku-5-5) cuyo hook de Bash es el `hn-uac-hook.exe`
+# Claude REAL (claude-haiku-5-5) cuyo hook de Bash es el `excubia-uac-hook.exe`
 # real, apuntando al host. Cada Bash pide una aprobación al operador.
 #
 #   start   host en 127.0.0.1:18878, dispositivos "operador" (approve) y
@@ -46,7 +46,7 @@ $Marker = Join-Path $Data 'marker.txt'
 $Bin = Join-Path $PSScriptRoot '..\target\debug'
 $HostExe = Join-Path $Bin 'host.exe'
 $DemoExe = Join-Path $Bin 'demo-client.exe'
-$HookExe = Join-Path $Bin 'hn-uac-hook.exe'
+$HookExe = Join-Path $Bin 'excubia-uac-hook.exe'
 $Operator = Join-Path $Root 'operator.json'
 $Observer = Join-Path $Root 'observer.json'
 
@@ -136,7 +136,7 @@ switch ($Command) {
         if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
             throw "el puerto $Port ya está en uso; no se toca ese proceso"
         }
-        foreach ($exe in $HostExe, $DemoExe, $HookExe, (Join-Path $Bin 'hn-mcp.exe')) {
+        foreach ($exe in $HostExe, $DemoExe, $HookExe, (Join-Path $Bin 'excubia-mcp.exe')) {
             if (-not (Test-Path $exe)) { throw "falta ${exe}: ejecuta cargo build --workspace --bins" }
         }
         New-Item -ItemType Directory -Force -Path $Data, $Work | Out-Null

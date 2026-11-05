@@ -75,9 +75,9 @@ pub(super) fn hook_path() -> Result<PathBuf, String> {
         .parent()
         .ok_or_else(|| "the fake CLI has no directory".to_string())?;
     let name = if cfg!(windows) {
-        "hn-uac-hook.exe"
+        "excubia-uac-hook.exe"
     } else {
-        "hn-uac-hook"
+        "excubia-uac-hook"
     };
     Ok(directory.join(name))
 }
