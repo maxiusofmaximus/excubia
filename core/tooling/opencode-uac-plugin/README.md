@@ -25,7 +25,7 @@ En el `opencode.json` del asiento aislado:
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["D:\\Documentos\\Projects\\herdr-notify-wt\\core\\tooling\\opencode-uac-plugin"],
+  "plugins": ["D:\\Documentos\\Projects\\excubia-wt\\core\\tooling\\opencode-uac-plugin"],
   "permissions": [{ "action": "*", "resource": "*", "effect": "allow" }]
 }
 ```
@@ -148,7 +148,7 @@ Para que la primera pasada del canario no necesite red, preinstala ese árbol co
 pnpm en la caché del host (la versión debe coincidir con la del CLI):
 
 ```sh
-pnpm add --dir "$APPDATA/herdr-notify/uac-canary/xdg/config/opencode" \
+pnpm add --dir "$APPDATA/excubia/uac-canary/xdg/config/opencode" \
   --ignore-scripts @opencode-ai/plugin@1.19.3 @ai-sdk/openai-compatible@3.0.75
 ```
 

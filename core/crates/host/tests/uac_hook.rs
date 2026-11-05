@@ -27,7 +27,7 @@ const POLL_INTERVAL: Duration = Duration::from_millis(500);
 fn plugin_dir(name: &str, loads: bool) -> TestDir {
     let dir = TestDir::new(&format!("uac-plugin-tests-{name}"));
     let index = if loads {
-        r#"export const PLUGIN_ID = "herdr.uac";
+        r#"export const PLUGIN_ID = "excubia.uac";
 export default { id: PLUGIN_ID, async setup(ctx) { await ctx.tool.hook("execute.before", () => {}); } };
 "#
     } else {

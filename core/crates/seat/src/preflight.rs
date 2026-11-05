@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn a_plugin_that_did_not_load_is_unsafe() {
-        let outcome = classify("failed to load plugin: herdr.uac");
+        let outcome = classify("failed to load plugin: excubia.uac");
         assert_eq!(outcome.state, UacState::Unsafe);
         assert!(outcome.reason.contains("did not load"), "{outcome:?}");
     }

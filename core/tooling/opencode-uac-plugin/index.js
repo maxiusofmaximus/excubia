@@ -2,7 +2,7 @@ import { classify, extraTools } from "./src/policy.js";
 import { actionDigest } from "./src/digest.js";
 import { requestApproval, UacDenied } from "./src/host.js";
 
-export const PLUGIN_ID = "herdr.uac";
+export const PLUGIN_ID = "excubia.uac";
 
 function deny(error) {
   const message = error instanceof UacDenied ? error.message : "error interno del guardián UAC";
