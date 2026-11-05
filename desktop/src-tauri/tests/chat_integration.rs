@@ -189,7 +189,12 @@ async fn pair_and_grant(host: &RunningHost, respond: bool) -> (DeviceIdentity, H
     )
     .await
     .expect("pairing");
-    if respond {
+    let granted: &[&str] = if respond {
+        &["read_state", "respond"]
+    } else {
+        &["read_state"]
+    };
+    for permission in granted {
         run_cli(
             &host.binary,
             &host.data_dir,
@@ -198,7 +203,7 @@ async fn pair_and_grant(host: &RunningHost, respond: bool) -> (DeviceIdentity, H
                 "grant",
                 &paired.device_id,
                 "--permission",
-                "respond",
+                permission,
             ],
         );
     }

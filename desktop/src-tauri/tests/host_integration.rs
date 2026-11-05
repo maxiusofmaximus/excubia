@@ -44,17 +44,19 @@ async fn the_real_host_pairs_answers_and_survives_a_kill() {
     )
     .await
     .expect("el emparejado contra el host real debe funcionar");
-    run_cli(
-        &host.binary,
-        &host.data_dir,
-        &[
-            "devices",
-            "grant",
-            &response.device_id,
-            "--permission",
-            "respond",
-        ],
-    );
+    for permission in ["read_state", "respond"] {
+        run_cli(
+            &host.binary,
+            &host.data_dir,
+            &[
+                "devices",
+                "grant",
+                &response.device_id,
+                "--permission",
+                permission,
+            ],
+        );
+    }
 
     // The fake agent must show up in the state.
     let mut identity = identity;
