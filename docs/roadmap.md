@@ -1,5 +1,7 @@
 # Roadmap v2
 
+> Nota (2.0): documento histórico. `add-device` y los enlaces `herdr-notify://` se retiraron en 2.0; hoy se empareja con `host pair-code`, enlaces `excubia://` y verificación SAS (ver `docs/contracts/pairing.md`).
+
 Governing specification: [`replanteamiento.md`](../replanteamiento.md).
 This file turns it into an ordered, checkable plan and records what is actually
 verified at each step.

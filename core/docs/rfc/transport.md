@@ -1,5 +1,7 @@
 # RFC — Transportes intercambiables (acceso remoto sin VPN obligatoria)
 
+> Nota (2.0): documento histórico. `add-device` y los enlaces `herdr-notify://` se retiraron en 2.0; hoy se empareja con `host pair-code`, enlaces `excubia://` y verificación SAS (ver `docs/contracts/pairing.md`).
+
 **Estado:** propuesta. Solo documento: no cambia código, contratos ni datos.
 **Origen:** decisión del Master, 2026-10-23. Tailscale bloqueó el móvil ~6 h (APK8D); el producto no puede depender de un servicio externo que no controla.
 **Marcas:** [V] verificado en la fuente citada · [I] inferencia nuestra · [NV] no verificado (se indica qué medir).

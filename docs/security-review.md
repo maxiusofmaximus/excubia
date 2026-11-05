@@ -1,5 +1,7 @@
 ﻿# Auditoría de seguridad
 
+> Nota (2.0): documento histórico. `add-device` y los enlaces `herdr-notify://` se retiraron en 2.0; hoy se empareja con `host pair-code`, enlaces `excubia://` y verificación SAS (ver `docs/contracts/pairing.md`).
+
 > (implementación Python retirada; ver README). Alcance: su `api/**` (autenticación, rate limit,
 > acciones) y la app Android retirada `app/src/main/**` (manifiesto, keystore, notificaciones,
 > red).
