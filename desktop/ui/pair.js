@@ -1,4 +1,5 @@
-import { app, $, invoke, copyText, setBusy, showView, toast } from "./core.js";
+import { app, $, invoke, copyText, setBusy, toast } from "./core.js";
+import { showView } from "./nav.js";
 import { errorMessage } from "./format.js";
 import { renderAgents, renderConnection } from "./agents.js";
 import { chatAfterConnect, chatReset } from "./chat.js";
@@ -37,16 +38,12 @@ function renderLocalStatus(host) {
   const state = host ? host.state : "disabled";
   restart.classList.toggle("hidden", state !== "failed");
   if (state === "ready") {
-    status.textContent = `Host local en marcha en 127.0.0.1:${host.port}. Alfred y el equipo aparecerán en cuanto haya datos.`;
+    status.textContent = `Excubia está en marcha en este equipo. Alfred y el equipo aparecerán en cuanto haya datos.`;
   } else if (state === "failed") {
-    status.textContent = `El host local no arrancó: ${host.error}`;
+    status.textContent = `Excubia no arrancó en este equipo: ${host.error}`;
   } else {
-    status.textContent = "Arrancando el host local…";
+    status.textContent = "Arrancando Excubia en este equipo…";
   }
-}
-
-export function openSettings() {
-  showView("pair");
 }
 
 export function showPairError(message) {
@@ -161,8 +158,6 @@ export function installPairHandlers() {
   installLinkForm(completePairing);
   installLanPairing();
   $("notifications-toggle").addEventListener("change", toggleNotifications);
-  $("btn-settings").addEventListener("click", openSettings);
-  $("btn-settings-team").addEventListener("click", openSettings);
   $("btn-pair-back").addEventListener("click", () => {
     showView("chat");
     chatAfterConnect();

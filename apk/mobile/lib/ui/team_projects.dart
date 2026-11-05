@@ -154,7 +154,7 @@ class TeamProjectGroupCard extends StatelessWidget {
             if (lead != null)
               _MemberRow(
                 name: lead.name,
-                role: 'Lead',
+                role: 'Responsable',
                 status: group.leadAgent?.status ?? _seatStatus(lead.status),
                 detail: group.leadAgent?.title,
                 onTap: (group.leadAgent != null || lead.paneId != null)
@@ -223,12 +223,7 @@ class _MemberRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                AgentAvatar(
-                  name: name,
-                  status: status,
-                  size: 40,
-                  ringed: true,
-                ),
+                AgentAvatar(name: name, status: status, size: 40, ringed: true),
                 const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Column(
@@ -258,13 +253,15 @@ class _MemberRow extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: role == 'Lead' ? c.accentSoft : c.raised,
+                    color: role == 'Responsable' ? c.accentSoft : c.raised,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     role,
                     style: context.text.label.copyWith(
-                      color: role == 'Lead' ? c.accentText : c.textSecondary,
+                      color: role == 'Responsable'
+                          ? c.accentText
+                          : c.textSecondary,
                       fontSize: 10,
                     ),
                   ),

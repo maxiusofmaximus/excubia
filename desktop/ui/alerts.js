@@ -2,9 +2,12 @@
 // confirma; nada se pinta como hecho antes de su respuesta, y un cambio que falla devuelve el control a
 // como estaba.
 
-import { $, invoke, setBusy, showView } from "./core.js";
+import { $, invoke, setBusy } from "./core.js";
+import { showView } from "./nav.js";
 import { element } from "./chatdom.js";
 import { reportWrite } from "./agenda-ui.js";
+import { emptyState, errorState } from "./empty-state.js";
+import { permissionText } from "./agenda-model.js";
 import {
   alertErrorText,
   draftFor,
@@ -163,8 +166,9 @@ async function loadAll() {
     status.hidden = true;
     paintRules();
   } catch (failure) {
-    status.hidden = true;
-    report(failure, $("alerts-problem"), "READ_STATE");
+    const text = failure?.kind === "forbidden" ? permissionText("READ_STATE") : alertErrorText(failure);
+    status.replaceChildren(errorState(text, loadAll));
+    status.hidden = false;
   }
 }
 
@@ -175,7 +179,9 @@ export function openAlerts() {
 }
 
 export function installAlerts() {
-  $("alerts-empty").textContent = EMPTY_RULES_TEXT;
+  $("alerts-empty").replaceChildren(
+    emptyState({ icon: "alerts", text: EMPTY_RULES_TEXT, action: "Nueva regla" }, () => $("alerts-kind").focus()),
+  );
   $("alerts-guarantee").textContent = GUARANTEE_TEXT;
   for (const input of modeInputs()) input.addEventListener("change", () => changeMode(input));
   $("alerts-kind").addEventListener("change", paintKind);

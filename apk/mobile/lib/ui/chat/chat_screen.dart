@@ -25,6 +25,7 @@ import 'chat_attachments_picker.dart';
 import 'chat_composer.dart';
 import 'chat_progress.dart';
 import 'chat_replies.dart';
+import 'chat_suggestions.dart';
 import 'chat_conversation_view.dart';
 import 'delegation_card.dart';
 import 'delegation_detail_screen.dart';

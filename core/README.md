@@ -1,11 +1,13 @@
-# herdr-notify
+# Excubia
 
-Live agent alerts and a secure control plane for
-[herdr](https://github.com/herdrdev/herdr) coding agents.
+Tu equipo de agentes de IA, a la vista y bajo tu control. Excubia aloja
+agentes de línea de comandos (Claude Code, opencode y otros), te los muestra
+en una app de escritorio y otra de móvil, y te pide el visto bueno antes de
+que hagan nada delicado.
 
-When an agent running in herdr needs you — it hit an approval dialog, or it
-finished a task you asked for — your phone buzzes, and tapping it takes you
-straight to the answer. No terminal hunting, no pane-by-pane archaeology.
+Alfred, el director técnico, coordina a un equipo contratado por oficio:
+programación, vídeo, diseño, audio, documentos y más. Hablas con él en un
+chat, y te avisa cuando necesita tu aprobación o termina lo que le pediste.
 
 ## Estado
 
@@ -65,15 +67,11 @@ y los comprueba `hn-core-test-support`.
 
 JavaScript del worktree: pnpm o vp; no npm.
 
-## Read this before touching the herdr client
+## Integración con herdr (retirada)
 
-[`docs/herdr-integration.md`](docs/herdr-integration.md) documents the protocol
-facts that are **not** in herdr's prose docs and that each cost real debugging
-time: the endpoint is a named pipe and not the `.sock` file, there is exactly one
-request per connection, subscription sets are frozen at subscribe time,
-`session.snapshot` nests under `result.snapshot`, and the Windows CRT
-read/write position plus `CloseHandle` deadlock are both real and both fail
-confusingly.
+Excubia ya no depende de herdr: el host hospeda los agentes él mismo.
+[`docs/herdr-integration.md`](docs/herdr-integration.md) se conserva solo como
+registro histórico del cliente que existió.
 
 ## Seguridad
 

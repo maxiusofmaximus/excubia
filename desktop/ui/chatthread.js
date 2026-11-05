@@ -14,6 +14,8 @@ import { renderFailure } from "./chatfailure.js";
 import { bubbleBody } from "./chatattach-model.js";
 import { attachmentsNode } from "./chatattach-view.js";
 import { draftCardNode } from "./chatdraft.js";
+import { chatSuggestions } from "./chat-suggestions.js";
+import { teamSnapshot } from "./hires.js";
 
 function messageNode(message, alfredName, line = null, detail = null) {
   const user = message.author_kind === "user";
@@ -167,9 +169,35 @@ export function busySeconds(pending) {
   return Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
 }
 
+const DAY_MS = 86400000;
+
+// The suggestions of the empty chat follow the team contracted here; the day
+// changes which phrase of each trade comes up.
+export function paintChatSuggestions() {
+  const hires = teamSnapshot().hires;
+  $("chat-suggestions").replaceChildren(
+    ...chatSuggestions(hires, Math.floor(Date.now() / DAY_MS)).map(suggestionNode),
+  );
+}
+
+function suggestionNode(item) {
+  const button = element("button", "suggestion");
+  button.type = "button";
+  button.setAttribute("role", "listitem");
+  button.dataset.suggestion = item.prompt;
+  const mark = element("span", "suggestion-mark", item.mark);
+  mark.setAttribute("aria-hidden", "true");
+  const text = element("span");
+  text.append(element("strong", "", item.title));
+  if (item.detail) text.append(element("small", "", item.detail));
+  button.append(mark, text);
+  return button;
+}
+
 export function renderThread(chat) {
   const timeline = $("chat-timeline");
   const empty = $("chat-empty");
+  paintChatSuggestions();
   const alfredName = chat.home && chat.home.bootstrap ? chat.home.bootstrap.alfred.name : "Alfred";
   paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 68 });
   const previousScroll = timeline.scrollTop;
@@ -282,7 +310,7 @@ export function renderThread(chat) {
     const body = element("div", "error-body");
     body.append(
       element("h3", null, "No se pudo completar la delegación"),
-      element("p", null, chat.delegationError.message || "El host rechazó la operación."),
+      element("p", null, chat.delegationError.message || "El PC rechazó la operación."),
     );
     if (chat.delegationError.code) {
       body.append(element("code", null, chat.delegationError.code));

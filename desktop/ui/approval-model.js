@@ -5,9 +5,9 @@
 export const LEVELS = ["policy", "scorer", "lead", "cto", "user"];
 
 const LEVEL_LABELS = {
-  policy: "Política",
-  scorer: "Puntuador",
-  lead: "Lead",
+  policy: "Reglas",
+  scorer: "Revisión automática",
+  lead: "Responsable del proyecto",
   cto: "Alfred",
   user: "Tú",
 };
@@ -264,7 +264,7 @@ export function supersededIndexes(entries, cardIds = new Set()) {
 
 // The host decides when an approval expires. This clock only marks the moment
 // to ask it again: a pending card at zero is still pending until the host says.
-export const CHECKING_TEXT = "Comprobando con el host…";
+export const CHECKING_TEXT = "Comprobando con el PC…";
 
 export function isChecking(entry, now = Date.now()) {
   return (entry.status || "pending") === "pending" && remainingSeconds(entry.expires_at, now) === 0;

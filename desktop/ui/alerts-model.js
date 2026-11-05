@@ -19,8 +19,7 @@ export const modeWords = (mode) => MODES[mode] ?? MODES.all;
 export const GUARANTEE_TEXT =
   "Los avisos siguen respetando los frenos del servidor (esperas entre avisos, horas de silencio).";
 
-export const EMPTY_RULES_TEXT =
-  "Todavía no hay reglas. Con «Avisar de todo» llega cada bloqueo y cada fin; con «Solo lo que yo elija» no llega ninguno. Crea una regla para elegir qué avisa.";
+export const EMPTY_RULES_TEXT = "Todavía no hay reglas. Crea una para elegir qué te avisa.";
 
 const verb = (action) => (action === "mute" ? "Silenciar" : "Avisar");
 

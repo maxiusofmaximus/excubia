@@ -24,7 +24,7 @@ test("cada motivo de omitido tiene sus palabras, y uno desconocido se lee igual"
   assert.equal(reasonText("invalid_text"), "Texto no válido");
   assert.equal(reasonText("invalid_recurrence"), "Repetición no válida");
   assert.equal(reasonText("calendar_limit"), "Límite de eventos alcanzado");
-  assert.equal(reasonText("something_new"), "Omitido por el host");
+  assert.equal(reasonText("something_new"), "Omitido por el PC");
 });
 
 test("el resumen cuenta importados, ya existían y omitidos, con el plural de cada cifra", () => {

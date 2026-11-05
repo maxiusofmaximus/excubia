@@ -1,5 +1,6 @@
-import { app, $, invoke, listen, showView } from "./core.js";
-import { errorMessage } from "./format.js";
+import { app, $, invoke, listen } from "./core.js";
+import { installNav, showView } from "./nav.js";
+import { errorMessage, readableState } from "./format.js";
 import {
   applyHostStatus,
   forgetPairing,
@@ -22,11 +23,24 @@ import { mountMailSettings } from "./mail.js";
 import { installMailDraft } from "./mail-draft.js";
 import { inboxOnEvent, refreshInbox } from "./approval-inbox.js";
 import { installTeam, refreshTeam } from "./hires.js";
+import { paintChatSuggestions } from "./chatthread.js";
 import { checkOnboarding, installOnboarding } from "./onboarding.js";
+import { installPalette } from "./palette.js";
 import { chatBoot, chatOnConnection, chatOnEvent, chatOnStateChange } from "./chat.js";
 import { installChatHandlers } from "./chatinstall.js";
 import { installAgenda } from "./agenda.js";
-import { installDevices } from "./devices.js";
+import { openDevices } from "./devices.js";
+import { openContacts } from "./agenda-contacts.js";
+import { openNotes } from "./agenda-notes.js";
+import { openCalendar } from "./calendar.js";
+import { openAlerts } from "./alerts.js";
+import { installSettings, openSettings } from "./settings.js";
+
+// The team shows in Equipo and in the suggestions of the empty chat.
+function teamChanged() {
+  renderAgents();
+  paintChatSuggestions();
+}
 
 async function boot() {
   installChatHandlers();
@@ -34,18 +48,28 @@ async function boot() {
   installAgentHandlers();
   installDetailHandlers();
   installNewConversationHandlers();
-  installTeam(renderAgents);
+  installTeam(teamChanged);
+  installPalette();
   installOnboarding();
   installApprovalHandlers();
   mountApprovalSettings();
   mountMailSettings();
   installMailDraft();
   installAgenda();
-  installDevices();
+  installSettings();
+  installNav({
+    chat: () => showView("chat"),
+    agents: () => showView("agents"),
+    calendar: openCalendar,
+    notes: openNotes,
+    contacts: openContacts,
+    alerts: openAlerts,
+    devices: openDevices,
+    settings: openSettings,
+  });
   $("btn-stale-pair").addEventListener("click", forgetPairing);
   $("btn-empty-pair").addEventListener("click", forgetPairing);
   $("btn-new").addEventListener("click", () => openNewConversation());
-  $("btn-empty-new").addEventListener("click", () => openNewConversation());
   $("btn-new-here").addEventListener("click", () =>
     openNewConversation(app.current ? app.current.cwd || "" : ""),
   );
@@ -71,7 +95,7 @@ async function boot() {
     chatOnConnection();
     if (app.connection.kind === "connected") {
       refreshInbox();
-      refreshTeam().then(renderAgents);
+      refreshTeam().then(teamChanged);
       checkOnboarding();
     }
   });
@@ -99,7 +123,7 @@ async function boot() {
     const state = await invoke("bootstrap");
     app.boot = state;
     app.connection = state.connection || { kind: "idle" };
-    if (state.state) app.state = state.state;
+    app.state = readableState(state.state);
     hydratePairing(state);
     renderConnection();
     renderAgents();

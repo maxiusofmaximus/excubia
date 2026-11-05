@@ -5,9 +5,9 @@
 import { $, copyText, invoke } from "./core.js";
 import { element } from "./approval-card.js";
 import { openDraft } from "./mail-draft.js";
+import { kindPicker } from "./mail-kinds.js";
 import { errorMessage } from "./format.js";
 import {
-  SIGN_IN_KINDS,
   accountKindLabel,
   accountsState,
   countdownFor,
@@ -51,11 +51,9 @@ export function mountMailSettings() {
     ui.connect.form,
     ui.open.form,
   );
-  $("view-pair").append(section);
+  $("settings-mail").append(section);
   section.addEventListener("click", onClick);
-  for (const id of ["btn-settings", "btn-settings-team"]) {
-    $(id).addEventListener("click", loadAccounts);
-  }
+  document.addEventListener("settings:open", loadAccounts);
   document.addEventListener("mail:refresh", loadAccounts);
   render();
 }
@@ -70,22 +68,16 @@ function buildConnect() {
   name.maxLength = 64;
   name.autocomplete = "off";
   name.spellcheck = false;
-  const legend = element("legend", "field-label", "Tipo de cuenta");
-  const kinds = element("fieldset", "mail-kinds");
-  kinds.append(legend);
-  Object.entries(SIGN_IN_KINDS).forEach(([kind, { label }], index) => {
-    const option = element("label", "mail-kind");
-    const radio = element("input");
-    radio.type = "radio";
-    radio.name = "mail-kind";
-    radio.value = kind;
-    radio.checked = index === 0;
-    option.append(radio, element("span", null, label));
-    kinds.append(option);
-  });
+  const kinds = kindPicker();
   const submit = element("button", "btn primary btn-block", "Conectar cuenta");
   submit.type = "submit";
-  form.append(element("label", "field-label", "Nombre para esta cuenta"), name, kinds, submit);
+  form.append(
+    element("label", "field-label", "Nombre para esta cuenta"),
+    name,
+    element("span", "field-label", "Tipo de cuenta"),
+    kinds.group,
+    submit,
+  );
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const label = name.value.trim();
@@ -94,8 +86,8 @@ function buildConnect() {
       render();
       return;
     }
-    const kind = form.elements["mail-kind"].value;
-    beginFlow("sign-in", label, () => invoke("mail_login_start", { account: label, tenant: signInTenant(kind) }), "mail_login_status");
+    const tenant = signInTenant(kinds.selected());
+    beginFlow("sign-in", label, () => invoke("mail_login_start", { account: label, tenant }), "mail_login_status");
   });
   return { form, name };
 }

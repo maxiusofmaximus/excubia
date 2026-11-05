@@ -3,21 +3,21 @@
 import { action, element } from "./chatdom.js";
 
 const FAILURE_TITLES = {
-  offline: "Sin conexión con el host",
-  unauthorized: "El host ya no confía en este equipo",
+  offline: "Sin conexión con el PC",
+  unauthorized: "El PC ya no reconoce este equipo",
   forbidden: "Falta el permiso RESPOND",
   seatUnavailable: "Alfred no pudo arrancar",
   delegationRefused: "La delegación no se pudo completar",
-  agentBusy: "La cola de Alfred está llena",
+  agentBusy: "Alfred tiene demasiado trabajo pendiente; prueba en un momento",
   archived: "La conversación está archivada",
   notFound: "La conversación ya no existe",
   invalid: "El mensaje no es válido",
-  host: "El host rechazó la petición",
-  protocol: "Respuesta inesperada del host",
+  host: "No se pudo completar la acción",
+  protocol: "Respuesta inesperada del PC",
 };
 
 function grantCommand(text) {
-  const marker = "Concédelo en el host: ";
+  const marker = "Concédelo en el PC: ";
   if (!text || !text.includes(marker)) return null;
   return text.slice(text.indexOf(marker) + marker.length).trim();
 }

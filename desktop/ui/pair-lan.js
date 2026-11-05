@@ -1,4 +1,5 @@
-import { $, invoke, setBusy, showView } from "./core.js";
+import { $, invoke, setBusy } from "./core.js";
+import { showView } from "./nav.js";
 import { errorMessage, expiryText, svgDataUrl } from "./format.js";
 import { IDLE, leaveWindow, qrMessage, qrVisible, showQr as startQr, tickQr } from "./pair-qr-model.js";
 

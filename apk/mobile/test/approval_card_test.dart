@@ -25,7 +25,11 @@ Widget _card(
   ValueChanged<bool>? onDecide,
   VoidCallback? onRecheckGrant,
 }) => MaterialApp(
-  theme: buildTheme(brightness),
+  theme: buildTheme(
+    brightness == Brightness.dark
+        ? HerdrPalettes.noche
+        : HerdrPalettes.pergamino,
+  ),
   home: Scaffold(
     body: Padding(
       padding: const EdgeInsets.all(16),
@@ -167,7 +171,7 @@ void main() {
           ),
         );
         expect(
-          find.text('Este dispositivo no puede aprobar. En el host, ejecuta:'),
+          find.text('Este dispositivo no puede aprobar. En el PC, ejecuta:'),
           findsOneWidget,
         );
         expect(
@@ -252,7 +256,7 @@ void main() {
       Set<String> unchecked = const <String>{},
       void Function(String messageId, bool checked)? onToggle,
     }) => MaterialApp(
-      theme: buildTheme(Brightness.light),
+      theme: buildTheme(HerdrPalettes.pergamino),
       home: Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(16),

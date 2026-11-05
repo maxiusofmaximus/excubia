@@ -121,10 +121,12 @@ class _AlertsSetupSectionState extends State<AlertsSetupSection>
           title: 'Inicio automático',
           value: status.autostartScreen
               ? 'Actívalo para esta app: así los avisos vuelven solos tras reiniciar el móvil. '
-                  'Android no deja a la app comprobarlo.'
+                    'Android no deja a la app comprobarlo.'
               : 'Android no deja a la app comprobarlo. '
-                  'Busca «Inicio automático» en los ajustes de esta app.',
-          button: status.autostartScreen ? 'Abrir inicio automático' : 'Abrir ajustes de esta app',
+                    'Busca «Inicio automático» en los ajustes de esta app.',
+          button: status.autostartScreen
+              ? 'Abrir inicio automático'
+              : 'Abrir ajustes de esta app',
           onPressed: status.autostartScreen
               ? () => widget.platform.openAutostartSettings()
               : () => widget.platform.openAppSettings(),
@@ -132,8 +134,8 @@ class _AlertsSetupSectionState extends State<AlertsSetupSection>
         const SizedBox(height: Spacing.md),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Servicio de avisos'),
-          subtitle: Text('$running · tipo ${status.fgsType}', style: text.bodySecondary),
+          title: const Text('Avisos en segundo plano'),
+          subtitle: Text(running, style: text.bodySecondary),
           value: status.enabled,
           onChanged: (on) => _act(() => widget.platform.setEnabled(on)),
         ),
@@ -148,7 +150,10 @@ class _AlertsSetupSectionState extends State<AlertsSetupSection>
         ),
         if (steps != null) ...[
           const SizedBox(height: Spacing.md),
-          Text('Pasos en el móvil (pueden variar según la versión)', style: text.label),
+          Text(
+            'Pasos en el móvil (pueden variar según la versión)',
+            style: text.label,
+          ),
           const SizedBox(height: Spacing.xs),
           for (final step in steps) Text(step, style: text.bodySecondary),
         ],
@@ -174,9 +179,8 @@ class _AlertsSetupSectionState extends State<AlertsSetupSection>
     final log = await widget.platform.readLog();
     await Clipboard.setData(ClipboardData(text: log));
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Diagnóstico copiado')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Diagnóstico copiado')));
     }
   }
 }

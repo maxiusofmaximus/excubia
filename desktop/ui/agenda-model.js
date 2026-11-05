@@ -1,6 +1,8 @@
 // «Contactos» and «Notas»: the rules that need no DOM, so tooling/agenda-model.test.mjs
 // can run them. Local limits mirror the host's; the host still has the last word.
 
+import { friendlyError, OFFLINE_TEXT } from "./friendly-error.js";
+
 export const CONTACT_LIMITS = { name: 120, aliases: 10, addresses: 10, contacts: 1000 };
 export const NOTE_LIMITS = { subject: 120, bodyBytes: 32 * 1024, notes: 2000 };
 export const ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -147,16 +149,15 @@ const REFUSAL_TEXT = {
 
 // The operator's words for a failure of the agenda. Unknown codes keep a generic line.
 export function agendaErrorText(failure) {
-  if (!failure) return "No se pudo completar la operación.";
-  if (failure.kind === "offline") return "Sin conexión con el host. Lo cargado sigue visible.";
-  if (failure.kind === "agendaRefused") {
+  if (failure?.kind === "offline") return `${OFFLINE_TEXT} Lo cargado sigue visible.`;
+  if (failure?.kind === "agendaRefused") {
     const words = REFUSAL_TEXT[failure.code];
     if (words) return words(failure);
   }
-  return "El host rechazó la petición.";
+  return friendlyError(failure);
 }
 
 // A refusal of the permission: the device lacks the grant the action needs.
 export function permissionText(permission) {
-  return `Este dispositivo no tiene el permiso ${permission}. Pídeselo al host.`;
+  return `Este dispositivo no tiene el permiso ${permission}. Pídeselo al PC.`;
 }

@@ -1,4 +1,6 @@
 import { $ } from "./core.js";
+import { setNavBadge } from "./nav.js";
+import { emptyState } from "./empty-state.js";
 import { paintAvatar } from "./avatar.js";
 import { EMPTY_TEXT, FILTERS } from "./chat-filter-model.js";
 import { progressText } from "./chat-progress-model.js";
@@ -175,10 +177,10 @@ export function renderHistory(chat) {
   }
 
   if (!conversations.length) {
-    const empty = document.createElement("p");
-    empty.className = "history-empty";
-    empty.textContent = "Aún no hay conversaciones. Empieza con «Nuevo chat».";
-    groups.append(empty);
+    const onNew = () => $("btn-new-chat").click();
+    groups.append(
+      emptyState({ icon: "chat", text: "Aún no hay conversaciones. Empieza con «Nuevo chat».", action: "Nuevo chat" }, onNew),
+    );
     return;
   }
 
@@ -286,9 +288,10 @@ export function renderSide(chat, agents) {
   $("side-alfred-status").textContent = alfred
     ? `CTO · ${SEAT_STATUS[alfred.status] || alfred.status || "disponible"}`
     : "Sin conexión";
+  setNavBadge(bootstrap && bootstrap.chat ? bootstrap.chat.unread : 0);
   $("side-company").textContent = bootstrap
     ? `${bootstrap.company.name}${bootstrap.chat ? ` · ${bootstrap.chat.unread} sin leer` : ""}`
-    : "Sin datos del host";
+    : "Sin datos del PC";
 
   const live = agents || [];
   const projects = $("side-projects");
@@ -326,7 +329,7 @@ export function renderSide(chat, agents) {
         if (leadAgent) {
           team.append(
             agentButton(
-              { ...leadAgent, title: `${lead.name} — lead`, agent: "lead" },
+              { ...leadAgent, title: `${lead.name} — responsable del proyecto`, agent: "lead" },
               "lead",
               "project-lead",
             ),
@@ -339,10 +342,10 @@ export function renderSide(chat, agents) {
           dot.setAttribute("aria-hidden", "true");
           const label = document.createElement("span");
           label.className = "side-name";
-          label.textContent = lead.name || "Lead";
+          label.textContent = lead.name || "Responsable";
           const role = document.createElement("span");
           role.className = "role-badge";
-          role.textContent = "lead sin panel";
+          role.textContent = "responsable sin panel";
           row.append(dot, label, role);
           team.append(row);
         }

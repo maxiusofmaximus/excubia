@@ -2,32 +2,26 @@
 // the states a read can show. A screen gives its loader and its row; this owns the rest.
 // Pages stay in memory only; a stale page never replaces a newer search.
 
-import { element } from "./chatdom.js";
+import { errorState } from "./empty-state.js";
 
-export function createAgendaList({ list, status, more, fetchPage, renderRow, emptyText, loadingText, failureText }) {
+// `emptyNode(query)` returns the screen's empty state; a failed read gets its error state.
+export function createAgendaList({ list, status, more, fetchPage, renderRow, emptyNode, loadingText, failureText }) {
   let query = "";
   let cursor = null;
   let items = [];
   let token = 0;
 
-  function setStatus(text, retry = false) {
+  function setStatus(content) {
     status.replaceChildren();
-    status.hidden = !text;
-    if (!text) return;
-    status.append(text);
-    if (retry) {
-      const again = element("button", "btn secondary btn-small", "Reintentar");
-      again.type = "button";
-      again.addEventListener("click", () => reload(query));
-      status.append(" ", again);
-    }
+    status.hidden = !content;
+    if (content) status.append(content);
   }
 
   function render() {
     list.replaceChildren(...items.map(renderRow));
     more.hidden = !cursor;
     if (items.length) setStatus("");
-    else setStatus(emptyText(query));
+    else setStatus(emptyNode(query));
   }
 
   async function reload(search = query) {
@@ -45,7 +39,7 @@ export function createAgendaList({ list, status, more, fetchPage, renderRow, emp
       cursor = page.next;
       render();
     } catch (failure) {
-      if (current === token) setStatus(failureText(failure), true);
+      if (current === token) setStatus(errorState(failureText(failure), () => reload(query)));
     }
   }
 
@@ -60,7 +54,7 @@ export function createAgendaList({ list, status, more, fetchPage, renderRow, emp
       cursor = page.next;
       render();
     } catch (failure) {
-      if (current === token) setStatus(failureText(failure), true);
+      if (current === token) setStatus(errorState(failureText(failure), () => reload(query)));
     } finally {
       more.disabled = false;
     }

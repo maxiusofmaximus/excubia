@@ -126,11 +126,11 @@ test("every refusal of the agenda has its Spanish words", () => {
   assert.match(agendaErrorText(refusal("invalid_arguments", "title")), /asunto/);
   assert.match(agendaErrorText(refusal("invalid_arguments", "name")), /nombre/);
   assert.match(agendaErrorText(refusal("not_found")), /ya no existe/);
-  assert.match(agendaErrorText(refusal("unknown_code")), /no es válido|rechazó/);
+  assert.match(agendaErrorText(refusal("unknown_code")), /no aceptó/);
 });
 
 test("an offline or unknown failure never shows the raw code", () => {
   assert.match(agendaErrorText({ kind: "offline", message: "x" }), /Sin conexión/);
-  assert.match(agendaErrorText({ kind: "host", message: "El host rechazó la petición: x" }), /rechazó/);
-  assert.equal(agendaErrorText(null), "No se pudo completar la operación.");
+  assert.match(agendaErrorText({ kind: "host", message: "El host rechazó la petición: x" }), /no aceptó/);
+  assert.equal(agendaErrorText(null), "No se pudo cargar. Inténtalo de nuevo.");
 });

@@ -15,12 +15,6 @@ export const app = {
 
 export const $ = (id) => document.getElementById(id);
 
-export function showView(name) {
-  for (const view of ["pair", "recovery", "lan", "chat", "agents", "detail", "onboarding", "mail", "contacts", "notes", "calendar", "devices", "alerts"]) {
-    $(`view-${view}`).classList.toggle("hidden", view !== name);
-  }
-}
-
 export function setBusy(button, busy, label) {
   if (!button) return;
   if (!button.dataset.label) button.dataset.label = button.textContent;

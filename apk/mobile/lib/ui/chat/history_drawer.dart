@@ -106,6 +106,10 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                           alertRules: widget.controller.alertRules,
                           alfred: widget.controller.alfredBackend,
                           onUnpaired: widget.onUnpaired,
+                          approvals: widget.controller.approvals,
+                          conversationId: widget.controller.current?.id,
+                          projects: widget.controller.projects,
+                          alfredSeat: widget.controller.alfredSeat,
                         ),
                       ),
                     );

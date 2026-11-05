@@ -1,4 +1,6 @@
-import { app, $, invoke, showView, toast } from "./core.js";
+import { app, $, invoke, toast } from "./core.js";
+import { showView } from "./nav.js";
+import { openSettings } from "./settings.js";
 import { openDetail } from "./detail.js";
 import { installDelegationHandlers } from "./delegations.js";
 import { messageById } from "./chat-reply-model.js";
@@ -154,10 +156,6 @@ export function installChatHandlers() {
   } catch {
     // Preference only.
   }
-  $("tab-chat").addEventListener("click", () => showView("chat"));
-  $("tab-team").addEventListener("click", () => showView("agents"));
-  $("team-tab-chat").addEventListener("click", () => showView("chat"));
-  $("team-tab-team").addEventListener("click", () => showView("agents"));
   $("btn-team-foot").addEventListener("click", () => showView("agents"));
   $("btn-open-team").addEventListener("click", () => showView("agents"));
   $("btn-new-chat").addEventListener("click", () => newConversation());
@@ -200,13 +198,13 @@ export function installChatHandlers() {
   $("btn-history-toggle").addEventListener("click", () => {
     $("chat-shell").classList.toggle("history-open");
   });
-  for (const button of document.querySelectorAll("[data-suggestion]")) {
-    button.addEventListener("click", () => {
-      $("chat-input").value = button.dataset.suggestion;
-      autoGrow();
-      $("chat-input").focus();
-    });
-  }
+  $("chat-suggestions").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-suggestion]");
+    if (!button) return;
+    $("chat-input").value = button.dataset.suggestion;
+    autoGrow();
+    $("chat-input").focus();
+  });
 
   $("chat-groups").addEventListener("click", (event) => {
     const target = event.target.closest("button");
@@ -273,7 +271,7 @@ export function installChatHandlers() {
     else if (target.dataset.action === "unarchive" && chat.conversation) {
       patchConversation(chat.conversation, { archived: false }, "Conversación desarchivada");
     } else if (target.dataset.action === "reconnect") reconnect();
-    else if (target.dataset.action === "settings") showView("pair");
+    else if (target.dataset.action === "settings") openSettings();
     else if (target.dataset.action === "history") {
       if (chat.conversation) selectConversation(chat.conversation.id);
     }
@@ -283,7 +281,7 @@ export function installChatHandlers() {
     const target = event.target.closest("button");
     if (!target) return;
     if (target.dataset.action === "reconnect") reconnect();
-    else if (target.dataset.action === "settings") showView("pair");
+    else if (target.dataset.action === "settings") openSettings();
     else if (target.dataset.action === "unarchive" && chat.conversation) {
       patchConversation(chat.conversation, { archived: false }, "Conversación desarchivada");
     } else if (target.dataset.action === "restart-host") {

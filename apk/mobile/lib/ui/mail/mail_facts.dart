@@ -61,7 +61,7 @@ class MailAttachmentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return MailFactRow(
       label: 'ADJUNTO',
-      value: '$name · ${sizeLabel(size)}\nSHA-256 ${shortDigest(sha256)}',
+      value: '$name · ${sizeLabel(size)}\nHuella ${shortDigest(sha256)}',
     );
   }
 }
@@ -113,7 +113,7 @@ class MailAttachFacts extends StatelessWidget {
       children: [
         MailFactRow(label: 'RUTA', value: details.path),
         MailFactRow(label: 'TAMAÑO', value: sizeLabel(details.size)),
-        MailFactRow(label: 'SHA-256', value: shortDigest(details.sha256)),
+        MailFactRow(label: 'Huella', value: shortDigest(details.sha256)),
       ],
     );
   }

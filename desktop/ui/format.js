@@ -79,3 +79,8 @@ export function stripAnsi(text) {
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n");
 }
+
+// A host snapshot is only a state with its agent list; without one the screens have nothing to read.
+export function readableState(state) {
+  return state && Array.isArray(state.agents) ? state : null;
+}

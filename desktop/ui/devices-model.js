@@ -2,10 +2,13 @@
 // them. The host decides what may happen; this only orders, words and explains.
 
 import { relativeDate } from "./agenda-model.js";
+import { friendlyError, OFFLINE_TEXT } from "./friendly-error.js";
 
 export const THIS_DEVICE_REASON = "Para salir de este equipo, usa Olvidar emparejamiento.";
 export const REVOKE_WARNING =
   "Este dispositivo dejará de poder entrar y no podrá volver sin emparejarse de nuevo.";
+export const OWN_REVOKE_WARNING =
+  "Este equipo dejará de estar vinculado y tendrás que emparejarlo de nuevo. ¿Continuar?";
 
 // The order of the contract; an id the screen does not know is left out, never shown raw.
 const PERMISSION_WORDS = {
@@ -71,9 +74,9 @@ export function orderDevices(devices, thisDevice) {
   return { active, revoked };
 }
 
-// This device is never revoked from here: that would lock the screen out of the host.
-export function canRevoke(device, thisDevice) {
-  return !device.revoked && device.device_id !== thisDevice;
+// This device may revoke itself only in remote mode: the code screen is what brings it back.
+export function canRevoke(device, thisDevice, local = false) {
+  return !device.revoked && (device.device_id !== thisDevice || !local);
 }
 
 // A pending device holds no permission yet; the host decides the rest (ADMIN never comes from here).
@@ -97,15 +100,14 @@ export function groupSas(sas) {
 }
 
 const FAILURE_TEXT = {
-  offline: "Sin conexión con el host. Lo cargado sigue visible.",
+  offline: `${OFFLINE_TEXT} Lo cargado sigue visible.`,
   unauthorized: "El PC ya no confía en este dispositivo. Vuelve a emparejarlo.",
   forbidden: "Este equipo no puede administrar dispositivos.",
   notFound: "Ya no existe.",
   notPending: "Ya tenía permisos.",
 };
 
-// The operator's words for a failure. A refusal names its status; anything else is generic.
+// The operator's words for a failure: the screen's own line, else the one translator.
 export function deviceFailureText(failure) {
-  if (failure?.kind === "refused") return `El PC rechazó la petición (${failure.status}).`;
-  return FAILURE_TEXT[failure?.kind] || "No se pudo completar la operación.";
+  return FAILURE_TEXT[failure?.kind] || friendlyError(failure);
 }

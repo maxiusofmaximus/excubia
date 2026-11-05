@@ -19,13 +19,13 @@ const STATUS = {
 const REASON_TEXT = {
   delegation_timeout: "El turno de la delegación agotó el tiempo de espera.",
   pane_gone: "El panel del asignado desapareció antes de terminar.",
-  host_restart: "El host se reinició y la delegación quedó interrumpida.",
+  host_restart: "Excubia se reinició y la delegación quedó interrumpida.",
   conversation_cancelled: "Se canceló el equipo de esta conversación.",
   user_cancelled: "La delegación se canceló desde el escritorio.",
   delegation_cancelled: "La delegación ya había terminado o estaba cancelada.",
   seat_unavailable: "El asiento no tenía un panel vivo cuando se asignó.",
-  depth_exceeded: "La delegación supera la profundidad permitida (Alfred → lead → especialista).",
-  pane_limit: "El host ya tiene seis paneles vivos; no se puede abrir otro.",
+  depth_exceeded: "Alfred no puede delegar más veces en esta tarea.",
+  pane_limit: "El PC ya tiene seis paneles abiertos; no se puede abrir otro.",
   cycle_detected: "La delegación repite un encargo reciente; se detuvo para evitar un ciclo.",
   turn_budget: "Este turno ya hizo doce delegaciones; no se permiten más.",
   hour_budget: "Este asiento ya hizo sesenta delegaciones en la última hora.",
@@ -218,7 +218,7 @@ function renderDetail(view) {
       "Resultado completo",
       result
         ? element("pre", "delegation-result", result)
-        : element("p", "delegation-muted", "El host no guardó un resultado para esta delegación."),
+        : element("p", "delegation-muted", "El PC no guardó un resultado para esta delegación."),
     ),
   );
 
@@ -239,7 +239,7 @@ function renderDetail(view) {
       { pending: "pendiente", queued: "en cola", skipped: "omitida" }[
         detail.synthesis.state
       ] || detail.synthesis.state;
-    body.append(detailSection("Síntesis de Alfred", element("p", null, synthesis)));
+    body.append(detailSection("Resumen de Alfred", element("p", null, synthesis)));
   }
 
   const pane = delegation.pane_id || (detail.card ? detail.card.pane_id : null);
@@ -254,7 +254,7 @@ export async function openDelegationDetail(id) {
   const dialog = $("delegation-detail");
   $("delegation-detail-title").textContent = "Cargando delegación…";
   $("delegation-detail-kicker").textContent = shortId(id);
-  $("delegation-detail-body").replaceChildren(element("p", "delegation-muted", "Leyendo el host…"));
+  $("delegation-detail-body").replaceChildren(element("p", "delegation-muted", "Leyendo desde el PC…"));
   if (!dialog.open) dialog.showModal();
   try {
     const view = await invoke("chat_delegation", { delegationId: id });

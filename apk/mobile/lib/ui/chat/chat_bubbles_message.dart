@@ -143,7 +143,7 @@ class _MessageBubble extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 520),
           decoration: BoxDecoration(
             color: mine ? c.accentSoft : c.surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: failed ? c.statusBlocked : c.outlineSoft),
           ),
           child: Column(

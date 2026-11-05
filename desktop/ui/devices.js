@@ -1,17 +1,17 @@
 // «Mis dispositivos»: the screen and its entry points. The list loads each time the screen
 // opens and after a revoke; nothing polls in the background. Revoking asks first.
 
-import { $, copyText, invoke, showView, toast } from "./core.js";
+import { $, app, copyText, invoke, toast } from "./core.js";
+import { showView } from "./nav.js";
+import { forgetPairing } from "./pair.js";
 import { element } from "./chatdom.js";
 import { actionRow, button, notice } from "./agenda-ui.js";
-import { openContacts } from "./agenda-contacts.js";
-import { openNotes } from "./agenda-notes.js";
-import { openCalendar } from "./calendar.js";
-import { openAlerts } from "./alerts.js";
+import { emptyState, errorState } from "./empty-state.js";
 import {
   APPROVE_WARNING,
   DEFAULT_GRANT,
   NO_SAS_HINT,
+  OWN_REVOKE_WARNING,
   REVOKE_WARNING,
   SAS_HINT,
   THIS_DEVICE_REASON,
@@ -34,13 +34,15 @@ const EMPTY = "No hay dispositivos emparejados.";
 // A list that starts after a newer one must not overwrite it.
 let token = 0;
 
-function setStatus(text, retry = false) {
+function setStatus(content) {
   const node = $("devices-status");
   node.replaceChildren();
-  node.hidden = !text;
-  if (!text) return;
-  node.append(text);
-  if (retry) node.append(" ", button("Reintentar", "btn secondary btn-small", loadDevices));
+  node.hidden = !content;
+  if (content) node.append(content);
+}
+
+function emptyNode() {
+  return emptyState({ icon: "devices", text: EMPTY, action: "Actualizar" }, loadDevices);
 }
 
 function paint(list) {
@@ -49,7 +51,7 @@ function paint(list) {
   $("devices-revoked").replaceChildren(...groups.revoked.map((device) => row(device, list.this_device)));
   $("devices-revoked-summary").textContent = `Revocados (${groups.revoked.length})`;
   $("devices-revoked-group").hidden = groups.revoked.length === 0;
-  setStatus(list.devices.length ? "" : EMPTY);
+  setStatus(list.devices.length ? "" : emptyNode());
 }
 
 // A refused grant is a state of the screen, not an error: the device cannot manage devices.
@@ -63,7 +65,9 @@ export async function loadDevices() {
     const list = await invoke("devices_list");
     if (current === token) paint(list);
   } catch (failure) {
-    if (current === token) setStatus(deviceFailureText(failure), failure.kind !== "forbidden");
+    if (current !== token) return;
+    const text = deviceFailureText(failure);
+    setStatus(failure?.kind === "forbidden" ? text : errorState(text, loadDevices));
   }
 }
 
@@ -91,7 +95,7 @@ function row(device, thisDevice) {
     id,
   );
   if (canApprove(device, thisDevice)) item.append(approveBlock(device));
-  if (!device.revoked) item.append(revokeControl(device, canRevoke(device, thisDevice)));
+  if (!device.revoked) item.append(revokeControl(device, canRevoke(device, thisDevice, app.boot?.mode === "local"), mine));
   if (mine) item.append(notice(THIS_DEVICE_REASON, "agenda-hint"));
   return item;
 }
@@ -118,15 +122,33 @@ function confirmControl({ askLabel, askClass, sendLabel, warning, allowed = true
   return wrap;
 }
 
-function revokeControl(device, allowed) {
+function revokeControl(device, allowed, mine) {
   return confirmControl({
-    askLabel: "Revocar",
+    askLabel: mine ? "Revocar este equipo" : "Revocar",
     askClass: "btn danger btn-small",
-    sendLabel: "Revocar dispositivo",
-    warning: REVOKE_WARNING,
+    sendLabel: mine ? "Revocar este equipo" : "Revocar dispositivo",
+    warning: mine ? OWN_REVOKE_WARNING : REVOKE_WARNING,
     allowed,
-    send: (confirm, problem) => runAction(device, confirm, problem, "devices_revoke", {}, "Dispositivo revocado"),
+    send: (confirm, problem) =>
+      mine
+        ? revokeThisDevice(device, confirm, problem)
+        : runAction(device, confirm, problem, "devices_revoke", {}, "Dispositivo revocado"),
   });
+}
+
+// Revoking this device ends the session it is using: no list to reload, the code screen instead.
+async function revokeThisDevice(device, confirm, problem) {
+  confirm.disabled = true;
+  try {
+    await invoke("devices_revoke", { id: device.device_id });
+  } catch (failure) {
+    confirm.disabled = false;
+    problem.textContent = deviceFailureText(failure);
+    problem.hidden = false;
+    return;
+  }
+  await forgetPairing();
+  toast("Este equipo ya no está vinculado. Introduce un código nuevo del PC.");
 }
 
 // A pending device: its verification string to compare, the permissions it gets, and the approval.
@@ -199,18 +221,4 @@ async function runAction(device, confirm, problem, command, args, done) {
 export function openDevices() {
   showView("devices");
   loadDevices();
-}
-
-// The «Dispositivos» tab sits in every top bar next to Contactos, Notas and Calendario.
-export function installDevices() {
-  for (const id of ["tab-devices", "team-tab-devices", "contacts-tab-devices", "notes-tab-devices", "calendar-tab-devices"]) {
-    $(id).addEventListener("click", openDevices);
-  }
-  $("devices-tab-chat").addEventListener("click", () => showView("chat"));
-  $("devices-tab-team").addEventListener("click", () => showView("agents"));
-  $("devices-tab-contacts").addEventListener("click", openContacts);
-  $("devices-tab-notes").addEventListener("click", openNotes);
-  $("devices-tab-calendar").addEventListener("click", openCalendar);
-  $("devices-tab-alerts").addEventListener("click", openAlerts);
-  $("alerts-tab-devices").addEventListener("click", openDevices);
 }

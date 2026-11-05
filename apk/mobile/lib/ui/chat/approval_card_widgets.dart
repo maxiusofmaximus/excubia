@@ -41,7 +41,7 @@ class _GrantNotice extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Este dispositivo no puede aprobar. En el host, ejecuta:',
+          'Este dispositivo no puede aprobar. En el PC, ejecuta:',
           style: text.bodySecondary,
         ),
         const SizedBox(height: Spacing.xs),

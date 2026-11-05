@@ -5,6 +5,7 @@ import 'package:herdr_notify/src/rust/frb_generated.dart';
 import 'core/alerts/alert_entry.dart';
 import 'core/storage/pairing_store.dart';
 import 'ui/app.dart';
+import 'ui/palette/palette_prefs.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,5 +24,5 @@ Future<void> main(List<String> args) async {
   );
   final values = SecureKeyValueStore();
   final store = PairingStore(values);
-  runApp(HerdrNotifyApp(store: store));
+  runApp(HerdrNotifyApp(store: store, palettePrefs: PalettePrefs(values)));
 }

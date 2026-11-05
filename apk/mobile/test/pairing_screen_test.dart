@@ -212,10 +212,7 @@ void main() {
     await tester.tap(find.text('Emparejar'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('Añade la dirección del equipo'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Añade la dirección del PC'), findsOneWidget);
   });
 
   testWidgets('a generated key is persisted and the Rust core is shown', (
@@ -231,7 +228,7 @@ void main() {
 
     await tester.tap(find.text('Avanzado'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Núcleo Rust'), findsOneWidget);
+    expect(find.textContaining('Versión '), findsOneWidget);
   });
 
   testWidgets('no pairing screen offers the legacy add-device command', (

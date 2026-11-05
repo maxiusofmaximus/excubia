@@ -66,7 +66,7 @@ class _ApprovalSettingsScreenState extends State<ApprovalSettingsScreen> {
                     : (value) => _setAlwaysUser(context, approvals, value),
               ),
               Text(
-                'Con el ajuste activo, cada permiso llega a ti; sin él, el lead y Alfred deciden antes.',
+                'Con el ajuste activo, cada permiso llega a ti; sin él, el responsable del proyecto y Alfred deciden antes.',
                 style: text.small,
               ),
               const SizedBox(height: Spacing.lg),
@@ -129,7 +129,7 @@ class _ApprovalSettingsScreenState extends State<ApprovalSettingsScreen> {
         context: context,
         builder: (context) => AlertDialog(
           content: const Text(
-            'Al apagarlo, el lead y Alfred deciden antes; a ti solo te llegan los permisos que escalen.',
+            'Al apagarlo, el responsable del proyecto y Alfred deciden antes; a ti solo te llegan los que ellos no resuelvan.',
           ),
           actions: [
             TextButton(
@@ -202,7 +202,7 @@ class _DeniedNotice extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Este dispositivo no tiene el permiso APPROVE, así que no puede cambiar la aprobación. En el host, ejecuta:',
+              'Este dispositivo no tiene permiso para aprobar, así que no puede cambiar la aprobación. En el PC, ejecuta:',
               style: text.bodySecondary,
             ),
             const SizedBox(height: Spacing.sm),

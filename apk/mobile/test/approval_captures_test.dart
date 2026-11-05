@@ -1,9 +1,4 @@
-import 'dart:io';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/state/approvals_controller.dart';
 import 'package:herdr_notify/src/rust/api/approvals/error.dart';
@@ -17,32 +12,13 @@ import 'package:herdr_notify/ui/chat/approval_timeline_line.dart';
 import 'package:herdr_notify/ui/theme.dart';
 
 import 'support/approval_fixtures.dart';
+import 'support/captures.dart';
 import 'support/scripted_transport.dart';
 
 /// Writes PNG captures to `APK7_EVIDENCE` when that variable names a folder.
 /// Without it the test only renders, so a normal `flutter test` writes nothing.
 /// The countdown reads the device clock, so captures are not golden files.
-final String? _evidenceDir = Platform.environment['APK7_EVIDENCE'];
-
-Future<ByteData> _font(String path) async =>
-    ByteData.sublistView(await File(path).readAsBytes());
-
-Future<void> _loadReadableFonts() async {
-  // flutter_test draws text in Ahem and icons as boxes. The app asks for the
-  // Windows sans ('Segoe UI'), 'monospace' and the Material icon font; loading
-  // the real faces under those names makes the captures readable.
-  const icons =
-      r'C:\Users\Max\flutter\bin\cache\artifacts\material_fonts\materialicons-regular.otf';
-  for (final family in ['Segoe UI', 'Roboto']) {
-    await (FontLoader(
-      family,
-    )..addFont(_font(r'C:\Windows\Fonts\segoeui.ttf'))).load();
-  }
-  await (FontLoader(
-    'monospace',
-  )..addFont(_font(r'C:\Windows\Fonts\consola.ttf'))).load();
-  await (FontLoader('MaterialIcons')..addFont(_font(icons))).load();
-}
+final String? _evidenceDir = evidenceDir('APK7_EVIDENCE');
 
 ChatApproval _record({String status = 'pending', String? expiresAt}) =>
     parseApprovalRecord(
@@ -54,7 +30,11 @@ Widget _app(GlobalKey key, Brightness brightness, Widget home) =>
       key: key,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: buildTheme(brightness),
+        theme: buildTheme(
+          brightness == Brightness.dark
+              ? HerdrPalettes.noche
+              : HerdrPalettes.pergamino,
+        ),
         home: home,
       ),
     );
@@ -63,23 +43,10 @@ Widget _page(Widget child) => Scaffold(
   body: Padding(padding: const EdgeInsets.all(16), child: child),
 );
 
-Future<void> _save(WidgetTester tester, GlobalKey key, String name) async {
-  final dir = _evidenceDir;
-  if (dir == null) return;
-  final boundary =
-      key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-  final bytes = await tester.runAsync(() async {
-    final image = await boundary.toImage(pixelRatio: 2);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
-  });
-  await tester.runAsync(() => File('$dir/$name.png').writeAsBytes(bytes!));
-}
-
 void main() {
   setUpAll(() async {
     await RustLib.init();
-    if (_evidenceDir != null) await _loadReadableFonts();
+    if (_evidenceDir != null) await loadReadableFonts();
   });
 
   for (final brightness in [Brightness.light, Brightness.dark]) {
@@ -134,7 +101,7 @@ void main() {
         final key = GlobalKey();
         await tester.pumpWidget(_app(key, brightness, _page(shot.value)));
         await tester.pump();
-        await _save(tester, key, '${shot.key}-$mode');
+        await saveCapture(tester, key, _evidenceDir, '${shot.key}-$mode');
         await tester.pumpWidget(const SizedBox());
       }
     });
@@ -201,7 +168,7 @@ void main() {
         _app(lineKey, brightness, _page(Column(children: [line]))),
       );
       await tester.pumpAndSettle();
-      await _save(tester, lineKey, 'timeline-line-$mode');
+      await saveCapture(tester, lineKey, _evidenceDir, 'timeline-line-$mode');
 
       final detailKey = GlobalKey();
       await tester.pumpWidget(
@@ -210,7 +177,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tú aprobaste: cargo test'));
       await tester.pumpAndSettle();
-      await _save(tester, detailKey, 'timeline-detail-$mode');
+      await saveCapture(tester, detailKey, _evidenceDir, 'timeline-detail-$mode');
       await tester.pumpWidget(const SizedBox());
 
       await approvals.loadSettings();
@@ -227,7 +194,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _save(tester, settingsKey, 'settings-global-and-project-$mode');
+      await saveCapture(tester, settingsKey, _evidenceDir, 'settings-global-and-project-$mode');
       await tester.pumpWidget(const SizedBox());
       approvals.dispose();
     });

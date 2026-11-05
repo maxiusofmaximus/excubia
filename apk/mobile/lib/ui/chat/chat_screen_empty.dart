@@ -41,26 +41,7 @@ class _EmptyChat extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: Spacing.lg),
-        _Suggestion(
-          icon: Icons.add,
-          title: 'Crea el proyecto Demo',
-          detail: 'y pide a Ernesto un plan de 3 hitos',
-          onTap: () => onSuggestion(
-            'Crea el proyecto Demo y pide a Ernesto un plan de 3 hitos.',
-          ),
-        ),
-        _Suggestion(
-          icon: Icons.help_outline,
-          title: '¿Cómo va Excubia?',
-          detail: 'estado, bloqueos y última entrega',
-          onTap: () => onSuggestion('¿Cómo va Excubia?'),
-        ),
-        _Suggestion(
-          icon: Icons.check,
-          title: 'Revisa los tests de la API',
-          detail: 'Ines puede ejecutar la suite e2e',
-          onTap: () => onSuggestion('Revisa los tests de la API.'),
-        ),
+        _Suggestions(chat: chat, hires: hires, onSuggestion: onSuggestion),
         const SizedBox(height: Spacing.lg),
         _TeamStrip(chat: chat, hires: hires, onTap: onOpenTeam),
         if (recents.isNotEmpty) ...[
@@ -74,6 +55,49 @@ class _EmptyChat extends StatelessWidget {
             ),
         ],
       ],
+    );
+  }
+}
+
+class _Suggestions extends StatelessWidget {
+  const _Suggestions({
+    required this.chat,
+    required this.hires,
+    required this.onSuggestion,
+  });
+
+  final ChatController chat;
+  final HiresController hires;
+  final ValueChanged<String> onSuggestion;
+
+  static const _icons = [
+    Icons.help_outline,
+    Icons.work_outline,
+    Icons.edit_note,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: hires,
+      builder: (context, _) {
+        // Cambia al crear chats, así no salen siempre las mismas frases.
+        final suggestions = chatSuggestions(
+          hires: hires.hires,
+          rotation: chat.conversations.length,
+        );
+        return Column(
+          children: [
+            for (final (index, suggestion) in suggestions.indexed)
+              _Suggestion(
+                icon: _icons[index],
+                title: suggestion.text,
+                detail: suggestion.detail,
+                onTap: () => onSuggestion(suggestion.text),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -99,16 +123,16 @@ class _Suggestion extends StatelessWidget {
       label: '$title, $detail',
       child: Material(
         color: c.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             constraints: const BoxConstraints(minHeight: 56),
             margin: const EdgeInsets.only(bottom: Spacing.sm),
             padding: const EdgeInsets.all(Spacing.md),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: c.outlineSoft),
             ),
             child: Row(
@@ -181,15 +205,15 @@ class _TeamStrip extends StatelessWidget {
       label: 'Equipo: $detail. Abrir Equipo.',
       child: Material(
         color: c.raised,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             constraints: const BoxConstraints(minHeight: 56),
             padding: const EdgeInsets.all(Spacing.md),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: c.outlineSoft),
             ),
             child: Row(

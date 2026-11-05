@@ -151,7 +151,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
       padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: colors.raised,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colors.outlineSoft),
       ),
       child: Column(

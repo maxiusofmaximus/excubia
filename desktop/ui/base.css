@@ -1,28 +1,31 @@
-/* Palette «azul noche» (dark) and «pergamino» (light): the same tokens as the
-   APK's HerdrColors in apk/mobile/lib/ui/theme.dart. Text and icons in brass use
-   --accent-text (darker on paper); --accent is only for fills. */
+/* Noche is the static fallback: ui/palette-boot.js applies the saved palette
+   before the first paint and ui/palettes.js owns the six approved themes. Text
+   and icons in the accent colour use --accent-text; --accent is only for fills. */
 :root {
   --bg: #0b1426;
-  --surface: #14213d;
-  --raised: #1a2a4d;
-  --raised-2: #213462;
-  --line: #253456;
+  --surface: #101b33;
+  --raised: #17274a;
+  --raised-2: #1d3159;
+  --line: #1f2e50;
   --line-strong: #6f84b3;
-  --text: #f3e3c0;
-  --text-2: #e0d5bc;
-  --muted: #a7b0c4;
+  --text: #efe6d2;
+  --text-2: #ded2b6;
+  --muted: #9aa5bd;
   --accent: #f2a93b;
   --accent-text: #f2a93b;
   --accent-rgb: 242, 169, 59;
   --accent-soft: #3a2e17;
-  --on-accent: #0b1426;
-  --on-attention: #0b1426;
+  --on-accent: #1a1204;
+  --on-attention: #1a1204;
   --blocked: #ff7a62;
   --working: #8fb4e8;
   --done: #6fcf97;
-  --idle: #a7b0c4;
-  --unknown: #e0d5bc;
+  --idle: #9aa5bd;
+  --unknown: #ded2b6;
   --warning: #f2a93b;
+  --sunken: #081020;
+  --qr-paper: #ffffff;
+  --shadow-toast: 0 16px 40px rgba(0, 0, 0, 0.4);
   --radius: 16px;
   --radius-sm: 10px;
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -41,10 +44,7 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(900px 460px at 18% -8%, rgba(var(--accent-rgb), 0.1), transparent 62%),
-    radial-gradient(700px 420px at 100% 0%, rgba(111, 207, 151, 0.035), transparent 58%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
@@ -179,29 +179,16 @@ h1 {
 }
 
 .brand-mark {
-  display: grid;
-  place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: var(--raised);
-  border: 1px solid var(--line-strong);
-}
-
-.brand-mark span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.75);
+  border-radius: 8px;
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--radius);
   padding: 22px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
 .field-label {
@@ -226,11 +213,11 @@ input {
 }
 
 input::placeholder {
-  color: #647080;
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
 }
 
 input:hover {
-  border-color: #4a586c;
+  border-color: color-mix(in srgb, var(--line-strong) 75%, var(--text));
 }
 
 input:focus-visible,
@@ -294,7 +281,7 @@ summary:focus-visible {
 }
 
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.7;
   cursor: not-allowed;
   transform: none;
 }
@@ -329,7 +316,7 @@ summary:focus-visible {
 }
 
 .btn.ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   color: var(--text);
 }
 
@@ -340,13 +327,20 @@ summary:focus-visible {
   border-radius: 8px;
 }
 
+/* Touch screens get the 44px target; the mouse keeps the compact button. */
+@media (pointer: coarse) {
+  .btn-small {
+    min-height: 44px;
+  }
+}
+
 .form-error {
   margin: 12px 0 0;
   padding: 10px 12px;
-  background: rgba(255, 107, 107, 0.08);
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  background: color-mix(in srgb, var(--blocked) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blocked) 32%, transparent);
   border-radius: var(--radius-sm);
-  color: #ff9b9b;
+  color: var(--blocked);
   font-size: 12.5px;
   line-height: 1.5;
 }
@@ -363,53 +357,12 @@ summary:focus-visible {
   background: var(--raised);
   color: var(--text);
   font-size: 12.5px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-toast);
 }
 
-/* A real light theme, chosen by the OS. The desktop window no longer forces
-   dark, so these variables are the whole switch. */
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f7f4ec;
-    --surface: #ffffff;
-    --raised: #efeadf;
-    --raised-2: #e6e0d2;
-    --line: #e3dccb;
-    --line-strong: #7a7265;
-    --text: #14213d;
-    --text-2: #34405e;
-    --muted: #56607a;
-    --accent: #f2a93b;
-    --accent-text: #8a5208;
-    --accent-rgb: 242, 169, 59;
-    --accent-soft: #f6e4be;
-    --on-accent: #14213d;
-    --on-attention: #ffffff;
-    --blocked: #b03420;
-    --working: #2f5c9e;
-    --done: #276b4e;
-    --idle: #56607a;
-    --unknown: #34405e;
-    --warning: #8a5208;
-  }
-
-  body {
-    background:
-      radial-gradient(900px 460px at 18% -8%, rgba(var(--accent-rgb), 0.08), transparent 62%),
-      radial-gradient(700px 420px at 100% 0%, rgba(39, 107, 78, 0.04), transparent 58%),
-      var(--bg);
-  }
-
-  .card,
-  .dialog {
-    box-shadow: 0 24px 60px rgba(70, 58, 40, 0.12);
-  }
-
-  .toast {
-    box-shadow: 0 16px 40px rgba(70, 58, 40, 0.18);
-  }
-
-}
+/* The light themes are applied by ui/palettes.js: they no longer hang off
+   prefers-color-scheme, because the user can choose a light palette on a dark
+   system and the other way around. */
 
 @media (max-width: 680px) {
   .view {

@@ -56,22 +56,24 @@ void main() {
     expect(overview.unassigned.single.paneId, 'w9:p1');
   });
 
-  test('a specialist follows the lead workspace when state reports no project',
-      () {
-    final overview = groupTeam(
-      projects: const [project],
-      agents: [
-        agent(pane: 'w1:p3', project: 'apk6-test-host', title: 'Plan'),
-        agent(pane: 'w1:p4', project: 'apk6-test-host', title: 'Parte uno'),
-      ],
-    );
+  test(
+    'a specialist follows the lead workspace when state reports no project',
+    () {
+      final overview = groupTeam(
+        projects: const [project],
+        agents: [
+          agent(pane: 'w1:p3', project: 'apk6-test-host', title: 'Plan'),
+          agent(pane: 'w1:p4', project: 'apk6-test-host', title: 'Parte uno'),
+        ],
+      );
 
-    final group = overview.projects.single;
-    expect(group.leadAgent?.paneId, 'w1:p3');
-    expect(group.specialists.single.paneId, 'w1:p4');
-    expect(group.seats, 2);
-    expect(overview.unassigned, isEmpty);
-  });
+      final group = overview.projects.single;
+      expect(group.leadAgent?.paneId, 'w1:p3');
+      expect(group.specialists.single.paneId, 'w1:p4');
+      expect(group.seats, 2);
+      expect(overview.unassigned, isEmpty);
+    },
+  );
 
   testWidgets('a specialist name comes from the pane label before the CLI id', (
     tester,
@@ -131,7 +133,7 @@ void main() {
 
     expect(find.text('Demo'), findsOneWidget);
     expect(find.text('Ernesto'), findsOneWidget);
-    expect(find.text('Lead'), findsOneWidget);
+    expect(find.text('Responsable'), findsOneWidget);
     expect(find.text('Claude'), findsOneWidget);
     expect(find.text('Especialista'), findsOneWidget);
     expect(find.textContaining('Plan de tres hitos'), findsOneWidget);

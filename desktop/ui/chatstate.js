@@ -1,5 +1,6 @@
 import { app } from "./core.js";
 import { noteTurn } from "./chat-turn-model.js";
+import { friendlyError } from "./friendly-error.js";
 
 // The chat's shared state: one object, read and written by the chat modules.
 export const chat = {
@@ -45,11 +46,11 @@ export const chat = {
   delegationError: null,
 };
 
+// A typed refusal passes as it is; a bare exception or text keeps the retryable «host»
+// kind but shows the translated sentence, never the technical text.
 export function failure(error) {
   if (error && typeof error === "object" && error.kind) return error;
-  if (typeof error === "string") return { kind: "host", message: error };
-  if (error && typeof error.message === "string") return { kind: "host", message: error.message };
-  return { kind: "host", message: "No se pudo completar la operación." };
+  return { kind: "host", message: friendlyError(error) };
 }
 
 export function connection() {
@@ -61,11 +62,11 @@ export function offline() {
 }
 
 export function hostName() {
-  if (app.boot && app.boot.mode === "local") return "el host local";
+  if (app.boot && app.boot.mode === "local") return "este equipo";
   try {
-    return new URL(app.boot.host_url).hostname || "el host";
+    return new URL(app.boot.host_url).hostname || "el PC";
   } catch {
-    return "el host";
+    return "el PC";
   }
 }
 

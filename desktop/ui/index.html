@@ -16,31 +16,76 @@
   <link rel="stylesheet" href="approvals.css">
   <link rel="stylesheet" href="hires.css">
   <link rel="stylesheet" href="onboarding.css">
+  <link rel="stylesheet" href="palette.css">
   <link rel="stylesheet" href="mail.css">
   <link rel="stylesheet" href="agenda.css">
   <link rel="stylesheet" href="alerts.css">
   <link rel="stylesheet" href="devices.css">
+  <link rel="stylesheet" href="shell.css">
+  <link rel="stylesheet" href="settings.css">
+  <script src="palette-data.js"></script>
+  <script src="palette-boot.js"></script>
 </head>
 <body>
   <div class="app">
+    <nav id="app-nav" class="app-nav" aria-label="Secciones">
+      <div class="brand app-brand">
+        <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
+        <span class="nav-label">Excubia</span>
+      </div>
+      <button id="nav-chat" class="nav-item" type="button" data-nav="chat" title="Chat" aria-label="Chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>
+        <span class="nav-label">Chat</span>
+        <span id="nav-badge-chat" class="nav-badge hidden"></span>
+      </button>
+      <button id="nav-agents" class="nav-item" type="button" data-nav="agents" title="Equipo" aria-label="Equipo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"></path><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.8c1.8.6 3 2.2 3 5.2"></path></svg>
+        <span class="nav-label">Equipo</span>
+      </button>
+      <button id="nav-calendar" class="nav-item" type="button" data-nav="calendar" title="Calendario" aria-label="Calendario">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+        <span class="nav-label">Calendario</span>
+      </button>
+      <button id="nav-notes" class="nav-item" type="button" data-nav="notes" title="Notas" aria-label="Notas">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h8l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"></path><path d="M9 12h6M9 16h4"></path></svg>
+        <span class="nav-label">Notas</span>
+      </button>
+      <button id="nav-contacts" class="nav-item" type="button" data-nav="contacts" title="Contactos" aria-label="Contactos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"></rect><circle cx="12" cy="10" r="2.6"></circle><path d="M7.5 17c.8-2 2.6-3 4.5-3s3.7 1 4.5 3"></path></svg>
+        <span class="nav-label">Contactos</span>
+      </button>
+      <span class="nav-spacer" aria-hidden="true"></span>
+      <button id="nav-alerts" class="nav-item" type="button" data-nav="alerts" title="Avisos" aria-label="Avisos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 1 1 12 0v6l1.5 2h-15z"></path><path d="M10 21h4"></path></svg>
+        <span class="nav-label">Avisos</span>
+      </button>
+      <button id="nav-devices" class="nav-item" type="button" data-nav="devices" title="Dispositivos" aria-label="Dispositivos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2.5"></rect><path d="M8 20h8M12 16v4"></path></svg>
+        <span class="nav-label">Dispositivos</span>
+      </button>
+      <button id="nav-settings" class="nav-item" type="button" data-nav="settings" title="Ajustes" aria-label="Ajustes">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"></path></svg>
+        <span class="nav-label">Ajustes</span>
+      </button>
+    </nav>
     <section id="view-pair" class="view view-pair">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
         <span>Excubia</span>
       </div>
 
       <div class="pair-intro">
-        <h1>Conecta este equipo</h1>
-        <p class="lede">Introduce el código que muestra el host. Alfred y el equipo se actualizarán en vivo.</p>
+        <h1>Vincula este equipo con tu Excubia</h1>
+        <p class="lede">Introduce el código que muestra tu Excubia. Alfred y el equipo se actualizarán en vivo.</p>
       </div>
 
       <p id="plain-warning" class="warning hidden" role="note">La conexión con este PC no va cifrada. Solo es aceptable en este equipo o en una red privada de confianza.</p>
 
       <div id="local-card" class="card local-card hidden">
-        <h2>Este equipo aloja su propio núcleo</h2>
-        <p id="local-status" class="hint">Arrancando el host local…</p>
-        <button id="btn-restart-host" class="btn ghost btn-block hidden" type="button">Reiniciar el host</button>
-        <button id="btn-use-remote" class="btn secondary btn-block" type="button">Conectar a otro host</button>
+        <h2>Excubia funciona en este equipo</h2>
+        <p id="local-status" class="hint">Arrancando Excubia en este equipo…</p>
+        <button id="btn-restart-host" class="btn ghost btn-block hidden" type="button">Reiniciar Excubia</button>
+        <button id="btn-use-remote" class="btn secondary btn-block" type="button">Vincular con otro equipo</button>
       </div>
 
       <form id="pair-form" class="card" novalidate>
@@ -48,7 +93,7 @@
         <input id="pair-code" class="code-input" type="text" inputmode="text" autocomplete="off"
                autocapitalize="characters" spellcheck="false" maxlength="64" placeholder="HJKQ2ZP4"
                aria-describedby="pair-hint">
-        <p id="pair-hint" class="hint">Déjalo vacío para emparejar automáticamente desde la red de tu casa u oficina, o desde una VPN.</p>
+        <p id="pair-hint" class="hint">Déjalo vacío para vincularlo automáticamente desde tu red de casa, oficina o una red privada.</p>
         <button id="btn-pair" class="btn primary btn-block" type="submit">Emparejar</button>
         <p id="pair-error" class="form-error hidden" role="alert"></p>
       </form>
@@ -57,7 +102,7 @@
         <label class="field-label" for="pair-link">Enlace de emparejamiento</label>
         <textarea id="pair-link" class="link-input" rows="2" spellcheck="false" autocomplete="off"
                   placeholder="excubia://pair?v=1&amp;c=…" aria-describedby="link-hint"></textarea>
-        <p id="link-hint" class="hint">Pega el enlace que muestra el host con <code>host pair-code --lan</code>. Caduca y sirve una sola vez.</p>
+        <p id="link-hint" class="hint">Pega el enlace que muestra el PC con <code>host pair-code --lan</code>. Caduca y sirve una sola vez.</p>
         <button id="btn-pair-link" class="btn primary btn-block" type="submit">Emparejar con el enlace</button>
         <p id="link-error" class="form-error hidden" role="alert"></p>
       </form>
@@ -65,47 +110,47 @@
       <section id="lan-card" class="card lan-card">
         <div class="lan-head">
           <h2>Emparejar el móvil en la red local</h2>
-          <label class="toggle" for="lan-toggle">
-            <input id="lan-toggle" type="checkbox">
+          <label class="switch" for="lan-toggle">
+            <input id="lan-toggle" type="checkbox" role="switch">
             <span>Activado</span>
           </label>
         </div>
-        <p class="hint">Activa esta opción para que el host acepte móviles en la red local. Se cifra con su certificado; el móvil comprueba la huella antes de enviar nada.</p>
+        <p class="hint">Activa esta opción para que el PC acepte móviles en la red local. La conexión va cifrada y el móvil comprueba un código antes de enviar nada.</p>
         <button id="btn-show-lan" class="btn secondary btn-block" type="button" disabled>Mostrar código QR</button>
-        <button id="btn-show-pake" class="btn secondary btn-block" type="button" disabled>Mostrar QR sin IP</button>
-        <p class="hint">El móvil encuentra el PC solo en la red local; el QR lleva el código y la huella, no la dirección.</p>
+        <button id="btn-show-pake" class="btn secondary btn-block" type="button" disabled>Mostrar QR sin dirección</button>
+        <p class="hint">El móvil encuentra el PC solo en la red local; el QR lleva el código de vinculación, no la dirección.</p>
         <p id="lan-error" class="form-error hidden" role="alert"></p>
       </section>
 
       <details id="advanced" class="advanced">
         <summary>
           <span>Avanzado</span>
-          <span class="summary-note">huella, comando y URL</span>
+          <span class="summary-note">código, comando y enlace</span>
         </summary>
         <div class="advanced-body">
           <div class="field">
-            <span class="field-label">Huella del dispositivo</span>
+            <span class="field-label">Código de comprobación</span>
             <code id="fingerprint" class="fingerprint">Generando…</code>
-            <p class="hint">Compárala con la que muestre el host antes de continuar.</p>
+            <p class="hint">Compáralo con el que muestre el PC antes de continuar.</p>
           </div>
 
           <div class="field">
             <label class="field-label" for="device-label">Nombre de este equipo</label>
             <input id="device-label" type="text" autocomplete="off" spellcheck="false"
                    maxlength="64" aria-describedby="device-label-hint">
-            <p id="device-label-hint" class="hint">Se envía al PC al emparejar; por defecto, el nombre del host.</p>
+            <p id="device-label-hint" class="hint">Se envía al PC al emparejar; por defecto, el nombre del equipo.</p>
           </div>
 
           <div class="field">
-            <label class="toggle" for="notifications-toggle">
-              <input id="notifications-toggle" type="checkbox">
+            <label class="switch" for="notifications-toggle">
+              <input id="notifications-toggle" type="checkbox" role="switch">
               <span>Avisos del sistema</span>
             </label>
             <p class="hint">Avisa cuando un agente pasa a bloqueado o termina. Se guarda en este equipo.</p>
           </div>
 
           <button id="btn-pair-back" class="btn ghost btn-block" type="button">Volver al chat</button>
-          <button id="btn-use-local" class="btn ghost btn-block hidden" type="button">Volver al host local de este equipo</button>
+          <button id="btn-use-local" class="btn ghost btn-block hidden" type="button">Volver a usar Excubia de este equipo</button>
         </div>
       </details>
 
@@ -121,7 +166,7 @@
 
     <section id="view-recovery" class="view view-recovery hidden">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
         <span>Excubia</span>
       </div>
       <div class="recovery-icon" aria-hidden="true">
@@ -132,7 +177,7 @@
         </svg>
       </div>
       <h1>Guarda este código</h1>
-      <p class="lede">El PC solo lo muestra una vez. Sirve para volver a emparejar este equipo si pierdes el acceso al host.</p>
+      <p class="lede">El PC solo lo muestra una vez. Sirve para volver a emparejar este equipo si pierdes el acceso al PC.</p>
       <div class="card recovery-card">
         <div id="recovery-code" class="recovery-code">—</div>
         <button id="btn-copy-recovery" class="btn ghost btn-block" type="button">Copiar código</button>
@@ -143,7 +188,7 @@
 
     <section id="view-lan" class="view view-lan hidden">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
         <span>Excubia</span>
       </div>
       <h1>Escanea con el móvil</h1>
@@ -152,41 +197,13 @@
         <img id="lan-qr" class="lan-qr" width="240" height="240"
              alt="Código QR del enlace de emparejamiento de la red local">
         <p id="lan-expiry" class="hint" role="status"></p>
-        <p class="hint">Si el móvil avisa de que la huella no coincide, no te conectes a esa red.</p>
+        <p class="hint">Si el móvil avisa de que el código no coincide, no te conectes a esa red.</p>
         <button id="btn-lan-new" class="btn secondary btn-block" type="button">Generar otro código</button>
         <button id="btn-lan-back" class="btn ghost btn-block" type="button">Volver</button>
       </div>
     </section>
 
     <section id="view-chat" class="view view-chat hidden">
-      <header class="topbar">
-        <div class="brand">
-          <span class="brand-mark" aria-hidden="true"><span></span></span>
-          <span>Excubia</span>
-        </div>
-        <nav class="nav-tabs" aria-label="Vistas">
-          <button id="tab-chat" class="nav-tab is-active" type="button" aria-current="page">Chat</button>
-          <button id="tab-team" class="nav-tab" type="button">Equipo</button>
-          <button id="tab-contacts" class="nav-tab" type="button">Contactos</button>
-          <button id="tab-notes" class="nav-tab" type="button">Notas</button>
-          <button id="tab-calendar" class="nav-tab" type="button">Calendario</button>
-          <button id="tab-alerts" class="nav-tab" type="button">Avisos</button>
-          <button id="tab-devices" class="nav-tab" type="button">Dispositivos</button>
-        </nav>
-        <div class="top-actions">
-          <span id="chat-connection" class="chip idle" role="status" title="Estado de la conexión">
-            <span class="chip-dot" aria-hidden="true"></span>
-            <span class="chip-label">Sin conectar</span>
-          </span>
-          <button id="btn-settings" class="icon-btn" type="button" title="Ajustes" aria-label="Ajustes">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"></path>
-            </svg>
-          </button>
-        </div>
-      </header>
 
       <div id="chat-shell" class="chat-shell">
         <aside id="chat-history" class="history" aria-label="Historial de conversaciones">
@@ -228,6 +245,10 @@
               </div>
             </div>
             <div class="thread-actions">
+              <span id="chat-connection" class="chip idle" role="status" title="Estado de la conexión">
+                <span class="chip-dot" aria-hidden="true"></span>
+                <span class="chip-label">Sin conectar</span>
+              </span>
               <button id="btn-chat-new" class="icon-btn" type="button" title="Nueva conversación"
                       aria-label="Nueva conversación">+</button>
               <button id="btn-chat-more" class="icon-btn" type="button" title="Acciones de la conversación"
@@ -244,20 +265,7 @@
             <div id="empty-alfred" class="avatar empty-alfred" aria-hidden="true">A</div>
             <h2 id="empty-chat-title">¿Qué movemos hoy?</h2>
             <p id="empty-chat-body">Dime un objetivo y reparto el trabajo entre Ernesto y su equipo. Yo te traigo el resultado.</p>
-            <div class="suggestions" role="list">
-              <button class="suggestion" type="button" role="listitem" data-suggestion="Crea el proyecto Demo y pide a Ernesto un plan de 3 hitos">
-                <span class="suggestion-mark" aria-hidden="true">+</span>
-                <span><strong>Crea el proyecto Demo</strong><small>y pide a Ernesto un plan de 3 hitos</small></span>
-              </button>
-              <button class="suggestion" type="button" role="listitem" data-suggestion="¿Cómo va Excubia? Estado, bloqueos y última entrega">
-                <span class="suggestion-mark" aria-hidden="true">?</span>
-                <span><strong>¿Cómo va Excubia?</strong><small>estado, bloqueos y última entrega</small></span>
-              </button>
-              <button class="suggestion" type="button" role="listitem" data-suggestion="Revisa los tests de la API con Ines">
-                <span class="suggestion-mark" aria-hidden="true">✓</span>
-                <span><strong>Revisa los tests de la API</strong><small>Ines puede ejecutar la suite e2e</small></span>
-              </button>
-            </div>
+            <div id="chat-suggestions" class="suggestions" role="list"></div>
           </div>
 
           <button id="chat-jump" class="chat-jump hidden" type="button" aria-label="Ir al final">↓</button>
@@ -320,38 +328,17 @@
     </section>
 
     <section id="view-agents" class="view view-agents hidden">
-      <header class="topbar team-topbar">
-        <nav class="nav-tabs" aria-label="Vistas">
-          <button id="team-tab-chat" class="nav-tab" type="button">Chat</button>
-          <button id="team-tab-team" class="nav-tab is-active" type="button" aria-current="page">Equipo</button>
-          <button id="team-tab-contacts" class="nav-tab" type="button">Contactos</button>
-          <button id="team-tab-notes" class="nav-tab" type="button">Notas</button>
-          <button id="team-tab-calendar" class="nav-tab" type="button">Calendario</button>
-          <button id="team-tab-alerts" class="nav-tab" type="button">Avisos</button>
-          <button id="team-tab-devices" class="nav-tab" type="button">Dispositivos</button>
-        </nav>
-        <div class="top-actions">
+
+      <header class="view-head">
+        <div>
+          <h1>Equipo</h1>
+          <p id="agents-subtitle" class="subtitle">Cargando estado…</p>
+        </div>
+        <div class="view-actions">
           <span id="connection-chip" class="chip idle" role="status" title="Estado de la conexión">
             <span class="chip-dot" aria-hidden="true"></span>
             <span class="chip-label">Sin conectar</span>
           </span>
-          <button id="btn-settings-team" class="icon-btn" type="button" title="Ajustes" aria-label="Ajustes">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"></path>
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      <header class="app-header">
-        <div>
-          <p class="eyebrow">Excubia</p>
-          <h1>Equipo</h1>
-          <p id="agents-subtitle" class="subtitle">Cargando estado…</p>
-        </div>
-        <div class="header-actions">
           <button id="btn-new" class="btn primary btn-small" type="button">Nueva conversación</button>
           <button id="btn-refresh" class="icon-btn" type="button" title="Actualizar ahora" aria-label="Actualizar ahora">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
@@ -387,20 +374,52 @@
 
       <ul id="agent-list" class="agent-list hidden" role="list"></ul>
 
-      <div id="agents-empty" class="state-block hidden">
-        <div class="state-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
-               stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9Z"></path>
-          </svg>
-        </div>
+      <div id="agents-empty" class="empty-state hidden">
+        <svg class="state-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"></path><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.8c1.8.6 3 2.2 3 5.2"></path></svg>
         <h2 id="empty-title">Ningún agente en marcha</h2>
         <p id="empty-body">Cuando arranques un agente aparecerá aquí en cuanto lo detecte.</p>
         <div class="empty-actions">
-          <button id="btn-empty-new" class="btn primary" type="button">Nueva conversación</button>
-          <button id="btn-empty-action" class="btn secondary" type="button">Actualizar</button>
+          <button id="btn-empty-action" class="btn secondary btn-small" type="button">Actualizar</button>
           <button id="btn-empty-pair" class="btn ghost hidden" type="button">Volver a emparejar</button>
         </div>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view view-settings hidden" aria-labelledby="settings-title">
+      <header class="view-head">
+        <h1 id="settings-title">Ajustes</h1>
+      </header>
+      <div class="settings-list">
+        <div id="settings-appearance" class="settings-card"></div>
+        <div id="settings-approvals" class="settings-card"></div>
+        <div id="settings-mail" class="settings-card"></div>
+        <section class="settings-card" aria-labelledby="settings-connection-title">
+          <h2 id="settings-connection-title">Conexión</h2>
+          <p class="hint">Vincula este equipo con otro PC o vuelve a usar Excubia de aquí.</p>
+          <button id="btn-settings-connect" class="btn secondary" type="button">Vincular con otro equipo</button>
+        </section>
+        <section class="settings-card" aria-labelledby="settings-about-title">
+          <h2 id="settings-about-title">Acerca de</h2>
+          <p class="about-line"><strong>Excubia</strong> · <span id="app-version">Cargando versión…</span></p>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-palette" class="view view-palette hidden" aria-labelledby="palette-title">
+      <header class="palette-top">
+        <div class="brand">
+          <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
+          <span>Excubia</span>
+        </div>
+      </header>
+      <div class="palette-intro">
+        <h1 id="palette-title">Elige tu paleta</h1>
+        <p class="lede">Puedes cambiarla cuando quieras en Ajustes. Se aplica al instante.</p>
+      </div>
+      <div id="first-run-palette"></div>
+      <div class="palette-actions">
+        <button id="palette-continue" class="btn primary" type="button">Continuar</button>
+        <p class="palette-step">Antes de empezar · 1 de 4</p>
       </div>
     </section>
 
@@ -415,7 +434,7 @@
         <button id="onboarding-skip" class="btn ghost" type="button">Saltar</button>
         <span class="onboarding-nav">
           <button id="onboarding-back" class="btn secondary" type="button">Atrás</button>
-          <button id="onboarding-next" class="btn primary" type="button">Empezar</button>
+          <button id="onboarding-next" class="btn primary" type="button">Siguiente</button>
         </span>
       </div>
     </section>
@@ -464,28 +483,19 @@
     </section>
 
     <section id="view-contacts" class="view view-agenda hidden" aria-label="Contactos">
-      <header class="topbar team-topbar">
-        <nav class="nav-tabs" aria-label="Vistas">
-          <button id="contacts-tab-chat" class="nav-tab" type="button">Chat</button>
-          <button id="contacts-tab-team" class="nav-tab" type="button">Equipo</button>
-          <button id="contacts-tab-contacts" class="nav-tab is-active" type="button" aria-current="page">Contactos</button>
-          <button id="contacts-tab-notes" class="nav-tab" type="button">Notas</button>
-          <button id="contacts-tab-calendar" class="nav-tab" type="button">Calendario</button>
-          <button id="contacts-tab-alerts" class="nav-tab" type="button">Avisos</button>
-          <button id="contacts-tab-devices" class="nav-tab" type="button">Dispositivos</button>
-        </nav>
+      <header class="view-head">
+        <h1>Contactos</h1>
       </header>
       <div class="agenda-shell">
         <div class="agenda-list-pane">
           <div class="agenda-head">
-            <h2>Contactos</h2>
             <button id="btn-contact-new" class="btn primary btn-small" type="button">Nuevo contacto</button>
           </div>
           <label class="search">
             <span class="sr-only">Buscar contactos</span>
             <input id="contacts-search" type="search" placeholder="Buscar por nombre o alias…" autocomplete="off" spellcheck="false">
           </label>
-          <p id="contacts-status" class="agenda-status" role="status" hidden></p>
+          <div id="contacts-status" class="agenda-status" role="status" hidden></div>
           <ul id="contacts-list" class="agenda-list"></ul>
           <button id="contacts-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
         </div>
@@ -500,28 +510,19 @@
     </section>
 
     <section id="view-notes" class="view view-agenda hidden" aria-label="Notas">
-      <header class="topbar team-topbar">
-        <nav class="nav-tabs" aria-label="Vistas">
-          <button id="notes-tab-chat" class="nav-tab" type="button">Chat</button>
-          <button id="notes-tab-team" class="nav-tab" type="button">Equipo</button>
-          <button id="notes-tab-contacts" class="nav-tab" type="button">Contactos</button>
-          <button id="notes-tab-calendar" class="nav-tab" type="button">Calendario</button>
-          <button id="notes-tab-alerts" class="nav-tab" type="button">Avisos</button>
-          <button id="notes-tab-devices" class="nav-tab" type="button">Dispositivos</button>
-          <button id="notes-tab-notes" class="nav-tab is-active" type="button" aria-current="page">Notas</button>
-        </nav>
+      <header class="view-head">
+        <h1>Notas</h1>
       </header>
       <div class="agenda-shell">
         <div class="agenda-list-pane">
           <div class="agenda-head">
-            <h2>Notas</h2>
             <button id="btn-note-new" class="btn primary btn-small" type="button">Nueva nota</button>
           </div>
           <label class="search">
             <span class="sr-only">Buscar en asuntos y textos</span>
             <input id="notes-search" type="search" placeholder="Buscar en asuntos y textos…" autocomplete="off" spellcheck="false">
           </label>
-          <p id="notes-status" class="agenda-status" role="status" hidden></p>
+          <div id="notes-status" class="agenda-status" role="status" hidden></div>
           <ul id="notes-list" class="agenda-list"></ul>
           <button id="notes-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
         </div>
@@ -536,21 +537,12 @@
     </section>
 
     <section id="view-calendar" class="view view-agenda hidden" aria-label="Calendario">
-      <header class="topbar team-topbar">
-        <nav class="nav-tabs" aria-label="Vistas">
-          <button id="calendar-tab-chat" class="nav-tab" type="button">Chat</button>
-          <button id="calendar-tab-team" class="nav-tab" type="button">Equipo</button>
-          <button id="calendar-tab-contacts" class="nav-tab" type="button">Contactos</button>
-          <button id="calendar-tab-notes" class="nav-tab" type="button">Notas</button>
-          <button id="calendar-tab-calendar" class="nav-tab is-active" type="button" aria-current="page">Calendario</button>
-          <button id="calendar-tab-alerts" class="nav-tab" type="button">Avisos</button>
-          <button id="calendar-tab-devices" class="nav-tab" type="button">Dispositivos</button>
-        </nav>
+      <header class="view-head">
+        <h1>Calendario</h1>
       </header>
       <div class="agenda-shell">
         <div class="agenda-list-pane">
           <div class="agenda-head">
-            <h2>Calendario</h2>
             <button id="btn-calendar-new" class="btn primary btn-small" type="button">Nuevo evento</button>
           </div>
           <div class="calendar-tools" role="group" aria-label="Archivo .ics">
@@ -591,7 +583,7 @@
             <p id="calendar-range-label" class="agenda-muted"></p>
             <button id="calendar-next" class="icon-btn" type="button" title="Periodo siguiente" aria-label="Periodo siguiente">›</button>
           </div>
-          <p id="calendar-status" class="agenda-status" role="status" hidden></p>
+          <div id="calendar-status" class="agenda-status" role="status" hidden></div>
           <ul id="calendar-list" class="agenda-list"></ul>
           <button id="calendar-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
         </div>
@@ -602,28 +594,18 @@
           </div>
           <div id="calendar-panel-body" class="agenda-panel-body"></div>
         </section>
+        <div id="calendar-idle" class="agenda-idle" hidden></div>
       </div>
     </section>
 
     <section id="view-devices" class="view view-agenda hidden" aria-label="Dispositivos">
-      <header class="topbar team-topbar">
-        <nav class="nav-tabs" aria-label="Vistas">
-          <button id="devices-tab-chat" class="nav-tab" type="button">Chat</button>
-          <button id="devices-tab-team" class="nav-tab" type="button">Equipo</button>
-          <button id="devices-tab-contacts" class="nav-tab" type="button">Contactos</button>
-          <button id="devices-tab-notes" class="nav-tab" type="button">Notas</button>
-          <button id="devices-tab-calendar" class="nav-tab" type="button">Calendario</button>
-          <button id="devices-tab-alerts" class="nav-tab" type="button">Avisos</button>
-          <button id="devices-tab-devices" class="nav-tab is-active" type="button" aria-current="page">Dispositivos</button>
-        </nav>
+      <header class="view-head">
+        <h1>Dispositivos</h1>
       </header>
       <div class="agenda-shell devices-shell">
         <div class="agenda-list-pane">
-          <div class="agenda-head">
-            <h2>Dispositivos</h2>
-          </div>
           <p class="agenda-muted">Los equipos que pueden entrar en este PC. Un dispositivo revocado deja de entrar.</p>
-          <p id="devices-status" class="agenda-status" role="status" hidden></p>
+          <div id="devices-status" class="agenda-status" role="status" hidden></div>
           <ul id="devices-list" class="agenda-list"></ul>
           <details id="devices-revoked-group" class="devices-revoked" hidden>
             <summary id="devices-revoked-summary">Revocados</summary>
@@ -634,22 +616,11 @@
     </section>
 
     <section id="view-alerts" class="view view-agenda hidden" aria-label="Avisos">
-      <header class="topbar team-topbar">
-        <nav class="nav-tabs" aria-label="Vistas">
-          <button id="alerts-tab-chat" class="nav-tab" type="button">Chat</button>
-          <button id="alerts-tab-team" class="nav-tab" type="button">Equipo</button>
-          <button id="alerts-tab-contacts" class="nav-tab" type="button">Contactos</button>
-          <button id="alerts-tab-notes" class="nav-tab" type="button">Notas</button>
-          <button id="alerts-tab-calendar" class="nav-tab" type="button">Calendario</button>
-          <button id="alerts-tab-alerts" class="nav-tab is-active" type="button" aria-current="page">Avisos</button>
-          <button id="alerts-tab-devices" class="nav-tab" type="button">Dispositivos</button>
-        </nav>
+      <header class="view-head">
+        <h1>Avisos</h1>
       </header>
       <div class="agenda-shell alerts-shell">
         <div class="agenda-list-pane">
-          <div class="agenda-head">
-            <h2>Avisos</h2>
-          </div>
           <fieldset class="alerts-mode">
             <legend>Qué avisa</legend>
             <label class="alerts-option"><input type="radio" name="alerts-mode" value="all"> <span>Avisar de todo</span></label>
@@ -659,8 +630,8 @@
           </fieldset>
           <p id="alerts-guarantee" class="agenda-hint"></p>
           <p id="alerts-problem" class="agenda-error" role="status" hidden></p>
-          <p id="alerts-status" class="agenda-status" role="status" hidden></p>
-          <p id="alerts-empty" class="agenda-muted" hidden></p>
+          <div id="alerts-status" class="agenda-status" role="status" hidden></div>
+          <div id="alerts-empty" class="alerts-empty" hidden></div>
           <ul id="alerts-list" class="agenda-list" hidden></ul>
         </div>
         <section class="agenda-panel alerts-form-pane" aria-labelledby="alerts-new-title">
@@ -765,7 +736,7 @@
   <dialog id="new-conversation" class="dialog">
     <form id="new-conversation-form" method="dialog" novalidate>
       <h2>Nueva conversación</h2>
-      <p class="dialog-lede">Elige un agente del catálogo del host y la carpeta donde trabajará.</p>
+      <p class="dialog-lede">Elige un agente del catálogo de tu PC y la carpeta donde trabajará.</p>
 
       <span class="field-label">Agente</span>
       <div id="nc-agents" class="nc-agents" role="radiogroup" aria-label="Agente"></div>

@@ -44,7 +44,7 @@ void main() {
     expect(riskLabel(null), isNull);
     expect(levelLabel('user'), 'te lo pasa Alfred');
     expect(levelLabel('cto'), 'lo decide Alfred');
-    expect(levelLabel('lead'), 'lo decide el lead');
+    expect(levelLabel('lead'), 'lo decide el responsable del proyecto');
     expect(levelLabel('policy'), isNull);
   });
 

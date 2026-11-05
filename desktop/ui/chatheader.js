@@ -59,10 +59,10 @@ export function renderBanner() {
   const state = connection();
   if (host && host.state === "failed") {
     const { element, text } = banner([
-      ["Reiniciar el host", { action: "restart-host" }, "btn secondary btn-small"],
+      ["Reiniciar Excubia", { action: "restart-host" }, "btn secondary btn-small"],
     ]);
     const strong = document.createElement("strong");
-    strong.textContent = "El host local no arrancó. ";
+    strong.textContent = "Excubia no arrancó en este equipo. ";
     text.append(strong, document.createTextNode(host.error || "Revisa el log y vuelve a intentarlo."));
     element.classList.remove("hidden");
     return;
@@ -115,7 +115,7 @@ export function renderBanner() {
   }
   if (chat.cacheOnly) {
     const { element, text } = banner([]);
-    text.textContent = "Mostrando la última copia legible; aún no hay conexión con el host.";
+    text.textContent = "Mostrando la última copia legible; aún no hay conexión con el PC.";
     element.classList.remove("hidden");
     return;
   }

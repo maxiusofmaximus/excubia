@@ -19,11 +19,9 @@ List<String> _belowMinimum(
 ];
 
 void main() {
-  final palettes = {'oscuro': HerdrColors.dark, 'claro': HerdrColors.light};
-
-  for (final palette in palettes.entries) {
-    group('paleta ${palette.key}', () {
-      final c = palette.value;
+  for (final palette in HerdrPalettes.all) {
+    group('paleta ${palette.name}', () {
+      final c = palette.colors;
       final surfaces = {
         'bg': c.bg,
         'surface': c.surface,
@@ -38,6 +36,7 @@ void main() {
           'textSecondary': c.textSecondary,
           'textMuted': c.textMuted,
           'accentText': c.accentText,
+          'statusBlocked': c.statusBlocked,
           'statusWorking': c.statusWorking,
           'statusDone': c.statusDone,
           'statusIdle': c.statusIdle,
@@ -76,6 +75,30 @@ void main() {
           expect(_belowMinimum(components, surfaces, 3), isEmpty);
         },
       );
+
+      test('la pista apagada del interruptor cumple 3:1 sobre el fondo', () {
+        final off = buildTheme(palette).switchTheme.trackColor!
+            .resolve(const <WidgetState>{})!;
+        expect(contrastRatio(off, c.bg), greaterThanOrEqualTo(3));
+        expect(contrastRatio(off, c.surface), greaterThanOrEqualTo(3));
+      });
+
+      // The on track is an accent fill, which can sit under 3:1 on a light page
+      // (Pergamino); its outline carries the mark instead.
+      test('el borde del interruptor encendido cumple 3:1 sobre el fondo', () {
+        final on = buildTheme(palette).switchTheme.trackOutlineColor!
+            .resolve(const {WidgetState.selected})!;
+        expect(contrastRatio(on, c.bg), greaterThanOrEqualTo(3));
+        expect(contrastRatio(on, c.surface), greaterThanOrEqualTo(3));
+      });
     });
   }
+
+  test('hay seis paletas con ids únicos', () {
+    expect(HerdrPalettes.all, hasLength(6));
+    expect(
+      HerdrPalettes.all.map((palette) => palette.id).toSet(),
+      hasLength(6),
+    );
+  });
 }

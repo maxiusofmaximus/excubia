@@ -2,11 +2,13 @@
 // with «Cargar más»; the panel reads one note, edits it or creates one, and deletes it
 // only after the operator confirms. A note that came from a chat message opens that chat.
 
-import { $, invoke, showView } from "./core.js";
+import { $, invoke } from "./core.js";
+import { showView } from "./nav.js";
 import { element } from "./chatdom.js";
 import { selectConversation } from "./chat.js";
 import { readStateText } from "./hires-model.js";
 import { createAgendaList } from "./agenda-list.js";
+import { emptyState } from "./empty-state.js";
 import {
   actionRow,
   approveReason,
@@ -38,9 +40,20 @@ let list = null;
 
 const failureText = (failure) => readStateText(failure) || agendaErrorText(failure);
 
-function emptyText(query) {
-  if (query) return "Ninguna nota coincide con la búsqueda.";
-  return "Aún no hay notas. Alfred las guarda cuando se lo pides, o crea una.";
+function emptyNode(query) {
+  if (query) {
+    return emptyState(
+      { icon: "notes", text: "Ninguna nota coincide con la búsqueda.", action: "Borrar búsqueda" },
+      () => {
+        $("notes-search").value = "";
+        list.reload("");
+      },
+    );
+  }
+  return emptyState(
+    { icon: "notes", text: "Aún no hay notas. Alfred las guarda cuando se lo pides, o crea una.", action: "Nueva nota" },
+    () => $("btn-note-new").click(),
+  );
 }
 
 async function fetchPage({ q, cursor }) {
@@ -176,7 +189,7 @@ export function installNotes() {
     more: $("notes-more"),
     fetchPage,
     renderRow: noteRow,
-    emptyText,
+    emptyNode,
     loadingText: "Cargando notas…",
     failureText,
   });

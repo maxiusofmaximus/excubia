@@ -1,4 +1,5 @@
-import { app, $, invoke, showView, toast } from "./core.js";
+import { app, $, invoke, toast } from "./core.js";
+import { showView } from "./nav.js";
 import { agentTitle, errorMessage, statusLabel, stripAnsi } from "./format.js";
 
 let stopping = false;
@@ -122,7 +123,7 @@ export async function openDetail(paneId) {
   const stopResult = $("stop-result");
   stopResult.classList.add("hidden");
   stopResult.classList.remove("is-error", "is-ok");
-  showView("detail");
+  showView("detail", app.detailReturn === "chat" ? "chat" : "agents");
   await loadOutput();
   await markSeenIfDone(app.current);
   return true;

@@ -80,7 +80,9 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.textContaining('el lead y Alfred deciden antes'),
+        matching: find.textContaining(
+          'el responsable del proyecto y Alfred deciden antes',
+        ),
       ),
       findsOneWidget,
     );
@@ -123,7 +125,7 @@ void main() {
         ..failNext(_settings, const HostError(403, forbiddenBody));
       final approvals = await _pump(tester, host);
       expect(
-        find.textContaining('Este dispositivo no tiene el permiso APPROVE'),
+        find.textContaining('Este dispositivo no tiene permiso para aprobar'),
         findsOneWidget,
       );
       expect(

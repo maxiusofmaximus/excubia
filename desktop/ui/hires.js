@@ -4,7 +4,8 @@
 
 import { $, app, invoke } from "./core.js";
 import { avatarElement } from "./avatar.js";
-import { errorMessage } from "./format.js";
+import { friendlyError } from "./friendly-error.js";
+import { errorState } from "./empty-state.js";
 import { currentDeviceId, grantCommand } from "./approval-model.js";
 import { activeHires, groupByArea, readStateText } from "./hires-model.js";
 import { installHireDialogs, openHireActions } from "./hire-dialogs.js";
@@ -26,7 +27,9 @@ export async function refreshTeam() {
     const [catalog, list] = await Promise.all([invoke("team_roles"), invoke("team_hires")]);
     Object.assign(team, { catalog, hires: list.hires, canHire: list.can_hire, readError: null });
   } catch (error) {
-    team.readError = readStateText(error) || errorMessage(error);
+    // A 403 waits for the grant; anything else can be read again.
+    const waiting = readStateText(error);
+    team.readError = waiting ? { text: waiting, retry: false } : { text: friendlyError(error), retry: true };
   }
   renderTeam();
   return team;
@@ -87,7 +90,7 @@ function grantNote() {
   note.className = "hire-note";
   const text = document.createElement("p");
   text.textContent =
-    "Este dispositivo no tiene el permiso APPROVE: ves tu equipo, pero no puedes cambiarlo. Concédelo desde el host:";
+    "Este dispositivo no tiene el permiso APPROVE: ves tu equipo, pero no puedes cambiarlo. Concédelo desde el PC:";
   const code = document.createElement("code");
   code.className = "approval-grant";
   code.textContent = grantCommand(currentDeviceId() || app.boot?.device_id);
@@ -95,13 +98,16 @@ function grantNote() {
   return note;
 }
 
+function readErrorBlock({ text, retry }) {
+  if (retry) return errorState(text, refreshTeam);
+  const note = document.createElement("p");
+  note.className = "hint";
+  note.textContent = text;
+  return note;
+}
+
 function bodyBlocks() {
-  if (team.readError) {
-    const note = document.createElement("p");
-    note.className = "hint";
-    note.textContent = team.readError;
-    return [note];
-  }
+  if (team.readError) return [readErrorBlock(team.readError)];
   const blocks = [];
   if (!team.canHire) blocks.push(grantNote());
   const groups = groupByArea(team.hires, team.catalog?.areas || []);

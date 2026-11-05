@@ -1,0 +1,125 @@
+/* Ajustes: one column of flat cards, and the controls every screen shares
+   (the switch and the select). Colours come from the palette tokens. */
+
+.view-settings {
+  max-width: 720px;
+}
+
+.settings-list {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.settings-card > h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.settings-card .hint {
+  margin-top: 4px;
+}
+
+.settings-card .btn {
+  margin-top: 14px;
+}
+
+/* The mounted approvals and mail sections carry their own title and frame; inside a card they sit flat. */
+.settings-card > .approval-settings,
+.settings-card > .mail-settings,
+.settings-card > .palette-settings {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  max-width: none;
+}
+
+.about-line {
+  margin: 0;
+  color: var(--text-2);
+}
+
+/* -- switch: our own look; the native checkbox keeps the state and the keyboard -- */
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.switch input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 24px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 99px;
+  background: var(--raised-2);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.switch input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+/* The border keeps a lit switch apart from the page where the accent fill alone is too close to it (Pergamino). */
+.switch input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent-text);
+}
+
+.switch input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+  background: var(--on-accent);
+}
+
+.switch input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.switch input[type="checkbox"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* -- select: our own arrow, drawn with two gradients in the muted token -- */
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 38px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}

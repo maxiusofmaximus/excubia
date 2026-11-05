@@ -11,7 +11,7 @@ void main() {
       child: child!,
     );
     Widget app(TransitionBuilder? clear) => MaterialApp(
-      theme: buildTheme(Brightness.light),
+      theme: buildTheme(HerdrPalettes.pergamino),
       builder: (c, child) =>
           bar48(c, clear == null ? child : Builder(builder: (c) => clear(c, child))),
       home: Scaffold(

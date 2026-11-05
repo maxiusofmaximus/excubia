@@ -14,8 +14,8 @@ export const SIGN_IN_KINDS = {
 export const APPROVAL_DENIED_TEXT = "El envío no se aprobó, o la aprobación caducó. No se envió nada.";
 export const APPROVAL_STALE_TEXT =
   "La aprobación ya se usó o el borrador cambió después de aprobarlo. No se envió nada: pide la aprobación de nuevo.";
-export const APPROVAL_GONE_TEXT = "No encuentro esa aprobación en el host. No se envió nada.";
-export const SEND_FAILED_TEXT = "El envío falló en el host. Revisa el borrador antes de volver a intentarlo.";
+export const APPROVAL_GONE_TEXT = "No encuentro esa aprobación en el PC. No se envió nada.";
+export const SEND_FAILED_TEXT = "El envío falló en el PC. Revisa el borrador antes de volver a intentarlo.";
 
 // Where a send flow stands. `asking`, `awaiting`, `send` and `window` are open;
 // the rest are final and stop every timer of the flow.
@@ -156,4 +156,17 @@ export function digestRows(details) {
     ["Adjuntos", attachmentLine(details.attachments)],
     ["Inicio del cuerpo", details.body_preview || "—"],
   ];
+}
+
+// The index a radio group moves to on an arrow key, wrapping at the ends; null for any other key.
+const RADIO_STEPS = new Map([
+  ["ArrowDown", 1],
+  ["ArrowRight", 1],
+  ["ArrowUp", -1],
+  ["ArrowLeft", -1],
+]);
+
+export function radioStep(index, key, count) {
+  const step = RADIO_STEPS.get(key);
+  return step === undefined ? null : (index + step + count) % count;
 }

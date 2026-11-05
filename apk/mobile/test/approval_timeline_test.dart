@@ -69,11 +69,11 @@ void main() {
     );
     await tester.tap(find.text('Política aprobó: cargo test'));
     await tester.pumpAndSettle();
-    expect(find.text('Cadena de niveles'), findsOneWidget);
-    expect(find.text('Política: decidió alguien'), findsOneWidget);
-    expect(find.text('Lead: no llegó'), findsOneWidget);
-    expect(find.text('Alfred: no llegó'), findsOneWidget);
-    expect(find.text('Tú: no llegó'), findsOneWidget);
+    expect(find.text('Quién decidió'), findsOneWidget);
+    expect(
+      find.text('Lo decidió una regla de tu configuración.'),
+      findsOneWidget,
+    );
     expect(find.text('No se pudo cargar el detalle.'), findsOneWidget);
   });
 
@@ -108,10 +108,7 @@ void main() {
       );
       await tester.tap(find.text('Tú aprobaste: cargo test'));
       await tester.pumpAndSettle();
-      expect(find.text('Política: pasó sin decidir'), findsOneWidget);
-      expect(find.text('Lead: pasó sin decidir'), findsOneWidget);
-      expect(find.text('Alfred: pasó sin decidir'), findsOneWidget);
-      expect(find.text('Tú: decidió tú'), findsOneWidget);
+      expect(find.text('Lo decidiste tú.'), findsOneWidget);
       expect(
         find.textContaining('approve · 2026-10-23T10:01:00.000Z · dev_1'),
         findsOneWidget,

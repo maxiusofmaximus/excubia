@@ -15,7 +15,12 @@ import 'alert_fakes.dart';
 
 AlertStatus statusWith({
   bool granted = true,
-  Map<String, bool> channels = const {'agents': true, 'agents-review': true, 'recordatorios': true, 'conexion': true},
+  Map<String, bool> channels = const {
+    'agents': true,
+    'agents-review': true,
+    'recordatorios': true,
+    'conexion': true,
+  },
   bool battery = true,
   bool running = false,
   bool enabled = false,
@@ -89,12 +94,12 @@ void main() {
     expect(platform.opened, ['permission']);
   });
 
-  testWidgets('each channel shows whether it is on and opens its settings', (tester) async {
-    platform.reported = statusWith(channels: {
-      'agents': true,
-      'agents-review': false,
-      'conexion': true,
-    });
+  testWidgets('each channel shows whether it is on and opens its settings', (
+    tester,
+  ) async {
+    platform.reported = statusWith(
+      channels: {'agents': true, 'agents-review': false, 'conexion': true},
+    );
     await pump(tester);
 
     expect(find.text('Aprobaciones y preguntas: activo'), findsOneWidget);
@@ -108,29 +113,38 @@ void main() {
     expect(platform.opened, ['channel:agents-review']);
   });
 
-  testWidgets('a restricted battery says it may stop the alerts and opens its settings', (tester) async {
-    platform.reported = statusWith(battery: false);
-    await pump(tester);
+  testWidgets(
+    'a restricted battery says it may stop the alerts and opens its settings',
+    (tester) async {
+      platform.reported = statusWith(battery: false);
+      await pump(tester);
 
-    expect(find.text('Optimizada: Android puede parar los avisos'), findsOneWidget);
-    final button = find.text('Abrir ajustes de batería');
-    await tester.ensureVisible(button);
-    await tester.tap(button);
-    await tester.pump();
-    expect(platform.opened, ['battery']);
-  });
+      expect(
+        find.text('Optimizada: Android puede parar los avisos'),
+        findsOneWidget,
+      );
+      final button = find.text('Abrir ajustes de batería');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+      expect(platform.opened, ['battery']);
+    },
+  );
 
-  testWidgets('the service switch starts off, shows its state and sends the change', (tester) async {
-    platform.reported = statusWith(running: false, enabled: false);
-    await pump(tester);
+  testWidgets(
+    'the service switch starts off, shows its state and sends the change',
+    (tester) async {
+      platform.reported = statusWith(running: false, enabled: false);
+      await pump(tester);
 
-    expect(find.text('Detenido · tipo specialUse'), findsOneWidget);
-    final toggle = find.byType(Switch);
-    await tester.ensureVisible(toggle);
-    await tester.tap(toggle);
-    await tester.pump();
-    expect(platform.enabledCalls, [true]);
-  });
+      expect(find.text('Detenido'), findsOneWidget);
+      final toggle = find.byType(Switch);
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pump();
+      expect(platform.enabledCalls, [true]);
+    },
+  );
 
   testWidgets('the last stop is shown in Spanish', (tester) async {
     platform.reported = statusWith();
@@ -147,18 +161,24 @@ void main() {
     expect(find.textContaining('cuando lo desbloqueas'), findsOneWidget);
   });
 
-  testWidgets('a TECNO phone gets the three steps and one app settings button', (tester) async {
-    platform.reported = statusWith(manufacturer: 'tecno');
-    await pump(tester);
+  testWidgets(
+    'a TECNO phone gets the three steps and one app settings button',
+    (tester) async {
+      platform.reported = statusWith(manufacturer: 'tecno');
+      await pump(tester);
 
-    expect(find.textContaining('escribe tu PIN'), findsOneWidget);
-    expect(find.textContaining('pueden variar según la versión'), findsOneWidget);
-    final button = find.text('Abrir ajustes de esta app');
-    await tester.ensureVisible(button);
-    await tester.tap(button);
-    await tester.pump();
-    expect(platform.opened, ['app']);
-  });
+      expect(find.textContaining('escribe tu PIN'), findsOneWidget);
+      expect(
+        find.textContaining('pueden variar según la versión'),
+        findsOneWidget,
+      );
+      final button = find.text('Abrir ajustes de esta app');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+      expect(platform.opened, ['app']);
+    },
+  );
 
   testWidgets('other makers get no maker steps', (tester) async {
     platform.reported = statusWith(manufacturer: 'samsung');
@@ -180,7 +200,9 @@ void main() {
     expect(platform.opened, ['autostart']);
   });
 
-  testWidgets('without the autostart screen, the row opens the app settings', (tester) async {
+  testWidgets('without the autostart screen, the row opens the app settings', (
+    tester,
+  ) async {
     platform.reported = statusWith();
     await pump(tester);
 
@@ -188,7 +210,9 @@ void main() {
     expect(find.text('Abrir ajustes de esta app'), findsOneWidget);
   });
 
-  testWidgets('a boot the app missed shows a warning above the autostart row', (tester) async {
+  testWidgets('a boot the app missed shows a warning above the autostart row', (
+    tester,
+  ) async {
     platform.reported = statusWith(autostart: true, bootMissed: true);
     await pump(tester);
 
@@ -202,18 +226,21 @@ void main() {
     expect(find.textContaining('no volvieron solos'), findsNothing);
   });
 
-  testWidgets('the list is titled as the phone requirements, and the switch is not experimental', (
+  testWidgets(
+    'the list is titled as the phone requirements, and the switch is not experimental',
+    (tester) async {
+      platform.reported = statusWith();
+      await pump(tester);
+
+      expect(find.text('Lo que necesita tu móvil'), findsOneWidget);
+      expect(find.text('Avisos en segundo plano'), findsOneWidget);
+      expect(find.textContaining('experimental'), findsNothing);
+    },
+  );
+
+  testWidgets('copying the diagnostics puts the log on the clipboard', (
     tester,
   ) async {
-    platform.reported = statusWith();
-    await pump(tester);
-
-    expect(find.text('Lo que necesita tu móvil'), findsOneWidget);
-    expect(find.text('Servicio de avisos'), findsOneWidget);
-    expect(find.textContaining('experimental'), findsNothing);
-  });
-
-  testWidgets('copying the diagnostics puts the log on the clipboard', (tester) async {
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
@@ -225,8 +252,10 @@ void main() {
       },
     );
     addTearDown(
-      () => tester.binding.defaultBinaryMessenger
-          .setMockMethodCallHandler(SystemChannels.platform, null),
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
     );
     platform.log = '2026-10-28 10:00:00 servicio parado\n';
     await pump(tester);

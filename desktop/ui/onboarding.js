@@ -1,8 +1,10 @@
-// The first-run assistant: Alfred welcomes the user, then four steps set up the
-// team (areas, level, the people of each area). Shown only when the host says
-// onboarding is not done and this device can hire; «Saltar» closes it for good.
+// The first-run assistant: the palette screen comes first, then three steps set
+// up the team (areas, level, the people of each area); Alfred greets at the top
+// of the first one. Shown only when the host says onboarding is not done and this
+// device can hire; «Saltar» closes it for good.
 
-import { $, app, invoke, showView, toast } from "./core.js";
+import { $, app, invoke, toast } from "./core.js";
+import { showView } from "./nav.js";
 import { avatarElement } from "./avatar.js";
 import { errorMessage } from "./format.js";
 import { AREA_CAP } from "./hires-model.js";
@@ -16,8 +18,9 @@ import {
 } from "./onboarding-model.js";
 import { renderAgents } from "./agents.js";
 import { refreshTeam, teamSnapshot } from "./hires.js";
+import { offerFirstRunPalette } from "./palette.js";
 
-const STEPS = 4;
+const STEPS = 3;
 const wizard = {};
 let checked = false;
 
@@ -53,20 +56,13 @@ function chip(text, pressed, onClick) {
   return button;
 }
 
-function welcomeStep() {
-  const face = avatarElement({ name: "Alfred", characterId: "alfred", px: 96, faceFromName: false });
+function areasStep(catalog) {
+  const face = avatarElement({ name: "Alfred", characterId: "alfred", px: 72, faceFromName: false });
   face.classList.add("onboarding-face");
   return [
     face,
-    heading("Bienvenida"),
-    lede("Soy Alfred, tu CTO. Te ayudo a montar el equipo: elige tus áreas, cuánto equipo quieres y lo contratamos."),
-  ];
-}
-
-function areasStep(catalog) {
-  return [
-    heading("¿En qué áreas trabajas?"),
-    lede("Elige una o varias.", "hint"),
+    heading("Hola, soy Alfred"),
+    lede("Soy tu CTO y te ayudo a montar el equipo. Para empezar, ¿en qué áreas trabajas? Elige una o varias.", "hint"),
     ...catalog.areas.map((area) =>
       chip(area.label, wizard.areas.includes(area.id), () => {
         wizard.areas = wizard.areas.includes(area.id)
@@ -186,12 +182,12 @@ function teamStep(catalog) {
 function renderNav() {
   const first = wizard.step === 0;
   const last = wizard.step === STEPS - 1;
-  $("onboarding-progress").textContent = `Paso ${wizard.step + 1} de ${STEPS}`;
+  $("onboarding-progress").textContent = `Paso ${wizard.step + 2} de ${STEPS + 1}`;
   $("onboarding-back").classList.toggle("hidden", first);
-  $("onboarding-next").textContent = last ? "Contratar equipo" : first ? "Empezar" : "Siguiente";
+  $("onboarding-next").textContent = last ? "Contratar equipo" : "Siguiente";
   $("onboarding-next").disabled =
     wizard.busy ||
-    (wizard.step === 1 && wizard.areas.length === 0) ||
+    (wizard.step === 0 && wizard.areas.length === 0) ||
     (last && wizard.roles.length === 0);
   $("onboarding-skip").disabled = wizard.busy;
   $("onboarding-back").disabled = wizard.busy;
@@ -205,14 +201,14 @@ function showError(message) {
 // `focusKey` is the row a toggle touched: redrawing the step drops focus, so it goes back to that row.
 function render(focusKey = null) {
   const catalog = teamSnapshot().catalog;
-  const blocks = [welcomeStep, () => areasStep(catalog), levelStep, () => teamStep(catalog)];
+  const blocks = [() => areasStep(catalog), levelStep, () => teamStep(catalog)];
   body().replaceChildren(...blocks[wizard.step]());
   if (focusKey) [...body().querySelectorAll("[data-key]")].find((el) => el.dataset.key === focusKey)?.focus();
   renderNav();
 }
 
 function enterStep(step) {
-  if (step === 3) {
+  if (step === STEPS - 1) {
     wizard.roles = presetRoles(chosenAreas(teamSnapshot().catalog.areas, wizard.areas), wizard.level);
     wizard.notice = null;
   }
@@ -259,6 +255,14 @@ function contract() {
   });
 }
 
+// Draws the first wizard step, once the palette screen (if any) is done.
+function startWizard() {
+  resetWizard();
+  showError("");
+  render();
+  showView("onboarding");
+}
+
 // Asks the host once per session, when the first connection is up. A failed read
 // (offline, or no APPROVE) keeps the wizard closed and asks again on the next connect.
 export async function checkOnboarding() {
@@ -270,12 +274,12 @@ export async function checkOnboarding() {
     return;
   }
   checked = true;
-  if (onboarding.done || !onboarding.can_hire) return;
-  await refreshTeam();
-  resetWizard();
-  showError("");
-  render();
-  showView("onboarding");
+  if (!onboarding.done && onboarding.can_hire) await refreshTeam();
+  const shown = offerFirstRunPalette({
+    onboardingDone: onboarding.done,
+    onContinue: () => (onboarding.can_hire ? startWizard() : showView("chat")),
+  });
+  if (!shown && !onboarding.done && onboarding.can_hire) startWizard();
 }
 
 export function installOnboarding() {

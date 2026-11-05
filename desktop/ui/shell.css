@@ -1,0 +1,230 @@
+/* The app shell: one sidebar beside the screen, and one heading per screen.
+   Colours come from the palette tokens in base.css, so all six palettes follow. */
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app > .view {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* -- sidebar ------------------------------------------------------------- */
+
+.app-nav {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  width: 216px;
+  height: 100vh;
+  padding: 20px 12px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.app.nav-hidden .app-nav {
+  display: none;
+}
+
+.app-brand {
+  padding: 0 10px 18px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-item:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.nav-item.is-active {
+  background: var(--raised);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
+.nav-spacer {
+  flex: 1;
+}
+
+.nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* -- the one heading ----------------------------------------------------- */
+
+.view-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 24px;
+}
+
+.view-head .subtitle {
+  margin: 6px 0 0;
+}
+
+.view-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* -- empty states: an icon, one sentence, one action --------------------- */
+
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty-state .state-icon {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--muted);
+}
+
+.empty-state.is-error .state-icon {
+  color: var(--warning);
+}
+
+/* The rule form of Avisos stays in its column on narrow windows: it is never the fixed sheet. */
+.agenda-panel.alerts-form-pane {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  overflow: visible;
+  border-radius: var(--radius);
+}
+
+/* The calendar's right side when no event is open: a panel-like box, not the fixed sheet. */
+.agenda-idle {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.empty-state h2 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 340px;
+  font-size: 13px;
+}
+
+.empty-state .btn {
+  margin-top: 8px;
+}
+
+/* -- narrow windows: icons only, the labels stay in title and aria-label -- */
+
+@media (max-width: 759px) {
+  .app-nav {
+    align-items: center;
+    width: 64px;
+    padding: 16px 8px;
+  }
+
+  .app-brand {
+    padding: 0 0 16px;
+  }
+
+  .app-brand .nav-label,
+  .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .nav-item {
+    justify-content: center;
+    width: 100%;
+    padding: 10px 0;
+  }
+
+  .nav-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+  }
+
+  .view-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .view-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+}

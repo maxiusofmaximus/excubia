@@ -112,8 +112,8 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
         padding: const EdgeInsets.all(Spacing.lg),
         children: [
           Text(
-            'El agente arranca en el equipo que ejecuta el host. La carpeta es '
-            'una ruta de ese equipo: el teléfono no puede explorarla.',
+            'El agente arranca en el PC donde está Excubia. La carpeta es '
+            'una ruta de ese PC: el teléfono no puede explorarla.',
             style: context.text.bodySecondary,
           ),
           const SizedBox(height: Spacing.lg),
@@ -134,7 +134,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
                 ),
                 const SizedBox(height: Spacing.sm),
                 Text(
-                  'Debe existir en el host y ser una carpeta.',
+                  'Debe existir en el PC y ser una carpeta.',
                   style: context.text.small,
                 ),
                 const SizedBox(height: Spacing.md),
@@ -222,8 +222,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
             const SizedBox(height: Spacing.sm),
             Text(
               'El equipo no tiene ningún agente ejecutable en su catálogo. '
-              'Instala uno (claude, codex, gemini u opencode) o añádelo en '
-              'agents.toml y vuelve a intentarlo.',
+              'Instala uno (Claude, Codex, Gemini u OpenCode) y vuelve a intentarlo.',
               style: context.text.bodySecondary,
             ),
             const SizedBox(height: Spacing.md),

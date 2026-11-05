@@ -211,7 +211,7 @@ void main() {
       await tapText(tester, 'Continuar');
       await tapText(tester, 'Continuar');
 
-      expect(find.text('Director técnico (CTO)'), findsOneWidget);
+      expect(find.text('Director técnico'), findsOneWidget);
       expect(find.text('Orquestador del equipo'), findsNothing);
     });
 
@@ -232,7 +232,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final last = tester.getRect(find.text('Otras'));
-      final button = tester.getRect(find.widgetWithText(FilledButton, 'Continuar'));
+      final button = tester.getRect(
+        find.widgetWithText(FilledButton, 'Continuar'),
+      );
       expect(last.bottom, lessThanOrEqualTo(button.top));
     });
 

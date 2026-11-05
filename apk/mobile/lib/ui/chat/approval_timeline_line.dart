@@ -100,14 +100,6 @@ Future<void> showApprovalDetail(
   );
 }
 
-/// Levels in the order the approval climbs (RFC §5).
-const List<(String, String)> _levels = [
-  ('policy', 'Política'),
-  ('lead', 'Lead'),
-  ('cto', 'Alfred'),
-  ('user', 'Tú'),
-];
-
 class _ApprovalDetail extends StatefulWidget {
   const _ApprovalDetail({
     required this.entry,
@@ -166,10 +158,9 @@ class _ApprovalDetailState extends State<_ApprovalDetail> {
                   const SizedBox(height: Spacing.xs),
                   Text(entry.summary ?? '', style: text.bodySecondary),
                   const SizedBox(height: Spacing.lg),
-                  Text('Cadena de niveles', style: text.label),
+                  Text('Quién decidió', style: text.label),
                   const SizedBox(height: Spacing.sm),
-                  for (final row in _chain(record, entry))
-                    Text(row, style: text.body),
+                  Text(_decisionLine(record, entry), style: text.body),
                   const SizedBox(height: Spacing.lg),
                   Text('Auditoría', style: text.label),
                   const SizedBox(height: Spacing.sm),
@@ -201,30 +192,21 @@ class _ApprovalDetailState extends State<_ApprovalDetail> {
     );
   }
 
-  /// One line per level: passed without deciding, the decider, or not reached.
-  List<String> _chain(ChatApproval? record, ChatEntry entry) {
-    final decided = record?.level ?? entry.level ?? 'policy';
-    final decidedAt = _levels.indexWhere((level) => level.$1 == decided);
-    final decider = _deciderName(record, entry);
-    return [
-      for (var i = 0; i < _levels.length; i++)
-        '${_levels[i].$2}: ${_stateOf(i, decidedAt, decider)}',
-    ];
+  /// Who decided, in one plain sentence (no names of the approval levels).
+  String _decisionLine(ChatApproval? record, ChatEntry entry) {
+    final level = record?.level ?? entry.level ?? 'policy';
+    if (level == 'policy') return 'Lo decidió una regla de tu configuración.';
+    if (_decidedByUser(record, entry)) return 'Lo decidiste tú.';
+    return 'Lo decidió ${_deciderName(record, entry)}.';
   }
 
-  String _stateOf(int index, int decidedAt, String decider) {
-    if (decidedAt < 0) return 'sin decidir';
-    if (index < decidedAt) return 'pasó sin decidir';
-    if (index == decidedAt) return 'decidió $decider';
-    return 'no llegó';
+  bool _decidedByUser(ChatApproval? record, ChatEntry entry) {
+    final kind = record?.deciderKind ?? entry.deciderKind;
+    return kind == 'device' || (record?.level ?? entry.level) == 'user';
   }
 
   String _deciderName(ChatApproval? record, ChatEntry entry) {
-    final kind = record?.deciderKind ?? entry.deciderKind;
     final id = record?.deciderId ?? entry.deciderId;
-    if (kind == 'device' || (record?.level ?? entry.level) == 'user') {
-      return 'tú';
-    }
     if (id == null) return 'alguien';
     return seatFor(id, widget.projects, widget.alfred)?.name ?? id;
   }

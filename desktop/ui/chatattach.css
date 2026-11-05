@@ -172,7 +172,7 @@
   justify-content: center;
   gap: 12px;
   padding: 16px;
-  background: rgba(11, 20, 38, 0.88);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
 }
 
 .attach-viewer-image {

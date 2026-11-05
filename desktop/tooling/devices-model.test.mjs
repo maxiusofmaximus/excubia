@@ -9,6 +9,7 @@ import {
   APPROVE_WARNING,
   DEFAULT_GRANT,
   NO_SAS_HINT,
+  OWN_REVOKE_WARNING,
   REVOKE_WARNING,
   SAS_HINT,
   THIS_DEVICE_REASON,
@@ -99,8 +100,16 @@ test("a device id is shown cut, and kept whole when it is already short", () => 
 
 test("this device cannot revoke itself, and a revoked one has nothing to revoke", () => {
   assert.equal(canRevoke(device("dev-a"), "dev-b"), true);
-  assert.equal(canRevoke(device("dev-a"), "dev-a"), false);
   assert.equal(canRevoke(device("dev-a", { revoked: true }), "dev-b"), false);
+  // This device may revoke itself in remote mode, where the code screen brings it back; not in the local one.
+  assert.equal(canRevoke(device("dev-a"), "dev-a"), true);
+  assert.equal(canRevoke(device("dev-a"), "dev-a", true), false);
+  assert.equal(canRevoke(device("dev-b"), "dev-a", true), true);
+  assert.equal(canRevoke(device("dev-a", { revoked: true }), "dev-a"), false);
+  assert.equal(
+    OWN_REVOKE_WARNING,
+    "Este equipo dejará de estar vinculado y tendrás que emparejarlo de nuevo. ¿Continuar?",
+  );
   assert.match(THIS_DEVICE_REASON, /Olvidar emparejamiento/);
   assert.equal(
     REVOKE_WARNING,
@@ -113,9 +122,12 @@ test("each failure has its words, and a refused grant is a state rather than an 
   assert.equal(deviceFailureText({ kind: "notFound" }), "Ya no existe.");
   assert.match(deviceFailureText({ kind: "unauthorized" }), /Vuelve a emparejarlo/);
   assert.match(deviceFailureText({ kind: "offline" }), /Sin conexión/);
-  assert.equal(deviceFailureText({ kind: "refused", status: 500 }), "El PC rechazó la petición (500).");
-  assert.equal(deviceFailureText({ kind: "protocol" }), "No se pudo completar la operación.");
-  assert.equal(deviceFailureText(undefined), "No se pudo completar la operación.");
+  assert.equal(
+    deviceFailureText({ kind: "refused", status: 500 }),
+    "Tu PC no aceptó la petición. Vuelve a vincularlo si sigue pasando.",
+  );
+  assert.equal(deviceFailureText({ kind: "protocol" }), "Tu PC no aceptó la petición. Vuelve a vincularlo si sigue pasando.");
+  assert.equal(deviceFailureText(undefined), "No se pudo cargar. Inténtalo de nuevo.");
   assert.equal(deviceFailureText({ kind: "notPending" }), "Ya tenía permisos.");
 });
 

@@ -130,7 +130,7 @@ class _PairingScreenState extends State<PairingScreen> {
     final baseUrl = PairingAddress.normaliseUrl(url ?? _url.text);
     final pairingCode = (code ?? _code.text).trim();
     if (baseUrl.isEmpty) {
-      _fail('Añade la dirección del equipo en Avanzado o escanea el QR.');
+      _fail('Añade la dirección del PC en Avanzado o escanea el QR.');
       return;
     }
     final loopback = PairingAddress.loopbackProblem(

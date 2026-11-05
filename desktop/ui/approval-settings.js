@@ -11,18 +11,16 @@ let settings = null;
 let notice = "";
 
 const LEVEL_HELP =
-  "Política → puntuador → lead → Alfred → tú: cada nivel decide una vez y las aprobaciones solo suben.";
+  "Cada aviso lo decide una regla o una persona. Solo pasa a otro nivel si hace falta.";
 const DELEGATED_HELP =
-  "En modo delegado solo te llega lo que la lista de nunca delegar o la falta de información te reserva.";
+  "Con delegación, solo te llega lo que está en tu lista de cosas que nunca se delegan o lo que no tenga información suficiente.";
 
 export function mountApprovalSettings() {
   const section = element("section", "approval-settings");
   section.id = "approval-settings";
   section.setAttribute("aria-labelledby", "approval-settings-title");
-  $("view-pair").append(section);
-  for (const id of ["btn-settings", "btn-settings-team"]) {
-    $(id).addEventListener("click", loadSettings);
-  }
+  $("settings-approvals").append(section);
+  document.addEventListener("settings:open", loadSettings);
   section.addEventListener("change", changeMode);
   render();
 }
@@ -104,9 +102,10 @@ function buildContent() {
 }
 
 function switchRow(label, projectId, checked, enabled) {
-  const row = element("label", "approval-switch");
+  const row = element("label", "approval-switch switch");
   const input = element("input");
   input.type = "checkbox";
+  input.setAttribute("role", "switch");
   input.checked = checked;
   input.disabled = !enabled;
   input.dataset.approvalScope = projectId;

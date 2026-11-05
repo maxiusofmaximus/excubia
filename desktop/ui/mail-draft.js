@@ -3,7 +3,9 @@
 // keeps the approval and the window going, and reopening the draft shows where
 // they stand.
 
-import { $, invoke, showView } from "./core.js";
+import { $, invoke } from "./core.js";
+import { showView } from "./nav.js";
+import { openSettings } from "./settings.js";
 import { element } from "./approval-card.js";
 import { autoGrow } from "./chatcomposer.js";
 import { errorMessage } from "./format.js";
@@ -69,7 +71,7 @@ function leaveDraft() {
   detach();
   open = null;
   openToken += 1;
-  showView("pair");
+  showView("chat");
 }
 
 function closeDraft() {
@@ -227,7 +229,10 @@ function renderFlow(view) {
 
 export function installMailDraft() {
   $("btn-mail-back").addEventListener("click", closeDraft);
-  $("btn-mail-settings").addEventListener("click", closeDraft);
+  $("btn-mail-settings").addEventListener("click", () => {
+    closeDraft();
+    openSettings();
+  });
   $("btn-mail-send").addEventListener("click", startSend);
   $("btn-mail-cancel").addEventListener("click", () => {
     if (open) flows.cancel(open.draftId);

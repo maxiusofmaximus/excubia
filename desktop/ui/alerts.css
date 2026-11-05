@@ -22,6 +22,18 @@
   cursor: pointer;
 }
 
+/* base.css makes every input full width; a radio must keep its own size. */
+.alerts-option input[type="radio"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  accent-color: var(--accent);
+}
+
 .alert-rule {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;

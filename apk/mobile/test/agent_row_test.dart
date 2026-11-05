@@ -4,19 +4,7 @@ import 'package:herdr_notify/src/rust/api/state.dart';
 import 'package:herdr_notify/ui/theme.dart';
 import 'package:herdr_notify/ui/widgets/agent_row.dart';
 
-AgentEntry agent({required AgentStatus status, String? title}) => AgentEntry(
-  paneId: 'w1:p1',
-  workspaceId: 'w1',
-  project: 'herdr-notify',
-  agent: 'opencode',
-  status: status,
-  attention: 3,
-  title: title,
-  cwd: '/repo',
-  focused: false,
-  canResume: false,
-  restored: false,
-);
+import 'support/agent_fixtures.dart';
 
 void main() {
   testWidgets('a row shows project and task over a 56dp-plus touch target', (

@@ -132,7 +132,7 @@ export function renderApprovalCard(entry, now = Date.now(), context = "") {
 
   const footer = element("div", "approval-footer");
   const digest = element("code", "approval-digest", shortDigest(entry.action_digest));
-  digest.setAttribute("aria-label", "Huella de la acción");
+  digest.setAttribute("aria-label", "Código de la acción");
   footer.append(digest);
   if (status === "pending") {
     const checking = isChecking(entry, now);

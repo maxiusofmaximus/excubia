@@ -2,10 +2,12 @@
 // más»; the panel shows one contact, edits it or creates one, and deletes it only after
 // the operator confirms. Without APPROVE the delete stays off and says why.
 
-import { $, invoke, showView } from "./core.js";
+import { $, invoke } from "./core.js";
+import { showView } from "./nav.js";
 import { element } from "./chatdom.js";
 import { readStateText } from "./hires-model.js";
 import { createAgendaList } from "./agenda-list.js";
+import { emptyState } from "./empty-state.js";
 import {
   actionRow,
   approveReason,
@@ -37,9 +39,20 @@ let list = null;
 
 const failureText = (failure) => readStateText(failure) || agendaErrorText(failure);
 
-function emptyText(query) {
-  if (query) return "Ningún contacto coincide con la búsqueda.";
-  return "Aún no hay contactos. Alfred los guarda cuando se los pides, o añade uno.";
+function emptyNode(query) {
+  if (query) {
+    return emptyState(
+      { icon: "contacts", text: "Ningún contacto coincide con la búsqueda.", action: "Borrar búsqueda" },
+      () => {
+        $("contacts-search").value = "";
+        list.reload("");
+      },
+    );
+  }
+  return emptyState(
+    { icon: "contacts", text: "Aún no hay contactos. Alfred los guarda cuando se los pides, o añade uno.", action: "Nuevo contacto" },
+    () => $("btn-contact-new").click(),
+  );
 }
 
 async function fetchPage({ q, cursor }) {
@@ -195,7 +208,7 @@ export function installContacts() {
     more: $("contacts-more"),
     fetchPage,
     renderRow: contactRow,
-    emptyText,
+    emptyNode,
     loadingText: "Cargando contactos…",
     failureText,
   });

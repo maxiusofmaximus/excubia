@@ -1,5 +1,7 @@
 # Integrating with herdr
 
+> Nota (2.0): documento histórico de la arquitectura anterior (gateway, Tailscale, herdr). Hoy el host de Excubia aloja los agentes y se empareja con `host pair-code`, enlaces `excubia://` y verificación SAS; ver `contracts/pairing.md`.
+
 Everything here was verified against **herdr 0.9.1** — against the source in
 `herdrdev/herdr` and against a live server. Several of these are not in the prose
 docs and would each cost an afternoon to rediscover.

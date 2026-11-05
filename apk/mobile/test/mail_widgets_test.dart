@@ -245,7 +245,7 @@ void main() {
         expect(find.text('Presupuesto'), findsOneWidget);
         expect(find.text('bea@ejemplo.org'), findsOneWidget);
         expect(find.text('ana@ejemplo.com'), findsOneWidget);
-        expect(find.textContaining('SHA-256 abcdef012345…'), findsOneWidget);
+        expect(find.textContaining('Huella abcdef012345…'), findsOneWidget);
         expect(find.textContaining('CC'), findsNothing);
       },
     );
@@ -436,7 +436,7 @@ void main() {
 
         expect(find.text('Presupuesto'), findsOneWidget);
         expect(find.text('bea@ejemplo.org'), findsOneWidget);
-        expect(find.textContaining('SHA-256 abcdef012345…'), findsOneWidget);
+        expect(find.textContaining('Huella abcdef012345…'), findsOneWidget);
         expect(transport.calls, isNot(contains(sendRoute)));
         await unmountWidget(tester);
       },

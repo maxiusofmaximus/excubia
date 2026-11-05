@@ -4,6 +4,10 @@ import '../core/app_info.dart';
 import '../core/storage/pairing_store.dart';
 import 'home_shell.dart';
 import 'onboarding/onboarding_gate.dart';
+import 'palette/palette_controller.dart';
+import 'palette/palette_prefs.dart';
+import 'palette/palette_screen.dart';
+import 'palette/palette_scope.dart';
 import 'pairing_screen.dart';
 import 'theme.dart';
 
@@ -20,30 +24,57 @@ Widget withSystemBarsClear(BuildContext context, Widget? child) => ColoredBox(
 );
 
 class HerdrNotifyApp extends StatefulWidget {
-  const HerdrNotifyApp({super.key, required this.store});
+  const HerdrNotifyApp({
+    super.key,
+    required this.store,
+    required this.palettePrefs,
+  });
 
   final PairingStore store;
+  final PalettePrefs palettePrefs;
 
   @override
   State<HerdrNotifyApp> createState() => _HerdrNotifyAppState();
 }
 
-class _HerdrNotifyAppState extends State<HerdrNotifyApp> {
+class _HerdrNotifyAppState extends State<HerdrNotifyApp>
+    with WidgetsBindingObserver {
   Pairing? _pairing;
-  bool _loading = true;
+  PaletteController? _palette;
+  Brightness _systemBrightness =
+      WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _boot();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    setState(
+      () => _systemBrightness =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
   }
 
   Future<void> _boot() async {
     final pairing = await widget.store.load();
+    final palette = await PaletteController.load(
+      prefs: widget.palettePrefs,
+      hasPairing: pairing.isComplete,
+    );
     if (!mounted) return;
     setState(() {
       _pairing = pairing;
-      _loading = false;
+      _palette = palette;
     });
   }
 
@@ -57,23 +88,39 @@ class _HerdrNotifyAppState extends State<HerdrNotifyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _palette;
     final pairing = _pairing;
-    return MaterialApp(
-      title: appName,
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(Brightness.light),
-      darkTheme: buildTheme(),
-      themeMode: ThemeMode.system,
-      builder: withSystemBarsClear,
-      home: _loading || pairing == null
-          ? Builder(builder: (context) => ColoredBox(color: context.colors.bg))
-          : pairing.isComplete
-          ? OnboardingGate(
-              key: ValueKey(pairing.deviceId),
-              pairing: pairing,
-              home: HomeShell(pairing: pairing, onUnpaired: _onUnpaired),
-            )
-          : PairingScreen(store: widget.store, onPaired: _onPaired),
+    if (palette == null || pairing == null) {
+      return MaterialApp(
+        title: appName,
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        builder: withSystemBarsClear,
+        home: Builder(
+          builder: (context) => ColoredBox(color: context.colors.bg),
+        ),
+      );
+    }
+    return PaletteScope(
+      controller: palette,
+      child: ListenableBuilder(
+        listenable: palette,
+        builder: (context, _) => MaterialApp(
+          title: appName,
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(palette.paletteFor(_systemBrightness)),
+          builder: withSystemBarsClear,
+          home: palette.needsChoice
+              ? const PaletteScreen(mode: PaletteScreenMode.firstRun)
+              : pairing.isComplete
+              ? OnboardingGate(
+                  key: ValueKey(pairing.deviceId),
+                  pairing: pairing,
+                  home: HomeShell(pairing: pairing, onUnpaired: _onUnpaired),
+                )
+              : PairingScreen(store: widget.store, onPaired: _onPaired),
+        ),
+      ),
     );
   }
 }

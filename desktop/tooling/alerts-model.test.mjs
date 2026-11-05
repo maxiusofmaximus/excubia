@@ -71,7 +71,7 @@ test("un campo inválido se nombra en palabras y lo desconocido tiene un texto g
     "Elige cuándo avisa: se bloquea o termina.",
   );
   assert.equal(alertErrorText({ kind: "invalid", field: "otro", message: "x" }), "Revisa los datos de la regla.");
-  assert.equal(alertErrorText({ kind: "offline" }), "Sin conexión con el host. Lo cargado sigue visible.");
+  assert.equal(alertErrorText({ kind: "offline" }), "Sin conexión con tu PC. Lo cargado sigue visible.");
 });
 
 test("las frases fijas y las visibles no nombran el software por dentro", () => {

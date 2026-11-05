@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/hires_controller.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/api/error.dart' show FailureKind;
 import 'package:herdr_notify/src/rust/api/error/chat.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
@@ -16,23 +15,10 @@ import 'package:herdr_notify/ui/chat/history_drawer.dart';
 import 'package:herdr_notify/ui/theme.dart';
 import 'package:herdr_notify/ui/widgets/surface_card.dart';
 
+import 'support/chat_fixtures.dart';
 import 'support/fake_chat_transport.dart';
 import 'support/fake_team_host.dart';
 import 'support/history_chips.dart';
-
-LiveTriage dummyTriage() => LiveTriage(
-  HostClient(
-    baseUrl: 'http://100.64.0.1:8788',
-    deviceId: 'dev-x',
-    privateKeyBase64: 'placeholder',
-  ),
-);
-
-Map<String, String> emptyRoutes() => {
-  '/v1/chat/bootstrap': bootstrapJson(),
-  '/v1/chat/sections': sectionsJson(const []),
-  '/v1/chat/conversations': conversationsJson(),
-};
 
 Map<String, String> conversationRoutes() => {
   '/v1/chat/bootstrap': bootstrapJson(),
@@ -153,9 +139,31 @@ void main() {
     await pumpChat(tester, routes: emptyRoutes());
 
     expect(find.text('¿Qué movemos hoy?'), findsOneWidget);
-    expect(find.text('Crea el proyecto Demo'), findsOneWidget);
+    expect(
+      find.text('Cuéntame a qué te dedicas y armo tu equipo'),
+      findsOneWidget,
+    );
+    expect(find.text('Crea el proyecto Demo'), findsNothing);
     expect(find.byTooltip('Nuevo chat'), findsOneWidget);
     expect(find.text('Mensaje a Alfred'), findsOneWidget);
+  });
+
+  testWidgets('with a hired team the start screen offers that trade', (
+    tester,
+  ) async {
+    final hires = HiresController(transport: FakeTeamHost(hires: [bobHire()]));
+    await hires.load();
+    await pumpChat(tester, routes: emptyRoutes(), hires: hires);
+
+    expect(find.text('¿Cómo va el equipo?'), findsOneWidget);
+    expect(
+      find.text('Revisa que todo funcione antes de entregar'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Cuéntame a qué te dedicas y armo tu equipo'),
+      findsNothing,
+    );
   });
 
   testWidgets('the team card counts the hired people, not only the live ones', (

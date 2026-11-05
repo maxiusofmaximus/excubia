@@ -75,6 +75,11 @@ class ChatComposer extends StatelessWidget {
   Widget _bar(BuildContext context) {
     final c = context.colors;
     final denial = stopDenial;
+    // The input is a pill of its own; the accent is kept for the send button.
+    final pill = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide(color: c.outlineSoft),
+    );
     return Container(
       padding: const EdgeInsets.fromLTRB(
         Spacing.md,
@@ -82,10 +87,7 @@ class ChatComposer extends StatelessWidget {
         Spacing.md,
         Spacing.sm,
       ),
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border(top: BorderSide(color: c.outlineSoft)),
-      ),
+      decoration: BoxDecoration(color: c.bg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -126,6 +128,11 @@ class ChatComposer extends StatelessWidget {
                         ? 'Reconecta para escribir a Alfred'
                         : 'Mensaje a Alfred',
                     isDense: true,
+                    border: pill,
+                    enabledBorder: pill,
+                    focusedBorder: pill.copyWith(
+                      borderSide: BorderSide(color: c.accentText),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: Spacing.md,
                       vertical: Spacing.md,

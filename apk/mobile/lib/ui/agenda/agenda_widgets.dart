@@ -78,7 +78,7 @@ class _ApproveGrantState extends State<ApproveGrant> {
 
 /// The reason a delete or an import is off, said in full. Shown under the button.
 const String approveMissingText =
-    'Este dispositivo no tiene el permiso APPROVE, así que no puede borrar ni importar.';
+    'Este dispositivo no tiene permiso para aprobar, así que no puede borrar ni importar.';
 
 /// Asks before a delete that cannot be undone. Answers `true` only on «Borrar».
 Future<bool> confirmDelete(

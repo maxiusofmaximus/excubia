@@ -5,6 +5,7 @@ import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
 import '../../core/state/hires_controller.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import '../widgets/grouped_card.dart';
 import 'hire_actions.dart';
 import 'hire_catalog_screen.dart';
 
@@ -90,13 +91,17 @@ class TeamHiresSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.xs),
             child: Text(group.label, style: context.text.small),
           ),
-          for (final hire in group.hires)
-            _HireRow(
-              hire: hire,
-              title: hires.roleById(hire.role)?.title ?? '',
-              canHire: hires.canHire,
-              onTap: () => showHireActions(context, hires, hire),
-            ),
+          GroupedCard(
+            children: [
+              for (final hire in group.hires)
+                _HireRow(
+                  hire: hire,
+                  title: hires.roleById(hire.role)?.title ?? '',
+                  canHire: hires.canHire,
+                  onTap: () => showHireActions(context, hires, hire),
+                ),
+            ],
+          ),
         ],
       ],
     );

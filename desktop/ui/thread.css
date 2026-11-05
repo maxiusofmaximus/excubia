@@ -263,7 +263,7 @@
   align-self: stretch;
   max-width: 94%;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 123, 123, 0.4);
+  border: 1px solid color-mix(in srgb, var(--blocked) 40%, transparent);
   border-left-width: 3px;
   border-radius: 11px;
   background: color-mix(in srgb, var(--blocked) 7%, var(--surface));
@@ -389,7 +389,6 @@
 /* The welcome face is an .avatar painted by ui/avatar.js at 68 px. */
 .empty-alfred {
   margin-bottom: 15px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
 }
 
 .chat-empty h2 {
@@ -482,7 +481,6 @@
   border: 1px solid var(--line-strong);
   border-radius: 22px;
   background: var(--surface);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 
 .chat-composer:focus-within {

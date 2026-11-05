@@ -1,8 +1,9 @@
 /* «Tu equipo» and the Contratar sheet. Colours come from the tokens in base.css so
    the light and dark palettes follow the rest of the app. */
 
+/* Same 2px inset as the agent groups above it, so the heading lines up with the cards. */
 .team-section {
-  margin: 0 16px 16px;
+  margin: 0 2px 16px;
 }
 
 .team-head {

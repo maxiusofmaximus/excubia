@@ -47,7 +47,7 @@ class AdvancedPairingSection extends StatelessWidget {
           const SizedBox(height: Spacing.xs),
           Text(fingerprint, style: context.text.mono),
           const SizedBox(height: Spacing.xs),
-          Text('Núcleo Rust $coreVersion', style: context.text.small),
+          Text('Versión $coreVersion', style: context.text.small),
           const SizedBox(height: Spacing.md),
           TextField(
             controller: deviceIdController,

@@ -82,7 +82,7 @@ class _ActivityRow extends StatelessWidget {
         padding: const EdgeInsets.all(Spacing.md),
         decoration: BoxDecoration(
           color: c.raised,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: c.outlineSoft),
         ),
         child: Row(
@@ -148,7 +148,7 @@ class ChatFailureCard extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: c.outlineSoft),
       ),
       clipBehavior: Clip.antiAlias,

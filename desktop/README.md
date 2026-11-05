@@ -1,65 +1,41 @@
-# Excubia
+# Excubia para escritorio
 
-Excubia (repository: `herdr-notify`) is push notifications and a secure control
-plane for [herdr](https://github.com/herdrdev/herdr) coding agents.
+Cliente de escritorio de Excubia (Tauri 2): chat con Alfred, tu equipo de
+agentes en vivo, calendario, notas, contactos, avisos y dispositivos. Lleva el
+host de Excubia como proceso hijo, así que funciona sin instalar nada más.
 
-When an agent running in herdr needs you — it hit an approval dialog, or it
-finished a task you asked for — your phone buzzes, and tapping it takes you
-straight to the answer. No terminal hunting, no pane-by-pane archaeology.
-
-## Status
-
-Estado y fases: [`docs/roadmap.md`](docs/roadmap.md).
-
-## Architecture
+## Arquitectura
 
 ```
-herdr server  ──NDJSON──▶  host (Rust, runs beside herdr)
+agentes CLI ──pty──▶ host (Rust)        núcleo de Excubia
+                       │
+                       └─ API HTTPS firmada   loopback; LAN con TLS fijado
                               │
-                              ├─ herdr client      subscribe + request/response
-                              ├─ state             authoritative reduced session
-                              ├─ attention ranker  blocked ▸ done ▸ working ▸ idle
-                              └─ HTTPS API         loopback; LAN or tailnet, pinned TLS
-                                     │
-                       ┌─────────────┴──────────────┐
-                 Desktop (Tauri)              Mobile app (Flutter)
+                ┌─────────────┴──────────────┐
+          Escritorio (Tauri)          App móvil (Flutter)
 ```
 
-**No port is exposed to the internet.** The host binds loopback by default and
-serves the LAN or the tailnet only when asked, always over pinned TLS.
+**No se expone ningún puerto a internet.** El host escucha en loopback por
+defecto y sirve a la LAN solo si se le pide, siempre con TLS fijado.
 
-## Layout
+## Estructura
 
 ```
-core/            Rust · client of the host, UI-free (crate herdr-desktop-core)
-src-tauri/       Tauri 2 · desktop shell that runs the host as a sidecar
-ui/              HTML/JS · screens and their pure models
-tooling/         node tests for the models, fake host and fake chat servers
-tests/fixtures/  shared golden vectors (request signing)
-docs/            Contracts, roadmap, credentials, security review
+core/            Rust · cliente del host, sin interfaz (crate excubia_desktop_core)
+src-tauri/       Tauri 2 · shell de escritorio que ejecuta el host como sidecar
+ui/              HTML/JS · pantallas y sus modelos puros
+tooling/         pruebas node de los modelos, host y chat simulados
+tests/fixtures/  vectores dorados compartidos (firma de peticiones)
+docs/            contratos, hoja de ruta, credenciales, revisión de seguridad
 ```
 
-## Testing
+## Pruebas
 
 ```bash
-cargo test --workspace                 # core and Tauri, against a simulated host
-node --test tooling/*.test.mjs         # UI models and screens
+cargo test --workspace                 # core y Tauri, contra un host simulado
+node --test tooling/*.test.mjs         # modelos y pantallas de la interfaz
 ```
 
-Unit tests drive a scriptable fake of herdr's API rather than a live session,
-because the behaviour worth testing — subscribe-before-snapshot, rotation without
-losing an event, idempotence under replay — is timing behaviour, and mutating a
-real coding session to exercise it is not an acceptable trade.
-
-## Read this before touching the herdr client
-
-[`docs/herdr-integration.md`](docs/herdr-integration.md) documents the protocol
-facts that are **not** in herdr's prose docs and that each cost real debugging
-time: the endpoint is a named pipe and not the `.sock` file, there is exactly one
-request per connection, subscription sets are frozen at subscribe time,
-`session.snapshot` nests under `result.snapshot`, and the Windows CRT
-read/write position plus `CloseHandle` deadlock are both real and both fail
-confusingly.
 
 ## Seguridad
 
@@ -68,20 +44,15 @@ registra y firma cada petición; el host puede revocarla y los permisos son por
 dispositivo. El host rechaza direcciones comodín (`0.0.0.0`, `::`) y corre
 solo en loopback, la LAN o la tailnet. Ver `docs/contracts/auth.md`.
 
-## Security posture
+## Postura de seguridad
 
-The host is the crown jewel: it holds a socket that can drive any coding agent
-on the machine. Design rules already in place:
+El host es la pieza sensible: puede manejar a cualquier agente de la máquina.
 
-- The client may only ask for **typed actions**. It can never name a herdr
-  method, so there is no arbitrary-invocation surface.
-- The resolved herdr endpoint is pinned inside herdr's config directory, so a
-  tampered `HERDR_SOCKET_PATH` cannot redirect the control plane.
-- Event payloads are treated as untrusted; an unrecognised status or event name
-  is dropped rather than stored.
-- Secrets are gitignored.
-
-Formal audit: phase F9.
+- El cliente solo puede pedir **acciones tipadas**; no hay forma de invocar
+  métodos arbitrarios.
+- Los eventos de los agentes se tratan como no confiables: un estado o evento
+  desconocido se descarta.
+- Los secretos están fuera de git.
 
 ## Desktop client (Tauri)
 

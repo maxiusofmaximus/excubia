@@ -1,0 +1,215 @@
+/* The palette picker: six cards with a tiny preview, shared by the first-run
+   screen and Ajustes → Apariencia. The preview colours come from each palette
+   as --p-* custom properties, so there is no second copy of the values. */
+
+.view-palette {
+  max-width: 880px;
+}
+
+.palette-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.palette-intro h1 {
+  font-size: 34px;
+}
+
+.palette-intro .lede {
+  max-width: 560px;
+  margin: 10px 0 24px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.palette-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.palette-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 168px;
+  padding: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.palette-card:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+
+.palette-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+.palette-card:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+}
+
+.palette-card:disabled {
+  cursor: not-allowed;
+}
+
+.palette-card:disabled .palette-preview {
+  opacity: 0.6;
+}
+
+.palette-preview {
+  display: flex;
+  height: 92px;
+  overflow: hidden;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  background: var(--p-bg);
+}
+
+.palette-preview-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  width: 30%;
+  padding: 10px 8px;
+  background: var(--p-surface);
+  border-right: 1px solid var(--p-line);
+}
+
+.palette-preview-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 12px 10px;
+}
+
+.palette-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--p-muted);
+  opacity: 0.55;
+}
+
+.palette-bar.is-text {
+  width: 72%;
+  background: var(--p-text);
+  opacity: 1;
+}
+
+.palette-chip {
+  width: 44px;
+  height: 16px;
+  margin-top: auto;
+  border-radius: 6px;
+  background: var(--p-accent);
+}
+
+.palette-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.palette-card-name {
+  font-weight: 650;
+}
+
+.palette-card-note {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.palette-system {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--text-2);
+  font-size: 13.5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+
+.palette-system-hint {
+  min-height: 18px;
+  margin: -8px 0 0 56px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.palette-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.palette-step {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.palette-settings {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.palette-settings h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.palette-settings > .hint {
+  margin: 0 0 16px;
+}
+
+@media (max-width: 760px) {
+  .palette-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .palette-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .palette-intro h1 {
+    font-size: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .palette-card {
+    transition: none;
+  }
+}

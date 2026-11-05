@@ -41,7 +41,7 @@ String? riskLabel(String? risk) => switch (risk) {
 String? levelLabel(String? level) => switch (level) {
   'user' => 'te lo pasa Alfred',
   'cto' => 'lo decide Alfred',
-  'lead' => 'lo decide el lead',
+  'lead' => 'lo decide el responsable del proyecto',
   _ => null,
 };
 

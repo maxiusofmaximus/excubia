@@ -66,15 +66,33 @@ class AgentRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        detail == null || detail.isEmpty
-                            ? context.colors.statusLabel(agent.status)
-                            : '${context.colors.statusLabel(agent.status)} · $detail',
-                        style: context.text.small.copyWith(
-                          color: context.colors.labelForStatus(agent.status),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      // The word carries the state; the point only repeats it.
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: context.colors.forStatus(agent.status),
+                            ),
+                          ),
+                          const SizedBox(width: Spacing.xs),
+                          Expanded(
+                            child: Text(
+                              detail == null || detail.isEmpty
+                                  ? context.colors.statusLabel(agent.status)
+                                  : '${context.colors.statusLabel(agent.status)} · $detail',
+                              style: context.text.small.copyWith(
+                                color: context.colors.labelForStatus(
+                                  agent.status,
+                                ),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

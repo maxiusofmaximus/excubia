@@ -5,6 +5,7 @@
 import { $, invoke } from "./core.js";
 import { element } from "./chatdom.js";
 import { button } from "./agenda-ui.js";
+import { emptyState, errorState } from "./empty-state.js";
 import {
   RANGES,
   emptyListText,
@@ -35,12 +36,17 @@ export function createCalendarList({ onOpen }) {
   let token = 0;
   let selectedKey = null;
 
-  function setStatus(text, again = null) {
+  function setStatus(content) {
     status.replaceChildren();
-    status.hidden = !text;
-    if (!text) return;
-    status.append(text);
-    if (again) status.append(" ", button("Reintentar", "btn secondary btn-small", () => again()));
+    status.hidden = !content;
+    if (content) status.append(content);
+  }
+
+  function emptyNode() {
+    return emptyState(
+      { icon: "calendar", text: emptyListText(false), action: "Nuevo evento" },
+      () => $("btn-calendar-new").click(),
+    );
   }
 
   function eventItem(event) {
@@ -66,7 +72,9 @@ export function createCalendarList({ onOpen }) {
   function render() {
     list.replaceChildren(...rows());
     more.hidden = !next;
-    setStatus(items.length ? "" : emptyListText(Boolean(next)));
+    if (items.length) setStatus("");
+    else if (next) setStatus(emptyListText(true));
+    else setStatus(emptyNode());
   }
 
   function drawRange() {
@@ -81,12 +89,12 @@ export function createCalendarList({ onOpen }) {
     return invoke("calendar_events", { from, to, after });
   }
 
-  function note(text, again) {
+  function note(content) {
     items = [];
     next = null;
     list.replaceChildren();
     more.hidden = true;
-    setStatus(text, again);
+    setStatus(content);
   }
 
   async function load() {
@@ -100,7 +108,7 @@ export function createCalendarList({ onOpen }) {
       next = nextCursor(page);
       render();
     } catch (failure) {
-      if (current === token) note(listFailureText(failure), load);
+      if (current === token) note(errorState(listFailureText(failure), load));
     }
   }
 
@@ -115,7 +123,7 @@ export function createCalendarList({ onOpen }) {
       next = nextCursor(page);
       render();
     } catch (failure) {
-      if (current === token) setStatus(listFailureText(failure), loadMore);
+      if (current === token) setStatus(errorState(listFailureText(failure), loadMore));
     } finally {
       more.disabled = false;
     }

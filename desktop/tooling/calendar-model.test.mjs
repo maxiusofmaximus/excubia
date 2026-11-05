@@ -257,12 +257,12 @@ test("each refusal of the calendar reads in Spanish, the field ones by their fie
     calendarErrorText({ kind: "invalid", field: "recurrence", message: "english" }),
     "La repetición no es válida.",
   );
-  assert.equal(calendarErrorText({ kind: "offline" }), "Sin conexión con el host. Lo cargado sigue visible.");
+  assert.equal(calendarErrorText({ kind: "offline" }), "Sin conexión con tu PC. Lo cargado sigue visible.");
 });
 
 test("a list that cannot be read names the missing grant", () => {
   assert.equal(
     listFailureText({ kind: "forbidden" }),
-    "Este dispositivo no tiene el permiso READ_STATE. Pídeselo al host.",
+    "Este dispositivo no tiene el permiso READ_STATE. Pídeselo al PC.",
   );
 });

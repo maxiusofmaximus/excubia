@@ -40,7 +40,7 @@ class _AlfredRow extends StatelessWidget {
       onChanged: null,
       secondary: AgentAvatar(name: 'Alfred', characterId: 'alfred'),
       title: Text('Alfred'),
-      subtitle: Text('Director técnico (CTO)'),
+      subtitle: Text('Director técnico'),
       controlAffinity: ListTileControlAffinity.trailing,
     );
   }
@@ -83,7 +83,9 @@ class _AreaTeam extends StatelessWidget {
         if (roles.isEmpty)
           Text(
             'Sin equipo propuesto para esta área.',
-            style: text.bodyMedium?.copyWith(color: context.colors.textSecondary),
+            style: text.bodyMedium?.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
         for (final role in roles)
           CheckboxListTile(

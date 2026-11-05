@@ -17,6 +17,7 @@ import 'team/hires_section.dart';
 import 'team_projects.dart';
 import 'theme.dart';
 import 'widgets/agent_row.dart';
+import 'widgets/empty_state.dart';
 import 'widgets/message_panel.dart';
 import 'widgets/status_dot.dart';
 
@@ -195,39 +196,11 @@ class _AgentsScreenState extends State<AgentsScreen>
           ),
         );
       }
-      final offline = connection is Offline;
-      final failure = connection is Offline ? connection.failure : null;
-      // With people hired, "nobody is running" is the true state; the empty-list
-      // panel would read as if the team were gone.
-      final Widget empty = _hires.hires.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(Spacing.xl),
-              child: Text(
-                'Nadie trabajando ahora',
-                style: context.text.bodySecondary,
-                textAlign: TextAlign.center,
-              ),
-            )
-          : MessagePanel(
-              icon: Icons.inbox_outlined,
-              title: 'No hay agentes',
-              detail: offline
-                  ? (state == null
-                        ? failure == null
-                              ? 'Sin conexión: no hay un estado guardado que mostrar.'
-                              : connectionText(failure)
-                        : 'El último estado guardado no tenía agentes.')
-                  : 'Cuando un agente se ejecute aparecerá aquí.',
-              actionLabel: 'Nueva conversación',
-              onAction: () => _openNewConversation(),
-              secondaryLabel: 'Reintentar',
-              onSecondary: _reconnect,
-            );
       return ListView(
         padding: const EdgeInsets.only(bottom: Spacing.xl),
         children: [
           TeamHiresSection(hires: _hires),
-          empty,
+          _emptyTeam(connection, state),
         ],
       );
     }
@@ -299,6 +272,45 @@ class _AgentsScreenState extends State<AgentsScreen>
         TeamHiresSection(hires: _hires),
         ...rows,
       ],
+    );
+  }
+
+  /// Nobody is listed. With people hired, "nobody is running" is the true state.
+  /// Offline keeps the retry panel; online says it lightly, because «Contratar»
+  /// is the screen's one primary action.
+  Widget _emptyTeam(ConnectionState connection, StateSnapshot? state) {
+    if (_hires.hires.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(Spacing.xl),
+        child: Text(
+          'Nadie trabajando ahora',
+          style: context.text.bodySecondary,
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    if (connection is! Offline) {
+      return EmptyState(
+        icon: Icons.inbox_outlined,
+        title: 'No hay agentes',
+        detail: 'Cuando un agente se ejecute aparecerá aquí.',
+        actionLabel: 'Nueva conversación',
+        onAction: () => _openNewConversation(),
+      );
+    }
+    final failure = connection.failure;
+    return MessagePanel(
+      icon: Icons.inbox_outlined,
+      title: 'No hay agentes',
+      detail: state == null
+          ? failure == null
+                ? 'Sin conexión: no hay un estado guardado que mostrar.'
+                : connectionText(failure)
+          : 'El último estado guardado no tenía agentes.',
+      actionLabel: 'Nueva conversación',
+      onAction: () => _openNewConversation(),
+      secondaryLabel: 'Reintentar',
+      onSecondary: _reconnect,
     );
   }
 

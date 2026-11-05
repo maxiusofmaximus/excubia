@@ -75,7 +75,10 @@ void main() {
     );
 
     expect(find.text('No hay agentes disponibles'), findsOneWidget);
-    expect(find.textContaining('agents.toml'), findsOneWidget);
+    expect(
+      find.textContaining('Instala uno (Claude, Codex, Gemini u OpenCode)'),
+      findsOneWidget,
+    );
     final create = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Crear conversación'),
     );

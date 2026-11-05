@@ -214,10 +214,7 @@ void main() {
 
     expect(pinned.pakeCalls, isEmpty);
     expect(discovery.timeouts, isEmpty);
-    expect(
-      find.textContaining('Añade la dirección del equipo'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Añade la dirección del PC'), findsOneWidget);
   });
 
   testWidgets('no PC found says so, keeps the code and sends nothing', (
@@ -293,24 +290,27 @@ void main() {
   group('v2 QR', () {
     final qr = pakeLink(expiresAt: nowSeconds() + 600);
 
-    testWidgets('discovers, hands the QR pin to pakePair and ignores Avanzado', (
-      tester,
-    ) async {
-      final pinned = FakePinnedClient(pake: _paired());
-      final discovery = FakePairDiscovery(found: const [_found, '10.0.0.5:1']);
-      await mount(tester, pinned, discovery);
+    testWidgets(
+      'discovers, hands the QR pin to pakePair and ignores Avanzado',
+      (tester) async {
+        final pinned = FakePinnedClient(pake: _paired());
+        final discovery = FakePairDiscovery(
+          found: const [_found, '10.0.0.5:1'],
+        );
+        await mount(tester, pinned, discovery);
 
-      await typeAddress(tester, '192.168.1.77:47443');
-      await pasteLink(tester, qr);
+        await typeAddress(tester, '192.168.1.77:47443');
+        await pasteLink(tester, qr);
 
-      expect(discovery.timeouts, hasLength(1));
-      final call = pinned.pakeCalls.single;
-      expect(call.addresses, [_found, '10.0.0.5:1']);
-      expect(call.expectedHost, testPin);
-      expect(call.code, _code);
-      expect(find.text('Comprueba esta cadena'), findsOneWidget);
-      expectCodeNowhere(tester);
-    });
+        expect(discovery.timeouts, hasLength(1));
+        final call = pinned.pakeCalls.single;
+        expect(call.addresses, [_found, '10.0.0.5:1']);
+        expect(call.expectedHost, testPin);
+        expect(call.code, _code);
+        expect(find.text('Comprueba esta cadena'), findsOneWidget);
+        expectCodeNowhere(tester);
+      },
+    );
 
     testWidgets('a loopback address left in Avanzado does not block it', (
       tester,

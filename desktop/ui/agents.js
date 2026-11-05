@@ -1,6 +1,7 @@
 import { app, $, invoke, toast } from "./core.js";
 import { avatarElement } from "./avatar.js";
-import { agentTitle, errorMessage, statusLabel, subtitle } from "./format.js";
+import { agentTitle, readableState, statusLabel, subtitle } from "./format.js";
+import { friendlyError, OFFLINE_TEXT } from "./friendly-error.js";
 import { openDetail } from "./detail.js";
 import { chat, chatAfterConnect, chatOnConnection } from "./chat.js";
 import { teamCountLabel } from "./hires-model.js";
@@ -60,26 +61,24 @@ function renderEmpty() {
   const title = $("empty-title");
   const body = $("empty-body");
   const local = Boolean(app.boot && app.boot.mode === "local");
-  const create = $("btn-empty-new");
 
+  // One action per state: the pairing button and the refresh never show together.
   pair.classList.add("hidden");
   action.classList.add("hidden");
-  create.classList.remove("hidden");
   action.dataset.action = "";
 
   if (local && hostFailed()) {
-    title.textContent = "El host local no arrancó";
-    body.textContent = app.boot.host.error || "Revisa el log del host y vuelve a intentarlo.";
-    action.textContent = "Reiniciar el host";
+    title.textContent = "Excubia no arrancó en este equipo";
+    body.textContent = app.boot.host.error || "Vuelve a intentarlo. Si sigue igual, reinicia el equipo.";
+    action.textContent = "Reiniciar Excubia";
     action.dataset.action = "restart-host";
     action.classList.remove("hidden");
-    create.classList.add("hidden");
     return;
   }
 
   if (local && app.state && app.state.agents.length === 0) {
     title.textContent = "Aún no hay agentes";
-    body.textContent = "El host local está en marcha. Los agentes aparecerán aquí en cuanto existan.";
+    body.textContent = "Excubia está en marcha en este equipo. Los agentes aparecerán aquí en cuanto existan.";
     action.textContent = "Actualizar";
     action.dataset.action = "refresh";
     action.classList.remove("hidden");
@@ -159,7 +158,7 @@ function agentItem(agent, leadPane) {
   if (agent.pane_id === leadPane || /(^|\s|-)(lead)(\s|$)/i.test(agent.title || "")) {
     const lead = document.createElement("span");
     lead.className = "row-restored";
-    lead.textContent = "lead";
+    lead.textContent = "responsable";
     project.appendChild(lead);
   }
   if (agent.focused) {
@@ -260,7 +259,7 @@ export function renderAgents() {
 }
 
 export function setState(state) {
-  app.state = state;
+  app.state = readableState(state);
   renderAgents();
 }
 
@@ -268,8 +267,8 @@ export async function connectNow() {
   try {
     await invoke("connect");
     await chatAfterConnect();
-  } catch (error) {
-    app.connection = { kind: "offline", reason: errorMessage(error) };
+  } catch {
+    app.connection = { kind: "offline", reason: OFFLINE_TEXT };
     renderConnection();
     renderAgents();
     chatOnConnection();
@@ -283,7 +282,7 @@ async function refreshNow() {
     setState(await invoke("refresh_state"));
     toast("Estado actualizado");
   } catch (error) {
-    toast(errorMessage(error));
+    toast(friendlyError(error));
   } finally {
     button.disabled = false;
   }

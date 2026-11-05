@@ -197,21 +197,6 @@
   font-size: 16px;
 }
 
-.approval-switch {
-  min-height: 32px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-  font-size: 14px;
-}
-
-.approval-switch input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
-}
-
 @media (max-width: 480px) {
   .approval-card { padding: 12px; }
   .approval-actions .btn { flex: 1 1 auto; }

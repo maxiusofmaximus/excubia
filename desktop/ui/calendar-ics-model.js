@@ -14,7 +14,7 @@ const REASONS = {
   calendar_limit: "Límite de eventos alcanzado",
 };
 
-export const reasonText = (reason) => REASONS[reason] ?? "Omitido por el host";
+export const reasonText = (reason) => REASONS[reason] ?? "Omitido por el PC";
 
 const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
 
