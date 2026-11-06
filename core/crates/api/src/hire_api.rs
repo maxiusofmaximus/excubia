@@ -2,7 +2,7 @@
 //! may be hired and the store decides what may be kept, so nothing here writes.
 //! The wire shape of a hire lives here too: every route answers with it.
 
-use hn_core_chat::{Hire, NewHire};
+use hn_core_chat::{activity_of, Hire, HireLink, MemberInput, NewHire};
 use serde_json::{json, Value};
 
 use crate::error::ApiError;
@@ -72,9 +72,72 @@ pub fn hire_json(hire: &Hire) -> Value {
     })
 }
 
+/// One member of the team as the summary reads it: the hire's role title, and
+/// what its seat is doing (`blocked` comes from the pane, the rest from the chat).
+pub fn member_input(
+    link: &HireLink,
+    blocked: bool,
+    catalog: &RoleCatalog,
+    now_ms: i64,
+) -> Result<MemberInput, ApiError> {
+    let role = catalog.role(&link.catalog_role).ok_or_else(|| {
+        ApiError::internal(format!("hire {} has no catalogue role", link.hire_id))
+    })?;
+    let (activity, since) = activity_of(link, blocked, now_ms);
+    Ok(MemberInput {
+        agent_id: link.hire_id.clone(),
+        name: link.name.clone(),
+        role_title: role.title.clone(),
+        since,
+        activity,
+    })
+}
+
 #[cfg(test)]
 mod tests {
+    use hn_core_chat::{summarize, TeamStatus};
+
     use super::*;
+
+    const NOW_MS: i64 = 1_793_880_000_000; // 2026-11-05T12:00:00Z
+
+    fn hired(id: &str, role: &str) -> HireLink {
+        HireLink {
+            hire_id: id.into(),
+            name: "Bob".into(),
+            catalog_role: role.into(),
+            hired_at: "2026-11-05T10:00:00.000Z".into(),
+            seat_pane: None,
+            approval: None,
+            working_since: None,
+            finished_at: None,
+            plan: None,
+        }
+    }
+
+    #[test]
+    fn a_hire_without_a_seat_is_idle_since_it_was_hired() {
+        let catalog = catalog().expect("catalogue");
+        let input = member_input(&hired("hire_1", "bob"), false, &catalog, NOW_MS).expect("input");
+        let members = summarize(&[input]);
+        assert_eq!(members.len(), 1);
+        assert_eq!(members[0].agent_id, "hire_1");
+        assert_eq!(
+            members[0].role_title,
+            role(&catalog, "bob").expect("bob").title
+        );
+        assert_eq!(members[0].status, TeamStatus::Idle);
+        assert_eq!(members[0].headline, "Sin actividad");
+        assert_eq!(members[0].since, "2026-11-05T10:00:00.000Z");
+    }
+
+    #[test]
+    fn a_hire_of_a_role_that_is_gone_is_an_internal_error() {
+        let catalog = catalog().expect("catalogue");
+        let error =
+            member_input(&hired("hire_1", "nope"), false, &catalog, NOW_MS).expect_err("gone");
+        assert_eq!(error.status, axum::http::StatusCode::INTERNAL_SERVER_ERROR);
+    }
 
     fn code(error: &ApiError) -> &str {
         error.body["detail"]["code"].as_str().expect("code")

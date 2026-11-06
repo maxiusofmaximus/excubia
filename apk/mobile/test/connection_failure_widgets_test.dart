@@ -3,9 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/alerts_api.dart';
 import 'package:herdr_notify/core/api/connection_failure.dart';
 import 'package:herdr_notify/core/api/connection_text.dart';
+import 'package:herdr_notify/core/api/plans_api.dart';
+import 'package:herdr_notify/core/api/recipes_api.dart';
+import 'package:herdr_notify/core/api/schedules_api.dart';
+import 'package:herdr_notify/core/api/team_summary_api.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/hires_controller.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
+import 'package:herdr_notify/core/state/plans_controller.dart';
+import 'package:herdr_notify/core/state/recipes_controller.dart';
+import 'package:herdr_notify/core/state/schedules_controller.dart';
+import 'package:herdr_notify/core/state/team_summary_controller.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 import 'package:herdr_notify/ui/agents_screen.dart';
 import 'package:herdr_notify/ui/chat/chat_screen.dart';
@@ -67,6 +75,17 @@ void main() {
           triage: triage,
           chat: chat,
           hires: hires,
+          recipes: RecipesController(
+            api: RecipesApi(ScriptedTransport(const {})),
+            conversationId: () => null,
+          ),
+          summary: TeamSummaryController(
+            api: TeamSummaryApi(ScriptedTransport(const {})),
+          ),
+          plans: PlansController(api: PlansApi(ScriptedTransport(const {}))),
+          schedules: SchedulesController(
+            api: SchedulesApi(ScriptedTransport(const {})),
+          ),
           onUnpaired: () async {},
         ),
       ),
@@ -75,6 +94,12 @@ void main() {
     expect(
       find.textContaining('Sin ruta al PC · último estado'),
       findsOneWidget,
+    );
+    // The banner sits below the plans, summary and hires of a lazy list.
+    await tester.dragUntilVisible(
+      find.textContaining(connectionText(ConnectionFailure.noRoute)),
+      find.byType(ListView),
+      const Offset(0, -120),
     );
     expect(
       find.textContaining(connectionText(ConnectionFailure.noRoute)),

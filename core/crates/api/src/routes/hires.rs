@@ -8,12 +8,14 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use hn_core_auth::{Permission, VerifiedDevice};
-use hn_core_chat::{HireFilter, HireOutcome};
+use hn_core_chat::{summarize, Clock, HireFilter, HireOutcome, SystemClock};
+use hn_core_state::Status;
 use serde::{Deserialize, Deserializer};
 use serde_json::{json, Value};
 
 use crate::error::ApiError;
 use crate::hire_api::{self, hire_json};
+use crate::routes::chat::support::map_error;
 use crate::routes::parse_body;
 use crate::ApiContext;
 
@@ -68,6 +70,23 @@ pub async fn list(
         "hires": hires.iter().map(hire_json).collect::<Vec<_>>(),
         "can_hire": verified.has(Permission::Approve),
     })))
+}
+
+/// The team in plain words (F1): one headline per active hire, the person's first.
+/// The chat says what each seat does; only a pane's block is read from the host.
+pub async fn team_summary(State(ctx): State<ApiContext>) -> Result<Json<Value>, ApiError> {
+    let links = ctx.chat.hire_links().map_err(map_error)?;
+    let catalog = hire_api::catalog()?;
+    let now_ms = SystemClock.now_ms();
+    let mut inputs = Vec::with_capacity(links.len());
+    for link in &links {
+        let blocked = match &link.seat_pane {
+            Some(pane) => ctx.store.status_of(pane).await == Some(Status::Blocked),
+            None => false,
+        };
+        inputs.push(hire_api::member_input(link, blocked, &catalog, now_ms)?);
+    }
+    Ok(Json(json!({"ok": true, "members": summarize(&inputs)})))
 }
 
 /// `201` for a new hire; the active hire the role already has answers `200`.

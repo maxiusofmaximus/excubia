@@ -6,6 +6,7 @@ import { openDetail } from "./detail.js";
 import { chat, chatAfterConnect, chatOnConnection } from "./chat.js";
 import { teamCountLabel } from "./hires-model.js";
 import { teamHired } from "./hires.js";
+import { openRestore } from "./restore-panel.js";
 
 const CONNECTION_LABELS = {
   idle: "Sin conectar",
@@ -188,7 +189,17 @@ function agentItem(agent, leadPane) {
   chevron.textContent = "›";
 
   button.append(face, dot, text, status, chevron);
-  item.appendChild(button);
+
+  const copies = document.createElement("button");
+  copies.type = "button";
+  copies.className = "linkish agent-copies";
+  copies.textContent = "Copias del turno";
+  copies.addEventListener("click", () => openRestore(agent.pane_id, agentTitle(agent)));
+  const foot = document.createElement("div");
+  foot.className = "agent-foot";
+  foot.append(copies);
+
+  item.append(button, foot);
   return item;
 }
 

@@ -14,6 +14,10 @@ pub mod lan;
 pub mod mail_commands;
 pub mod notifications;
 pub mod pairing_commands;
+pub mod plan_commands;
+pub mod recipe_commands;
+pub mod restore_commands;
+pub mod schedule_commands;
 pub mod team_commands;
 pub mod voice_commands;
 
@@ -124,12 +128,33 @@ pub fn run() {
             chat_commands::delegation::chat_stop_conversation,
             team_commands::team_roles,
             team_commands::team_hires,
+            team_commands::team_summary,
             team_commands::team_hire,
             team_commands::team_hire_rename,
             team_commands::team_hire_avatar,
             team_commands::team_hire_dismiss,
             team_commands::team_onboarding,
             team_commands::team_onboarding_skip,
+            restore_commands::restore_points,
+            restore_commands::restore_changes,
+            restore_commands::restore_point,
+            plan_commands::plans,
+            plan_commands::plan_approve,
+            plan_commands::plan_reject,
+            plan_commands::plan_request_changes,
+            recipe_commands::recipes,
+            recipe_commands::recipe_draft,
+            recipe_commands::recipe_create,
+            recipe_commands::recipe_update,
+            recipe_commands::recipe_delete,
+            recipe_commands::recipe_run,
+            schedule_commands::schedules,
+            schedule_commands::schedule_create,
+            schedule_commands::schedule_update,
+            schedule_commands::schedule_delete,
+            schedule_commands::schedule_set_paused,
+            schedule_commands::schedule_run_now,
+            schedule_commands::schedule_runs,
             team_commands::team_onboarding_contract,
             agenda_commands::agenda_notes,
             agenda_commands::agenda_note,

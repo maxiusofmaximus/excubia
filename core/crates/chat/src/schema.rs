@@ -23,7 +23,7 @@ use crate::schema_progress::RUN_PROGRESS_SCHEMA;
 use crate::schema_reply::MESSAGE_REPLY_SCHEMA;
 use crate::schema_team::TEAM_SCHEMA;
 
-pub const SCHEMA_VERSION: i64 = 21;
+pub const SCHEMA_VERSION: i64 = 25;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SearchMode {
@@ -182,6 +182,18 @@ fn migrate(connection: &mut Connection) -> Result<(), ChatError> {
     }
     if version < 21 {
         crate::schema_alert::migrate_to_21(connection)?;
+    }
+    if version < 22 {
+        crate::schema_plan::migrate_to_22(connection)?;
+    }
+    if version < 23 {
+        crate::schema_recipe::migrate_to_23(connection)?;
+    }
+    if version < 24 {
+        crate::schema_plan::migrate_to_24(connection)?;
+    }
+    if version < 25 {
+        crate::schema_schedule::migrate_to_25(connection)?;
     }
     Ok(())
 }

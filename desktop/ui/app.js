@@ -23,6 +23,10 @@ import { mountMailSettings } from "./mail.js";
 import { installMailDraft } from "./mail-draft.js";
 import { inboxOnEvent, refreshInbox } from "./approval-inbox.js";
 import { installTeam, refreshTeam } from "./hires.js";
+import { installPlans } from "./plans.js";
+import { installSchedules } from "./schedules.js";
+import { installRestore } from "./restore-panel.js";
+import { installTeamSummary, refreshTeamSummary } from "./team-summary.js";
 import { paintChatSuggestions } from "./chatthread.js";
 import { checkOnboarding, installOnboarding } from "./onboarding.js";
 import { installPalette } from "./palette.js";
@@ -39,6 +43,7 @@ import { installSettings, openSettings } from "./settings.js";
 // The team shows in Equipo and in the suggestions of the empty chat.
 function teamChanged() {
   renderAgents();
+  refreshTeamSummary();
   paintChatSuggestions();
 }
 
@@ -49,6 +54,10 @@ async function boot() {
   installDetailHandlers();
   installNewConversationHandlers();
   installTeam(teamChanged);
+  installRestore();
+  installTeamSummary();
+  installPlans();
+  installSchedules();
   installPalette();
   installOnboarding();
   installApprovalHandlers();

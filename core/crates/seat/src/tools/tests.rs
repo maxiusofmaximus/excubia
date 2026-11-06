@@ -175,6 +175,8 @@ fn tool_definitions_list_the_team_tools() {
             "project.create",
             "agent.spawn",
             "delegation.assign",
+            "plan.propose",
+            "plan.status",
             "delegation.complete",
             "approval.request",
             "approval.decide",
@@ -293,4 +295,16 @@ fn alert_tools_refuse_what_they_cannot_check() {
         let error = parse(request).expect_err(&request.tool);
         assert_eq!(error.code, "invalid_arguments", "{}", request.tool);
     }
+}
+
+#[test]
+fn a_delegation_without_steps_declares_one_step() {
+    let parsed = parse(&request(
+        "delegation.assign",
+        json!({"to_agent_id": "ag_1", "task": "Plan", "plan_id": "plan_1"}),
+    ));
+    let Ok(ToolCall::DelegationAssign(assign)) = parsed else {
+        panic!("assign: {parsed:?}")
+    };
+    assert_eq!(assign.steps, 1);
 }

@@ -211,6 +211,11 @@ pub struct NewDelegation {
     /// Alfred: the run that is asking. A lead: its own delegation id.
     pub turn_key: String,
     pub parent_id: Option<String>,
+    /// The steps the delegation declares; more than the threshold needs `plan_id`.
+    /// With `plan_id` the plan's own steps stand and this count is not read.
+    pub steps: u32,
+    /// An approved plan of the same conversation, unlinked, that the delegation starts under.
+    pub plan_id: Option<String>,
 }
 
 #[derive(Clone, Debug)]

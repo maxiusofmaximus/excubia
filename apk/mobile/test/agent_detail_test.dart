@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:herdr_notify/core/api/restore_api.dart';
 import 'package:herdr_notify/core/state/live_triage.dart';
 import 'package:herdr_notify/src/rust/api/state.dart';
 import 'package:herdr_notify/ui/agent_detail_screen.dart';
@@ -46,7 +47,17 @@ Future<void> pumpDetail(WidgetTester tester, LiveTriage triage) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: buildTheme(),
-      home: AgentDetailScreen(triage: triage, paneId: 'w1:p1'),
+      home: AgentDetailScreen(
+        triage: triage,
+        paneId: 'w1:p1',
+        restore: RestoreApi(
+          HostClient(
+            baseUrl: 'http://100.64.0.1:8788',
+            deviceId: 'dev-x',
+            privateKeyBase64: 'placeholder',
+          ),
+        ),
+      ),
     ),
   );
   await tester.pump();

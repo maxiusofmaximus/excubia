@@ -7,9 +7,11 @@ import 'package:herdr_notify/src/rust/api/workspace.dart';
 import 'package:herdr_notify/src/rust/api/write.dart';
 
 import '../core/api/connection_text.dart';
+import '../core/api/restore_api.dart';
 import '../core/model/connection_state.dart';
 import '../core/state/live_triage.dart';
 import 'new_conversation_screen.dart';
+import 'restore/restore_screen.dart';
 import 'theme.dart';
 import 'widgets/agent_composer.dart';
 import 'widgets/surface_card.dart';
@@ -41,10 +43,14 @@ class AgentDetailScreen extends StatefulWidget {
     super.key,
     required this.triage,
     required this.paneId,
+    required this.restore,
   });
 
   final LiveTriage triage;
   final String paneId;
+
+  /// The copies of the turn, for «Copias del turno».
+  final RestoreApi restore;
 
   @override
   State<AgentDetailScreen> createState() => _AgentDetailScreenState();
@@ -222,6 +228,18 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
       _stopping = false;
       _error = result.error;
     });
+  }
+
+  void _openRestore(AgentEntry agent) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RestoreScreen(
+          api: widget.restore,
+          agent: widget.paneId,
+          title: agent.title ?? agent.project,
+        ),
+      ),
+    );
   }
 
   Future<void> _newHere(AgentEntry agent) async {

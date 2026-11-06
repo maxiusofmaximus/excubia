@@ -89,16 +89,23 @@ impl super::ChatStore {
     /// Dismiss a hire. Dismissing it again changes nothing, and the dismissed
     /// hire stops counting against its area's limit.
     pub fn dismiss_hire(&self, hire_id: &str) -> Result<Hire, HireError> {
-        let connection = self.lock();
-        let hire = hire_by_id(&connection, hire_id)?;
+        let mut connection = self.lock();
+        let transaction = connection.transaction()?;
+        let hire = hire_by_id(&transaction, hire_id)?;
         if hire.status == HireStatus::Removed {
             return Ok(hire);
         }
-        let now = schema::now(&connection)?;
-        connection.execute(
+        let now = schema::now(&transaction)?;
+        transaction.execute(
             "UPDATE agent_hire SET status = ?1, removed_at = ?2, updated_at = ?2 WHERE id = ?3",
             params![HireStatus::Removed.as_str(), now, hire_id],
         )?;
+        // The seat goes with the hire: a removed seat holds no place in its project.
+        transaction.execute(
+            "UPDATE agent_seat SET status = 'removed' WHERE hire_id = ?1 AND status != 'removed'",
+            [hire_id],
+        )?;
+        transaction.commit()?;
         hire_by_id(&connection, hire_id)
     }
 

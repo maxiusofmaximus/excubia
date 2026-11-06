@@ -1,6 +1,7 @@
 //! The running side of a pane: the live pty with its emulator, or the text of
 //! a pane restored after a restart, and the last hook report.
 
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -35,15 +36,19 @@ pub(crate) struct HookReport {
 pub(crate) struct Session {
     pub io: SessionIo,
     pub hook: Mutex<Option<HookReport>>,
+    /// The folder the agent runs in: what its restore points save. `None` for a
+    /// restored pane, which has no process to write to.
+    pub workdir: Option<PathBuf>,
     /// Signalled when a client asked this pane to stop.
     stop: Arc<Notify>,
 }
 
 impl Session {
-    pub fn live(pty: PtySession, parser: Arc<Mutex<vt100::Parser>>) -> Self {
+    pub fn live(pty: PtySession, parser: Arc<Mutex<vt100::Parser>>, workdir: PathBuf) -> Self {
         Self {
             io: SessionIo::Live(LiveIo { pty, parser }),
             hook: Mutex::new(None),
+            workdir: Some(workdir),
             stop: Arc::new(Notify::new()),
         }
     }
@@ -54,6 +59,7 @@ impl Session {
                 text: Mutex::new(text),
             }),
             hook: Mutex::new(None),
+            workdir: None,
             stop: Arc::new(Notify::new()),
         }
     }

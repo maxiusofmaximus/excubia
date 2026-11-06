@@ -20,7 +20,11 @@ mod notes;
 mod onboarding;
 mod pair;
 mod pake;
+mod plans;
+mod recipes;
+mod restore;
 mod roles;
+mod schedules;
 mod voice;
 mod workspaces;
 
@@ -50,7 +54,8 @@ pub use chat::{
 pub use devices::{device_sas, grant_device, list_devices, revoke_device};
 pub use events::events;
 pub use hires::{
-    create as create_hire, dismiss as dismiss_hire, list as list_hires, update as update_hire,
+    create as create_hire, dismiss as dismiss_hire, list as list_hires, team_summary,
+    update as update_hire,
 };
 pub use hooks::report as hook_report;
 pub use mail::{
@@ -65,6 +70,22 @@ pub use mail_send::{
 pub use onboarding::{complete as complete_onboarding, state as onboarding_state};
 pub use pair::pair;
 pub use pake::{admin_routes as pake_admin_routes, routes as pake_routes};
+pub use plans::{
+    approve as approve_plan, list as list_plans, reject as reject_plan,
+    request_changes as request_plan_changes,
+};
+pub use recipes::{
+    create as create_recipe, delete as delete_recipe, draft as draft_recipe, list as list_recipes,
+    run as run_recipe, update as update_recipe,
+};
+pub use restore::{
+    changes as restore_changes, points as restore_points, restore as restore_point, RestoreRefusal,
+};
+pub use schedules::{
+    create as create_schedule, delete as delete_schedule, list as list_schedules,
+    pause as pause_schedule, resume as resume_schedule, run_now as run_schedule_now,
+    runs as schedule_runs, update as update_schedule,
+};
 pub use roles::list as role_catalog;
 pub use voice::transcribe as transcribe_voice;
 pub use workspaces::create as create_workspace;

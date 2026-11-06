@@ -21,9 +21,34 @@ const MAX_CLIENT_ID_CHARS: usize = 128;
 pub fn map_error(error: ChatError) -> ApiError {
     match error {
         ChatError::NoSuchConversation => ApiError::not_found("no_such_conversation"),
+        ChatError::NoSuchPlan(_) => ApiError::not_found("no_such_plan"),
+        ChatError::InvalidPlan(reason) => ApiError::invalid_field("invalid_body", "steps", reason),
+        ChatError::PlanRequired | ChatError::PlanNotApproved | ChatError::PlanLinked => {
+            ApiError::refused("plan_not_approved")
+        }
+        ChatError::PlanDecided => ApiError::refused("plan_decided"),
+        ChatError::PlanExpired => ApiError::refused("plan_expired"),
+        ChatError::InvalidSchedule(reason) => {
+            ApiError::invalid_field("invalid_schedule", "schedule", reason)
+        }
+        ChatError::NoSuchSchedule(_) => ApiError::not_found("no_such_schedule"),
+        ChatError::ScheduleLimit => ApiError::refused("schedule_limit"),
+        ChatError::ScheduleDone => ApiError::refused("schedule_done"),
+        ChatError::ScheduleNoFutureRun => ApiError::refused("schedule_no_future_run"),
         ChatError::ConversationArchived => ApiError::refused("conversation_archived"),
         ChatError::ConversationBusy => ApiError::refused("conversation_busy"),
         ChatError::NoSuchRun(_) | ChatError::RunNotActive(_) => ApiError::refused("run_closed"),
+        ChatError::NoSuchRecipe(_) => ApiError::not_found("not_found"),
+        ChatError::RecipeLimit => ApiError::refused("recipe_limit"),
+        ChatError::RecipeTitleTaken => ApiError::refused("recipe_title_taken"),
+        ChatError::InvalidRecipe(reason) => {
+            ApiError::invalid_field("invalid_recipe", "recipe", reason)
+        }
+        ChatError::RecipeSecret(reasons) => ApiError::rejected("secret_detected", &reasons),
+        ChatError::RecipeRisk(reasons) => ApiError::rejected("risk_needs_confirmation", &reasons),
+        ChatError::NoHireForRole(_) => ApiError::refused("no_hire_for_role"),
+        ChatError::DelegationNotDone(_) => ApiError::refused("delegation_not_done"),
+        ChatError::ConversationWithoutProject => ApiError::refused("conversation_has_no_project"),
         ChatError::NoteLimit => ApiError::refused("note_limit"),
         ChatError::AlertRuleLimit => ApiError::refused("rule_limit"),
         ChatError::AlertRuleExists => ApiError::refused("rule_exists"),
@@ -388,5 +413,31 @@ mod tests {
         assert!(limit(&query, 30, 100).is_err());
         query.insert("before_seq".into(), "-1".into());
         assert!(seq(&query, "before_seq").is_err());
+    }
+
+    #[test]
+    fn the_recipe_refusals_name_their_code_and_reasons() {
+        let secret = map_error(ChatError::RecipeSecret(vec!["api_key"]));
+        assert_eq!(secret.status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(secret.body["detail"]["code"], "secret_detected");
+        assert_eq!(secret.body["detail"]["reasons"][0], "api_key");
+        let risk = map_error(ChatError::RecipeRisk(vec!["override"]));
+        assert_eq!(risk.body["detail"]["code"], "risk_needs_confirmation");
+        assert_eq!(risk.body["detail"]["reasons"][0], "override");
+        let invalid = map_error(ChatError::InvalidRecipe("body_empty"));
+        assert_eq!(invalid.body["detail"]["code"], "invalid_recipe");
+        assert_eq!(invalid.body["detail"]["field"], "recipe");
+        assert_eq!(
+            map_error(ChatError::RecipeLimit).status,
+            StatusCode::CONFLICT
+        );
+        assert_eq!(
+            map_error(ChatError::NoSuchRecipe("rcp_1".into())).status,
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            map_error(ChatError::NoHireForRole("lead".into())).body["detail"],
+            "no_hire_for_role"
+        );
     }
 }

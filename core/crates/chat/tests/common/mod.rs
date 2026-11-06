@@ -151,6 +151,8 @@ impl Team {
             task: task.to_string(),
             turn_key: turn_key.to_string(),
             parent_id,
+            steps: 1,
+            plan_id: None,
         })
     }
 }

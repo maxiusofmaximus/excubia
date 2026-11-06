@@ -6,6 +6,7 @@ import { $, invoke, toast } from "./core.js";
 import { avatarElement } from "./avatar.js";
 import { errorMessage } from "./format.js";
 import { HIRE_CHARACTERS, characterLabel } from "./hires-model.js";
+import { installRecipes, openRecipes } from "./recipes.js";
 
 let current = null;
 let pickedAvatar = null;
@@ -108,8 +109,15 @@ async function confirmDismiss(event) {
   }
 }
 
+function openRecipesOfHire() {
+  $("hire-actions").close();
+  openRecipes(current);
+}
+
 export function installHireDialogs(refresh) {
   onChange = refresh;
+  installRecipes();
+  $("hire-actions-recipes").addEventListener("click", openRecipesOfHire);
   $("hire-actions-rename").addEventListener("click", openRename);
   $("hire-actions-avatar").addEventListener("click", openAvatar);
   $("hire-actions-dismiss").addEventListener("click", openDismiss);

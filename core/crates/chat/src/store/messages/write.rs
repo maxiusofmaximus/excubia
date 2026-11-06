@@ -226,6 +226,8 @@ impl super::super::ChatStore {
                  UNION ALL
                  SELECT seq FROM timeline_approval WHERE conversation_id = ?1
                  UNION ALL
+                 SELECT seq FROM timeline_plan WHERE conversation_id = ?1
+                 UNION ALL
                  SELECT seq FROM timeline_calendar_card WHERE conversation_id = ?1
              )",
             [conversation_id],

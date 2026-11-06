@@ -6,12 +6,15 @@ use regex::Regex;
 use super::{Effect, Facts, Level, Reason, Rule, Scope, Verdict};
 use crate::model_approval::Risk;
 use crate::policy::category::Category;
+use crate::policy::{PlanRules, ScheduleRules};
 use crate::scorer::ScorerConfig;
 
 #[derive(Clone, Debug, Default)]
 pub struct Policy {
     rules: Vec<Rule>,
     scorer: ScorerConfig,
+    plans: PlanRules,
+    schedules: ScheduleRules,
 }
 
 impl Policy {
@@ -19,11 +22,29 @@ impl Policy {
         Self {
             rules,
             scorer: ScorerConfig::default(),
+            plans: PlanRules::default(),
+            schedules: ScheduleRules::default(),
         }
     }
 
     pub fn with_scorer(self, scorer: ScorerConfig) -> Self {
         Self { scorer, ..self }
+    }
+
+    pub fn with_plans(self, plans: PlanRules) -> Self {
+        Self { plans, ..self }
+    }
+
+    pub fn with_schedules(self, schedules: ScheduleRules) -> Self {
+        Self { schedules, ..self }
+    }
+
+    pub fn plans(&self) -> &PlanRules {
+        &self.plans
+    }
+
+    pub fn schedules(&self) -> &ScheduleRules {
+        &self.schedules
     }
 
     pub fn scorer(&self) -> &ScorerConfig {

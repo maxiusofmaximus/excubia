@@ -48,6 +48,7 @@ class ConversationView extends StatelessWidget {
   const ConversationView({
     super.key,
     required this.chat,
+    required this.starters,
     required this.scroll,
     required this.rowKey,
     required this.onRetrySend,
@@ -63,6 +64,9 @@ class ConversationView extends StatelessWidget {
   });
 
   final ChatController chat;
+
+  /// The starter tiles shown in a new conversation with no message yet.
+  final Widget starters;
   final ScrollController scroll;
 
   /// The key of the row for a seq, so a quote can find the row it names.
@@ -158,10 +162,16 @@ class ConversationView extends StatelessWidget {
           if (cursor == 0) {
             return Padding(
               padding: const EdgeInsets.all(Spacing.xl),
-              child: Text(
-                'Conversación nueva con ${chat.alfredName}. Escribe el primer mensaje.',
-                style: context.text.bodySecondary,
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  Text(
+                    'Conversación nueva con ${chat.alfredName}. Escribe el primer mensaje.',
+                    style: context.text.bodySecondary,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: Spacing.lg),
+                  starters,
+                ],
               ),
             );
           }

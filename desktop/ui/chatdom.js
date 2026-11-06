@@ -15,3 +15,11 @@ export function action(label, data, className = "btn ghost btn-small") {
   }
   return button;
 }
+
+// The grey placeholder shown while a list loads; `label` is what a screen reader announces.
+export function loadingBlock(label) {
+  const block = element("div", "loading-list");
+  block.setAttribute("aria-label", label);
+  block.append(element("div", "skeleton-row"), element("div", "skeleton-row"));
+  return block;
+}

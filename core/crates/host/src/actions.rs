@@ -1,12 +1,15 @@
 //! What the host can do to a supervised agent, as the API's `AgentActions`.
 
+use std::sync::Arc;
 use std::time::Instant;
 
 use async_trait::async_trait;
-use hn_core_api::{AgentActions, AgentSpec, HookState, StartedAgent};
+use hn_core_api::{AgentActions, AgentSpec, HookState, RestoreRefusal, StartedAgent};
 use hn_core_detect::DetectedState;
 use hn_core_state::EVENT_CLOSED;
+use serde_json::{json, Value};
 
+use crate::restore_points::{Point, RestoreError};
 use crate::session::status_of;
 use crate::{AgentHost, SpawnSpec};
 
@@ -122,6 +125,60 @@ impl AgentActions for AgentHost {
             }
         }
     }
+
+    async fn begin_turn(&self, pane_id: &str) -> Result<String, String> {
+        let dir = self
+            .session(pane_id)
+            .and_then(|session| session.workdir.clone())
+            .ok_or("the pane has no running agent")?;
+        let store = Arc::clone(&self.restore);
+        let agent = pane_id.to_string();
+        let turn = hn_core_chat::new_ulid();
+        blocking(move || store.create_point(&agent, &turn, &dir))
+            .await
+            .map(|point| point.id)
+            .map_err(|error| {
+                eprintln!("host: no restore point for {pane_id}: {error}");
+                error.to_string()
+            })
+    }
+
+    async fn restore_points(&self, pane_id: &str) -> Result<Value, RestoreRefusal> {
+        let store = Arc::clone(&self.restore);
+        let agent = pane_id.to_string();
+        let points = blocking(move || store.list_points(&agent))
+            .await
+            .map_err(refusal)?;
+        let summaries: Vec<Value> = points.iter().map(summary).collect();
+        Ok(json!({"agent": pane_id, "points": summaries}))
+    }
+
+    async fn restore_changes(&self, point_id: &str) -> Result<Value, RestoreRefusal> {
+        let store = Arc::clone(&self.restore);
+        let id = point_id.to_string();
+        let changes = blocking(move || store.changed_files(&id))
+            .await
+            .map_err(refusal)?;
+        Ok(json!({
+            "point": point_id,
+            "changes": changes.changes,
+            "excluded": changes.excluded,
+        }))
+    }
+
+    async fn restore_point(&self, point_id: &str) -> Result<Value, RestoreRefusal> {
+        let store = Arc::clone(&self.restore);
+        let id = point_id.to_string();
+        let done = blocking(move || store.restore(&id))
+            .await
+            .map_err(refusal)?;
+        Ok(json!({
+            "point": point_id,
+            "restored": done.restored,
+            "removed": done.removed,
+            "undo_point": done.undo_point,
+        }))
+    }
 }
 
 impl AgentHost {
@@ -130,6 +187,43 @@ impl AgentHost {
             .row_of(pane_id)
             .await
             .ok_or_else(|| "pane is gone".to_string())
+    }
+}
+
+/// Runs a file-system step off the async workers. A task that cannot finish is a failure.
+async fn blocking<T, F>(work: F) -> Result<T, RestoreError>
+where
+    F: FnOnce() -> Result<T, RestoreError> + Send + 'static,
+    T: Send + 'static,
+{
+    tokio::task::spawn_blocking(work)
+        .await
+        .unwrap_or_else(|join| Err(RestoreError::Io(std::io::Error::other(join))))
+}
+
+/// What the host answers for one point: its id, kind, turn, time and counts, never a path.
+fn summary(point: &Point) -> Value {
+    json!({
+        "id": point.id,
+        "kind": point.kind,
+        "turn": point.turn,
+        "created_ms": point.created_ms,
+        "files": point.entries.len(),
+        "excluded": point.excluded.len(),
+    })
+}
+
+/// The refusal for a restore error. Messages carry no folder path.
+fn refusal(error: RestoreError) -> RestoreRefusal {
+    match error {
+        RestoreError::NotFound => RestoreRefusal::NotFound,
+        RestoreError::InvalidPath => {
+            RestoreRefusal::Invalid("a path of the restore point is outside its folder".to_string())
+        }
+        RestoreError::MissingBlob => {
+            RestoreRefusal::Failed("a saved copy of the restore point is missing".to_string())
+        }
+        RestoreError::Io(_) => RestoreRefusal::Failed("restore point i/o failed".to_string()),
     }
 }
 

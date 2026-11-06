@@ -21,6 +21,7 @@ mod mail_organize_definitions;
 mod note;
 mod parse;
 mod pending;
+mod plan;
 mod status;
 
 #[cfg(test)]

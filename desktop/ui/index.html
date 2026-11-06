@@ -15,6 +15,11 @@
   <link rel="stylesheet" href="newconversation.css">
   <link rel="stylesheet" href="approvals.css">
   <link rel="stylesheet" href="hires.css">
+  <link rel="stylesheet" href="team-summary.css">
+  <link rel="stylesheet" href="restore.css">
+  <link rel="stylesheet" href="plans.css">
+  <link rel="stylesheet" href="schedules.css">
+  <link rel="stylesheet" href="recipes.css">
   <link rel="stylesheet" href="onboarding.css">
   <link rel="stylesheet" href="palette.css">
   <link rel="stylesheet" href="mail.css">
@@ -358,9 +363,37 @@
         </span>
       </div>
 
+      <section id="team-summary" class="team-summary" aria-labelledby="team-summary-title">
+        <div class="team-summary-head">
+          <h2 id="team-summary-title">Tu equipo</h2>
+          <p id="team-summary-count" class="team-summary-count" aria-live="polite"></p>
+        </div>
+        <div id="team-summary-body"></div>
+      </section>
+
+      <section id="team-plans" class="team-plans" aria-labelledby="team-plans-title">
+        <div class="team-plans-head">
+          <h2 id="team-plans-title" tabindex="-1">Planes propuestos</h2>
+          <p id="team-plans-count" class="team-plans-count" aria-live="polite"></p>
+        </div>
+        <p id="team-plans-notice" class="team-plans-notice" role="status" hidden></p>
+        <div id="team-plans-body"></div>
+      </section>
+
+      <section id="team-schedules" class="team-schedules" aria-labelledby="team-schedules-title">
+        <div class="team-schedules-head">
+          <h2 id="team-schedules-title">Automatizar</h2>
+          <p id="team-schedules-count" class="team-schedules-count" aria-live="polite"></p>
+          <button id="team-schedules-new" class="btn primary btn-small" type="button">Programar una tarea</button>
+        </div>
+        <p class="team-schedules-note">Solo se ejecuta con tu PC encendido. Si estaba apagado a la hora, no se lanza al encenderlo: te avisamos aquí y puedes lanzarla tú.</p>
+        <p id="team-schedules-notice" class="team-schedules-notice" role="status" hidden></p>
+        <div id="team-schedules-body"></div>
+      </section>
+
       <section id="team-hires" class="team-section" aria-labelledby="team-title">
         <div class="team-head">
-          <h2 id="team-title">Tu equipo</h2>
+          <h2 id="team-title">Contratados</h2>
           <button id="btn-hire" class="btn primary btn-small hidden" type="button">Contratar</button>
         </div>
         <div id="team-hires-body"></div>
@@ -825,9 +858,103 @@
     <div id="hire-sheet-body" class="hire-sheet-body"></div>
   </dialog>
 
+  <dialog id="hire-recipes" class="dialog recipe-dialog" aria-labelledby="hire-recipes-title">
+    <h2 id="hire-recipes-title">Recetas</h2>
+    <p class="dialog-lede">Repite un encargo con un toque o edita su texto. Solo se guarda lo que tú confirmas.</p>
+    <div id="hire-recipes-notice" class="recipe-notice" role="alert" hidden></div>
+    <div id="hire-recipes-body" class="recipe-body"></div>
+    <div class="dialog-actions">
+      <button id="hire-recipes-close" class="btn ghost" type="button">Cerrar</button>
+    </div>
+  </dialog>
+
+  <dialog id="recipe-editor" class="dialog recipe-dialog" aria-labelledby="recipe-editor-title">
+    <form id="recipe-form" class="recipe-form" novalidate>
+      <h2 id="recipe-editor-title">Guardar como receta</h2>
+      <p id="recipe-editor-lede" class="dialog-lede"></p>
+      <label class="field-label" for="recipe-title">Título</label>
+      <input id="recipe-title" type="text" spellcheck="false" autocomplete="off" aria-describedby="recipe-title-count">
+      <p id="recipe-title-count" class="recipe-count"></p>
+      <label class="field-label" for="recipe-body">Texto</label>
+      <textarea id="recipe-body" rows="8" aria-describedby="recipe-body-count"></textarea>
+      <p id="recipe-body-count" class="recipe-count"></p>
+      <div id="recipe-notice" class="recipe-notice" role="alert" hidden></div>
+      <ul id="recipe-reasons" class="recipe-reasons" hidden></ul>
+      <label id="recipe-risk-wrap" class="recipe-risk" hidden>
+        <input id="recipe-risk" type="checkbox">
+        <span>Entiendo y quiero guardarla</span>
+      </label>
+      <div class="dialog-actions">
+        <button id="recipe-retry" class="btn secondary" type="button" hidden>Reintentar</button>
+        <button id="recipe-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="recipe-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="schedule-editor" class="dialog schedule-dialog" aria-labelledby="schedule-editor-title">
+    <form id="schedule-form" class="schedule-form" novalidate>
+      <h2 id="schedule-editor-title">Programar una tarea</h2>
+      <p id="schedule-editor-lede" class="dialog-lede"></p>
+      <div id="schedule-notice" class="schedule-notice" role="alert" hidden></div>
+      <ul id="schedule-problems" class="schedule-problems" role="alert" hidden></ul>
+      <p id="schedule-permission" class="schedule-notice" role="status" hidden></p>
+      <label class="field-label" for="schedule-role">Oficio</label>
+      <select id="schedule-role"></select>
+      <label class="field-label" for="schedule-title">Título</label>
+      <input id="schedule-title" type="text" spellcheck="false" autocomplete="off">
+      <fieldset class="schedule-choices">
+        <legend class="field-label">Encargo</legend>
+        <label class="schedule-choice"><input id="schedule-source-text" name="schedule-source" type="radio" value="text" checked> Escribirlo</label>
+        <label class="schedule-choice"><input id="schedule-source-recipe" name="schedule-source" type="radio" value="recipe"> Usar una receta</label>
+      </fieldset>
+      <div id="schedule-body-wrap" class="schedule-field">
+        <label class="field-label" for="schedule-body">Qué debe hacer</label>
+        <textarea id="schedule-body" rows="6"></textarea>
+      </div>
+      <div id="schedule-recipe-wrap" class="schedule-field" hidden>
+        <label class="field-label" for="schedule-recipe">Receta</label>
+        <select id="schedule-recipe"></select>
+      </div>
+      <p class="schedule-steps">Pasos: <span id="schedule-steps"></span></p>
+      <div id="schedule-plan-wrap" class="schedule-field" hidden>
+        <label class="field-label" for="schedule-plan">Plan aprobado</label>
+        <select id="schedule-plan"></select>
+        <p id="schedule-plan-hint" class="schedule-hint"></p>
+        <button id="schedule-plans-link" class="btn ghost btn-small" type="button">Ver planes propuestos</button>
+      </div>
+      <label class="field-label" for="schedule-conversation">Conversación con proyecto</label>
+      <select id="schedule-conversation" aria-describedby="schedule-conversation-hint"></select>
+      <p id="schedule-conversation-hint" class="schedule-hint" hidden></p>
+      <label class="field-label" for="schedule-kind">Repetir</label>
+      <select id="schedule-kind"></select>
+      <fieldset id="schedule-days-wrap" class="schedule-choices" hidden>
+        <legend class="field-label">Días</legend>
+        <div id="schedule-days" class="schedule-days"></div>
+      </fieldset>
+      <div class="schedule-when">
+        <div class="schedule-field">
+          <label class="field-label" for="schedule-date">Fecha de inicio</label>
+          <input id="schedule-date" type="date">
+        </div>
+        <div class="schedule-field">
+          <label class="field-label" for="schedule-time">Hora</label>
+          <input id="schedule-time" type="time">
+        </div>
+      </div>
+      <label class="field-label" for="schedule-zone">Zona horaria</label>
+      <input id="schedule-zone" type="text" spellcheck="false" autocomplete="off">
+      <div class="dialog-actions">
+        <button id="schedule-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="schedule-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="hire-actions" class="dialog hire-dialog">
     <h2 id="hire-actions-title">Agente</h2>
     <div class="hire-actions-list" role="group" aria-label="Acciones">
+      <button id="hire-actions-recipes" class="btn secondary" type="button">Recetas</button>
       <button id="hire-actions-rename" class="btn secondary" type="button">Cambiar nombre</button>
       <button id="hire-actions-avatar" class="btn secondary" type="button">Cambiar personaje</button>
       <button id="hire-actions-dismiss" class="btn destructive" type="button">Despedir</button>
@@ -874,6 +1001,16 @@
     </form>
   </dialog>
 
+  <dialog id="restore-dialog" class="dialog restore-dialog" aria-labelledby="restore-title">
+    <div class="restore-head">
+      <div>
+        <h2 id="restore-title">Copias del turno</h2>
+        <p id="restore-agent" class="subtitle"></p>
+      </div>
+      <button id="restore-close" class="btn ghost btn-small" type="button">Cerrar</button>
+    </div>
+    <div id="restore-body" class="restore-body"></div>
+  </dialog>
   <div id="toast" class="toast hidden" role="status"></div>
 
   <noscript>Esta interfaz necesita JavaScript habilitado.</noscript>

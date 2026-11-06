@@ -5,9 +5,10 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use hn_core_chat::{
-    ProjectSummary, SeatActor, StatusApproval, StatusDelegation, StatusFacts, ToolError, ToolReply,
+    activity_of, status_of, Clock, HireLink, ProjectSummary, SeatActor, StatusApproval,
+    StatusDelegation, StatusFacts, SystemClock, TeamStatus, ToolError, ToolReply,
 };
-use hn_core_state::{StatePayload, TriageRow};
+use hn_core_state::{StatePayload, Status, TriageRow};
 use serde_json::{json, Value};
 
 use super::team::TeamService;
@@ -21,10 +22,33 @@ impl TeamService {
     pub(super) async fn status_overview(&self, actor: &SeatActor) -> Result<ToolReply, ToolError> {
         let state = self.host.state_payload().await;
         let facts = self.chat.status_facts(actor).map_err(tool_chat_error)?;
-        Ok(ToolReply {
-            result: overview(&state, &facts),
-        })
+        let links = self.chat.hire_links().map_err(tool_chat_error)?;
+        let mut answer = overview(&state, &facts);
+        answer["team"] = team(&state, &links, SystemClock.now_ms());
+        Ok(ToolReply { result: answer })
     }
+}
+
+/// The hires per status, read with the same rules as `GET /v1/team/summary`:
+/// one decision, `activity_of`, and the pane's own block.
+fn team(state: &StatePayload, links: &[HireLink], now_ms: i64) -> Value {
+    let blocked: HashSet<&str> = state
+        .agents
+        .iter()
+        .filter(|row| row.status == Status::Blocked)
+        .map(|row| row.pane_id.as_str())
+        .collect();
+    let mut counts: BTreeMap<TeamStatus, u32> =
+        TeamStatus::ALL.iter().map(|status| (*status, 0)).collect();
+    for link in links {
+        let blocked = link
+            .seat_pane
+            .as_deref()
+            .is_some_and(|pane| blocked.contains(pane));
+        let (activity, _) = activity_of(link, blocked, now_ms);
+        *counts.entry(status_of(&activity)).or_default() += 1;
+    }
+    json!(counts)
 }
 
 /// The answer of `status.overview`, from one state and one chat read.
@@ -127,8 +151,7 @@ fn approvals(items: &[StatusApproval]) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use hn_core_chat::{ApprovalKind, DelegationState};
-    use hn_core_state::Status;
+    use hn_core_chat::{ApprovalKind, DelegationState, PendingApproval};
 
     use super::*;
 
@@ -312,5 +335,39 @@ mod tests {
         chat.approvals = (0..25).map(approval).collect();
         let text = overview(&state(Vec::new()), &chat).to_string();
         assert!(text.len() < 16 * 1024, "{} bytes", text.len());
+    }
+
+    fn hired(pane: Option<&str>, approval: bool) -> HireLink {
+        HireLink {
+            hire_id: "hire_1".to_string(),
+            name: "Bob".to_string(),
+            catalog_role: "bob".to_string(),
+            hired_at: "2026-11-05T10:00:00.000Z".to_string(),
+            seat_pane: pane.map(str::to_string),
+            approval: approval.then(|| PendingApproval {
+                kind: ApprovalKind::Edit,
+                created_at: "2026-11-05T11:00:00.000Z".to_string(),
+            }),
+            working_since: None,
+            finished_at: None,
+            plan: None,
+        }
+    }
+
+    #[test]
+    fn the_team_counts_each_hire_by_the_summary_status() {
+        let panes = state(vec![row("pane_b", Status::Blocked, "/x")]);
+        let links = [
+            hired(None, false),
+            hired(Some("pane_b"), false),
+            hired(Some("pane_c"), true),
+        ];
+        let now_ms = 1_793_880_000_000; // 2026-11-05T12:00:00Z
+
+        assert_eq!(
+            team(&panes, &links, now_ms),
+            json!({ "waiting_for_you": 1, "blocked": 1, "idle": 1,
+                    "working": 0, "done": 0 })
+        );
     }
 }

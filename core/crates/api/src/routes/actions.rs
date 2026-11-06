@@ -7,6 +7,7 @@ use axum::Json;
 use serde::Deserialize;
 use serde_json::json;
 
+use crate::audit::AuditEvent;
 use crate::error::ApiError;
 use crate::routes::parse_body;
 use crate::validate::{clamp_read_lines, validate_keys, validate_pane_id, validate_prompt};
@@ -49,6 +50,12 @@ pub async fn respond(
     if !ctx.store.agent_exists(&pane_id).await {
         return dead_pane(&pane_id);
     }
+    // The turn starts here, so its folder is saved first. A failed save is recorded
+    // and the turn goes on.
+    let saved = ctx.actions.begin_turn(&pane_id).await;
+    let outcome = if saved.is_ok() { "ok" } else { "failed" };
+    ctx.audit
+        .record(&AuditEvent::new("restore.create", None, outcome).with("agent", pane_id.clone()));
     match ctx.actions.respond(&pane_id, &text) {
         Ok(()) => action_result(&ctx, &pane_id).await,
         Err(detail) => ApiError::refused(detail).into_response(),

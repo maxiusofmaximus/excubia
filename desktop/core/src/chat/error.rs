@@ -7,6 +7,10 @@ use serde_json::Value;
 use super::agenda::agenda_refusal;
 use super::attachments::attachment_refusal;
 use super::error_text::{approval_text, delegation_text, team_refusal};
+use super::plan::plan_refusal;
+use super::recipe::recipe_refusal;
+use super::restore::restore_refusal;
+use super::schedule::schedule_refusal;
 use crate::client::status_error;
 use crate::error::{CoreError, WriteAction};
 
@@ -95,6 +99,28 @@ pub enum ChatFailure {
     AlertRefused {
         code: String,
         message: String,
+    },
+    /// A refusal of the restore routes (`restore_point_not_found`, `restore_invalid`,
+    /// `restore_failed`). The screen words the code; the host's text is never shown.
+    RestoreRefused {
+        code: String,
+    },
+    /// A refusal of the plan routes (`no_such_plan`, `plan_decided`, `plan_not_approved`).
+    /// The screen words the code.
+    PlanRefused {
+        code: String,
+    },
+    /// A refusal of a recipe route (`secret_detected`, `risk_needs_confirmation`, `recipe_limit`, …).
+    /// `reasons` are the host's own short sentences, never the recipe text. The screen words the code.
+    RecipeRefused {
+        code: String,
+        reasons: Vec<String>,
+    },
+    /// A refusal of a scheduled task (`invalid_schedule`, `schedule_limit`, …). `reason` names the
+    /// field the host found wrong, if it said; the screen words it.
+    ScheduleRefused {
+        code: String,
+        reason: Option<String>,
     },
     Host {
         message: String,
@@ -230,6 +256,18 @@ pub(super) fn status_failure(
         return ChatFailure::TeamRefused { code, message };
     }
     if let Some(failure) = agenda_refusal(body) {
+        return failure;
+    }
+    if let Some(failure) = restore_refusal(body) {
+        return failure;
+    }
+    if let Some(failure) = plan_refusal(body) {
+        return failure;
+    }
+    if let Some(failure) = schedule_refusal(body) {
+        return failure;
+    }
+    if let Some(failure) = recipe_refusal(body) {
         return failure;
     }
     if let Some(failure) = attachment_refusal(body) {

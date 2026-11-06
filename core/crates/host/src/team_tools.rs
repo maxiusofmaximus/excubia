@@ -56,6 +56,8 @@ impl TeamService {
                 self.request_approval(&grant.actor, Some(grant.pane_id.clone()), request)
                     .await
             }
+            ToolCall::PlanPropose(propose) => self.propose_plan(&grant.actor, propose.steps),
+            ToolCall::PlanRead(plan_id) => self.read_plan(&grant.actor, plan_id),
             ToolCall::ApprovalDecide(decide) => self.decide_delegated(&grant.actor, decide),
             ToolCall::ApprovalPending => self.pending_approvals(&grant.actor),
             ToolCall::StatusOverview => match grant.actor.role_id.as_str() {
@@ -136,6 +138,8 @@ impl TeamService {
                 self.request_approval(&actor, None, request).await
             }
             ToolCall::ApprovalDecide(decide) => self.decide_delegated(&actor, decide),
+            ToolCall::PlanPropose(propose) => self.propose_plan(&actor, propose.steps),
+            ToolCall::PlanRead(plan_id) => self.read_plan(&actor, plan_id),
             ToolCall::ApprovalPending => self.pending_approvals(&actor),
             ToolCall::StatusOverview => self.status_overview(&actor).await,
             ToolCall::Mail(call) => self.mail.call(&actor, call).await,

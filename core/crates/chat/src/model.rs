@@ -250,8 +250,8 @@ pub struct AcceptedMessage {
 }
 
 pub use crate::model_timeline::{
-    ApprovalLine, CalendarCardLine, CardLinks, MailCardLine, MailDraftLine, Quote, TimelineEntry,
-    TimelinePage,
+    ApprovalLine, CalendarCardLine, CardLinks, MailCardLine, MailDraftLine, PlanLine, Quote,
+    TimelineEntry, TimelinePage,
 };
 
 #[derive(Clone, Debug, Serialize)]

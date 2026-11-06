@@ -16,7 +16,7 @@ use crate::schema;
 use super::delegation_rules::{
     active_for_agent, active_for_pane, assignment_title, bounded, card_for, card_id, check_tree,
     close_run, delegation_by_id, delegation_row, insert_card, message_by_id, recent_cycle,
-    task_digest, update_card, NewCard,
+    task_digest, update_card, NewCard, Requester,
 };
 use super::projects::seat_by_id;
 use super::{append_event, conversation_exists};
@@ -40,6 +40,25 @@ pub(super) const DELEGATION_SELECT: &str =
 impl super::ChatStore {
     /// Validate and create one delegation, its run and its card atomically.
     pub fn create_delegation(&self, new: NewDelegation) -> Result<Delegation, ChatError> {
+        self.insert_delegation(new, Requester::Agent)
+    }
+
+    /// The delegation a recipe starts: Alfred hands the body to a hire of the
+    /// project. Every other rule of the tree applies as it does to an agent.
+    pub fn create_user_delegation(&self, new: NewDelegation) -> Result<Delegation, ChatError> {
+        self.insert_delegation(new, Requester::User)
+    }
+
+    /// The delegation a due schedule starts. Its plan is not gated here: see [`Requester::Schedule`].
+    pub fn create_schedule_delegation(&self, new: NewDelegation) -> Result<Delegation, ChatError> {
+        self.insert_delegation(new, Requester::Schedule)
+    }
+
+    fn insert_delegation(
+        &self,
+        new: NewDelegation,
+        requester: Requester,
+    ) -> Result<Delegation, ChatError> {
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
         if !conversation_exists(&transaction, &new.conversation_id)? {
@@ -50,7 +69,7 @@ impl super::ChatStore {
         if from.agent_id == to.agent_id {
             return Err(ChatError::Cycle);
         }
-        let (depth, project_id) = check_tree(&transaction, &from, &to, &new)?;
+        let (depth, project_id) = check_tree(&transaction, &from, &to, &new, requester)?;
         let digest = task_digest(&new.task);
         if recent_cycle(&transaction, &from.agent_id, &to.agent_id, &digest)? {
             return Err(ChatError::Cycle);
@@ -76,6 +95,16 @@ impl super::ChatStore {
         if active_for_agent(&transaction, &to.agent_id)?.is_some() {
             return Err(ChatError::AssigneeBusy);
         }
+        let plan = match requester {
+            Requester::Schedule => None,
+            Requester::Agent | Requester::User => super::plans::gate(
+                &transaction,
+                &self.plan_rules(),
+                &new.conversation_id,
+                new.steps,
+                new.plan_id.as_deref(),
+            )?,
+        };
         let now = schema::now(&transaction)?;
         let conversation_id = new.conversation_id.clone();
         let delegation_id = id::new_id("dlg");
@@ -111,6 +140,9 @@ impl super::ChatStore {
                 now
             ],
         )?;
+        if let Some(plan_id) = &plan {
+            super::plans::link_plan(&transaction, plan_id, &delegation_id)?;
+        }
         insert_card(
             &transaction,
             NewCard {

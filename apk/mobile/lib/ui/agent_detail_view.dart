@@ -124,6 +124,27 @@ extension _AgentDetailView on _AgentDetailScreenState {
           ),
         ],
         const SizedBox(height: Spacing.lg),
+        SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Copias del turno', style: context.text.title),
+              const SizedBox(height: Spacing.xs),
+              Text(
+                'Mira qué cambió cada turno y, si hace falta, vuelve a una copia de la carpeta.',
+                style: context.text.bodySecondary,
+              ),
+              const SizedBox(height: Spacing.md),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+                onPressed: () => _openRestore(agent),
+                icon: const Icon(Icons.history),
+                label: const Text('Ver copias'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: Spacing.lg),
         _fields(agent),
         const SizedBox(height: Spacing.lg),
         Text(

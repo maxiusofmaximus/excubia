@@ -136,6 +136,9 @@ export function renderDelegationCard(entry, options = {}) {
       "delegation-link",
     ),
   );
+  if (status === "done") {
+    actions.append(action("Guardar como receta", "save-recipe", { delegation: id }, "btn ghost btn-small"));
+  }
   const active = ["queued", "running", "waiting"].includes(status);
   if (active) {
     actions.append(

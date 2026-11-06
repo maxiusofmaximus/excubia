@@ -7,12 +7,23 @@ import '../core/api/host_client.dart';
 import '../core/state/approvals_controller.dart';
 import '../core/state/chat_controller.dart';
 import '../core/state/hires_controller.dart';
+import '../core/api/plans_api.dart';
+import '../core/api/recipes_api.dart';
+import '../core/api/schedules_api.dart';
+import '../core/api/team_summary_api.dart';
 import '../core/state/live_triage.dart';
+import '../core/state/plans_controller.dart';
+import '../core/state/recipes_controller.dart';
+import '../core/state/schedules_controller.dart';
+import '../core/state/team_summary_controller.dart';
 import '../core/state/voice_send_settings.dart';
 import '../core/storage/pairing_store.dart';
 import 'agents_screen.dart';
 import 'chat/chat_screen.dart';
 import 'theme.dart';
+
+/// The Equipo tab's index in the bottom bar.
+const int _teamTab = 1;
 
 /// Two one-tap destinations: the Alfred chat (primary) and the existing team
 /// triage (secondary). One signed SSE connection feeds both.
@@ -26,17 +37,23 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   LiveTriage? _triage;
   ChatController? _chat;
   ApprovalsController? _approvals;
   HiresController? _hires;
+  TeamSummaryController? _summary;
+  PlansController? _plans;
+  SchedulesController? _schedules;
+  RecipesController? _recipes;
   bool _keyError = false;
+  bool _resumed = true;
   int _tab = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final publicKey = publicKeyFromPrivate(
       privateKeyB64: widget.pairing.privateKey,
     );
@@ -63,6 +80,13 @@ class _HomeShellState extends State<HomeShell> {
     _chat = chat;
     _approvals = approvals;
     _hires = hires;
+    _summary = TeamSummaryController(api: TeamSummaryApi(client));
+    _plans = PlansController(api: PlansApi(client));
+    _schedules = SchedulesController(api: SchedulesApi(client));
+    _recipes = RecipesController(
+      api: RecipesApi(client),
+      conversationId: () => runConversationId(chat.current, chat.conversations),
+    );
     chat.start();
     unawaited(approvals.refresh());
     unawaited(hires.load());
@@ -70,11 +94,35 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _chat?.dispose();
     _approvals?.dispose();
     _hires?.dispose();
+    _summary?.dispose();
+    _plans?.dispose();
+    _schedules?.dispose();
+    _recipes?.dispose();
     _triage?.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    _syncSummary();
+  }
+
+  void _selectTab(int index) {
+    setState(() => _tab = index);
+    _syncSummary();
+  }
+
+  /// «Tu equipo» is read only while its tab shows and the app is in front.
+  void _syncSummary() {
+    final shown = _resumed && _tab == _teamTab;
+    _summary?.setActive(shown);
+    _plans?.setActive(shown);
+    _schedules?.setActive(shown);
   }
 
   @override
@@ -125,13 +173,17 @@ class _HomeShellState extends State<HomeShell> {
           ChatScreen(
             controller: chat,
             hires: _hires!,
-            onOpenTeam: () => setState(() => _tab = 1),
+            onOpenTeam: () => _selectTab(_teamTab),
             onUnpaired: widget.onUnpaired,
           ),
           AgentsScreen(
             triage: _triage!,
             chat: chat,
             hires: _hires!,
+            recipes: _recipes!,
+            summary: _summary!,
+            plans: _plans!,
+            schedules: _schedules!,
             onUnpaired: widget.onUnpaired,
           ),
         ],
@@ -142,7 +194,7 @@ class _HomeShellState extends State<HomeShell> {
           final unread = chat.unreadMessages;
           return NavigationBar(
             selectedIndex: _tab,
-            onDestinationSelected: (index) => setState(() => _tab = index),
+            onDestinationSelected: _selectTab,
             destinations: [
               NavigationDestination(
                 icon: Badge(

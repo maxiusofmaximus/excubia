@@ -21,7 +21,14 @@ mod model_hire;
 mod model_hook;
 mod model_mode;
 mod model_note;
+mod model_plan;
+mod model_recipe;
+mod model_schedule;
+mod schedule_due;
+mod schedule_launch;
+mod recipe_guard;
 mod model_team;
+mod model_team_status;
 mod model_timeline;
 mod policy;
 mod recurrence;
@@ -37,6 +44,9 @@ mod schema_contact;
 mod schema_hire;
 mod schema_ics;
 mod schema_mail;
+mod schema_plan;
+mod schema_recipe;
+mod schema_schedule;
 mod schema_progress;
 mod schema_recurrence;
 mod schema_reply;
@@ -92,9 +102,17 @@ pub use model_mode::{ApprovalMode, ApprovalSettings, ModeChange, ProjectMode};
 pub use model_note::{
     Note, NoteHit, MAX_NOTES, NOTE_DELETE_TOOL, NOTE_SEARCH_MAX_RESULTS, NOTE_SUBJECT_MAX_CHARS,
 };
+pub use model_plan::{NewPlan, Plan, PlanDecision, PlanStatus, PlanStep, Touch};
+pub use model_recipe::{
+    draft_text, DraftSource, Recipe, RecipeRun, RecipeText, MAX_RECIPES_PER_ROLE,
+    RECIPE_BODY_CHARS, RECIPE_TITLE_CHARS,
+};
 pub use model_team::{
     Card, Delegation, DelegationDetail, DelegationState, NewDelegation, NewProject, NewSeat,
     ProjectRecord, Seat, SynthesisInfo, SynthesisRow, UAC_SAFE, UAC_UNCHECKED, UAC_UNSAFE,
+};
+pub use model_team_status::{
+    activity_of, status_of, summarize, Activity, MemberInput, TeamMemberSummary, TeamStatus,
 };
 pub use recurrence::{RecurrenceError, Rule};
 pub use schema::SearchMode;
@@ -102,9 +120,15 @@ pub use seat::{
     ChatSeat, SeatActor, SeatError, SeatErrorCode, ToolError, ToolErrorKind, ToolReply, ToolRequest,
 };
 pub use store::{
-    validate_suggestions, AlertSummary, AlertWriter, CalendarSummary, ChatStore, EventOrigin,
-    MailDraftCard, NewMailCard, NextEvent, ProgressOutcome, SenderHistory, StatusApproval,
-    StatusDelegation, StatusFacts,
+    validate_suggestions, Claim, Launch, AlertSummary, AlertWriter, CalendarSummary, ChatStore, EventOrigin,
+    HireLink, MailDraftCard, NewMailCard, NextEvent, PendingApproval, PendingPlan, ProgressOutcome,
+    SenderHistory, StatusApproval, StatusDelegation, StatusFacts,
 };
+pub use model_schedule::{
+    cadence_of, parse_start_date, parse_time_local, rule_text, timing_of, Cadence, Content,
+    NewSchedule, RunOutcome, Schedule, ScheduleRun, ScheduleStatus, Timing, DEFAULT_PER_DAY_PER_AGENT,
+    DEFAULT_PER_DAY_TOTAL, DEFAULT_PER_HOUR_PER_AGENT, HISTORY_KEEP, MAX_ACTIVE_SCHEDULES,
+};
+pub use schedule_launch::launch_schedule;
 pub use text::{message_text, NameError, TextError, MAX_MESSAGE_BYTES};
 pub use timezone::EventTime;

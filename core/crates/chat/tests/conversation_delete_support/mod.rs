@@ -200,6 +200,39 @@ pub fn populate(fixture: &Fixture, conversation: &str) {
         .expect("calendar card");
     connection
         .execute(
+            "INSERT INTO plan (id, conversation_id, proposer_agent_id, steps, status, created_at,
+                updated_at)
+             VALUES ('pln_1', ?1, ?2, '[{\"title\":\"Paso\",\"touches\":[\"files\"]}]',
+                'proposed', ?3, ?3)",
+            params![conversation, alfred, NOW],
+        )
+        .expect("plan");
+    connection
+        .execute(
+            "INSERT INTO timeline_plan (plan_id, conversation_id, seq, status, summary, created_at)
+             VALUES ('pln_1', ?1, 9, 'proposed', 'Plan de 1 paso', ?2)",
+            params![conversation, NOW],
+        )
+        .expect("timeline plan");
+    connection
+        .execute(
+            "INSERT INTO schedule (id, company_id, conversation_id, role_id, title, body, rule,
+                start_date, time_local, timezone, steps, status, created_at, updated_at)
+             VALUES ('sch_1', ?1, ?2, 'audio-editor', 'Resumen', 'Haz un resumen.',
+                'FREQ=DAILY;INTERVAL=1', '2026-11-02', '09:00', 'Europe/Madrid', 1, 'active',
+                ?3, ?3)",
+            params![company, conversation, NOW],
+        )
+        .expect("schedule");
+    connection
+        .execute(
+            "INSERT INTO schedule_run (id, schedule_id, due_at, outcome)
+             VALUES ('srn_1', 'sch_1', ?1, 'skipped_overlap')",
+            params![NOW],
+        )
+        .expect("schedule run");
+    connection
+        .execute(
             "INSERT INTO hook_token (token_hash, seat_id, run_id, conversation_id, created_at)
              VALUES ('hash_1', ?1, 'run_1', ?2, ?3)",
             params![alfred, conversation, NOW],

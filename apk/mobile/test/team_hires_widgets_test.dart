@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herdr_notify/core/api/recipes_api.dart';
 import 'package:herdr_notify/core/state/hires_controller.dart';
+import 'package:herdr_notify/core/state/recipes_controller.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 import 'package:herdr_notify/ui/team/hire_catalog_screen.dart';
 import 'package:herdr_notify/ui/team/hires_section.dart';
@@ -29,7 +31,17 @@ Future<HiresController> pumpTeam(
       home: MediaQuery(
         data: MediaQueryData(disableAnimations: true, textScaler: textScaler),
         child: Scaffold(
-          body: ListView(children: [TeamHiresSection(hires: hires)]),
+          body: ListView(
+            children: [
+              TeamHiresSection(
+                hires: hires,
+                recipes: RecipesController(
+                  api: RecipesApi(host),
+                  conversationId: () => null,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -50,10 +62,7 @@ void main() {
   setUpAll(RustLib.init);
 
   test('the team count says how many are hired and how many are active', () {
-    expect(
-      teamCountLabel(hired: 12, active: 0),
-      '12 en el equipo · 0 activos',
-    );
+    expect(teamCountLabel(hired: 12, active: 0), '12 en el equipo · 0 activos');
     expect(teamCountLabel(hired: 1, active: 1), '1 en el equipo · 1 activo');
   });
 
@@ -63,7 +72,7 @@ void main() {
     ) async {
       await pumpTeam(tester, FakeTeamHost(canHire: false));
 
-      expect(find.text('TU EQUIPO'), findsOneWidget);
+      expect(find.text('CONTRATADOS'), findsOneWidget);
       expect(find.text(_empty), findsOneWidget);
       expect(find.text('Contratar'), findsNothing);
     });

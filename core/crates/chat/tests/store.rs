@@ -98,8 +98,8 @@ fn schema_and_migrations_are_idempotent() {
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .expect("version");
         assert_eq!(
-            version, 21,
-            "the approval mode tables are schema 6; schema 7 adds the mail card table, schema 8 its expiry, schema 9 the hires, schema 10 the mail draft cards, schema 11 the reply fields of messages, schema 12 the progress line of runs, schema 13 the attachments, schema 14 the notes, schema 15 the contacts, schema 16 the origin of each address, schema 17 the app as a source of an address, schema 18 the calendar, schema 19 the recurrence of events, schema 20 the uid of an imported event, schema 21 the alert rules"
+            version, 25,
+            "the approval mode tables are schema 6; schema 7 adds the mail card table, schema 8 its expiry, schema 9 the hires, schema 10 the mail draft cards, schema 11 the reply fields of messages, schema 12 the progress line of runs, schema 13 the attachments, schema 14 the notes, schema 15 the contacts, schema 16 the origin of each address, schema 17 the app as a source of an address, schema 18 the calendar, schema 19 the recurrence of events, schema 20 the uid of an imported event, schema 21 the alert rules, schema 22 the plans, schema 23 the recipes, schema 24 the plan lines of the timeline"
         );
         assert_eq!(
             connection

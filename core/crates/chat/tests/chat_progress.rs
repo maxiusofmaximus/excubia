@@ -236,5 +236,5 @@ fn a_version_eleven_database_gains_the_progress_columns_and_keeps_its_runs() {
         .expect("raw")
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .expect("version");
-    assert_eq!(version, 21);
+    assert_eq!(version, 25);
 }

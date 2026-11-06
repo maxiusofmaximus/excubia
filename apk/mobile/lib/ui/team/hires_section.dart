@@ -3,6 +3,7 @@ import 'package:herdr_notify/src/rust/api/error.dart';
 import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
 
 import '../../core/state/hires_controller.dart';
+import '../../core/state/recipes_controller.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
 import '../widgets/grouped_card.dart';
@@ -13,9 +14,14 @@ import 'hire_catalog_screen.dart';
 /// by area. «Contratar» and the actions on a person appear only when the host
 /// says this device may contract (`can_hire`).
 class TeamHiresSection extends StatelessWidget {
-  const TeamHiresSection({super.key, required this.hires});
+  const TeamHiresSection({
+    super.key,
+    required this.hires,
+    required this.recipes,
+  });
 
   final HiresController hires;
+  final RecipesController recipes;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +42,9 @@ class TeamHiresSection extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Expanded(child: Text('TU EQUIPO', style: context.text.label)),
+                  Expanded(
+                    child: Text('CONTRATADOS', style: context.text.label),
+                  ),
                   if (hires.canHire)
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
@@ -46,7 +54,7 @@ class TeamHiresSection extends StatelessWidget {
                       ),
                       onPressed: hires.busy
                           ? null
-                          : () => _openCatalog(context),
+                          : () => openHireCatalog(context, hires),
                       icon: const Icon(Icons.person_add_alt_1_outlined),
                       label: const Text('Contratar'),
                     ),
@@ -98,7 +106,13 @@ class TeamHiresSection extends StatelessWidget {
                   hire: hire,
                   title: hires.roleById(hire.role)?.title ?? '',
                   canHire: hires.canHire,
-                  onTap: () => showHireActions(context, hires, hire),
+                  onTap: () => showHireActions(
+                    context,
+                    hires,
+                    hire,
+                    recipes,
+                    onHire: hireCatalogAction(context, hires),
+                  ),
                 ),
             ],
           ),
@@ -106,13 +120,18 @@ class TeamHiresSection extends StatelessWidget {
       ],
     );
   }
-
-  void _openCatalog(BuildContext context) {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => HireCatalogScreen(hires: hires)),
-    );
-  }
 }
+
+/// Opens the catalogue to contract someone; shared by the team's two sections.
+void openHireCatalog(BuildContext context, HiresController hires) {
+  Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(builder: (_) => HireCatalogScreen(hires: hires)),
+  );
+}
+
+/// The «Contratar» way out for a sheet, or null when this device may not contract now.
+VoidCallback? hireCatalogAction(BuildContext context, HiresController hires) =>
+    hires.canHire && !hires.busy ? () => openHireCatalog(context, hires) : null;
 
 /// A failed change or read, said once in words, with the way out. It stays
 /// until the user closes it or the next change starts.

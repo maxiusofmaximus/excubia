@@ -47,6 +47,10 @@ pub(super) struct DelegationAssignArgs {
     pub(super) task: String,
     #[serde(default)]
     pub(super) conversation_id: Option<String>,
+    #[serde(default)]
+    pub(super) steps: Option<u32>,
+    #[serde(default)]
+    pub(super) plan_id: Option<String>,
 }
 
 #[derive(Deserialize)]

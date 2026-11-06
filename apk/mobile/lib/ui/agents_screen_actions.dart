@@ -43,7 +43,11 @@ extension _AgentsScreenActions on _AgentsScreenState {
   Future<void> _openDetail(String paneId) async {
     final result = await Navigator.of(context).push<AgentDetailResult>(
       MaterialPageRoute<AgentDetailResult>(
-        builder: (_) => AgentDetailScreen(triage: _triage, paneId: paneId),
+        builder: (_) => AgentDetailScreen(
+          triage: _triage,
+          paneId: paneId,
+          restore: widget.chat.restore,
+        ),
       ),
     );
     if (!mounted || result == null) return;

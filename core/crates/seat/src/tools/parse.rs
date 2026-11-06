@@ -11,7 +11,9 @@ use super::args::{
 
 use super::call::{AgentSpawn, DelegationAssign, DelegationComplete, ProjectCreate};
 
-use super::{alert, approval, calendar, contact, decide, mail, note, pending, status, ToolCall};
+use super::{
+    alert, approval, calendar, contact, decide, mail, note, pending, plan, status, ToolCall,
+};
 
 /// The longest progress line, in characters. Longer text is refused, never cut.
 pub(super) const PROGRESS_MAX_CHARS: usize = 120;
@@ -82,12 +84,24 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
                 .conversation_id
                 .map(|value| name_field("conversation_id", &value))
                 .transpose()?;
+            let steps = args.steps.unwrap_or(1);
+            if steps == 0 {
+                return Err(ToolError::invalid("invalid_arguments", "steps", "steps is at least 1"));
+            }
+            let plan_id = args
+                .plan_id
+                .map(|value| name_field("plan_id", &value))
+                .transpose()?;
             Ok(ToolCall::DelegationAssign(DelegationAssign {
                 to_agent_id,
                 task,
                 conversation_id,
+                steps,
+                plan_id,
             }))
         }
+        "plan.propose" => plan::propose(request),
+        "plan.status" => plan::status(request),
         "delegation.complete" => {
             let args: DelegationCompleteArgs = serde_json::from_value(request.arguments.clone())
                 .map_err(|error| invalid_arguments("delegation_id", error))?;
@@ -128,7 +142,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
             "tool",
             format!(
                 "unknown MCP tool {other:?}; use chat.reply, chat.ask_user, chat.progress, \
-                 project.create, agent.spawn, delegation.assign, delegation.complete, \
+                 project.create, agent.spawn, delegation.assign, delegation.complete, \n                 plan.propose, plan.status, \
                  approval.request, approval.decide, approval.pending, status.overview, \
                  a mail.*, note.*, contact.*, calendar.* or alert.* tool"
             ),

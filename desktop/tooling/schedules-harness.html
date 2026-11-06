@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Automatizar · arnés</title>
+  <link rel="stylesheet" href="../ui/base.css">
+  <link rel="stylesheet" href="../ui/pairing.css">
+  <link rel="stylesheet" href="../ui/chat.css">
+  <link rel="stylesheet" href="../ui/thread.css">
+  <link rel="stylesheet" href="../ui/delegation.css">
+  <link rel="stylesheet" href="../ui/agents.css">
+  <link rel="stylesheet" href="../ui/detail.css">
+  <link rel="stylesheet" href="../ui/newconversation.css">
+  <link rel="stylesheet" href="../ui/approvals.css">
+  <link rel="stylesheet" href="../ui/hires.css">
+  <link rel="stylesheet" href="../ui/team-summary.css">
+  <link rel="stylesheet" href="../ui/restore.css">
+  <link rel="stylesheet" href="../ui/plans.css">
+  <link rel="stylesheet" href="../ui/recipes.css">
+  <link rel="stylesheet" href="../ui/schedules.css">
+  <link rel="stylesheet" href="../ui/onboarding.css">
+  <link rel="stylesheet" href="../ui/palette.css">
+  <link rel="stylesheet" href="../ui/mail.css">
+  <link rel="stylesheet" href="../ui/agenda.css">
+  <link rel="stylesheet" href="../ui/alerts.css">
+  <link rel="stylesheet" href="../ui/devices.css">
+  <link rel="stylesheet" href="../ui/shell.css">
+  <link rel="stylesheet" href="../ui/settings.css">
+  <script src="../ui/palette-data.js"></script>
+  <!-- Puente simulado: debe cargarse antes que cualquier módulo de ../ui (core.js lee window.__TAURI__ al importarse). -->
+  <script src="schedules-harness-bridge.js"></script>
+</head>
+<body>
+  <!-- Mismo marcado que ui/index.html para la sección «Automatizar» y su editor. -->
+  <main class="harness-team" style="max-width: 760px; margin: 24px auto; padding: 0 16px;">
+    <section id="team-schedules" class="team-schedules" aria-labelledby="team-schedules-title">
+      <div class="team-schedules-head">
+        <h2 id="team-schedules-title">Automatizar</h2>
+        <p id="team-schedules-count" class="team-schedules-count" aria-live="polite"></p>
+        <button id="team-schedules-new" class="btn primary btn-small" type="button">Programar una tarea</button>
+      </div>
+      <p class="team-schedules-note">Solo se ejecuta con tu PC encendido. Si estaba apagado a la hora, no se lanza al encenderlo: te avisamos aquí y puedes lanzarla tú.</p>
+      <p id="team-schedules-notice" class="team-schedules-notice" role="status" hidden></p>
+      <div id="team-schedules-body"></div>
+    </section>
+  </main>
+
+  <dialog id="schedule-editor" class="dialog schedule-dialog" aria-labelledby="schedule-editor-title">
+    <form id="schedule-form" class="schedule-form" novalidate>
+      <h2 id="schedule-editor-title">Programar una tarea</h2>
+      <p id="schedule-editor-lede" class="dialog-lede"></p>
+      <div id="schedule-notice" class="schedule-notice" role="alert" hidden></div>
+      <ul id="schedule-problems" class="schedule-problems" role="alert" hidden></ul>
+      <p id="schedule-permission" class="schedule-notice" role="status" hidden></p>
+      <label class="field-label" for="schedule-role">Oficio</label>
+      <select id="schedule-role"></select>
+      <label class="field-label" for="schedule-title">Título</label>
+      <input id="schedule-title" type="text" spellcheck="false" autocomplete="off">
+      <fieldset class="schedule-choices">
+        <legend class="field-label">Encargo</legend>
+        <label class="schedule-choice"><input id="schedule-source-text" name="schedule-source" type="radio" value="text" checked> Escribirlo</label>
+        <label class="schedule-choice"><input id="schedule-source-recipe" name="schedule-source" type="radio" value="recipe"> Usar una receta</label>
+      </fieldset>
+      <div id="schedule-body-wrap" class="schedule-field">
+        <label class="field-label" for="schedule-body">Qué debe hacer</label>
+        <textarea id="schedule-body" rows="6"></textarea>
+      </div>
+      <div id="schedule-recipe-wrap" class="schedule-field" hidden>
+        <label class="field-label" for="schedule-recipe">Receta</label>
+        <select id="schedule-recipe"></select>
+      </div>
+      <p class="schedule-steps">Pasos: <span id="schedule-steps"></span></p>
+      <div id="schedule-plan-wrap" class="schedule-field" hidden>
+        <label class="field-label" for="schedule-plan">Plan aprobado</label>
+        <select id="schedule-plan"></select>
+        <p id="schedule-plan-hint" class="schedule-hint"></p>
+        <button id="schedule-plans-link" class="btn ghost btn-small" type="button">Ver planes propuestos</button>
+      </div>
+      <label class="field-label" for="schedule-conversation">Conversación con proyecto</label>
+      <select id="schedule-conversation" aria-describedby="schedule-conversation-hint"></select>
+      <p id="schedule-conversation-hint" class="schedule-hint" hidden></p>
+      <label class="field-label" for="schedule-kind">Repetir</label>
+      <select id="schedule-kind"></select>
+      <fieldset id="schedule-days-wrap" class="schedule-choices" hidden>
+        <legend class="field-label">Días</legend>
+        <div id="schedule-days" class="schedule-days"></div>
+      </fieldset>
+      <div class="schedule-when">
+        <div class="schedule-field">
+          <label class="field-label" for="schedule-date">Fecha de inicio</label>
+          <input id="schedule-date" type="date">
+        </div>
+        <div class="schedule-field">
+          <label class="field-label" for="schedule-time">Hora</label>
+          <input id="schedule-time" type="time">
+        </div>
+      </div>
+      <label class="field-label" for="schedule-zone">Zona horaria</label>
+      <input id="schedule-zone" type="text" spellcheck="false" autocomplete="off">
+      <div class="dialog-actions">
+        <button id="schedule-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="schedule-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="schedules-harness.js"></script>
+</body>
+</html>

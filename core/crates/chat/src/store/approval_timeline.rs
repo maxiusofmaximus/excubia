@@ -4,11 +4,13 @@
 use rusqlite::{params, Connection, Row};
 
 use crate::error::ChatError;
-use crate::model::{ApprovalLine, TimelineEntry, TimelinePage};
+use crate::model::{ApprovalLine, PlanLine, TimelineEntry, TimelinePage};
+use crate::model_plan::Plan;
 use crate::model_team::Card;
 
 use super::calendar_card::load_calendar_cards;
 use super::conversation_exists;
+use super::lookup::next_seq;
 use super::mail_card::load_mail_cards;
 use super::mail_draft_card::load_mail_draft_cards;
 use super::messages::load_timeline_messages;
@@ -53,6 +55,12 @@ impl super::ChatStore {
             limit + 1,
         )?);
         entries.extend(load_lines(
+            &connection,
+            conversation_id,
+            before_seq,
+            limit + 1,
+        )?);
+        entries.extend(load_plan_lines(
             &connection,
             conversation_id,
             before_seq,
@@ -160,6 +168,71 @@ pub(super) fn load_lines(
             .collect::<Result<Vec<_>, _>>()?,
     };
     Ok(rows)
+}
+
+/// The line of a plan at the status it just reached. Each status is a line of
+/// its own, numbered with the rest of the conversation.
+pub(super) fn record_plan_line(connection: &Connection, plan: &Plan) -> Result<(), ChatError> {
+    let seq = next_seq(connection, &plan.conversation_id)?;
+    connection.execute(
+        "INSERT INTO timeline_plan
+            (plan_id, conversation_id, seq, status, summary, decider_kind, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            plan.id,
+            plan.conversation_id,
+            seq,
+            plan.status.as_str(),
+            plan.summary,
+            plan.decided_by,
+            plan.updated_at,
+        ],
+    )?;
+    Ok(())
+}
+
+fn load_plan_lines(
+    connection: &Connection,
+    conversation_id: &str,
+    before_seq: Option<i64>,
+    limit: usize,
+) -> Result<Vec<TimelineEntry>, ChatError> {
+    let sql = match before_seq {
+        Some(_) => {
+            "SELECT plan_id, seq, status, summary, decider_kind, created_at
+               FROM timeline_plan WHERE conversation_id = ?1 AND seq < ?2
+              ORDER BY seq DESC LIMIT ?3"
+        }
+        None => {
+            "SELECT plan_id, seq, status, summary, decider_kind, created_at
+               FROM timeline_plan WHERE conversation_id = ?1
+              ORDER BY seq DESC LIMIT ?2"
+        }
+    };
+    let mut statement = connection.prepare(sql)?;
+    let rows = match before_seq {
+        Some(before) => statement
+            .query_map(
+                params![conversation_id, before, limit as i64],
+                plan_line_row,
+            )?
+            .collect::<Result<Vec<_>, _>>()?,
+        None => statement
+            .query_map(params![conversation_id, limit as i64], plan_line_row)?
+            .collect::<Result<Vec<_>, _>>()?,
+    };
+    Ok(rows)
+}
+
+fn plan_line_row(row: &Row<'_>) -> rusqlite::Result<TimelineEntry> {
+    Ok(TimelineEntry::plan(PlanLine {
+        plan_id: row.get(0)?,
+        seq: row.get(1)?,
+        status: row.get(2)?,
+        summary: row.get(3)?,
+        decider_kind: row.get(4)?,
+        created_at: row.get(5)?,
+    }))
 }
 
 fn approval_line_row(row: &Row<'_>) -> rusqlite::Result<TimelineEntry> {

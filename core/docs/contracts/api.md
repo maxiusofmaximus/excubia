@@ -39,6 +39,7 @@ request to the port is refused at the handshake.
 | `POST` | `/v1/hires` | signed | `APPROVE` | write | Contract one role: `201` when new, `200` when already hired |
 | `POST` | `/v1/hires/{hire_id}/update` | signed | `APPROVE` | write | Rename a hire or change its avatar |
 | `POST` | `/v1/hires/{hire_id}/dismiss` | signed | `APPROVE` | write | Dismiss a hire (idempotent) |
+| `GET` | `/v1/team/summary` | signed | `READ_STATE` | read | The team in plain words: one headline per hire (`{ok, members}`) |
 | `GET` | `/v1/onboarding` | signed | `READ_STATE` | read | Whether the first-run onboarding is done, and its areas |
 | `GET` | `/v1/alerts/rules` | signed | `READ_STATE` | read | The alert rules (`{ok, rules}`) |
 | `POST` | `/v1/alerts/rules` | signed | `RESPOND` | write | Create an alert rule: `201 {ok, rule}`, `409` when identical |
@@ -388,6 +389,32 @@ Skipping (the «Saltar» of the first-run screen):
 ```json
 { "ok": true, "done": true, "hires": [] }
 ```
+
+#### `GET /v1/team/summary` (F1)
+
+Resumen del equipo en lenguaje llano, con plantillas fijas (sin modelo). Una
+línea por profesional contratado; `READ_STATE`; sin firma, `401`.
+
+```json
+{"ok": true, "members": [{"agent_id": "hire_1", "name": "Bob", "role_title": "Programador",
+  "status": "idle", "headline": "Sin actividad", "since": "2026-11-05T10:00:00.000Z"}]}
+```
+
+- `status`: `waiting_for_you` («Espera tu visto bueno para ejecutar un comando»,
+  «… usar internet», «… cambiar ficheros», «… usar una herramienta»; con un plan
+  propuesto, «Espera tu visto bueno para un plan de N pasos», solo el número), `blocked`
+  («Necesita ayuda»), `working` («Trabajando desde hace N min»), `done`
+  («Terminó») o `idle` («Sin actividad»). Un contratado se vincula a un asiento
+  (`agent_seat.hire_id`); sin asiento vinculado, siempre `idle`.
+- Orden: primero los que esperan tu visto bueno, luego `blocked`, `working`,
+  `done` e `idle`; dentro de cada estado, el más reciente primero.
+- `since` es cuándo empezó el estado actual (`%Y-%m-%dT%H:%M:%fZ`); sin actividad
+  conocida, la fecha de contratación. El texto nunca lleva mensajes, asuntos de
+  correo ni rutas.
+- Equipo sin contratar: `members` es `[]`, no un error. Hoy todos salen `idle`:
+  contratar no crea asiento ni panel, así que nada se enlaza aún.
+- Sin evento propio: el cliente consulta cada 5 s; las aprobaciones y
+  delegaciones del chat no traen este resumen.
 
 ### `POST /v1/agents/{pane_id}/stop`
 
@@ -1278,12 +1305,15 @@ cualquier campo es `422 invalid_arguments`. Un lead o un especialista recibe
   },
   "delegations": {"open": 1, "items": [{"id": "dlg_…", "state": "running", "task": "…", "to": "Ana"}], "truncated": false},
   "approvals": {"pending": 1, "items": [{"id": "apr_…", "kind": "command", "agent": "ana"}], "truncated": false},
+  "team": {"waiting_for_you": 0, "blocked": 0, "working": 1, "done": 0, "idle": 2},
   "last_activity": "2026-10-28T10:00:00Z"
 }
 ```
 
 - `revision` es la de `GET /v1/state`; `chat_revision` la de `bootstrap`. Los
   `counts` usan las mismas claves que `/v1/state` (las presentes en ese momento).
+- `team` cuenta los contratados por estado, con la misma decisión que
+  `GET /v1/team/summary` (las cinco claves, aunque valgan 0).
 - `panels.projects` agrupa por `root_label`; `unassigned` cuenta los paneles
   sin proyecto listado (sin asiento, proyecto archivado o más allá del tope).
 - `approvals` son las aprobaciones en el nivel de Alfred (`cto`), sin
@@ -1757,6 +1787,100 @@ servidor: solo la causa en palabras fijas y la regla de reintento.
 ```json
 {"ok": true, "send_id": "01J…", "state": "failed",
  "failure": {"code": "account_suspended", "retry": "no"}}
+```
+
+## Puntos de restauración (F2-CORE, `/v1/restore`)
+
+Antes de cada turno de un agente el host guarda su carpeta de trabajo. Límites: 100 puntos por agente y 30 días. Excluidos: `node_modules`, `target`, `.git`, `.env*`, `*.pem`, `*.key`, carpetas y ficheros de más de 50 MB, enlaces simbólicos. La lista de excluidos se devuelve siempre.
+
+| Ruta | Permiso | Respuesta |
+|---|---|---|
+| `GET /v1/restore/points?agent=` | `READ_STATE` | `200 {"ok","agent","points":[{id,kind,turn,created_ms,files,excluded}]}`, el más reciente primero; sin rutas de carpeta |
+| `GET /v1/restore/points/{point_id}/files` | `READ_STATE` | `200 {"ok","point","changes":[{path,status}],"excluded":[{path,reason}]}`; sin contenido |
+| `POST /v1/restore/points/{point_id}/restore` | `APPROVE` | `200 {"ok","point","restored","removed","undo_point"}`; antes crea un punto «antes de deshacer» |
+
+`kind` es `turn` o `before_undo`; `status` es `added`, `modified` o `deleted`; `reason` es `name`, `too_large`, `symlink`, `special` o `unsupported_name`. Las rutas son relativas a la carpeta del agente.
+
+Errores: `404 restore_point_not_found` (id desconocido o mal formado, también `..`); `400 restore_invalid` (una ruta del punto sale de la carpeta); `409 restore_failed` (falta una copia o falla E/S). Un fallo al crear el punto no impide el turno: se registra y el turno sigue.
+
+Limitación: los cambios hechos por comandos de shell no se rastrean uno a uno; solo se compara la carpeta antes y después. Auditoría: `restore.create` y `restore.undo`, sin rutas completas ni contenido.
+
+```json
+{"ok": true, "agent": "w1:p1", "points": [
+  {"id": "01J…", "kind": "turn", "turn": "01J…", "created_ms": 1762300000000, "files": 42, "excluded": 3}]}
+```
+
+## Planes (F3, `/v1/plans`)
+
+Un plan es el encargo entero que un agente propone antes del primer paso: 1 a 20 pasos, cada uno con un título de texto plano (≤120 caracteres) y lo que toca (`files`, `network`, `mail`, `tools`, `nothing`). Una delegación de más pasos que el umbral (3 por defecto, `[plans] threshold` en `approvals.toml`) no empieza hasta que su plan esté aprobado. Un plan que toca `mail` o `network` nunca se aprueba por regla.
+
+| Ruta | Permiso | Respuesta |
+|---|---|---|
+| `GET /v1/plans?status=` | `READ_STATE` | `200 {"ok","plans":[{id,conversation_id,proposer_agent_id,proposer_name,steps,status,summary,note?,delegation_id?,decided_by?,created_at,updated_at,decided_at?}]}` |
+| `POST /v1/plans/{id}/approve` | `APPROVE` | `200 {"ok","plan"}` |
+| `POST /v1/plans/{id}/reject` | `APPROVE` | `200 {"ok","plan"}` |
+| `POST /v1/plans/{id}/request_changes` | `APPROVE` | body `{"note"}` (≤300) → `200 {"ok","plan"}` |
+
+Agente (MCP): `plan.propose {steps}` (lead o Alfred) y `plan.status {plan_id}`; `delegation.assign` acepta `steps` y `plan_id`. Con `plan_id` mandan los pasos del plan y `steps` se ignora.
+
+Timeline: cada plan deja una línea `kind: "plan"` al proponerse y otra al responderse, con `seq` propio (`ref_id` = id del plan, `status`, `summary`, `decider_kind`). Un cliente que no conozca el tipo la dibuja como línea neutra. Requiere el esquema 24.
+
+Errores: `404 not_found`/`no_such_plan`; `400 invalid_body` (título largo, 0 o 21 pasos, HTML o marcas de código); `409 plan_decided` (ya respondido, es final); `409 plan_not_approved` (`plan_required`, `plan_linked` en MCP).
+
+```json
+{"ok": true, "plan": {"id": "plan_…", "status": "proposed", "steps": [
+  {"title": "Leer el repo", "touches": ["files"]}],
+  "summary": "Plan de 4 pasos · lo propone Ernesto · toca: ficheros"}}
+```
+
+## Recetas (F5, `/v1/recipes`)
+
+Una receta es un texto reutilizable de un oficio que la persona guarda a mano después de revisarlo. Ejecutarla arranca una delegación desde Alfred hacia la contratación activa de ese oficio, en una conversación con proyecto. Guardar, editar, borrar, pedir borrador y ejecutar son decisiones de la persona: `APPROVE`. Leer es `READ_STATE`. Ningún agente las guarda ni las ejecuta por sí mismo. Requiere el esquema 23.
+
+Reglas del texto: título ≤80 caracteres, cuerpo ≤2000, sin HTML ni caracteres de control (el cuerpo admite saltos de línea), título único por oficio sin distinguir mayúsculas, ≤50 recetas por oficio. El guardián rechaza siempre los secretos (claves, tokens, contraseñas, PEM, credenciales en URL). Las órdenes de riesgo (ignorar instrucciones, borrar todo, «sin aprobación») exigen `confirm_risks: true`.
+
+| Ruta | Permiso | Respuesta |
+|---|---|---|
+| `GET /v1/recipes?role=` | `READ_STATE` | `200 {"ok","recipes":[{id,role_id,title,body,uses,created_at,updated_at}]}` |
+| `POST /v1/recipes` | `APPROVE` | body `{role,title,body,confirm_risks?}` → `201 {"ok","recipe"}` |
+| `PUT /v1/recipes/{id}` | `APPROVE` | body `{title,body,confirm_risks?}` → `200 {"ok","recipe"}` |
+| `DELETE /v1/recipes/{id}` | `APPROVE` | `200 {"ok","id"}` |
+| `POST /v1/recipes/draft` | `APPROVE` | body `{delegation_id}` → `200 {"ok","draft":{role_id,title,body}}`; solo de una delegación `done`. No guarda nada |
+| `POST /v1/recipes/{id}/run` | `APPROVE` | body `{conversation_id,steps?,plan_id?}` (`steps` ≥1, por defecto 1) → `200 {"ok","delegation_id","status","depth"}` |
+
+Errores: `404 not_found` (receta o delegación inexistente); `422 invalid_recipe` (campo `recipe`: vacío, largo, HTML o control); `422 secret_detected` y `422 risk_needs_confirmation`, ambos con `detail.reasons` (lista de motivos, nunca el texto); `422 invalid_steps` (`steps` = 0); `409 recipe_limit`, `recipe_title_taken`, `no_hire_for_role`, `delegation_not_done`, `conversation_has_no_project`, `plan_not_approved`, `agent_busy`.
+
+Auditoría: `recipe.create` (receta y oficio), `recipe.update`, `recipe.delete` y `recipe.run` (receta y delegación) registran solo ids; el texto de una receta nunca entra en el registro.
+
+```json
+{"ok": true, "draft": {"role_id": "audio-editor",
+  "title": "Editor de audio: Limpia el audio del episodio",
+  "body": "Encargo: Limpia el audio del episodio\n\nAl terminar, devuelve un resumen breve del resultado."}}
+```
+
+## Trabajo programado (F4-CORE, `/v1/schedules`)
+
+Un encargo de un oficio, una vez o repetido, a una hora local de una zona IANA, en una conversación con proyecto. **Solo se ejecuta con tu PC encendido**: no hay nube. Si el PC estaba apagado a la hora, no se lanza al arrancar: se avisa en la conversación y se salta. Topes por oficio (1 por hora, 4 por día) y total (10 por día), en `[schedules]` de `approvals.toml`; un tope o un solape no encola: la ejecución queda registrada como omitida. Un plan de más de 3 pasos se aprueba una vez y sirve a un solo programado vivo; cambiar el texto lo caduca.
+
+| Ruta | Permiso | Respuesta |
+|---|---|---|
+| `GET /v1/schedules?role=` | `READ_STATE` | `200 {"ok","schedules":[…]}` |
+| `POST /v1/schedules` | `APPROVE` | body de abajo → `201 {"ok","schedule"}` |
+| `PUT /v1/schedules/{id}` | `APPROVE` | mismo body → `200 {"ok","schedule"}` |
+| `DELETE /v1/schedules/{id}` | `APPROVE` | `200 {"ok","id"}` |
+| `POST /v1/schedules/{id}/pause` · `/resume` | `APPROVE` | `200 {"ok","schedule"}`; reanudar cuenta desde ahora, sin recuperar lo pasado |
+| `POST /v1/schedules/{id}/run_now` | `APPROVE` | `200 {"ok","delegation_id","status","depth"}`, o `{"ok","run"}` si un tope o solape la omite; no mueve el ritmo |
+| `GET /v1/schedules/{id}/runs` | `READ_STATE` | `200 {"ok","runs":[…]}`, las 50 últimas |
+
+Body: `{title, conversation_id, role, body | recipe_id, start_date "YYYY-MM-DD", time "HH:MM", timezone, rule?, steps?, plan_id?}`. `rule` es RFC 5545 diaria, semanal o mensual; sin `rule` es una vez.
+
+Errores: `422 invalid_schedule` (campo `schedule`: hora, zona, regla, pasos o texto, o `body` y `recipe_id` a la vez o ninguno); `422 secret_detected`; `409 plan_not_approved`, `plan_expired`, `schedule_limit` (20 activos), `schedule_done`, `schedule_no_future_run`; `404 no_such_schedule`.
+
+Auditoría: `schedule.create|update|delete|pause|resume|run_now` con ids y resultado; nunca el texto.
+
+```json
+{"ok": true, "run": {"id": "srn_1", "schedule_id": "sch_1", "due_at": "2026-11-02T08:00:00.000Z",
+  "started_at": null, "outcome": "skipped_cap", "delegation_id": null}}
 ```
 
 ## Request bodies and signatures

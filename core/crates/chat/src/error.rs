@@ -46,6 +46,18 @@ pub enum ChatError {
     TurnBudget,
     #[error("the hourly delegation budget is exhausted")]
     HourBudget,
+    #[error("invalid plan: {0}")]
+    InvalidPlan(&'static str),
+    #[error("unknown plan: {0}")]
+    NoSuchPlan(String),
+    #[error("this delegation has more steps than the threshold: it needs an approved plan")]
+    PlanRequired,
+    #[error("the plan is not approved, or the delegation does not belong to its conversation")]
+    PlanNotApproved,
+    #[error("the plan already started another delegation")]
+    PlanLinked,
+    #[error("the plan was already decided")]
+    PlanDecided,
     #[error("no such approval")]
     NoSuchApproval,
     #[error("the approval expired before the decision")]
@@ -78,6 +90,36 @@ pub enum ChatError {
     ApprovalBudget,
     #[error("invalid exclusion: {0}")]
     InvalidExclusion(&'static str),
+    #[error("invalid recipe: {0}")]
+    InvalidRecipe(&'static str),
+    #[error("no such recipe: {0}")]
+    NoSuchRecipe(String),
+    #[error("the oficio already keeps the most recipes it can")]
+    RecipeLimit,
+    #[error("the oficio already has a recipe with that title")]
+    RecipeTitleTaken,
+    #[error("the recipe holds a secret and cannot be kept")]
+    RecipeSecret(Vec<&'static str>),
+    #[error("the recipe has risks that the person must confirm")]
+    RecipeRisk(Vec<&'static str>),
+    #[error("invalid schedule: {0}")]
+    InvalidSchedule(&'static str),
+    #[error("no such schedule: {0}")]
+    NoSuchSchedule(String),
+    #[error("the company already has the most active schedules it can")]
+    ScheduleLimit,
+    #[error("the schedule is done: it has no run left")]
+    ScheduleDone,
+    #[error("the schedule has no run after now")]
+    ScheduleNoFutureRun,
+    #[error("the plan was approved for an earlier text: approve a plan for this one")]
+    PlanExpired,
+    #[error("no active hire of the oficio {0}")]
+    NoHireForRole(String),
+    #[error("the delegation is not finished: {0}")]
+    DelegationNotDone(String),
+    #[error("the conversation has no project, so no hire can work in it")]
+    ConversationWithoutProject,
     #[error("the company already keeps the most notes it can")]
     NoteLimit,
     #[error("no such note: {0}")]

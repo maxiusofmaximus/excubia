@@ -26,6 +26,12 @@ pub(super) fn tool_chat_error(error: ChatError) -> ToolError {
         }
         ChatError::TurnBudget => ToolError::conflict("turn_budget", message),
         ChatError::HourBudget => ToolError::conflict("hour_budget", message),
+        ChatError::InvalidPlan(_) => ToolError::invalid("invalid_plan", "steps", message),
+        ChatError::NoSuchPlan(_) => ToolError::invalid("no_such_plan", "plan_id", message),
+        ChatError::PlanRequired => ToolError::conflict("plan_required", message),
+        ChatError::PlanNotApproved => ToolError::conflict("plan_not_approved", message),
+        ChatError::PlanLinked => ToolError::conflict("plan_linked", message),
+        ChatError::PlanDecided => ToolError::conflict("plan_decided", message),
         ChatError::ApprovalExpired => ToolError::conflict("approval_expired", message),
         ChatError::ApprovalAlreadyDecided => {
             ToolError::conflict("approval_already_decided", message)

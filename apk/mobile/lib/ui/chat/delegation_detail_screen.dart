@@ -79,8 +79,11 @@ class _DelegationDetailScreenState extends State<DelegationDetailScreen> {
   Future<void> _openAgent(String paneId) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            AgentDetailScreen(triage: widget.chat.triage, paneId: paneId),
+        builder: (_) => AgentDetailScreen(
+          triage: widget.chat.triage,
+          paneId: paneId,
+          restore: widget.chat.restore,
+        ),
       ),
     );
   }

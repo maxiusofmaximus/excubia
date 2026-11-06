@@ -41,8 +41,10 @@ pub mod pairing_audit;
 pub mod pairing_notice;
 pub mod pake_cli;
 pub mod paths;
+mod restore_points;
 mod session;
 mod snapshot;
+pub mod schedule_runner;
 pub mod strata;
 pub mod team;
 mod team_alerts;
@@ -51,8 +53,10 @@ mod team_calendar;
 mod team_contacts;
 mod team_delegations;
 mod team_errors;
+mod team_hire_seat;
 mod team_notes;
 mod team_paths;
+mod team_plans;
 mod team_status;
 mod team_tools;
 mod term_size;
@@ -74,6 +78,7 @@ use hn_core_pty::{CommandSpec, PtySession, PtySize};
 use hn_core_state::{NewAgent, StatePayload, StateStore};
 use tokio::sync::Notify;
 
+use restore_points::RestoreStore;
 use session::{Monitor, Session, SCROLLBACK_LINES};
 use snapshot::SnapshotPane;
 use term_size::TermSize;
@@ -154,11 +159,15 @@ pub struct AgentHost {
     shutting_down: Arc<AtomicBool>,
     dirty: Arc<Notify>,
     hook_reports: Arc<Notify>,
+    restore: Arc<RestoreStore>,
 }
 
 impl AgentHost {
     /// Build the host and restore the panes of the previous run.
     pub async fn new(store: Arc<StateStore>, options: HostOptions) -> Arc<Self> {
+        let restore = Arc::new(RestoreStore::new(paths::restore_points_dir(
+            &options.data_dir,
+        )));
         let host = Arc::new(Self {
             store,
             options,
@@ -166,6 +175,7 @@ impl AgentHost {
             shutting_down: Arc::new(AtomicBool::new(false)),
             dirty: Arc::new(Notify::new()),
             hook_reports: Arc::new(Notify::new()),
+            restore,
         });
         host.restore().await;
         host.spawn_snapshot_writer();
@@ -257,7 +267,7 @@ impl AgentHost {
             })
             .await;
 
-        let session = Arc::new(Session::live(pty, Arc::clone(&parser)));
+        let session = Arc::new(Session::live(pty, Arc::clone(&parser), cwd.clone()));
         self.sessions
             .lock()
             .expect("sessions poisoned")

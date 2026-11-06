@@ -43,7 +43,11 @@ extension _ChatScreenActions on _ChatScreenState {
     if (paneId == null || paneId.isEmpty) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => AgentDetailScreen(triage: _chat.triage, paneId: paneId),
+        builder: (_) => AgentDetailScreen(
+          triage: _chat.triage,
+          paneId: paneId,
+          restore: _chat.restore,
+        ),
       ),
     );
   }

@@ -10,8 +10,16 @@ use crate::store::Permission;
 
 mod agenda;
 mod hires;
+mod plans;
+mod recipes;
+mod restore;
+mod schedules;
 use agenda::agenda_rule;
 use hires::hire_rule;
+use plans::plan_rule;
+use recipes::recipe_rule;
+use restore::restore_rule;
+use schedules::schedule_rule;
 
 /// How an endpoint is priced against the rate limiters.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -64,6 +72,18 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         return Ok(rule);
     }
     if let Some(rule) = agenda_rule(method.as_str(), &segments) {
+        return Ok(rule);
+    }
+    if let Some(rule) = restore_rule(method.as_str(), &segments) {
+        return Ok(rule);
+    }
+    if let Some(rule) = plan_rule(method.as_str(), &segments) {
+        return Ok(rule);
+    }
+    if let Some(rule) = recipe_rule(method.as_str(), &segments) {
+        return Ok(rule);
+    }
+    if let Some(rule) = schedule_rule(method.as_str(), &segments) {
         return Ok(rule);
     }
 

@@ -134,6 +134,17 @@ pub struct ApprovalLine {
     pub created_at: String,
 }
 
+/// A plan line as the timeline table stores it: the status the plan reached and
+/// its summary, which names the count of steps and never their titles.
+pub struct PlanLine {
+    pub seq: i64,
+    pub plan_id: String,
+    pub status: String,
+    pub summary: String,
+    pub decider_kind: Option<String>,
+    pub created_at: String,
+}
+
 /// Where a card points. The agent link reuses the detail clients already have;
 /// the delegation link is the new full record. No pane detail is duplicated.
 #[derive(Clone, Debug, Serialize)]
@@ -285,6 +296,44 @@ impl TimelineEntry {
             draft_id: Some(line.draft_id),
             to: Some(line.to),
             subject: Some(line.subject),
+            turn_state: None,
+            suggestions: Vec::new(),
+            attachments: Vec::new(),
+            quote: None,
+            created_at: line.created_at,
+        }
+    }
+
+    /// A plan line. It reuses the approval line's fields, so a client that does
+    /// not know the kind draws it as a neutral line with its summary.
+    pub fn plan(line: PlanLine) -> Self {
+        Self {
+            seq: line.seq,
+            kind: "plan",
+            message_id: None,
+            author_kind: None,
+            author_agent_id: None,
+            preview: None,
+            state: Some(line.status.clone()),
+            card_id: None,
+            delegation_id: None,
+            ref_id: Some(line.plan_id),
+            title: None,
+            summary: Some(line.summary),
+            status: Some(line.status),
+            agent_id: None,
+            pane_id: None,
+            attention: None,
+            links: None,
+            decider_kind: line.decider_kind,
+            decider_id: None,
+            user_code: None,
+            verification_uri: None,
+            account: None,
+            expires_at: None,
+            draft_id: None,
+            to: None,
+            subject: None,
             turn_state: None,
             suggestions: Vec::new(),
             attachments: Vec::new(),

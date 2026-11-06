@@ -4,6 +4,9 @@
 use serde_json::Value;
 
 use crate::model::Turn;
+use crate::model_recipe::RecipeRun;
+use crate::store::Launch;
+use crate::model_team::Delegation;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SeatErrorCode {
@@ -155,6 +158,23 @@ pub trait ChatSeat: Send + Sync + 'static {
     /// Kill switch: cancel every active delegation of a conversation.
     fn cancel_conversation(&self, _conversation_id: &str) -> Result<(), SeatError> {
         Ok(())
+    }
+
+    /// Start a recipe: the hire takes the body from Alfred and the panel gets it.
+    /// A seat that cannot deliver refuses, so no work is left queued forever.
+    async fn run_recipe(
+        &self,
+        _run: RecipeRun,
+        _steps: u32,
+        _plan_id: Option<String>,
+    ) -> Result<Delegation, ToolError> {
+        Err(ToolError::unavailable("this seat cannot start a recipe"))
+    }
+
+    /// Start a scheduled run: the hire takes the text from Alfred. Refused by a seat that
+    /// cannot deliver, as a recipe is.
+    async fn run_scheduled(&self, _launch: Launch) -> Result<Delegation, ToolError> {
+        Err(ToolError::unavailable("this seat cannot start a scheduled run"))
     }
 
     /// Stop the open turns of one conversation. The chat state is already

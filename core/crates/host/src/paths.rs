@@ -111,6 +111,11 @@ pub fn tls_dir(data_dir: &Path) -> PathBuf {
     data_dir.join("tls")
 }
 
+/// The restore points of the agents' folders (`restore_points.rs`).
+pub fn restore_points_dir(data_dir: &Path) -> PathBuf {
+    data_dir.join("restore")
+}
+
 pub fn ensure_data_dir(data_dir: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(data_dir)
 }

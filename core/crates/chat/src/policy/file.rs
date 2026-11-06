@@ -9,6 +9,8 @@ use regex::Regex;
 use serde::Deserialize;
 
 use super::category::Category;
+use super::plans::{PlanRules, RawPlans};
+use super::schedules::{RawSchedules, ScheduleRules};
 use super::rules::{Effect, Policy, Rule, Scope};
 use crate::scorer::{RawScorer, ScorerConfig};
 
@@ -26,6 +28,10 @@ pub enum PolicyError {
     Rule { id: String, reason: String },
     #[error("[scorer]: {0}")]
     Scorer(String),
+    #[error("[plans]: {0}")]
+    Plans(String),
+    #[error("[schedules]: {0}")]
+    Schedules(String),
 }
 
 #[derive(Deserialize)]
@@ -34,6 +40,8 @@ struct RawFile {
     #[serde(default, rename = "rule")]
     rules: Vec<RawRule>,
     scorer: Option<RawScorer>,
+    plans: Option<RawPlans>,
+    schedules: Option<RawSchedules>,
 }
 
 #[derive(Deserialize)]
@@ -111,7 +119,18 @@ pub fn parse(text: &str) -> Result<Policy, PolicyError> {
         Some(raw) => raw.into_config().map_err(PolicyError::Scorer)?,
         None => ScorerConfig::default(),
     };
-    Ok(Policy::new(rules).with_scorer(scorer))
+    let plans = match file.plans {
+        Some(raw) => raw.into_rules().map_err(PolicyError::Plans)?,
+        None => PlanRules::default(),
+    };
+    let schedules = match file.schedules {
+        Some(raw) => raw.into_rules().map_err(PolicyError::Schedules)?,
+        None => ScheduleRules::default(),
+    };
+    Ok(Policy::new(rules)
+        .with_scorer(scorer)
+        .with_plans(plans)
+        .with_schedules(schedules))
 }
 
 /// The policy of one host, reloaded when its file changes.

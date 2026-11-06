@@ -28,6 +28,17 @@ export function errorMessage(error) {
   }
 }
 
+// How long ago `fromMs` was, in the words the screens share: «un momento», «12 min», «3 h», «2 días».
+export function elapsedWords(fromMs, now) {
+  const minutes = Math.floor((now - fromMs) / 60_000);
+  if (minutes < 1) return "un momento";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "1 día" : `${days} días`;
+}
+
 /// The line that says when a pairing code stops working.
 export function expiryText(expiresAt, now = Date.now()) {
   if (now >= expiresAt * 1000) return "Este código ha caducado. Genera otro.";

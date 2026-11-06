@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { ICONS, emptyStateSpec, errorStateSpec } from "../ui/empty-state-model.js";
 
 test("cada icono es una lista de trazos SVG del mismo estilo que la barra lateral", () => {
-  for (const name of ["chat", "calendar", "notes", "contacts", "alerts", "devices", "team", "alert"]) {
+  for (const name of ["chat", "calendar", "notes", "contacts", "alerts", "devices", "team", "restore", "alert"]) {
     assert.ok(Array.isArray(ICONS[name]) && ICONS[name].length > 0, `falta el icono ${name}`);
     for (const [tag, attrs] of ICONS[name]) {
       assert.ok(["path", "rect", "circle"].includes(tag), `${name}: trazo ${tag} no permitido`);

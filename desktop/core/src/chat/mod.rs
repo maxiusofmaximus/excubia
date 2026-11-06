@@ -19,7 +19,12 @@ mod error_text;
 mod hires;
 mod mail_draft;
 mod model;
+mod plan;
+mod recipe;
+mod restore;
+mod schedule;
 mod team;
+mod team_summary;
 #[cfg(test)]
 mod tests;
 
@@ -36,7 +41,12 @@ pub use error_text::{delegation_text, team_text};
 pub use hires::*;
 pub use mail_draft::*;
 pub use model::*;
+pub use plan::*;
+pub use recipe::*;
+pub use restore::*;
+pub use schedule::*;
 pub use team::*;
+pub use team_summary::*;
 
 use serde_json::{Map, Value};
 

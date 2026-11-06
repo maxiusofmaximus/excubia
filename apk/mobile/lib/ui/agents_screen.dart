@@ -11,9 +11,16 @@ import '../core/model/connection_state.dart';
 import '../core/state/chat_controller.dart';
 import '../core/state/hires_controller.dart';
 import '../core/state/live_triage.dart';
+import '../core/state/plans_controller.dart';
+import '../core/state/recipes_controller.dart';
+import '../core/state/schedules_controller.dart';
+import '../core/state/team_summary_controller.dart';
 import 'agent_detail_screen.dart';
 import 'new_conversation_screen.dart';
+import 'plans/plans_section.dart';
+import 'schedules/schedules_section.dart';
 import 'team/hires_section.dart';
+import 'team/team_summary_section.dart';
 import 'team_projects.dart';
 import 'theme.dart';
 import 'widgets/agent_row.dart';
@@ -34,12 +41,20 @@ class AgentsScreen extends StatefulWidget {
     required this.triage,
     required this.chat,
     required this.hires,
+    required this.recipes,
+    required this.summary,
+    required this.plans,
+    required this.schedules,
     required this.onUnpaired,
   });
 
   final LiveTriage triage;
   final ChatController chat;
   final HiresController hires;
+  final RecipesController recipes;
+  final TeamSummaryController summary;
+  final PlansController plans;
+  final SchedulesController schedules;
   final Future<void> Function() onUnpaired;
 
   @override
@@ -199,7 +214,15 @@ class _AgentsScreenState extends State<AgentsScreen>
       return ListView(
         padding: const EdgeInsets.only(bottom: Spacing.xl),
         children: [
-          TeamHiresSection(hires: _hires),
+          PlansSection(plans: widget.plans),
+          TeamSummarySection(
+            summary: widget.summary,
+            hires: _hires,
+            recipes: widget.recipes,
+            plans: widget.plans,
+          ),
+          TeamHiresSection(hires: _hires, recipes: widget.recipes),
+          SchedulesSection(schedules: widget.schedules, oficioOf: _oficioOf),
           _emptyTeam(connection, state),
         ],
       );
@@ -268,12 +291,23 @@ class _AgentsScreenState extends State<AgentsScreen>
     return ListView(
       padding: const EdgeInsets.only(bottom: Spacing.xl),
       children: [
+        PlansSection(plans: widget.plans),
+        TeamSummarySection(
+          summary: widget.summary,
+          hires: _hires,
+          recipes: widget.recipes,
+          plans: widget.plans,
+        ),
         _header(),
-        TeamHiresSection(hires: _hires),
+        TeamHiresSection(hires: _hires, recipes: widget.recipes),
         ...rows,
+        SchedulesSection(schedules: widget.schedules, oficioOf: _oficioOf),
       ],
     );
   }
+
+  /// The name of an oficio for «Automatizar»; a role no longer in the catalog keeps a plain word.
+  String _oficioOf(String roleId) => _hires.roleById(roleId)?.title ?? 'Oficio';
 
   /// Nobody is listed. With people hired, "nobody is running" is the true state.
   /// Offline keeps the retry panel; online says it lightly, because «Contratar»

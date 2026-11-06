@@ -2,6 +2,7 @@ import { app, $, invoke, toast } from "./core.js";
 import { openDetail } from "./detail.js";
 import { openDelegationDetail } from "./delegations.js";
 import { chat, failure } from "./chatstate.js";
+import { saveRecipeFromDelegation } from "./recipes.js";
 
 // The delegation cards' actions: cancel one, or the kill switch of the whole
 // conversation. `render` redraws the chat and `refresh` reloads the feed.
@@ -53,6 +54,8 @@ export function createDelegations({ render, refresh }) {
       });
     } else if (action === "detail") {
       openDelegationDetail(dataset.delegation);
+    } else if (action === "save-recipe") {
+      saveRecipeFromDelegation(dataset.delegation);
     } else if (action === "cancel") {
       chat.cancelTarget = dataset.delegation;
       render();

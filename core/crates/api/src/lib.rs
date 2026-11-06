@@ -18,7 +18,9 @@ mod middleware;
 mod note_api;
 mod pairing_audit;
 mod pake_slot;
+mod recipe_api;
 pub mod role_catalog;
+mod schedule_api;
 mod routes;
 mod sse;
 mod tls;
@@ -35,7 +37,7 @@ pub use mail::{
 };
 pub use pairing_audit::{PairOutcome, PairVia, PairingAttempt, PairingAudit};
 pub use pake_slot::{PakeSlot, PendingPake, ShownCode, PAKE_CODE_TTL, PAKE_PENDING_TTL};
-pub use routes::device_sas;
+pub use routes::{device_sas, RestoreRefusal};
 pub use tls::TlsListener;
 pub use validate::{clamp_read_lines, validate_keys, validate_pane_id, validate_prompt};
 
@@ -45,13 +47,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use axum::extract::connect_info::Connected;
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::serve::{IncomingStream, Listener};
 use axum::{middleware as axum_middleware, Router};
 use hn_core_auth::{DeviceStore, RateLimiter, RequestVerifier, StreamRegistry};
 use hn_core_chat::{ChatSeat, ChatStore};
 use hn_core_pin::Fingerprint;
 use hn_core_state::StateStore;
+use serde_json::Value;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 
@@ -115,6 +118,19 @@ pub trait AgentActions: Send + Sync + 'static {
     /// list. The caller has already checked that the pane exists and is not
     /// restored.
     async fn stop_agent(&self, pane_id: &str) -> Result<(), String>;
+
+    /// Save the folder of a live agent before its turn; returns the point's id. The
+    /// caller goes on with the turn whatever the answer, and records a failure.
+    async fn begin_turn(&self, pane_id: &str) -> Result<String, String>;
+
+    /// The restore points of an agent, newest first, without their folder paths.
+    async fn restore_points(&self, pane_id: &str) -> Result<Value, RestoreRefusal>;
+
+    /// What restoring a point would change, and what the folder leaves out.
+    async fn restore_changes(&self, point_id: &str) -> Result<Value, RestoreRefusal>;
+
+    /// Put a point's folder back as it was. The state before is kept as a point.
+    async fn restore_point(&self, point_id: &str) -> Result<Value, RestoreRefusal>;
 }
 
 /// Everything a route needs.
@@ -223,6 +239,7 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             "/v1/onboarding",
             get(routes::onboarding_state).post(routes::complete_onboarding),
         )
+        .route("/v1/team/summary", get(routes::team_summary))
         .route("/v1/workspaces", post(routes::create_workspace))
         .route("/v1/chat/bootstrap", get(routes::chat_bootstrap))
         .route(
@@ -232,6 +249,35 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route(
             "/v1/chat/delegations/{delegation_id}/cancel",
             post(routes::chat_cancel_delegation),
+        )
+        .route(
+            "/v1/recipes",
+            get(routes::list_recipes).post(routes::create_recipe),
+        )
+        .route("/v1/recipes/draft", post(routes::draft_recipe))
+        .route(
+            "/v1/recipes/{recipe_id}",
+            put(routes::update_recipe).delete(routes::delete_recipe),
+        )
+        .route("/v1/recipes/{recipe_id}/run", post(routes::run_recipe))
+        .route(
+            "/v1/schedules",
+            get(routes::list_schedules).post(routes::create_schedule),
+        )
+        .route(
+            "/v1/schedules/{schedule_id}",
+            put(routes::update_schedule).delete(routes::delete_schedule),
+        )
+        .route("/v1/schedules/{schedule_id}/pause", post(routes::pause_schedule))
+        .route("/v1/schedules/{schedule_id}/resume", post(routes::resume_schedule))
+        .route("/v1/schedules/{schedule_id}/run_now", post(routes::run_schedule_now))
+        .route("/v1/schedules/{schedule_id}/runs", get(routes::schedule_runs))
+        .route("/v1/plans", get(routes::list_plans))
+        .route("/v1/plans/{plan_id}/approve", post(routes::approve_plan))
+        .route("/v1/plans/{plan_id}/reject", post(routes::reject_plan))
+        .route(
+            "/v1/plans/{plan_id}/request_changes",
+            post(routes::request_plan_changes),
         )
         .route("/v1/chat/approvals", get(routes::chat_approvals))
         .route(
@@ -335,6 +381,15 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route(
             "/v1/alfred/backend",
             get(routes::alfred_status).post(routes::alfred_request),
+        )
+        .route("/v1/restore/points", get(routes::restore_points))
+        .route(
+            "/v1/restore/points/{point_id}/files",
+            get(routes::restore_changes),
+        )
+        .route(
+            "/v1/restore/points/{point_id}/restore",
+            post(routes::restore_point),
         )
         .merge(routes::agenda_routes())
         .route_layer(axum_middleware::from_fn_with_state(

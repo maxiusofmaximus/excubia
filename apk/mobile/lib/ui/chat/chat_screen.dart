@@ -25,7 +25,7 @@ import 'chat_attachments_picker.dart';
 import 'chat_composer.dart';
 import 'chat_progress.dart';
 import 'chat_replies.dart';
-import 'chat_suggestions.dart';
+import 'chat_starter_suggestions.dart';
 import 'chat_conversation_view.dart';
 import 'delegation_card.dart';
 import 'delegation_detail_screen.dart';
@@ -302,6 +302,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       children: [
                         ConversationView(
                           chat: _chat,
+                          starters: StarterSuggestions(
+                            chat: _chat,
+                            hires: widget.hires,
+                            onSuggestion: _suggest,
+                          ),
                           scroll: _scroll,
                           rowKey: _rowKey,
                           onRetrySend: _chat.retryLocal,

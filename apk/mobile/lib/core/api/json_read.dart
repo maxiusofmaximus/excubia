@@ -52,3 +52,15 @@ List<String> jsonStrings(Map<String, Object?> json, String key) => [
   for (final item in jsonList(json, key))
     if (item is String) item,
 ];
+
+/// The `detail.code` of a coded refusal; a bare `detail` text has none.
+String? jsonErrorCode(String body) {
+  Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException {
+    return null;
+  }
+  final detail = decoded is Map<String, Object?> ? decoded['detail'] : null;
+  return detail is Map<String, Object?> ? jsonOptionalText(detail, 'code') : null;
+}

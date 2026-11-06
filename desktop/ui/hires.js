@@ -85,12 +85,15 @@ function groupBlock(group) {
   return section;
 }
 
-function grantNote() {
+const TEAM_GRANT_LEDE =
+  "Este dispositivo no tiene el permiso APPROVE: ves tu equipo, pero no puedes cambiarlo. Concédelo desde el PC:";
+
+// The APPROVE notice with the command that grants it; each screen words its own lede.
+export function grantNote(lede = TEAM_GRANT_LEDE) {
   const note = document.createElement("div");
   note.className = "hire-note";
   const text = document.createElement("p");
-  text.textContent =
-    "Este dispositivo no tiene el permiso APPROVE: ves tu equipo, pero no puedes cambiarlo. Concédelo desde el PC:";
+  text.textContent = lede;
   const code = document.createElement("code");
   code.className = "approval-grant";
   code.textContent = grantCommand(currentDeviceId() || app.boot?.device_id);

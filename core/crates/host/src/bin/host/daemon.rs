@@ -55,7 +55,6 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     let alerts_task = spawn_alerts(Arc::clone(&store), Arc::clone(&chat));
     let catalog = Arc::new(load_agents(&options.data_dir)?);
     let token = Arc::new(load_hook_token(&options.data_dir)?);
-    calendar_reminders::watch(Arc::clone(&chat), Arc::clone(&store));
     let address = SocketAddr::new(options.bind, options.port);
     let listener = tokio::net::TcpListener::bind(address)
         .await
@@ -181,6 +180,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         ),
     }
     let seat: Arc<dyn ChatSeat> = Arc::clone(&team) as Arc<dyn ChatSeat>;
+    calendar_reminders::watch(Arc::clone(&chat), Arc::clone(&store), Arc::clone(&seat));
 
     for command_line in &options.spawns {
         let spec = SpawnSpec::parse(command_line)?;

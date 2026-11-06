@@ -49,6 +49,7 @@ mod delegations;
 #[cfg(test)]
 #[path = "device_tests.rs"]
 mod device_tests;
+mod hire_links;
 mod hires;
 mod hook_tokens;
 mod journal;
@@ -58,6 +59,15 @@ mod mail_draft_card;
 mod mail_history;
 mod messages;
 mod notes;
+mod plans;
+mod recipe_run;
+mod schedule_brakes;
+mod schedule_check;
+mod schedule_claim;
+mod schedules;
+
+pub use schedule_claim::{Claim, Launch};
+mod recipes;
 mod projects;
 mod runs;
 mod seats;
@@ -69,6 +79,7 @@ pub use alerts::{AlertSummary, AlertWriter};
 use bootstrap::root_label;
 pub use calendar::EventOrigin;
 pub use calendar_read::{CalendarSummary, NextEvent};
+pub use hire_links::{HireLink, PendingApproval, PendingPlan};
 pub(crate) use journal::{append_event, journal_turns, revision};
 pub(crate) use lookup::{
     alfred_id, company_id, conversation_exists, next_seq, open_run_ids, run_info, seat_summary,

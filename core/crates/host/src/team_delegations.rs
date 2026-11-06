@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use hn_core_chat::{
-    preview, ChatError, ChatSeat, Delegation, DelegationState, NewDelegation, SeatActor, ToolError,
-    ToolReply,
+    preview, ChatError, ChatSeat, Delegation, DelegationState, Launch, NewDelegation, RecipeRun,
+    SeatActor, ToolError, ToolReply,
 };
 use serde_json::json;
 
@@ -48,18 +48,23 @@ impl TeamService {
                 "conversation_id is required",
             ));
         }
+        let to_agent_id = self
+            .seat_of_target(&assign.to_agent_id, &conversation_id)
+            .await?;
         let delegation = self
             .chat
             .create_delegation(NewDelegation {
                 conversation_id,
                 from_agent_id: actor.agent_id.clone(),
-                to_agent_id: assign.to_agent_id,
+                to_agent_id,
                 task: assign.task,
                 turn_key: parent
                     .as_ref()
                     .map(|parent| parent.id.clone())
                     .unwrap_or_else(|| actor.run_id.clone()),
                 parent_id: parent.as_ref().map(|parent| parent.id.clone()),
+                steps: assign.steps,
+                plan_id: assign.plan_id,
             })
             .map_err(tool_chat_error)?;
         self.dispatch(&delegation).await?;
@@ -71,6 +76,61 @@ impl TeamService {
                 "depth": delegation.depth,
             }),
         })
+    }
+
+    /// A recipe run: the hire's panel is spawned if it has none, the delegation
+    /// starts from Alfred and the body is delivered. The use counts once it is out.
+    pub(super) async fn start_recipe(
+        &self,
+        run: RecipeRun,
+        steps: u32,
+        plan_id: Option<String>,
+    ) -> Result<Delegation, ToolError> {
+        let to_agent_id = self
+            .seat_of_target(&run.hire_id, &run.conversation_id)
+            .await?;
+        let delegation = self
+            .chat
+            .create_user_delegation(NewDelegation {
+                conversation_id: run.conversation_id,
+                from_agent_id: run.alfred_id,
+                to_agent_id,
+                task: run.task,
+                turn_key: run.turn_key,
+                parent_id: None,
+                steps,
+                plan_id,
+            })
+            .map_err(tool_chat_error)?;
+        self.dispatch(&delegation).await?;
+        if let Some(recipe_id) = &run.recipe_id {
+            self.chat.count_recipe_use(recipe_id).map_err(tool_chat_error)?;
+        }
+        Ok(delegation)
+    }
+
+    /// A scheduled run: the same path as a recipe run, but its plan was checked when the
+    /// schedule was saved, so the gate is passed here and no recipe use is counted.
+    pub(super) async fn start_scheduled(&self, launch: Launch) -> Result<Delegation, ToolError> {
+        let run = launch.run;
+        let to_agent_id = self
+            .seat_of_target(&run.hire_id, &run.conversation_id)
+            .await?;
+        let delegation = self
+            .chat
+            .create_schedule_delegation(NewDelegation {
+                conversation_id: run.conversation_id,
+                from_agent_id: run.alfred_id,
+                to_agent_id,
+                task: run.task,
+                turn_key: run.turn_key,
+                parent_id: None,
+                steps: launch.steps,
+                plan_id: None,
+            })
+            .map_err(tool_chat_error)?;
+        self.dispatch(&delegation).await?;
+        Ok(delegation)
     }
 
     /// Start the delegation and deliver it to the resident panel. A missing

@@ -186,6 +186,16 @@ impl ApiError {
         }
     }
 
+    /// A rejected text that names what the guard found (`errors.md`, 422): a
+    /// stable `code` and the list of reasons, never the text itself.
+    pub fn rejected(code: &str, reasons: &[&str]) -> Self {
+        Self {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            body: json!({"detail": {"code": code, "reasons": reasons}}),
+            retry_after: None,
+        }
+    }
+
     pub fn internal(detail: impl std::fmt::Display) -> Self {
         eprintln!("api: internal error: {detail}");
         Self {

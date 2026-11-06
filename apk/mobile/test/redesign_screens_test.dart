@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herdr_notify/core/api/recipes_api.dart';
 import 'package:herdr_notify/core/state/chat_controller.dart';
 import 'package:herdr_notify/core/state/hires_controller.dart';
+import 'package:herdr_notify/core/state/recipes_controller.dart';
 import 'package:herdr_notify/src/rust/api/state.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 import 'package:herdr_notify/ui/chat/chat_screen.dart';
@@ -90,7 +92,17 @@ void main() {
           tester,
           palette,
           Scaffold(
-            body: ListView(children: [TeamHiresSection(hires: hires)]),
+            body: ListView(
+              children: [
+                TeamHiresSection(
+                  hires: hires,
+                  recipes: RecipesController(
+                    api: RecipesApi(FakeTeamHost()),
+                    conversationId: () => null,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
         await saveCapture(tester, key, _evidence, 'redis-equipo-${palette.id}');
@@ -137,7 +149,13 @@ void main() {
           Scaffold(
             body: ListView(
               children: [
-                TeamHiresSection(hires: hires),
+                TeamHiresSection(
+                  hires: hires,
+                  recipes: RecipesController(
+                    api: RecipesApi(FakeTeamHost()),
+                    conversationId: () => null,
+                  ),
+                ),
                 EmptyState(
                   icon: Icons.inbox_outlined,
                   title: 'No hay agentes',

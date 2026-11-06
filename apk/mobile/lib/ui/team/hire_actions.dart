@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
 import 'package:herdr_notify/src/rust/api/onboarding/plan.dart';
 
 import '../../core/state/hires_controller.dart';
+import '../../core/state/recipes_controller.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import 'hire_recipes.dart';
 
 /// The characters a contracted person can wear: the eight with artwork. Alfred
 /// is the CTO and is never hired, so he is not one of them.
@@ -19,52 +23,85 @@ const List<String> hireCharacters = [
   'sami',
 ];
 
-/// Opens what the user can do with one contracted person. Each action asks
-/// first where it must; the list is read again after the change.
+/// Opens what the user can do with one contracted person, and her recipes. Each action asks
+/// first where it must; the list is read again after the change. [onHire] is the way out
+/// when the oficio has no hire left.
 Future<void> showHireActions(
   BuildContext context,
   HiresController hires,
   Hire hire,
-) {
+  RecipesController recipes, {
+  VoidCallback? onHire,
+}) {
+  unawaited(recipes.open(hire.role));
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
-    builder: (_) => _HireActions(hires: hires, hire: hire),
+    isScrollControlled: true,
+    builder: (_) => _HireActions(
+      hires: hires,
+      hire: hire,
+      recipes: recipes,
+      onHire: onHire,
+    ),
   );
 }
 
 class _HireActions extends StatelessWidget {
-  const _HireActions({required this.hires, required this.hire});
+  const _HireActions({
+    required this.hires,
+    required this.hire,
+    required this.recipes,
+    required this.onHire,
+  });
 
   final HiresController hires;
   final Hire hire;
+  final RecipesController recipes;
+  final VoidCallback? onHire;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            minVerticalPadding: Spacing.md,
-            leading: Icon(Icons.edit_outlined, color: c.accentText),
-            title: Text('Renombrar', style: context.text.body),
-            onTap: () => _rename(context),
-          ),
-          ListTile(
-            minVerticalPadding: Spacing.md,
-            leading: Icon(Icons.face_outlined, color: c.accentText),
-            title: Text('Cambiar avatar', style: context.text.body),
-            onTap: () => _changeAvatar(context),
-          ),
-          ListTile(
-            minVerticalPadding: Spacing.md,
-            leading: Icon(Icons.person_remove_outlined, color: c.accentText),
-            title: Text('Despedir', style: context.text.body),
-            onTap: () => _dismiss(context),
-          ),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              minVerticalPadding: Spacing.md,
+              leading: Icon(Icons.edit_outlined, color: c.accentText),
+              title: Text('Renombrar', style: context.text.body),
+              onTap: () => _rename(context),
+            ),
+            ListTile(
+              minVerticalPadding: Spacing.md,
+              leading: Icon(Icons.face_outlined, color: c.accentText),
+              title: Text('Cambiar avatar', style: context.text.body),
+              onTap: () => _changeAvatar(context),
+            ),
+            ListTile(
+              minVerticalPadding: Spacing.md,
+              leading: Icon(Icons.person_remove_outlined, color: c.accentText),
+              title: Text('Despedir', style: context.text.body),
+              onTap: () => _dismiss(context),
+            ),
+            const Divider(height: Spacing.xl),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.lg,
+                0,
+                Spacing.lg,
+                Spacing.lg,
+              ),
+              child: HireRecipes(
+                recipes: recipes,
+                personName: hire.name,
+                onHire: onHire,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

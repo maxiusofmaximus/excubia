@@ -89,47 +89,9 @@ impl super::ChatStore {
     pub fn create_seat(&self, new: NewSeat) -> Result<Seat, ChatError> {
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
-        let company = company_id(&transaction)?;
-        if !matches!(new.role_id.as_str(), "lead" | "specialist") {
-            return Err(ChatError::ScopeDenied);
-        }
-        project_by_id(&transaction, &new.project_id)?;
-        let seats: i64 = transaction.query_row(
-            "SELECT COUNT(*) FROM agent_seat WHERE project_id = ?1 AND status != 'removed'",
-            [&new.project_id],
-            |row| row.get(0),
-        )?;
-        if seats as usize >= MAX_SEATS_PER_PROJECT {
-            return Err(ChatError::SeatLimit);
-        }
-        if new.role_id == "lead" && project_lead(&transaction, &new.project_id)?.is_some() {
-            return Err(ChatError::LeadExists(new.project_id));
-        }
-        let now = schema::now(&transaction)?;
-        let agent_id = id::new_id("ag");
-        transaction.execute(
-            "INSERT INTO agent_seat
-                (id, company_id, project_id, role_id, name, avatar, kind, status, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, NULL, 'unset', 'draft', ?6)",
-            params![
-                agent_id,
-                company,
-                new.project_id,
-                new.role_id,
-                new.name,
-                now
-            ],
-        )?;
+        let seat = insert_seat(&transaction, new, None)?;
         transaction.commit()?;
-        Ok(Seat {
-            agent_id,
-            name: new.name,
-            role_id: new.role_id,
-            project_id: Some(new.project_id),
-            pane_id: None,
-            status: "draft".to_string(),
-            uac_state: UAC_UNCHECKED.to_string(),
-        })
+        Ok(seat)
     }
 
     /// Attach a conversation to a project. A conversation belongs to one
@@ -188,6 +150,56 @@ impl super::ChatStore {
         }
         Ok(seat)
     }
+}
+
+/// Insert a draft seat. `hire_id` links it to a hire in the same write, so a
+/// hire never has a seat that another call could also create.
+pub(super) fn insert_seat(
+    connection: &Connection,
+    new: NewSeat,
+    hire_id: Option<&str>,
+) -> Result<Seat, ChatError> {
+    let company = company_id(connection)?;
+    if !matches!(new.role_id.as_str(), "lead" | "specialist") {
+        return Err(ChatError::ScopeDenied);
+    }
+    project_by_id(connection, &new.project_id)?;
+    let seats: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM agent_seat WHERE project_id = ?1 AND status != 'removed'",
+        [&new.project_id],
+        |row| row.get(0),
+    )?;
+    if seats as usize >= MAX_SEATS_PER_PROJECT {
+        return Err(ChatError::SeatLimit);
+    }
+    if new.role_id == "lead" && project_lead(connection, &new.project_id)?.is_some() {
+        return Err(ChatError::LeadExists(new.project_id));
+    }
+    let now = schema::now(connection)?;
+    let agent_id = id::new_id("ag");
+    connection.execute(
+        "INSERT INTO agent_seat
+            (id, company_id, project_id, role_id, name, avatar, kind, status, created_at, hire_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, NULL, 'unset', 'draft', ?6, ?7)",
+        params![
+            agent_id,
+            company,
+            new.project_id,
+            new.role_id,
+            new.name,
+            now,
+            hire_id
+        ],
+    )?;
+    Ok(Seat {
+        agent_id,
+        name: new.name,
+        role_id: new.role_id,
+        project_id: Some(new.project_id),
+        pane_id: None,
+        status: "draft".to_string(),
+        uac_state: UAC_UNCHECKED.to_string(),
+    })
 }
 
 fn attach_lead(

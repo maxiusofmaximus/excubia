@@ -7,10 +7,11 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use hn_core_chat::{AlertDecision, ChatStore};
+use hn_core_chat::{AlertDecision, ChatSeat, ChatStore};
 use hn_core_state::StateStore;
 
 use crate::alerts::{self, AlertKind};
+use crate::schedule_runner;
 
 /// How often the reminders are checked, so a reminder arrives at most this late.
 pub const REMINDER_EVERY: Duration = Duration::from_secs(30);
@@ -18,13 +19,15 @@ pub const REMINDER_EVERY: Duration = Duration::from_secs(30);
 /// for a day does not buzz the phone once per reminder it missed.
 const MAX_FRAMES_PER_PASS: usize = 3;
 
-/// Delivers the due reminders for as long as the host lives. Needs a Tokio runtime.
-pub fn watch(chat: Arc<ChatStore>, store: Arc<StateStore>) {
+/// Delivers the due reminders and starts the due scheduled runs, for as long as the host lives.
+/// Needs a Tokio runtime.
+pub fn watch(chat: Arc<ChatStore>, store: Arc<StateStore>, seat: Arc<dyn ChatSeat>) {
     tokio::spawn(async move {
         let mut ticks = tokio::time::interval(REMINDER_EVERY);
         loop {
             ticks.tick().await;
             deliver(&chat, &store);
+            schedule_runner::pass(&chat, seat.as_ref()).await;
         }
     });
 }

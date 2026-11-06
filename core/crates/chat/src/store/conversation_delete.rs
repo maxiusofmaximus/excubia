@@ -47,6 +47,17 @@ impl super::ChatStore {
             "DELETE FROM delegation WHERE conversation_id = ?1",
             [conversation_id],
         )?;
+        // A schedule of the conversation goes with its history: left behind, it would keep
+        // firing into a conversation that no longer exists.
+        transaction.execute(
+            "DELETE FROM schedule_run WHERE schedule_id IN
+                (SELECT id FROM schedule WHERE conversation_id = ?1)",
+            [conversation_id],
+        )?;
+        transaction.execute(
+            "DELETE FROM schedule WHERE conversation_id = ?1",
+            [conversation_id],
+        )?;
         // Tables without a foreign key to the conversation.
         transaction.execute(
             "DELETE FROM chat_event WHERE conversation_id = ?1",

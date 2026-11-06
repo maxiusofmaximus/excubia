@@ -199,6 +199,8 @@ async fn the_overview_counts_what_the_state_and_the_bootstrap_count() {
         task: long_task,
         turn_key: "run_status".to_string(),
         parent_id: None,
+        steps: 1,
+        plan_id: None,
     })
     .expect("delegation");
     let approval = ask(&host, &company, "npm install left-pad");

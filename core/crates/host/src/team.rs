@@ -12,7 +12,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use hn_core_chat::{
-    ChatSeat, ChatStore, SeatActor, SeatError, ToolError, ToolReply, ToolRequest, Turn,
+    ChatSeat, ChatStore, Delegation, Launch, RecipeRun, SeatActor, SeatError, ToolError,
+    ToolReply, ToolRequest, Turn,
 };
 use hn_core_seat::{parse_tool, SeatService};
 use serde_json::json;
@@ -151,6 +152,19 @@ impl ChatSeat for TeamService {
         };
         let call = parse_tool(&request)?;
         self.alfred_tool(actor, call, token, request).await
+    }
+
+    async fn run_recipe(
+        &self,
+        run: RecipeRun,
+        steps: u32,
+        plan_id: Option<String>,
+    ) -> Result<Delegation, ToolError> {
+        self.start_recipe(run, steps, plan_id).await
+    }
+
+    async fn run_scheduled(&self, launch: Launch) -> Result<Delegation, ToolError> {
+        self.start_scheduled(launch).await
     }
 
     fn cancel_delegation(&self, delegation_id: &str) -> Result<(), SeatError> {

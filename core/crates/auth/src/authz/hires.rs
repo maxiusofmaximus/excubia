@@ -14,6 +14,7 @@ pub(super) fn hire_rule(method: &str, segments: &[&str]) -> Option<EndpointRule>
         }
         (["", "v1", "onboarding"], "GET") => rule(Permission::ReadState, Budget::Read),
         (["", "v1", "onboarding"], "POST") => rule(Permission::Approve, Budget::Write),
+        (["", "v1", "team", "summary"], "GET") => rule(Permission::ReadState, Budget::Read),
         _ => return None,
     };
     Some(rule)
@@ -43,7 +44,7 @@ mod tests {
 
     #[test]
     fn reading_the_team_needs_read_state() {
-        for path in ["/v1/hires", "/v1/onboarding"] {
+        for path in ["/v1/hires", "/v1/onboarding", "/v1/team/summary"] {
             let rule = classify("GET", path).expect(path);
             assert_eq!(rule.permission, Some(Permission::ReadState), "{path}");
             assert_eq!(rule.budget, Budget::Read, "{path}");
@@ -58,6 +59,13 @@ mod tests {
             let rule = classify(method, path).expect(path);
             assert!(authorize(&agent, &rule).is_err(), "{path}");
         }
+    }
+
+    #[test]
+    fn the_team_summary_is_refused_without_read_state() {
+        let rule = classify("GET", "/v1/team/summary").expect("summary");
+        let no_read = [Permission::Respond, Permission::Approve];
+        assert!(authorize(&no_read, &rule).is_err());
     }
 
     #[test]

@@ -10,13 +10,27 @@ use crate::model_team::{Card, Delegation, DelegationState, NewDelegation, Seat};
 use crate::schema;
 
 use super::delegations::{CYCLE_WINDOW_MINUTES, DELEGATION_SELECT, MAX_DEPTH};
+use super::hire_links::seat_is_hire;
 use super::next_seq;
+
+/// Who asks for a delegation: an agent through its tools, or the user through a
+/// recipe. Only the user may hand work from Alfred straight to a hire.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Requester {
+    Agent,
+    /// The person's own run: a recipe, or a scheduled text Alfred hands to a hire.
+    User,
+    /// A scheduled run. Its plan was checked when the schedule was saved, so the plan gate
+    /// does not run again; every other rule of the tree is the user's.
+    Schedule,
+}
 
 pub(super) fn check_tree(
     connection: &Connection,
     from: &Seat,
     to: &Seat,
     new: &NewDelegation,
+    requester: Requester,
 ) -> Result<(i64, Option<String>), ChatError> {
     let conversation_project: Option<String> = connection
         .query_row(
@@ -28,7 +42,13 @@ pub(super) fn check_tree(
         .flatten();
     let (depth, project_id) = match from.role_id.as_str() {
         "alfred" => {
-            if to.role_id != "lead" || to.project_id != conversation_project {
+            let allowed = match requester {
+                Requester::Agent => to.role_id == "lead",
+                Requester::User | Requester::Schedule => {
+                    to.role_id == "specialist" && seat_is_hire(connection, &to.agent_id)?
+                }
+            };
+            if !allowed || to.project_id != conversation_project {
                 return Err(ChatError::ScopeDenied);
             }
             (1, to.project_id.clone())

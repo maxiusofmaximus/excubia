@@ -94,9 +94,50 @@ pub fn definitions() -> Value {
                     "properties": {
                         "to_agent_id": { "type": "string", "minLength": 1, "maxLength": 200 },
                         "task": string_property("The task, at most one line for the card."),
-                        "conversation_id": { "type": "string", "minLength": 1, "maxLength": 200 }
+                        "conversation_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+                        "steps": { "type": "integer", "minimum": 1, "maximum": 20, "description": "How many steps the delegation has. Above the threshold (3 by default) it needs plan_id of an approved plan; with plan_id the plan's own steps stand and this is ignored." },
+                        "plan_id": { "type": "string", "minLength": 1, "maxLength": 200 }
                     },
                     "required": ["to_agent_id", "task"],
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "plan.propose",
+                "description": "Lead or Alfred. Propose the whole job before its first step when it has more steps than the threshold (3 by default). Each step is one plain-text line of at most 120 characters and says what it touches: files, network, mail, tools or nothing. The operator approves, rejects or asks for changes; a delegation above the threshold does not start until its plan is approved. Read the answer with plan.status.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "steps": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 20,
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+                                    "touches": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "items": { "type": "string", "enum": ["files", "network", "mail", "tools", "nothing"] }
+                                    }
+                                },
+                                "required": ["title", "touches"],
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "required": ["steps"],
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "plan.status",
+                "description": "Read one plan you proposed: its status (proposed, approved, rejected or changes_requested), the operator's note when it asked for changes, and the delegation it started.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "plan_id": { "type": "string", "minLength": 1, "maxLength": 200 } },
+                    "required": ["plan_id"],
                     "additionalProperties": false
                 }
             },

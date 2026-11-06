@@ -114,6 +114,8 @@ fn a_running_delegation_is_interrupted_after_a_reopen() {
                 task: "Planifica".to_string(),
                 turn_key: "run_1".to_string(),
                 parent_id: None,
+                steps: 1,
+                plan_id: None,
             })
             .expect("delegation");
         store.start_delegation(&delegation.id).expect("running");

@@ -215,6 +215,7 @@ endpoint cannot start life implicitly authorized.
 | `POST` | `/v1/hires/{id}/update` | `401` | `403` | `200` (`APPROVE`) |
 | `POST` | `/v1/hires/{id}/dismiss` | `401` | `403` | `200` (`APPROVE`) |
 | `GET` | `/v1/onboarding` | `401` | `403` | `200` |
+| `GET` | `/v1/team/summary` | `401` | `403` | `200` |
 | `POST` | `/v1/onboarding` | `401` | `403` | `200` (`APPROVE`) |
 | `GET` | `/v1/notes` | `401` | `403` | `200` |
 | `GET` | `/v1/notes/{id}` | `401` | `403` | `200` |

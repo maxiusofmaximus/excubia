@@ -3,7 +3,7 @@
 //! `ChatFailure` whose `kind` the webview reads.
 
 use herdr_desktop_core::chat::{
-    ChatFailure, Hire, HireChange, Onboarding, OnboardingDone, RoleCatalog, TeamHires,
+    ChatFailure, Hire, HireChange, Onboarding, OnboardingDone, RoleCatalog, TeamHires, TeamSummary,
 };
 use tauri::State;
 
@@ -19,6 +19,13 @@ pub async fn team_roles(state: State<'_, Shared>) -> Result<RoleCatalog, ChatFai
 pub async fn team_hires(state: State<'_, Shared>) -> Result<TeamHires, ChatFailure> {
     let shared = shared(&state);
     client(&shared)?.team_hires().await
+}
+
+/// The status line of each hired professional. The screen polls it while Equipo is open.
+#[tauri::command]
+pub async fn team_summary(state: State<'_, Shared>) -> Result<TeamSummary, ChatFailure> {
+    let shared = shared(&state);
+    client(&shared)?.team_summary().await
 }
 
 #[tauri::command]
