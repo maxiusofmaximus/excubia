@@ -225,7 +225,7 @@ async function loadChoices(initial) {
     }
     const role = initial.role || (oficios.keys().next().value ?? "");
     choose($("schedule-role"), [...oficios], role, "Elige un oficio");
-    const chats = conversationChoices(home.conversations);
+    const chats = conversationChoices(home.conversations, home.bootstrap.projects);
     view.noProjects = chats.length === 0;
     $("schedule-conversation-hint").textContent = view.noProjects ? NO_PROJECTS_HELP : "";
     choose(

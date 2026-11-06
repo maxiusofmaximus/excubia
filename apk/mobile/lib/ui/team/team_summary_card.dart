@@ -32,9 +32,10 @@ class TeamSummaryCard extends StatelessWidget {
     final c = context.colors;
     final waiting = member.status == TeamStatus.waitingForYou;
     final label = teamStatusLabel(member.status);
+    final headline = teamShownHeadline(member.headline, label);
     return Semantics(
       button: onTap != null,
-      label: _spoken(label),
+      label: _spoken(label, headline),
       excludeSemantics: true,
       child: Material(
         color: waiting ? c.accentSoft : Colors.transparent,
@@ -56,7 +57,7 @@ class TeamSummaryCard extends StatelessWidget {
                   animated: false,
                 ),
                 const SizedBox(width: Spacing.md),
-                Expanded(child: _text(context, c, waiting, label)),
+                Expanded(child: _text(context, c, waiting, label, headline)),
               ],
             ),
           ),
@@ -70,9 +71,9 @@ class TeamSummaryCard extends StatelessWidget {
     HerdrColors c,
     bool waiting,
     String label,
+    String headline,
   ) {
     final role = member.roleTitle;
-    final headline = member.headline;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -127,13 +128,13 @@ class TeamSummaryCard extends StatelessWidget {
     );
   }
 
-  String _spoken(String label) {
+  String _spoken(String label, String headline) {
     final parts = [
       member.name,
       if (member.roleTitle.isNotEmpty) member.roleTitle,
       label,
       ?age,
-      if (member.headline.isNotEmpty) member.headline,
+      if (headline.isNotEmpty) headline,
     ];
     return parts.join(', ');
   }

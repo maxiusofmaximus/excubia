@@ -138,6 +138,18 @@ void main() {
       },
     );
 
+    test('a paused schedule shows no next run even if the host sends one', () {
+      final next = DateTime(2026, 11, 12, 9);
+      expect(
+        scheduleNextText(next, ScheduleStatus.paused),
+        'Próxima: en pausa',
+      );
+      expect(
+        scheduleNextText(next, ScheduleStatus.active),
+        'Próxima: ${scheduleWhenText(next)}',
+      );
+    });
+
     test('the footer keeps the sentence about the PC being on', () {
       expect(
         scheduleFooterText,

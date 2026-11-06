@@ -81,4 +81,23 @@ void main() {
       expect(teamAgeLabel(since.toLocal(), now), 'desde hace 12 min');
     });
   });
+
+  group('teamShownHeadline', () {
+    test('an empty headline is not shown', () {
+      expect(teamShownHeadline('   ', 'Sin actividad'), '');
+    });
+
+    test('a headline that only repeats the state is not shown', () {
+      expect(teamShownHeadline('Sin actividad', 'Sin actividad'), '');
+      expect(teamShownHeadline('  sin ACTIVIDAD. ', 'Sin actividad'), '');
+    });
+
+    test('a headline with other words is shown as it came', () {
+      expect(
+        teamShownHeadline('Revisando el presupuesto', 'Trabajando'),
+        'Revisando el presupuesto',
+      );
+      expect(teamShownHeadline('Sin actividad', 'Trabajando'), 'Sin actividad');
+    });
+  });
 }

@@ -10,6 +10,16 @@ String teamStatusLabel(TeamStatus status) => switch (status) {
   TeamStatus.idle => 'Sin actividad',
 };
 
+/// The host's sentence, or '' when it is empty or only repeats the state's label. Case and
+/// final dots do not count: the same rule as `showsHeadline` on the desktop.
+String teamShownHeadline(String headline, String label) {
+  final shown = _plain(headline);
+  return shown.isNotEmpty && shown != _plain(label) ? headline : '';
+}
+
+String _plain(String text) =>
+    text.trim().replaceAll(RegExp(r'\.+$'), '').trim().toLowerCase();
+
 /// «1 espera tu visto bueno», «2 esperan tu visto bueno»: read out when it changes.
 String teamWaitingText(int count) {
   if (count == 0) return 'Nadie espera tu visto bueno.';

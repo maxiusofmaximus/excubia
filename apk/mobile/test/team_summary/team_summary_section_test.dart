@@ -328,6 +328,25 @@ void main() {
 
       expect(find.text('Renombrar'), findsNothing);
     });
+
+    testWidgets('an idle card says «Sin actividad» once, not as a headline too', (
+      tester,
+    ) async {
+      await pumpSection(
+        tester,
+        team: FakeTeamHost(hires: [bobHire()]),
+        members: [summaryMember(headline: 'sin actividad.')],
+      );
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              (widget.data ?? '').toLowerCase().contains('actividad'),
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('at 360 dp with the text at 1.3× nothing overflows', (

@@ -16,6 +16,7 @@ import {
   lastRunText,
   nextRunText,
   needsPlan,
+  scheduleNextText,
   outcomeLabel,
   payloadOf,
   ruleFor,
@@ -165,6 +166,12 @@ test("la próxima y la última ejecución se muestran en la hora de la zona de l
   assert.equal(lastRunText("2026-11-05T08:00:00.000Z", "Europe/Madrid"), "jue 5 nov., 9:00");
 });
 
+test("una tarea en pausa no muestra próxima ejecución aunque el host la envíe", () => {
+  const paused = { status: "paused", next_run_at: "2026-11-12T08:00:00.000Z", timezone: "Europe/Madrid" };
+  assert.equal(scheduleNextText(paused), "en pausa");
+  assert.equal(scheduleNextText({ ...paused, status: "active" }), "jue 12 nov., 9:00");
+});
+
 test("estado y resultado tienen su etiqueta en llano", () => {
   assert.equal(statusLabel("active"), "Activa");
   assert.equal(statusLabel("paused"), "En pausa");
@@ -222,8 +229,25 @@ test("solo las conversaciones con proyecto se pueden elegir para una tarea", () 
     { id: "cnv_01HZ", title: "Episodio 12", project_id: "prj_01HZ" },
     { id: "cnv_02HZ", title: "Notas sueltas", project_id: null },
   ];
-  assert.deepEqual(conversationChoices(chats), [["cnv_01HZ", "Episodio 12"]]);
-  assert.deepEqual(conversationChoices([chats[1]]), []);
+  const projects = [{ id: "prj_01HZ", name: "Podcast" }];
+  assert.deepEqual(conversationChoices(chats, projects), [["cnv_01HZ", "Episodio 12 · Podcast"]]);
+  assert.deepEqual(conversationChoices([chats[1]], projects), []);
+});
+
+test("la etiqueta dice el proyecto, sin repetir su nombre ni inventarlo", () => {
+  const projects = [{ id: "prj_01HZ", name: "prueba-t221" }];
+  const chat = (title, project_id = "prj_01HZ") => ({ id: "cnv_01HZ", title, project_id });
+  assert.deepEqual(conversationChoices([chat("Nuevo chat")], projects), [["cnv_01HZ", "Nuevo chat · prueba-t221"]]);
+  assert.deepEqual(conversationChoices([chat("Plan prueba-t221")], projects), [["cnv_01HZ", "Plan prueba-t221"]]);
+  assert.deepEqual(conversationChoices([chat("Nuevo chat", "prj_otro")], projects), [["cnv_01HZ", "Nuevo chat"]]);
+});
+
+test("el título que repite el proyecto no distingue mayúsculas", () => {
+  const projects = [{ id: "prj_01HZ", name: "Podcast" }];
+  const chat = (title) => ({ id: "cnv_01HZ", title, project_id: "prj_01HZ" });
+  assert.deepEqual(conversationChoices([chat("podcast")], projects), [["cnv_01HZ", "podcast"]]);
+  assert.deepEqual(conversationChoices([chat("PODCAST")], projects), [["cnv_01HZ", "PODCAST"]]);
+  assert.deepEqual(conversationChoices([chat("Episodio 3")], projects), [["cnv_01HZ", "Episodio 3 · Podcast"]]);
 });
 
 test("sin proyectos, el formulario dice qué hacer con las palabras exactas", () => {

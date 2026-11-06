@@ -18,9 +18,18 @@ export const PLAN_NEEDED_TEXT = "Este encargo es largo: antes de programarlo hay
 export const NO_PROJECTS_TEXT = "Aún no tienes proyectos";
 export const NO_PROJECTS_HELP = "Pídele a Alfred que cree un proyecto y vuelve aquí para programar la tarea.";
 
-// Only a conversation with a project can carry a task; the others are not offered.
-export function conversationChoices(conversations) {
-  return conversations.filter((chat) => chat.project_id).map((chat) => [chat.id, chat.title]);
+const lower = (text) => text.toLocaleLowerCase("es");
+
+// Only a conversation with a project can carry a task. Its label names the project, unless the title does.
+export function conversationChoices(conversations, projects) {
+  const names = new Map(projects.map((project) => [project.id, project.name]));
+  return conversations
+    .filter((chat) => chat.project_id)
+    .map((chat) => {
+      const name = names.get(chat.project_id);
+      const label = !name || lower(chat.title).includes(lower(name)) ? chat.title : `${chat.title} · ${name}`;
+      return [chat.id, label];
+    });
 }
 export const PLAN_EXTRA_TEXT =
   "Un plan que toca correo o internet nunca se aprueba solo: lo confirmas tú en «Planes propuestos».";
@@ -234,6 +243,11 @@ function zoneStamp(iso, zone) {
 
 export function nextRunText(iso, zone) {
   return iso ? zoneStamp(iso, zone) : "Sin próxima ejecución";
+}
+
+// A paused task never runs, so it shows no next run even when the host still sends one.
+export function scheduleNextText(item) {
+  return item.status === "paused" ? "en pausa" : nextRunText(item.next_run_at, item.timezone);
 }
 
 export function lastRunText(iso, zone) {

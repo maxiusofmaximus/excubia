@@ -76,10 +76,9 @@ String scheduleLaunchText(ScheduleLaunch launch) {
 
 /// «Próxima: mar 10 nov, 9:05», or the word for a task with no next run.
 String scheduleNextText(DateTime? next, ScheduleStatus status) {
+  if (status == ScheduleStatus.paused) return 'Próxima: en pausa';
   if (next != null) return 'Próxima: ${scheduleWhenText(next)}';
-  return status == ScheduleStatus.paused
-      ? 'Próxima: en pausa'
-      : 'Próxima: ninguna';
+  return 'Próxima: ninguna';
 }
 
 /// «Última: mar 10 nov, 9:05», or «Última: nunca» before the first run.

@@ -15,6 +15,7 @@ import {
   nextRunText,
   outcomeLabel,
   scheduleFailureText,
+  scheduleNextText,
   scheduleSentence,
   sortSchedules,
   statusLabel,
@@ -68,7 +69,7 @@ function roleTitle(roleId) {
 function timesOf(item) {
   const times = element("dl", "schedule-times");
   for (const [label, value] of [
-    ["Próxima", nextRunText(item.next_run_at, item.timezone)],
+    ["Próxima", scheduleNextText(item)],
     ["Última", lastRunText(item.last_run_at, item.timezone)],
   ]) {
     const pair = element("div", "schedule-time");

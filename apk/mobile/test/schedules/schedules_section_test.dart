@@ -114,6 +114,19 @@ void main() {
     expect(find.text('texto del encargo que no se muestra'), findsNothing);
   });
 
+  testWidgets('a paused card says it has no next run even if the host sends one', (
+    tester,
+  ) async {
+    final host = ScriptedTransport({
+      'GET /v1/schedules': _list([_schedule(status: 'paused')]),
+    });
+
+    await pumpSection(tester, host);
+
+    expect(find.text('Próxima: en pausa'), findsOneWidget);
+    expect(find.textContaining('9 nov'), findsNothing);
+  });
+
   testWidgets('the switch pauses an active task', (tester) async {
     final host = ScriptedTransport({
       'GET /v1/schedules': _list([_schedule()]),
