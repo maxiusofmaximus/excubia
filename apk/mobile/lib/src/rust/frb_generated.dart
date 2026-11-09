@@ -96,7 +96,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 704496483;
+  int get rustContentHash => -173335735;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -622,6 +622,8 @@ abstract class RustLibApi extends BaseApi {
   ChatPlan crateApiOnboardingPlanPlanOnboardingSkip();
 
   ChatPlan crateApiOnboardingPlanPlanRoles();
+
+  WritePlan crateApiWritePlanSetDefaultAgent({required String name});
 
   WritePlan crateApiWritePlanStop({required String paneId});
 
@@ -4405,6 +4407,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "plan_roles", argNames: []);
 
   @override
+  WritePlan crateApiWritePlanSetDefaultAgent({required String name}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(name, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 125,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_write_plan,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiWritePlanSetDefaultAgentConstMeta,
+        argValues: [name],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiWritePlanSetDefaultAgentConstMeta =>
+      const TaskConstMeta(
+        debugName: "plan_set_default_agent",
+        argNames: ["name"],
+      );
+
+  @override
   WritePlan crateApiWritePlanStop({required String paneId}) {
     return handler.executeSync(
       SyncTask(
@@ -4414,7 +4446,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 125,
+            funcId: 126,
           )!;
         },
         codec: SseCodec(
@@ -4441,7 +4473,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 126,
+            funcId: 127,
           )!;
         },
         codec: SseCodec(
@@ -4468,7 +4500,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 127,
+            funcId: 128,
           )!;
         },
         codec: SseCodec(
@@ -4506,7 +4538,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 128,
+            funcId: 129,
           )!;
         },
         codec: SseCodec(
@@ -4539,7 +4571,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 129,
+            funcId: 130,
           )!;
         },
         codec: SseCodec(
@@ -4571,7 +4603,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 130,
+            funcId: 131,
           )!;
         },
         codec: SseCodec(
@@ -4600,7 +4632,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 131,
+            funcId: 132,
           )!;
         },
         codec: SseCodec(
@@ -4631,7 +4663,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 132,
+            funcId: 133,
           )!;
         },
         codec: SseCodec(
@@ -4661,7 +4693,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 133,
+            funcId: 134,
           )!;
         },
         codec: SseCodec(
@@ -5235,8 +5267,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CatalogEntry dco_decode_catalog_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return CatalogEntry(
       name: dco_decode_String(arr[0]),
       available: dco_decode_bool(arr[1]),
@@ -5244,6 +5276,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fixable: dco_decode_bool(arr[3]),
       problem: dco_decode_opt_String(arr[4]),
       label: dco_decode_String(arr[5]),
+      isDefault: dco_decode_bool(arr[6]),
     );
   }
 
@@ -7262,6 +7295,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_fixable = sse_decode_bool(deserializer);
     var var_problem = sse_decode_opt_String(deserializer);
     var var_label = sse_decode_String(deserializer);
+    var var_isDefault = sse_decode_bool(deserializer);
     return CatalogEntry(
       name: var_name,
       available: var_available,
@@ -7269,6 +7303,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fixable: var_fixable,
       problem: var_problem,
       label: var_label,
+      isDefault: var_isDefault,
     );
   }
 
@@ -9839,6 +9874,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.fixable, serializer);
     sse_encode_opt_String(self.problem, serializer);
     sse_encode_String(self.label, serializer);
+    sse_encode_bool(self.isDefault, serializer);
   }
 
   @protected

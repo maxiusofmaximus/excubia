@@ -3,7 +3,7 @@ name = "hn-core-chat"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Persistent chat domain for herdr-notify core: SQLite, migrations and repository (RFC orchestrator-chat)"
+description = "Persistent chat domain for Excubia core: SQLite, migrations and repository (RFC orchestrator-chat)"
 
 [dependencies]
 async-trait = "0.1"

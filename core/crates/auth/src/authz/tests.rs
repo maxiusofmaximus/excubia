@@ -156,6 +156,20 @@ fn changing_the_approval_mode_needs_approve_not_admin() {
     assert!(authorize(&admin_only, &change).is_err());
 }
 
+#[test]
+fn the_default_agent_is_the_owners_approval_and_its_listing_is_read_only() {
+    let list = classify("GET", "/v1/catalog").expect("list");
+    assert_eq!(list.permission, Some(Permission::ReadState));
+    let set = classify("POST", "/v1/catalog/default").expect("set default");
+    assert_eq!(set.permission, Some(Permission::Approve));
+    assert_eq!(set.budget, Budget::Write);
+    let agent = [Permission::Respond];
+    assert!(
+        authorize(&agent, &set).is_err(),
+        "an agent cannot choose the default"
+    );
+}
+
 /// Sending is the human's `APPROVE` grant: a `RESPOND` device, an agent or a
 /// read-only device cannot send, cancel or read a send.
 #[test]

@@ -143,6 +143,19 @@ pub enum FixError {
     Write(String),
 }
 
+/// The file beside `agents.toml` that names this PC's default agent.
+const DEFAULT_FILE: &str = "default-agent.txt";
+
+/// What `AgentCatalog::set_default` refused.
+#[derive(Debug)]
+pub enum DefaultError {
+    UnknownAgent,
+    /// The entry is not runnable here, so it cannot be the default.
+    NotRunnable,
+    /// The file could not be written. Nothing changed.
+    Write(String),
+}
+
 #[derive(Debug, Deserialize)]
 struct CatalogFile {
     #[serde(default)]
@@ -322,6 +335,34 @@ impl AgentCatalog {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         state.agents.get(name).cloned()
+    }
+
+    /// The agent this PC starts new conversations with, while it still exists and runs.
+    pub fn default_name(&self) -> Option<String> {
+        let text = std::fs::read_to_string(self.default_path()?).ok()?;
+        let name = text.trim();
+        self.resolve(name)?.runnable().then(|| name.to_string())
+    }
+
+    /// Remember `name` as this PC's default agent, in a file beside `agents.toml`.
+    pub fn set_default(&self, name: &str) -> Result<(), DefaultError> {
+        self.reload_if_changed();
+        let spec = self.resolve(name).ok_or(DefaultError::UnknownAgent)?;
+        if !spec.runnable() {
+            return Err(DefaultError::NotRunnable);
+        }
+        let path = self
+            .default_path()
+            .ok_or_else(|| DefaultError::Write("the catalogue has no file".to_string()))?;
+        let temporary = path.with_extension("tmp");
+        std::fs::write(&temporary, name).map_err(|error| DefaultError::Write(error.to_string()))?;
+        std::fs::rename(&temporary, &path).map_err(|error| DefaultError::Write(error.to_string()))
+    }
+
+    fn default_path(&self) -> Option<PathBuf> {
+        self.source
+            .as_ref()
+            .map(|path| path.with_file_name(DEFAULT_FILE))
     }
 
     pub fn names(&self) -> Vec<String> {
@@ -606,5 +647,35 @@ env = { ANTHROPIC_BASE_URL = "http://127.0.0.1:8080", ANTHROPIC_AUTH_TOKEN = "st
             assert!(matches!(catalog.fix("tool"), Err(FixError::NotFixable)));
             assert_eq!(std::fs::read_to_string(&path).expect("read"), text);
         }
+    }
+
+    #[test]
+    fn the_default_agent_is_remembered_only_while_it_runs() {
+        let dir = temp_dir("default");
+        let path = dir.join("agents.toml");
+        let present = dir.join("present.bin");
+        std::fs::write(&present, b"stub").expect("write");
+        let text = format!(
+            "[agents.here]\ncommand = '{}'\n\n[agents.gone]\ncommand = 'hn-no-such-binary-anywhere'\n",
+            present.display()
+        );
+        std::fs::write(&path, &text).expect("write");
+        let catalog = AgentCatalog::open(path).expect("open");
+
+        assert_eq!(catalog.default_name(), None);
+        assert!(matches!(
+            catalog.set_default("nope"),
+            Err(DefaultError::UnknownAgent)
+        ));
+        assert!(matches!(
+            catalog.set_default("gone"),
+            Err(DefaultError::NotRunnable)
+        ));
+        catalog.set_default("here").expect("set");
+        assert_eq!(catalog.default_name().as_deref(), Some("here"));
+
+        // A default that stops running is not offered.
+        std::fs::remove_file(&present).expect("remove");
+        assert_eq!(catalog.default_name(), None);
     }
 }

@@ -3,7 +3,7 @@ name = "hn-core-host"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Agent host for herdr-notify core: supervises CLI agents in ptys and serves the local API"
+description = "Agent host for Excubia core: supervises CLI agents in ptys and serves the local API"
 
 [dependencies]
 anyhow.workspace = true

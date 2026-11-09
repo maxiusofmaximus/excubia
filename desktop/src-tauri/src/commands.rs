@@ -76,6 +76,17 @@ pub async fn agent_catalog(state: State<'_, Shared>) -> Result<Vec<CatalogAgent>
 }
 
 #[tauri::command]
+pub async fn set_default_agent(state: State<'_, Shared>, name: String) -> Result<(), String> {
+    let shared = shared(&state);
+    let settings = shared.settings()?;
+    let client = settings.client().map_err(|error| error.to_string())?;
+    client
+        .set_default(&name)
+        .await
+        .map_err(|error| error.describe(WriteAction::SetDefault).text())
+}
+
+#[tauri::command]
 pub async fn stop_agent(state: State<'_, Shared>, pane_id: String) -> Result<StopOutcome, String> {
     let shared = shared(&state);
     let settings = shared.settings()?;

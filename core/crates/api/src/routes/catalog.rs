@@ -10,10 +10,11 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use hn_core_auth::VerifiedDevice;
+use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::audit::AuditEvent;
-use crate::catalog::{FixError, FixOutcome};
+use crate::catalog::{DefaultError, FixError, FixOutcome};
 use crate::error::ApiError;
 use crate::ApiContext;
 
@@ -45,6 +46,7 @@ pub async fn list(State(ctx): State<ApiContext>) -> Json<Value> {
         })
         .collect();
     let mut body = json!({"ok": true, "agents": agents});
+    body["default"] = json!(ctx.agents.default_name());
     if let Some(warning) = ctx.agents.warning() {
         body["warning"] = json!(warning);
     }
@@ -93,6 +95,52 @@ pub async fn fix(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "write_failed",
                 "no pude cambiar agents.toml; no cambié nada",
+            ))
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct DefaultBody {
+    name: String,
+}
+
+/// `POST /v1/catalog/default` (APPROVE): the agent this PC starts new conversations with. Only a
+/// runnable entry can be chosen; the answer and the audit name only the agent.
+pub async fn set_default(
+    State(ctx): State<ApiContext>,
+    Extension(verified): Extension<VerifiedDevice>,
+    Json(body): Json<DefaultBody>,
+) -> Result<Response, ApiError> {
+    let outcome = ctx.agents.set_default(&body.name);
+    let label = match &outcome {
+        Ok(()) => "set",
+        Err(DefaultError::UnknownAgent) => "unknown",
+        Err(DefaultError::NotRunnable) => "not_runnable",
+        Err(DefaultError::Write(_)) => "failed",
+    };
+    ctx.audit.record(
+        &AuditEvent::new("catalog.default", Some(&verified.device_id), label)
+            .with("agent", body.name.as_str()),
+    );
+    match outcome {
+        Ok(()) => Ok(Json(json!({"ok": true, "default": body.name})).into_response()),
+        Err(DefaultError::UnknownAgent) => Err(ApiError::coded(
+            StatusCode::NOT_FOUND,
+            "unknown_agent",
+            "no hay ningún agente con ese nombre",
+        )),
+        Err(DefaultError::NotRunnable) => Err(ApiError::coded(
+            StatusCode::CONFLICT,
+            "not_runnable",
+            "ese agente no puede arrancar en este equipo",
+        )),
+        Err(DefaultError::Write(reason)) => {
+            eprintln!("host: catalog default agent={} failed: {reason}", body.name);
+            Err(ApiError::coded(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "write_failed",
+                "no pude guardar el agente por defecto; no cambié nada",
             ))
         }
     }

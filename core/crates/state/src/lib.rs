@@ -1,4 +1,4 @@
-//! Authoritative state store for the herdr-notify core.
+//! Authoritative state store for the Excubia core.
 //!
 //! Implements the read model of `docs/contracts/state.md` for the agents this
 //! host supervises: monotonic `revision`, per-status `counts`, the triage

@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "Test-only signed HTTP client for herdr-notify core (a dev-dependency; never shipped)"
+description = "Test-only signed HTTP client for Excubia core (a dev-dependency; never shipped)"
 
 [dependencies]
 async-trait = "0.1"

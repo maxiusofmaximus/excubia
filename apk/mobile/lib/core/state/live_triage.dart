@@ -354,6 +354,33 @@ class LiveTriage extends ChangeNotifier {
     }
   }
 
+  /// Choose the PC's default agent (new conversations start with it). Null means the
+  /// host kept it; the caller reloads the catalogue to show the mark.
+  Future<ErrorInfo?> setDefaultAgent(String name) async {
+    final plan = planSetDefaultAgent(name: name);
+    final problem = plan.problem;
+    if (problem != null) return problem;
+    final call = plan.request;
+    if (call == null) {
+      return const ErrorInfo(
+        message: 'La petición no es válida.',
+        kind: FailureKind.retry,
+      );
+    }
+    try {
+      await _client.call(call.method, call.target, call.body);
+      return null;
+    } on HostError catch (e) {
+      return explainHttpError(
+        status: e.status,
+        body: e.body,
+        action: WriteAction.setDefault,
+      );
+    } on Exception catch (e) {
+      return ErrorInfo(message: e.toString(), kind: FailureKind.retry);
+    }
+  }
+
   /// Stop one live agent. `gone` means the host answered `pane_gone`: the
   /// screen should leave with "ya había terminado", not an error.
   Future<({bool stopped, bool gone, ErrorInfo? error})> stopAgent(

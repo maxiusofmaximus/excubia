@@ -11,15 +11,25 @@ import '../new_conversation_screen.dart' show CatalogLoader;
 import '../theme.dart';
 import '../widgets/surface_card.dart';
 
+/// Chooses the PC's default agent by name; null means the PC kept it.
+typedef DefaultAgentSetter = Future<ErrorInfo?> Function(String name);
+
 /// The engine switch of Alfred in the settings page: Claude, the local model on the PC, or a
 /// CLI the PC lists as ready (one button each). Going local asks first; going back to Claude
 /// does not. While the PC is starting or stopping, the status is read again every few
-/// seconds. Below it, the agents installed on the PC, read-only.
+/// seconds. Below it, the agents installed on the PC, each runnable one with a button to
+/// make it the default for new conversations.
 class AlfredEngineSection extends StatefulWidget {
-  const AlfredEngineSection({super.key, required this.api, this.catalog});
+  const AlfredEngineSection({
+    super.key,
+    required this.api,
+    this.catalog,
+    this.setDefault,
+  });
 
   final AlfredBackendApi api;
   final CatalogLoader? catalog;
+  final DefaultAgentSetter? setDefault;
 
   @override
   State<AlfredEngineSection> createState() => _AlfredEngineSectionState();
@@ -36,12 +46,31 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
   Timer? _timer;
   List<CatalogEntry>? _installed;
   ErrorInfo? _catalogFailure;
+  String? _settingDefault;
+  ErrorInfo? _defaultFailure;
 
   @override
   void initState() {
     super.initState();
     _read();
     _readCatalog();
+  }
+
+  /// Makes [name] the default for new conversations, then reads the list again so the mark moves.
+  Future<void> _chooseDefault(String name) async {
+    final setDefault = widget.setDefault;
+    if (setDefault == null || _settingDefault != null) return;
+    setState(() {
+      _settingDefault = name;
+      _defaultFailure = null;
+    });
+    final error = await setDefault(name);
+    if (!mounted) return;
+    setState(() {
+      _settingDefault = null;
+      _defaultFailure = error;
+    });
+    if (error == null) await _readCatalog();
   }
 
   /// The agents the PC has installed (`available`), whether or not Windows starts them yet.
@@ -200,18 +229,43 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
       );
     }
     return _column([
-      for (final entry in installed)
+      for (final entry in installed) _installedRow(context, entry),
+      if (_defaultFailure != null)
         Text(
-          entry.runnable
-              ? entry.label
-              : '${entry.label} · Windows no lo arranca todavía',
-          style: context.text.body,
+          _defaultFailure!.message,
+          style: context.text.bodySecondary.copyWith(
+            color: context.colors.statusBlocked,
+          ),
         ),
       Text(
         'Alfred elige entre Claude, el modelo local y los motores listos de arriba.',
         style: context.text.bodySecondary,
       ),
     ]);
+  }
+
+  /// One installed agent. A runnable one that is not the default gets the button to make it so.
+  Widget _installedRow(BuildContext context, CatalogEntry entry) {
+    final base = entry.runnable
+        ? entry.label
+        : '${entry.label} · Windows no lo arranca todavía';
+    final label = entry.isDefault ? '$base · por defecto' : base;
+    final text = Text(label, style: context.text.body);
+    if (widget.setDefault == null || !entry.runnable || entry.isDefault) {
+      return text;
+    }
+    final saving = _settingDefault == entry.name;
+    return Row(
+      children: [
+        Expanded(child: text),
+        TextButton(
+          onPressed: _settingDefault != null
+              ? null
+              : () => _chooseDefault(entry.name),
+          child: Text(saving ? 'Guardando…' : 'Usar por defecto'),
+        ),
+      ],
+    );
   }
 
   Widget _body(BuildContext context) {

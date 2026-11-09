@@ -27,6 +27,7 @@ pub enum WriteAction {
     Stop,
     Admin,
     FixAgent,
+    SetDefault,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -318,6 +319,7 @@ fn forbidden(action: WriteAction) -> ErrorInfo {
         WriteAction::Stop => ("respond", "detener el agente"),
         WriteAction::Admin => ("admin", "gestionar dispositivos"),
         WriteAction::FixAgent => ("approve", "arreglar un agente"),
+        WriteAction::SetDefault => ("approve", "elegir el agente por defecto"),
     };
     info(
         format!(

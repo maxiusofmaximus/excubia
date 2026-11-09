@@ -1,4 +1,4 @@
-//! Atomic file persistence for the herdr-notify core.
+//! Atomic file persistence for the Excubia core.
 //!
 //! Every file this core writes (the trust store, the state counters, the
 //! session snapshot, the hook token) goes through the same rule: write a

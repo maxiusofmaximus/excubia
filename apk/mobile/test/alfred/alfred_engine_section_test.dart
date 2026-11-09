@@ -8,6 +8,7 @@ import 'package:herdr_notify/core/api/connection_failure.dart';
 import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/src/rust/api/catalog.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:herdr_notify/src/rust/api/error.dart';
 import 'package:herdr_notify/ui/alfred/alfred_engine_section.dart';
 import 'package:herdr_notify/ui/new_conversation_screen.dart'
     show CatalogLoader;
@@ -62,13 +63,18 @@ Future<void> _mount(
   WidgetTester tester,
   _Engine engine, {
   CatalogLoader? catalog,
+  DefaultAgentSetter? setDefault,
 }) => mountWidget(
   tester,
   Scaffold(
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        AlfredEngineSection(api: AlfredBackendApi(engine), catalog: catalog),
+        AlfredEngineSection(
+          api: AlfredBackendApi(engine),
+          catalog: catalog,
+          setDefault: setDefault,
+        ),
       ],
     ),
   ),
@@ -117,6 +123,7 @@ void main() {
             runnable: true,
             fixable: false,
             label: 'Claude Code',
+            isDefault: false,
           ),
           const CatalogEntry(
             name: 'codex',
@@ -124,6 +131,7 @@ void main() {
             runnable: false,
             fixable: true,
             label: 'Codex',
+            isDefault: false,
           ),
           const CatalogEntry(
             name: 'gemini',
@@ -131,6 +139,7 @@ void main() {
             runnable: false,
             fixable: false,
             label: 'Gemini CLI',
+            isDefault: false,
           ),
         ],
         error: null,
@@ -446,4 +455,94 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets(
+    'the default agent is marked and the others can be chosen as it',
+    (tester) async {
+      final chosen = <String>[];
+      await _mount(
+        tester,
+        _Engine({
+          _read: [_state('claude')],
+        }),
+        catalog: () async => (
+          entries: [
+            const CatalogEntry(
+              name: 'claude',
+              available: true,
+              runnable: true,
+              fixable: false,
+              label: 'Claude Code',
+              isDefault: true,
+            ),
+            const CatalogEntry(
+              name: 'opencode',
+              available: true,
+              runnable: true,
+              fixable: false,
+              label: 'OpenCode',
+              isDefault: false,
+            ),
+            const CatalogEntry(
+              name: 'codex',
+              available: true,
+              runnable: false,
+              fixable: true,
+              label: 'Codex',
+              isDefault: false,
+            ),
+          ],
+          error: null,
+        ),
+        setDefault: (name) async {
+          chosen.add(name);
+          return null;
+        },
+      );
+
+      expect(find.text('Claude Code · por defecto'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextButton, 'Usar por defecto'),
+        findsOneWidget,
+      );
+      expect(find.text('OpenCode'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Usar por defecto'));
+      await tester.pumpAndSettle();
+      expect(chosen, ['opencode']);
+    },
+  );
+
+  testWidgets('a refused default shows the reason and marks nothing', (
+    tester,
+  ) async {
+    await _mount(
+      tester,
+      _Engine({
+        _read: [_state('claude')],
+      }),
+      catalog: () async => (
+        entries: [
+          const CatalogEntry(
+            name: 'opencode',
+            available: true,
+            runnable: true,
+            fixable: false,
+            label: 'OpenCode',
+            isDefault: false,
+          ),
+        ],
+        error: null,
+      ),
+      setDefault: (name) async => const ErrorInfo(
+        message: 'Falta el permiso APPROVE para elegir el agente por defecto.',
+        kind: FailureKind.permission,
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, 'Usar por defecto'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Falta el permiso APPROVE'), findsOneWidget);
+    expect(find.text('OpenCode · por defecto'), findsNothing);
+  });
 }

@@ -3,7 +3,7 @@ name = "hn-core-pty"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "PTY hosting for herdr-notify core: spawn, stream, resize and kill a CLI in a pseudo-terminal"
+description = "PTY hosting for Excubia core: spawn, stream, resize and kill a CLI in a pseudo-terminal"
 
 [dependencies]
 anyhow.workspace = true

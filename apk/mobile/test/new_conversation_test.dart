@@ -22,6 +22,7 @@ CatalogEntry entry(
   bool fixable = false,
   String? problem,
   String? label,
+  bool isDefault = false,
 }) => CatalogEntry(
   name: name,
   available: available,
@@ -29,6 +30,7 @@ CatalogEntry entry(
   fixable: fixable,
   problem: problem,
   label: label ?? name,
+  isDefault: isDefault,
 );
 
 Future<void> pumpScreen(
@@ -160,5 +162,44 @@ void main() {
       find.widgetWithText(FilledButton, 'Crear conversación'),
     );
     expect(create.onPressed, isNotNull);
+  });
+
+  testWidgets("the PC's default agent is the one preselected", (tester) async {
+    await pumpScreen(
+      tester,
+      loader: () async => (
+        entries: [
+          entry('fake', label: 'Agente falso'),
+          entry('codex', label: 'Codex', isDefault: true),
+        ],
+        error: null,
+      ),
+    );
+
+    final group = tester.widget<RadioGroup<String>>(
+      find.byType(RadioGroup<String>),
+    );
+    expect(group.groupValue, 'codex');
+  });
+
+  testWidgets('without a runnable default the first runnable agent is chosen', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      loader: () async => (
+        entries: [
+          entry('claude', available: false, label: 'Claude Code'),
+          entry('fake', label: 'Agente falso'),
+          entry('codex', label: 'Codex', isDefault: true, runnable: false),
+        ],
+        error: null,
+      ),
+    );
+
+    final group = tester.widget<RadioGroup<String>>(
+      find.byType(RadioGroup<String>),
+    );
+    expect(group.groupValue, 'fake');
   });
 }

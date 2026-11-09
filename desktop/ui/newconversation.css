@@ -78,6 +78,17 @@
   font-size: 11px;
 }
 
+.nc-agent-make-default {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .nc-cwd-row {
   display: flex;
   align-items: center;

@@ -99,6 +99,7 @@ pub fn run() {
             commands::use_remote_host,
             commands::restart_host,
             commands::agent_catalog,
+            commands::set_default_agent,
             commands::create_conversation,
             commands::pick_folder,
             commands::stop_agent,

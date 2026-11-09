@@ -1,4 +1,4 @@
-//! Persistent chat domain for the herdr-notify core.
+//! Persistent chat domain for the Excubia core.
 //!
 //! This crate owns `chat.db`: the single company, seats, conversations,
 //! messages, sections and the durable `chat_event` journal. It has no HTTP and

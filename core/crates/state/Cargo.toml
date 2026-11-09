@@ -3,7 +3,7 @@ name = "hn-core-state"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Authoritative state store for herdr-notify core (contract: docs/contracts/state.md)"
+description = "Authoritative state store for Excubia core (contract: docs/contracts/state.md)"
 
 [dependencies]
 hn-core-persist = { path = "../persist" }

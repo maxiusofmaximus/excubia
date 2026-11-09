@@ -208,6 +208,24 @@ pub fn plan_fix_agent(name: String) -> WritePlan {
     })
 }
 
+/// Choose the agent new conversations start with on this PC: `POST /v1/catalog/default`
+/// with `{"name": ...}`. The host requires `APPROVE` and refuses a name it cannot run.
+#[flutter_rust_bridge::frb(sync)]
+pub fn plan_set_default_agent(name: String) -> WritePlan {
+    let valid = !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    if !valid {
+        return problem("invalid_body");
+    }
+    plan(HttpCall {
+        method: "POST".to_string(),
+        target: "/v1/catalog/default".to_string(),
+        body: serde_json::json!({ "name": name }).to_string().into_bytes(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -385,6 +403,22 @@ mod tests {
 
         for name in ["", "../codex", "codex/x", "co dex"] {
             assert!(plan_fix_agent(name.to_string()).request.is_none(), "{name}");
+        }
+    }
+
+    #[test]
+    fn choosing_the_default_posts_the_name_as_json_and_only_plain_names_reach_it() {
+        let call = plan_set_default_agent("opencode".to_string())
+            .request
+            .unwrap();
+        assert_eq!(call.method, "POST");
+        assert_eq!(call.target, "/v1/catalog/default");
+        assert_eq!(call.body, br#"{"name":"opencode"}"#);
+
+        for name in ["", "../codex", "co dex", "x\"y"] {
+            let plan = plan_set_default_agent(name.to_string());
+            assert!(plan.request.is_none(), "{name}");
+            assert!(plan.problem.is_some(), "{name}");
         }
     }
 }

@@ -3,7 +3,7 @@ name = "hn-core-auth"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Pairing, request authentication and authorization for herdr-notify core (contracts: pairing.md, auth.md, errors.md)"
+description = "Pairing, request authentication and authorization for Excubia core (contracts: pairing.md, auth.md, errors.md)"
 
 [dependencies]
 base64.workspace = true

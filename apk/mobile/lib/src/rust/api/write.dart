@@ -23,6 +23,11 @@ WritePlan planStop({required String paneId}) =>
 WritePlan planFixAgent({required String name}) =>
     RustLib.instance.api.crateApiWritePlanFixAgent(name: name);
 
+/// Choose the agent new conversations start with on this PC: `POST /v1/catalog/default`
+/// with `{"name": ...}`. The host requires `APPROVE` and refuses a name it cannot run.
+WritePlan planSetDefaultAgent({required String name}) =>
+    RustLib.instance.api.crateApiWritePlanSetDefaultAgent(name: name);
+
 class AgentAction {
   final AgentActionKind kind;
   final String paneId;

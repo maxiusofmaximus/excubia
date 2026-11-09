@@ -37,6 +37,7 @@ class SettingsScreen extends StatelessWidget {
     this.projects = const <ChatProject>[],
     this.alfredSeat,
     this.catalog,
+    this.setDefaultAgent,
   });
 
   final MailApi mail;
@@ -55,6 +56,9 @@ class SettingsScreen extends StatelessWidget {
 
   /// The host's agent catalogue, for the installed-agents list under Alfred's engine.
   final CatalogLoader? catalog;
+
+  /// Makes an installed agent the PC's default; the Alfred section offers it.
+  final DefaultAgentSetter? setDefaultAgent;
 
   Future<void> _confirmRepair(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -113,7 +117,11 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: Spacing.xl),
           AgendaSettingsSection(api: agenda, phone: phone),
           const SizedBox(height: Spacing.xl),
-          AlfredEngineSection(api: alfred, catalog: catalog),
+          AlfredEngineSection(
+            api: alfred,
+            catalog: catalog,
+            setDefault: setDefaultAgent,
+          ),
           const SizedBox(height: Spacing.xl),
           if (approvals != null) ...[
             _SettingsSection(

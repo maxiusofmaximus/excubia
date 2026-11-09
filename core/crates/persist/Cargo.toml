@@ -3,7 +3,7 @@ name = "hn-core-persist"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Atomic file persistence, one implementation for the whole herdr-notify core"
+description = "Atomic file persistence, one implementation for the whole Excubia core"
 
 [dependencies]
 rand_core.workspace = true

@@ -33,7 +33,9 @@ request to the port is refused at the handshake.
 | `POST` | `/v1/pair/pake/finish` | none (PAKE code, TLS only) | — | write (`pake:<ip>`) | PAKE pairing, step 2: confirm and register a pending device |
 | `GET` | `/v1/state` | signed | `READ_STATE` | read | The full state read model |
 | `GET` | `/v1/events` | signed | `READ_STATE` | read | SSE stream (see `state.md`) |
-| `GET` | `/v1/catalog` | signed | `READ_STATE` | read | The agents this host can start, by name |
+| `GET` | `/v1/catalog` | signed | `READ_STATE` | read | The agents this host can start, by name, and this PC's default |
+| `POST` | `/v1/catalog/default` | signed | `APPROVE` | write | Name the agent new conversations on this PC start with |
+| `POST` | `/v1/catalog/{name}/fix` | signed | `APPROVE` | write | Point an agent Windows cannot start at its `.CMD` shim |
 | `GET` | `/v1/roles` | signed | `READ_STATE` | read | The role catalogue: areas, roles and levels (not the CLIs of `/v1/catalog`) |
 | `GET` | `/v1/hires` | signed | `READ_STATE` | read | The professionals contracted (`?include_removed=true` adds the dismissed) |
 | `POST` | `/v1/hires` | signed | `APPROVE` | write | Contract one role: `201` when new, `200` when already hired |
@@ -217,15 +219,34 @@ A host that cannot start the configured command answers `409` with the reason.
 Response:
 
 ```json
-{ "ok": true, "agents": [
-  { "name": "opencode", "available": true, "label": "opencode" },
-  { "name": "claude", "available": false, "label": "Claude Code" } ] }
+{ "ok": true, "default": "opencode", "agents": [
+  { "name": "opencode", "available": true, "runnable": true, "fixable": false, "label": "opencode" },
+  { "name": "claude", "available": false, "runnable": false, "fixable": false, "label": "Claude Code",
+    "problem": "No está instalado en este equipo." } ] }
 ```
 
 Names and availability only: **never** the command, its arguments or a
 resolved path. `available` says whether the command would resolve on this
-machine (a file that exists, or a bare name found on `PATH`); `label` is a
-display hint and falls back to `name`. Permission: `READ_STATE`.
+machine (a file that exists, or a bare name found on `PATH`); `runnable` says
+the host can start it as it stands; `label` is a display hint and falls back to
+`name`. `default` is this PC's default agent (`null` when none is set, or when
+the one set no longer exists or cannot run). Permission: `READ_STATE`.
+
+### `POST /v1/catalog/default`
+
+Body: `{ "name": "opencode" }`. The name must be an entry of the catalogue and
+runnable on this machine. The choice is stored in `default-agent.txt` beside
+`agents.toml` (per PC, written atomically). Answers `{ "ok": true, "default": name }`;
+`404 unknown_agent`, `409 not_runnable` or `500 write_failed` (nothing changed).
+Permission: `APPROVE`. Audited as `catalog.default` (the agent name only).
+
+### `POST /v1/catalog/{name}/fix`
+
+Points an entry that Windows cannot start at its `.CMD` shim, through
+`cmd.exe /c`. The file is backed up beside itself (`agents.toml.bak-<secs>`)
+before it changes. Answers `{ "ok": true, "fixed": bool, "name"?: name }`;
+`404 unknown_agent`, `409 not_fixable` or `500 write_failed`. Permission:
+`APPROVE`. Audited as `catalog.fix`.
 
 The catalogue is re-read when `agents.toml` changes (its mtime), so entries
 can be added, removed or edited without restarting the host; creation

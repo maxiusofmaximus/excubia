@@ -29,6 +29,9 @@ class CatalogEntry {
   /// Display hint; falls back to `name`.
   final String label;
 
+  /// The PC's default agent: new conversations start with it selected.
+  final bool isDefault;
+
   const CatalogEntry({
     required this.name,
     required this.available,
@@ -36,6 +39,7 @@ class CatalogEntry {
     required this.fixable,
     this.problem,
     required this.label,
+    required this.isDefault,
   });
 
   @override
@@ -45,7 +49,8 @@ class CatalogEntry {
       runnable.hashCode ^
       fixable.hashCode ^
       problem.hashCode ^
-      label.hashCode;
+      label.hashCode ^
+      isDefault.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -57,5 +62,6 @@ class CatalogEntry {
           runnable == other.runnable &&
           fixable == other.fixable &&
           problem == other.problem &&
-          label == other.label;
+          label == other.label &&
+          isDefault == other.isDefault;
 }

@@ -1,4 +1,4 @@
-//! Local HTTP + SSE API for the herdr-notify core: the Rust implementation of
+//! Local HTTP + SSE API for the Excubia core: the Rust implementation of
 //! `docs/contracts/{api,state,errors}.md`, with the signed-request
 //! authentication and authorization of `docs/contracts/{auth,pairing}.md`.
 //!
@@ -237,6 +237,7 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route("/v1/agents/{pane_id}/seen", post(routes::seen))
         .route("/v1/agents/{pane_id}/stop", post(routes::stop))
         .route("/v1/catalog", get(routes::catalog))
+        .route("/v1/catalog/default", post(routes::catalog_set_default))
         .route("/v1/catalog/{name}/fix", post(routes::catalog_fix))
         .route("/v1/roles", get(routes::role_catalog))
         .route(

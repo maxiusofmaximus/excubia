@@ -3,7 +3,7 @@ name = "hn-core-detect"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Agent identification and screen-state detection for herdr-notify core"
+description = "Agent identification and screen-state detection for Excubia core"
 
 [dependencies]
 anyhow.workspace = true

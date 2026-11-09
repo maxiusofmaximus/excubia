@@ -3,7 +3,7 @@ name = "hn-core-mail"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Microsoft 365 mail drafts for herdr-notify core: device-code login, encrypted token store and a Graph client limited to drafts and small attachments (contract: mail.md)"
+description = "Microsoft 365 mail drafts for Excubia core: device-code login, encrypted token store and a Graph client limited to drafts and small attachments (contract: mail.md)"
 
 [dependencies]
 aes-gcm = "0.10"

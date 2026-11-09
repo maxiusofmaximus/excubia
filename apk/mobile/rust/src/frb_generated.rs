@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 704496483;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -173335735;
 
 // Section: executor
 
@@ -4534,6 +4534,36 @@ fn wire__crate__api__onboarding__plan__plan_roles_impl(
         },
     )
 }
+fn wire__crate__api__write__plan_set_default_agent_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "plan_set_default_agent",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_name = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::write::plan_set_default_agent(api_name))?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__write__plan_stop_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -5135,6 +5165,7 @@ impl SseDecode for crate::api::catalog::CatalogEntry {
         let mut var_fixable = <bool>::sse_decode(deserializer);
         let mut var_problem = <Option<String>>::sse_decode(deserializer);
         let mut var_label = <String>::sse_decode(deserializer);
+        let mut var_isDefault = <bool>::sse_decode(deserializer);
         return crate::api::catalog::CatalogEntry {
             name: var_name,
             available: var_available,
@@ -5142,6 +5173,7 @@ impl SseDecode for crate::api::catalog::CatalogEntry {
             fixable: var_fixable,
             problem: var_problem,
             label: var_label,
+            is_default: var_isDefault,
         };
     }
 }
@@ -7185,6 +7217,7 @@ impl SseDecode for crate::api::error::WriteAction {
             5 => crate::api::error::WriteAction::Stop,
             6 => crate::api::error::WriteAction::Admin,
             7 => crate::api::error::WriteAction::FixAgent,
+            8 => crate::api::error::WriteAction::SetDefault,
             _ => unreachable!("Invalid variant for WriteAction: {}", inner),
         };
     }
@@ -7598,21 +7631,22 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         124 => wire__crate__api__onboarding__plan__plan_roles_impl(ptr, rust_vec_len, data_len),
-        125 => wire__crate__api__write__plan_stop_impl(ptr, rust_vec_len, data_len),
-        126 => wire__crate__api__write__plan_write_impl(ptr, rust_vec_len, data_len),
-        127 => wire__crate__api__signing__public_key_from_private_impl(ptr, rust_vec_len, data_len),
-        128 => wire__crate__api__signing__sign_request_impl(ptr, rust_vec_len, data_len),
-        129 => {
+        125 => wire__crate__api__write__plan_set_default_agent_impl(ptr, rust_vec_len, data_len),
+        126 => wire__crate__api__write__plan_stop_impl(ptr, rust_vec_len, data_len),
+        127 => wire__crate__api__write__plan_write_impl(ptr, rust_vec_len, data_len),
+        128 => wire__crate__api__signing__public_key_from_private_impl(ptr, rust_vec_len, data_len),
+        129 => wire__crate__api__signing__sign_request_impl(ptr, rust_vec_len, data_len),
+        130 => {
             wire__crate__api__chat__attach_upload__upload_accepted_impl(ptr, rust_vec_len, data_len)
         }
-        130 => wire__crate__api__chat__attach_upload__upload_next_impl(ptr, rust_vec_len, data_len),
-        131 => {
+        131 => wire__crate__api__chat__attach_upload__upload_next_impl(ptr, rust_vec_len, data_len),
+        132 => {
             wire__crate__api__chat__attach_upload__upload_progress_impl(ptr, rust_vec_len, data_len)
         }
-        132 => {
+        133 => {
             wire__crate__api__chat__attach_upload__upload_refused_impl(ptr, rust_vec_len, data_len)
         }
-        133 => {
+        134 => {
             wire__crate__api__chat__attach_upload__upload_start_impl(ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -7930,6 +7964,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::catalog::CatalogEntry {
             self.fixable.into_into_dart().into_dart(),
             self.problem.into_into_dart().into_dart(),
             self.label.into_into_dart().into_dart(),
+            self.is_default.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9410,6 +9445,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::error::WriteAction {
             Self::Stop => 5.into_dart(),
             Self::Admin => 6.into_dart(),
             Self::FixAgent => 7.into_dart(),
+            Self::SetDefault => 8.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -9685,6 +9721,7 @@ impl SseEncode for crate::api::catalog::CatalogEntry {
         <bool>::sse_encode(self.fixable, serializer);
         <Option<String>>::sse_encode(self.problem, serializer);
         <String>::sse_encode(self.label, serializer);
+        <bool>::sse_encode(self.is_default, serializer);
     }
 }
 
@@ -11173,6 +11210,7 @@ impl SseEncode for crate::api::error::WriteAction {
                 crate::api::error::WriteAction::Stop => 5,
                 crate::api::error::WriteAction::Admin => 6,
                 crate::api::error::WriteAction::FixAgent => 7,
+                crate::api::error::WriteAction::SetDefault => 8,
                 _ => {
                     unimplemented!("");
                 }

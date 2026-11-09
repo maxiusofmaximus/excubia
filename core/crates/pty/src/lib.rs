@@ -1,4 +1,4 @@
-//! PTY hosting for the herdr-notify core.
+//! PTY hosting for the Excubia core.
 //!
 //! One [`PtySession`] owns one pseudo-terminal with one CLI running inside it:
 //! output streams out through a channel, input is written through the master

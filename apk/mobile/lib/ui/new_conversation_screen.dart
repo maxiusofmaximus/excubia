@@ -70,7 +70,11 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
       _loadError = result.error;
       if (_selected == null ||
           !runnable.any((entry) => entry.name == _selected)) {
-        _selected = runnable.isEmpty ? null : runnable.first.name;
+        // The PC's default agent comes first when it can run; otherwise the first runnable one.
+        final preferred = runnable.where((entry) => entry.isDefault);
+        _selected = preferred.isNotEmpty
+            ? preferred.first.name
+            : (runnable.isEmpty ? null : runnable.first.name);
       }
     });
   }

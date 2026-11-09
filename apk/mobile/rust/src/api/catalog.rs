@@ -17,6 +17,8 @@ pub struct CatalogEntry {
     pub problem: Option<String>,
     /// Display hint; falls back to `name`.
     pub label: String,
+    /// The PC's default agent: new conversations start with it selected.
+    pub is_default: bool,
 }
 
 #[flutter_rust_bridge::frb(sync)]
@@ -25,6 +27,7 @@ pub fn parse_catalog(json: String) -> Option<Vec<CatalogEntry>> {
     if !wire.ok {
         return None;
     }
+    let default = wire.default.map(|name| name.trim().to_string());
     Some(
         wire.agents
             .into_iter()
@@ -39,6 +42,7 @@ pub fn parse_catalog(json: String) -> Option<Vec<CatalogEntry>> {
                     .filter(|label| !label.is_empty())
                     .unwrap_or_else(|| name.clone());
                 Some(CatalogEntry {
+                    is_default: default.as_deref() == Some(name.as_str()),
                     name,
                     available: agent.available,
                     // A host that predates `runnable` only reports `available`.
@@ -59,6 +63,8 @@ pub fn parse_catalog(json: String) -> Option<Vec<CatalogEntry>> {
 struct WireCatalog {
     #[serde(default)]
     ok: bool,
+    /// Absent on a host that predates the default agent.
+    default: Option<String>,
     #[serde(default)]
     agents: Vec<WireAgent>,
 }
@@ -129,5 +135,25 @@ mod tests {
 
         assert!(parse_catalog(r#"{"ok":false,"agents":[]}"#.to_string()).is_none());
         assert!(parse_catalog("not json".to_string()).is_none());
+    }
+
+    #[test]
+    fn marks_the_pcs_default_agent_and_tolerates_hosts_without_one() {
+        let entries = parse_catalog(
+            r#"{"ok":true,"default":"opencode","agents":[
+                {"name":"claude","available":true},
+                {"name":"opencode","available":true}
+            ]}"#
+            .to_string(),
+        )
+        .unwrap();
+        assert!(!entries[0].is_default);
+        assert!(entries[1].is_default);
+
+        let older = parse_catalog(
+            r#"{"ok":true,"agents":[{"name":"claude","available":true}]}"#.to_string(),
+        )
+        .unwrap();
+        assert!(!older[0].is_default);
     }
 }

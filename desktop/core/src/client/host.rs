@@ -47,6 +47,9 @@ pub struct CatalogAgent {
     pub problem: Option<String>,
     #[serde(default)]
     pub label: Option<String>,
+    /// The PC's default agent for new conversations; an older host never sends it.
+    #[serde(default)]
+    pub is_default: bool,
 }
 
 fn startable_by_default() -> bool {
@@ -124,6 +127,19 @@ impl HostClient {
     /// Stops a live agent. A pane that is already gone answers `pane_gone`.
     pub async fn stop_agent(&self, pane_id: &str) -> Result<()> {
         self.action("stop", pane_id, Vec::new()).await
+    }
+
+    /// Makes `name` the PC's default agent for new conversations (needs APPROVE).
+    pub async fn set_default(&self, name: &str) -> Result<()> {
+        let body = serde_json::to_vec(&json!({ "name": name }))?;
+        let url = self.url("/v1/catalog/default")?;
+        let request = self
+            .sign(Method::POST, &url, &body)?
+            .timeout(READ_TIMEOUT)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(body);
+        let _: Value = expect_json(request.send().await?).await?;
+        Ok(())
     }
 
     /// Starts one agent from the host's closed catalogue in `cwd`.
@@ -349,5 +365,16 @@ mod tests {
             "https://192.168.1.20:8443"
         );
         assert!(normalize_endpoint("http://192.168.1.20:8443", &pinned).is_err());
+    }
+
+    #[test]
+    fn the_catalogue_marks_the_default_and_an_older_host_has_none() {
+        let body = r#"{"agents":[
+            {"name":"claude","available":true,"runnable":true,"is_default":true},
+            {"name":"codex","available":true,"runnable":true}
+        ]}"#;
+        let parsed: CatalogResponse = serde_json::from_str(body).unwrap();
+        assert!(parsed.agents[0].is_default);
+        assert!(!parsed.agents[1].is_default);
     }
 }

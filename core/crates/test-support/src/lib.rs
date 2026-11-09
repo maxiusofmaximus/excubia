@@ -1,4 +1,4 @@
-//! Test-only signed HTTP client for the herdr-notify core.
+//! Test-only signed HTTP client for the Excubia core.
 //!
 //! Adapted (minimal copy, with attribution) from the desktop client at
 //! `desktop/core/src/{signing,identity,client}.rs` (MIT), which is the product

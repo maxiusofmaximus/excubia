@@ -1,4 +1,4 @@
-//! Detection for the herdr-notify core: which agent is running, and what
+//! Detection for the Excubia core: which agent is running, and what
 //! state its screen is in (`idle` / `working` / `blocked` / `unknown`).
 //!
 //! The rule engine and the agent alias table are adapted from herdr

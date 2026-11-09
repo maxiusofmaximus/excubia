@@ -1,4 +1,4 @@
-//! Pairing, request authentication and authorization for the herdr-notify
+//! Pairing, request authentication and authorization for the Excubia
 //! core: the Rust implementation of `docs/contracts/{pairing,auth,errors}.md`.
 //!
 //! Enrollment codes are single-use and stored hashed, devices are public keys (P-256 or Ed25519),

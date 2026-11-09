@@ -3,7 +3,7 @@ name = "hn-core-pin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Host TLS identity, SPKI pinning verifier and pairing link for herdr-notify clients and host (CORE11)"
+description = "Host TLS identity, SPKI pinning verifier and pairing link for Excubia clients and host (CORE11)"
 
 [dependencies]
 data-encoding.workspace = true

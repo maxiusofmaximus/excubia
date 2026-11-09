@@ -33,7 +33,7 @@ pub use agenda::agenda_routes;
 pub use alfred::{request as alfred_request, status as alfred_status};
 pub use basic::{health, state};
 pub use calendar_ics::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
-pub use catalog::{fix as catalog_fix, list as catalog};
+pub use catalog::{fix as catalog_fix, list as catalog, set_default as catalog_set_default};
 pub use chat::{
     approval_settings as chat_approval_settings, approval_state as chat_approval_state,
     attachment_content as chat_attachment_content, attachment_preview as chat_attachment_preview,

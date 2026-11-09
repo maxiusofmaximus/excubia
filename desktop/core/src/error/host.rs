@@ -6,6 +6,7 @@ pub(super) fn forbidden_info(action: WriteAction) -> ErrorInfo {
             "Este equipo solo puede leer; falta el permiso RESPOND."
         }
         WriteAction::Keys => "Este equipo solo puede leer; falta el permiso SEND_KEY.",
+        WriteAction::SetDefault => "Este equipo no tiene el permiso APPROVE.",
         WriteAction::Seen | WriteAction::Read => "Este equipo no tiene el permiso READ_STATE.",
     };
     ErrorInfo {

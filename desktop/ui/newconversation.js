@@ -22,6 +22,17 @@ function updateSubmit() {
   $("nc-submit").disabled = submitting || !selectedAgent();
 }
 
+/// Saves `name` as the PC's default for new conversations, then reads the list again.
+async function makeDefault(name) {
+  showError("");
+  try {
+    await invoke("set_default_agent", { name });
+    await loadCatalog();
+  } catch (error) {
+    showError(errorMessage(error));
+  }
+}
+
 async function loadCatalog() {
   const list = $("nc-agents");
   list.replaceChildren();
@@ -42,21 +53,37 @@ async function loadCatalog() {
       name.textContent = agent.label || agent.name;
       const note = document.createElement("span");
       note.className = "nc-agent-note";
-      note.textContent = agent.runnable
-        ? "disponible"
-        : agent.problem || "no se puede usar en este equipo";
+      note.textContent = !agent.runnable
+        ? agent.problem || "no se puede usar en este equipo"
+        : agent.is_default
+          ? "por defecto"
+          : "disponible";
       label.append(radio, name, note);
+      if (agent.runnable && !agent.is_default) {
+        const make = document.createElement("button");
+        make.type = "button";
+        make.className = "nc-agent-make-default";
+        make.textContent = "Usar por defecto";
+        make.addEventListener("click", (event) => {
+          // The button sits inside the label: it must not also pick the radio.
+          event.preventDefault();
+          makeDefault(agent.name);
+        });
+        label.append(make);
+      }
       list.append(label);
     }
-    const first = agents.find((agent) => agent.runnable);
-    if (first) {
+    const chosen =
+      agents.find((agent) => agent.runnable && agent.is_default) ||
+      agents.find((agent) => agent.runnable);
+    if (chosen) {
       const radio = list.querySelector(
-        `input[value="${CSS.escape(first.name)}"]`,
+        `input[value="${CSS.escape(chosen.name)}"]`,
       );
       if (radio) radio.checked = true;
     }
     updateSubmit();
-    if (!first) showError(NO_AGENTS);
+    if (!chosen) showError(NO_AGENTS);
   } catch (error) {
     showError(errorMessage(error));
     updateSubmit();

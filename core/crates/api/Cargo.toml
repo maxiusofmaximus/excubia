@@ -3,7 +3,7 @@ name = "hn-core-api"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Local HTTP + SSE API for herdr-notify core (contract: docs/contracts/api.md)"
+description = "Local HTTP + SSE API for Excubia core (contract: docs/contracts/api.md)"
 
 [dependencies]
 async-trait = "0.1"

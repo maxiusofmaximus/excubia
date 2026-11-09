@@ -85,6 +85,7 @@ pub enum WriteAction {
     Read,
     CreateWorkspace,
     Stop,
+    SetDefault,
 }
 
 /// The canonical host-side grant command (CORE4's `GRANT_HINT`).

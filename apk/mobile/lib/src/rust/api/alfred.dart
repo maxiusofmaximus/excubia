@@ -14,7 +14,8 @@ import 'write.dart';
 ChatPlan planAlfredBackendRead() =>
     RustLib.instance.api.crateApiAlfredPlanAlfredBackendRead();
 
-/// Asks for the engine `local` or `claude`. Any other name is refused before the wire.
+/// Asks for the engine `local`, `claude`, or a CLI name (`opencode`). A name with other
+/// characters is refused before the wire; an unlisted CLI is refused by the PC (400).
 ChatPlan planAlfredBackendSet({required String backend}) =>
     RustLib.instance.api.crateApiAlfredPlanAlfredBackendSet(backend: backend);
 

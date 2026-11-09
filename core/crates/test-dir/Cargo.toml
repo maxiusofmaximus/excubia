@@ -4,6 +4,6 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "Self-removing scratch directories for herdr-notify core tests (a dev-dependency; never shipped)"
+description = "Self-removing scratch directories for Excubia core tests (a dev-dependency; never shipped)"
 
 [dependencies]

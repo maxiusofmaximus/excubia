@@ -1,4 +1,4 @@
-//! Agent host for the herdr-notify core.
+//! Agent host for the Excubia core.
 //!
 //! Supervises CLI agents: each one gets a pty ([`hn_core_pty`]), a terminal
 //! emulator to read its screen, and a detector built from the manifests in

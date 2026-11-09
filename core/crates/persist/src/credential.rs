@@ -116,7 +116,7 @@ mod windows_store {
         fn the_credential_manager_round_trips_a_value() {
             use windows_sys::Win32::Security::Credentials::{CredDeleteW, CRED_TYPE_GENERIC};
 
-            let target = format!("herdr-notify/persist-test-{}", std::process::id());
+            let target = format!("excubia/persist-test-{}", std::process::id());
             let store = CredentialManager::new(&target);
             assert!(store.read().expect("read before write").is_none());
             store.write(&[1, 2, 3, 4]).expect("write");

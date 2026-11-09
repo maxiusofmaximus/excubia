@@ -91,7 +91,7 @@ impl ReqwestTransport {
             .redirect(reqwest::redirect::Policy::none())
             .connect_timeout(CONNECT_TIMEOUT)
             .timeout(TOTAL_TIMEOUT)
-            .user_agent(concat!("herdr-notify-mail/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("excubia-mail/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(transport_error)?;
         Ok(Self { client })
