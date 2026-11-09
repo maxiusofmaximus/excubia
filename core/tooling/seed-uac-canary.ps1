@@ -7,7 +7,7 @@
 param(
     # The host's data directory (`agents.toml`, `chat.db`, `uac-canary`).
     [string] $DataDir = (Join-Path $env:APPDATA "dev.excubia.desktop\core"),
-    # Not re-verified for opencode 2.2.6 (RFC alfred-cli-engine §8): pin them to
+    # Not re-verified for opencode 2.2.6 (RFC alfred-cli-engine (documento ausente) §8): pin them to
     # the versions that CLI loads before relying on this seed.
     [string] $OpenCodeVersion = "1.19.3",
     [string] $ProviderVersion = "3.0.75"

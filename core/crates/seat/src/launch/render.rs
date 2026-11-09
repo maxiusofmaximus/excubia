@@ -123,7 +123,7 @@ const SEAT_MODEL: &str = "opencode/crouton-alpha-free";
 /// The OpenCode configuration of one run. Edit and fetch are always denied. Shell
 /// is allowed only with the UAC plugin: the plugin is then the gate, and a native
 /// denial would make an approved command never run (probe on opencode 2.2.6,
-/// 2026-11-08, RFC alfred-cli-engine §8). Without a plugin, shell stays denied.
+/// 2026-11-08, RFC alfred-cli-engine (documento ausente) §8). Without a plugin, shell stays denied.
 /// `plugin` is the plugin directory to load, when the run has one.
 pub(crate) fn opencode_config(
     plugin: Option<&Path>,

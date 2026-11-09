@@ -1,5 +1,5 @@
 //! The UAC plugin against the real OpenCode CLI, at host level (RFC
-//! alfred-cli-engine, F-D). The seat runs OpenCode with the plugin, the local
+//! alfred-cli-engine (documento ausente), F-D). The seat runs OpenCode with the plugin, the local
 //! provider asks it for one shell command, and the operator's answer decides
 //! whether that command runs.
 //!
