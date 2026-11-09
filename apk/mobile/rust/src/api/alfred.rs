@@ -1,5 +1,6 @@
-//! `/v1/alfred/backend`: the engine of Alfred, Claude or the local model. The route and
-//! the body are built here and a refused change is explained here; Dart only sends the bytes.
+//! `/v1/alfred/backend`: the engine of Alfred, Claude, the local model or a CLI the PC lists.
+//! The route and the body are built here and a refused change is explained here; Dart only
+//! sends the bytes. Whether a CLI is listed is the PC's answer, not this file's.
 
 use serde_json::json;
 
@@ -13,10 +14,16 @@ pub fn plan_alfred_backend_read() -> ChatPlan {
     get(BACKEND.to_string())
 }
 
-/// Asks for the engine `local` or `claude`. Any other name is refused before the wire.
+/// Asks for the engine `local`, `claude`, or a CLI name (`opencode`). A name with other
+/// characters is refused before the wire; an unlisted CLI is refused by the PC (400).
 #[flutter_rust_bridge::frb(sync)]
 pub fn plan_alfred_backend_set(backend: String) -> ChatPlan {
-    if !matches!(backend.as_str(), "local" | "claude") {
+    let shaped = !backend.is_empty()
+        && backend.len() <= 40
+        && backend
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_');
+    if !shaped {
         return ChatPlan {
             request: None,
             problem: Some(info("El motor pedido no existe.", None, FailureKind::Retry)),
@@ -37,6 +44,11 @@ pub fn explain_alfred_backend_error(status: u16, body: String) -> ErrorInfo {
             "Este móvil no puede cambiar el motor de Alfred.",
             None,
             FailureKind::Permission,
+        ),
+        400 => info(
+            "Tu PC no tiene ese motor listo. Elige otro.",
+            None,
+            FailureKind::Retry,
         ),
         404 => info(
             "Tu PC no admite este ajuste; actualiza Excubia en el PC.",
@@ -71,9 +83,16 @@ mod tests {
         assert_eq!(call.method, "POST");
         assert_eq!(call.body, br#"{"backend":"local"}"#);
 
-        let refused = plan_alfred_backend_set("gpt".to_string());
-        assert!(refused.request.is_none());
-        assert!(refused.problem.is_some());
+        let engine = plan_alfred_backend_set("opencode".to_string())
+            .request
+            .expect("a request");
+        assert_eq!(engine.body, br#"{"backend":"opencode"}"#);
+
+        for refused in ["", "Open Code", "../etc", "opencode;rm"] {
+            let plan = plan_alfred_backend_set(refused.to_string());
+            assert!(plan.request.is_none(), "{refused:?} must not reach the wire");
+            assert!(plan.problem.is_some());
+        }
     }
 
     #[test]
@@ -87,5 +106,8 @@ mod tests {
 
         let busy = explain_alfred_backend_error(409, String::new());
         assert!(busy.message.contains("cambiando de modelo"));
+
+        let unlisted = explain_alfred_backend_error(400, String::new());
+        assert!(unlisted.message.contains("motor listo"));
     }
 }

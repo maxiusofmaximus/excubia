@@ -158,8 +158,12 @@ pub(super) async fn run_turn(
     settle(readers).await;
     let secrets = [token.as_str(), hook_token.as_str(), turn.text.as_str()];
     let excerpt = lock(&tail).excerpt(&secrets);
-    // A turn on the local model is not Claude's quota: only Claude's failures are reported.
-    if turn_env == TurnEnv::default() && looks_like_quota_exhausted(&excerpt) {
+    // A turn on the local model or a chosen engine is not the seat's quota: only the default CLI counts.
+    let on_default = worker
+        .selected
+        .as_ref()
+        .is_some_and(|default| default.profile.id == selected.profile.id);
+    if turn_env == TurnEnv::default() && on_default && looks_like_quota_exhausted(&excerpt) {
         (worker.on_quota_exhausted)();
     }
     Err(with_output(outcome.failure_reason(), &excerpt))

@@ -15,7 +15,7 @@ pub enum Requested {
 }
 
 /// A CLI engine the host can run, listed only once it is `Ready` (installed and its gate proven).
-/// Listing is read-only: Alfred cannot switch to it yet.
+/// Alfred may choose it; its turns then run on that CLI.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EngineListing {
     pub name: String,
@@ -25,9 +25,9 @@ pub struct EngineListing {
 /// Which engine answers Alfred, read from the markers and from Strata.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BackendStatus {
-    /// `claude` or `local`: the engine Alfred's turns use.
-    pub backend: &'static str,
-    /// `claude`, `starting`, `local`, `stopping` or `failed`.
+    /// `claude`, `local`, or the name of a listed engine (e.g. `opencode`).
+    pub backend: String,
+    /// `claude`, `starting`, `local`, `engine`, `stopping` or `failed`.
     pub state: &'static str,
     pub detail: Option<String>,
     /// Unix seconds: since the last change this host process saw.
@@ -60,8 +60,8 @@ impl BackendStatus {
 pub trait AlfredBackend: Send + Sync + 'static {
     async fn status(&self) -> BackendStatus;
 
-    /// `backend` is `local` or `claude`; the route has checked it. `Err` is a refusal, with the
-    /// text for the phone: the other engine is being switched to right now.
+    /// `backend` is `local`, `claude` or a listed engine; the route has checked it. `Err` is a
+    /// refusal, with the text for the phone: the other engine is being switched to right now.
     async fn request(&self, backend: &str) -> Result<Requested, String>;
 }
 
@@ -71,7 +71,7 @@ mod tests {
 
     fn status(engines: Vec<EngineListing>) -> BackendStatus {
         BackendStatus {
-            backend: "claude",
+            backend: "claude".to_owned(),
             state: "claude",
             detail: None,
             since: 0,

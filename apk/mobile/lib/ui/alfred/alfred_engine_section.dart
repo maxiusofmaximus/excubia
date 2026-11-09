@@ -11,10 +11,10 @@ import '../new_conversation_screen.dart' show CatalogLoader;
 import '../theme.dart';
 import '../widgets/surface_card.dart';
 
-/// The engine switch of Alfred in the settings page: Claude or the local model on the PC.
-/// Going local asks first; going back to Claude does not. While the PC is starting or
-/// stopping the model, the status is read again every few seconds. Below it, the agents
-/// installed on the PC, read-only: Alfred cannot run on them yet.
+/// The engine switch of Alfred in the settings page: Claude, the local model on the PC, or a
+/// CLI the PC lists as ready (one button each). Going local asks first; going back to Claude
+/// does not. While the PC is starting or stopping, the status is read again every few
+/// seconds. Below it, the agents installed on the PC, read-only.
 class AlfredEngineSection extends StatefulWidget {
   const AlfredEngineSection({super.key, required this.api, this.catalog});
 
@@ -208,7 +208,7 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
           style: context.text.body,
         ),
       Text(
-        'Alfred sigue con Claude o con el modelo local. Elegir otro agente para Alfred llegará después.',
+        'Alfred elige entre Claude, el modelo local y los motores listos de arriba.',
         style: context.text.bodySecondary,
       ),
     ]);
@@ -238,12 +238,10 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
             color: context.colors.statusBlocked,
           ),
         ),
-      // Listed for information: the PC cannot switch to these engines yet.
       if (status.engines.isNotEmpty)
         Text(
           'Motores listos en este PC: '
-          '${status.engines.map((engine) => '${engine.name} ${engine.version}').join(', ')}'
-          ' (aún no se puede elegir)',
+          '${status.engines.map((engine) => '${engine.name} ${engine.version}').join(', ')}',
           style: context.text.bodySecondary,
         ),
       const SizedBox(height: Spacing.sm),
@@ -254,6 +252,7 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
             when status.backend != 'local' =>
           _button('Usar el modelo local', _busy ? null : _askLocal),
         AlfredEngineState.local ||
+        AlfredEngineState.engine ||
         AlfredEngineState.failed ||
         AlfredEngineState.claude => _button(
           'Volver a Claude',
@@ -262,12 +261,25 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
         AlfredEngineState.starting => _button('Usar el modelo local', null),
         AlfredEngineState.stopping => _button('Volver a Claude', null),
       },
+      // A failed CLI (no longer listed) must not hold Alfred: the way back to Claude is offered too.
+      if (state == AlfredEngineState.failed &&
+          status.backend != 'claude' &&
+          status.backend != 'local')
+        _button('Volver a Claude', _busy ? null : () => _change('claude')),
+      // One button per listed CLI, except the one that answers now. Disabled while the PC moves.
+      for (final engine in status.engines)
+        if (state != AlfredEngineState.engine || status.backend != engine.name)
+          _button(
+            'Usar ${engine.name}',
+            _busy || _moving ? null : () => _change(engine.name),
+          ),
     ]);
   }
 
   static String _lineFor(AlfredBackendStatus status) => switch (status.state) {
     AlfredEngineState.claude => 'Claude',
     AlfredEngineState.local => 'Modelo local',
+    AlfredEngineState.engine => 'Motor: ${status.backend}',
     AlfredEngineState.starting => 'Arrancando el modelo local… (unos 4 min)',
     AlfredEngineState.stopping => 'Volviendo a Claude…',
     AlfredEngineState.failed =>

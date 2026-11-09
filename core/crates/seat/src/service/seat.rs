@@ -42,6 +42,10 @@ pub struct SeatConfig {
     /// OpenCode seat runs with no plugin.
     pub plugin_dir: Option<PathBuf>,
     pub profiles: Vec<CliProfile>,
+    /// CLI engines Alfred may choose for its turns, ready at start (canary and version).
+    pub engines: Vec<SelectedProfile>,
+    /// Read at the start of each turn: the name of the engine that answers it, if any.
+    pub turn_engine: Arc<dyn Fn() -> Option<String> + Send + Sync>,
     pub queue_capacity: usize,
     pub turn_timeout: Duration,
     /// Read at the start of each turn: the CLI's environment changes, e.g. the local model.
@@ -55,6 +59,7 @@ pub struct SeatService {
     pub(crate) chat: Arc<ChatStore>,
     agent_id: String,
     selected: Option<SelectedProfile>,
+    has_engines: bool,
     mcp_command: PathBuf,
     tool_url: String,
     sender: mpsc::Sender<Turn>,
@@ -120,6 +125,7 @@ impl SeatService {
             chat: Arc::clone(&config.chat),
             agent_id: agent_id.clone(),
             selected: selected.clone(),
+            has_engines: !config.engines.is_empty(),
             mcp_command: config.mcp_command.clone(),
             tool_url: config.tool_url.clone(),
             sender,
@@ -132,6 +138,8 @@ impl SeatService {
             chat: config.chat,
             receiver,
             selected,
+            engines: config.engines,
+            turn_engine: config.turn_engine,
             tokens,
             mcp_command: config.mcp_command,
             tool_url: config.tool_url,
@@ -162,7 +170,7 @@ impl SeatService {
     }
 
     pub fn is_available(&self) -> bool {
-        self.selected.is_some() && !self.closed.load(Ordering::SeqCst)
+        (self.selected.is_some() || self.has_engines) && !self.closed.load(Ordering::SeqCst)
     }
 }
 

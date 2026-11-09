@@ -33,16 +33,19 @@ pub async fn request(
     body: Bytes,
 ) -> Result<Response, ApiError> {
     let payload: BackendBody = parse_body(&body)?;
+    // Only the engines the status lists can be chosen: an unlisted CLI is refused, never tried.
+    let listed = ctx.alfred.status().await.engines;
     let backend = match payload.backend.as_ref().and_then(Value::as_str) {
-        Some(name @ ("local" | "claude")) => name,
+        Some(name @ ("local" | "claude")) => name.to_owned(),
+        Some(name) if listed.iter().any(|engine| engine.name == name) => name.to_owned(),
         _ => {
             return Err(ApiError::action(
                 "invalid_backend",
-                "backend must be local or claude",
+                "backend must be local, claude or a listed engine",
             ))
         }
     };
-    let requested = ctx.alfred.request(backend).await;
+    let requested = ctx.alfred.request(&backend).await;
     let outcome = match &requested {
         Ok(Requested::Unchanged) => "unchanged",
         Ok(Requested::Started) => "started",
@@ -50,7 +53,7 @@ pub async fn request(
     };
     ctx.audit.record(
         &AuditEvent::new("alfred.backend", Some(&verified.device_id), outcome)
-            .with("backend", backend),
+            .with("backend", backend.as_str()),
     );
     let requested = requested
         .map_err(|message| ApiError::coded(StatusCode::CONFLICT, "backend_busy", message))?;

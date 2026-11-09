@@ -31,8 +31,8 @@ use hn_core_host::pairing_notice::PairingNotice;
 use hn_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
 use hn_core_host::tls_slots::TlsSlots;
 use hn_core_host::{
-    configured_profiles, load_agents, load_hook_token, opencode_listing, paths, spawn_alerts,
-    AgentHost, HostOptions, SpawnSpec,
+    configured_profiles, engine_listing, load_agents, load_hook_token, paths, ready_engines,
+    spawn_alerts, AgentHost, HostOptions, SpawnSpec,
 };
 use hn_core_pin::Identity;
 use hn_core_pty::PtySize;
@@ -136,9 +136,13 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         Some(dir) => println!("host: UAC plugin proven from {}", dir.display()),
         None => println!("host: warning: OpenCode seats keep shell denied ({gate_reason})"),
     }
-    let engines = opencode_listing(&profiles, proven_plugin.is_some());
+    let engines = ready_engines(&profiles, proven_plugin.is_some());
     match engines.first() {
-        Some(engine) => println!("host: engine listed: {} {}", engine.name, engine.version),
+        Some(engine) => println!(
+            "host: engine listed: {} {}",
+            engine.profile.id.as_str(),
+            engine.version
+        ),
         None => {
             println!("host: no CLI engine listed (opencode needs its gate proven and --version)")
         }
@@ -154,6 +158,11 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         profiles,
         queue_capacity: SEAT_QUEUE,
         turn_timeout: SEAT_TIMEOUT,
+        engines: engines.clone(),
+        turn_engine: {
+            let data_dir = options.data_dir.clone();
+            Arc::new(move || alfred_backend::engine(&data_dir))
+        },
         turn_env: {
             let data_dir = options.data_dir.clone();
             Arc::new(move || alfred_backend::turn_env(&data_dir))
@@ -278,7 +287,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         Arc::clone(&notices),
         Arc::new(Strata),
     )
-    .with_engines(engines);
+    .with_engines(engine_listing(&engines));
     // A running local model keeps the ASR down: no warm-up while its marker is there.
     if !local_mode::is_on(&options.data_dir) {
         Arc::clone(&voice).warm_up();

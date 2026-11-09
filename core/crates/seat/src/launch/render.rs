@@ -116,6 +116,10 @@ pub(crate) enum OpenCodeRun<'a> {
     },
 }
 
+/// The model every Alfred CLI turn runs on: opencode's own default is a free model that runs
+/// out of usage. shortcut: one fixed model for all turns, upgrade when the Master picks another.
+const SEAT_MODEL: &str = "opencode/crouton-alpha-free";
+
 /// The OpenCode configuration of one run. Edit and fetch are always denied. Shell
 /// is allowed only with the UAC plugin: the plugin is then the gate, and a native
 /// denial would make an approved command never run (probe on opencode 2.2.6,
@@ -159,6 +163,9 @@ pub(crate) fn opencode_config(
                 }
             }
         });
+    }
+    if provider_url.is_none() {
+        body["model"] = json!(SEAT_MODEL);
     }
     if let Some((command, tool_url)) = mcp {
         body["mcp"] = json!({

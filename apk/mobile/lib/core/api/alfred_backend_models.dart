@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'json_read.dart';
 
 /// Where Alfred's turns are answered now, or on the way there (`/v1/alfred/backend`).
-enum AlfredEngineState { claude, starting, local, stopping, failed }
+/// [engine]: the turns run on the CLI named by `backend`, which the PC lists as ready.
+enum AlfredEngineState { claude, starting, local, engine, stopping, failed }
 
-/// A CLI engine the PC lists as ready (`engines` in the status). Listed only: it cannot be chosen yet.
+/// A CLI engine the PC lists as ready (`engines` in the status). It can be chosen.
 class AlfredCliEngine {
   const AlfredCliEngine({required this.name, required this.version});
 

@@ -9,7 +9,7 @@ use std::path::Path;
 use anyhow::{anyhow, Context, Result};
 use hn_core_api::{AgentCatalog, EngineListing};
 use hn_core_detect::AgentKind;
-use hn_core_seat::{probe, shipped, CliId, CliProfile};
+use hn_core_seat::{probe, shipped, CliId, CliProfile, SelectedProfile};
 
 /// Agents the nucleus's default catalogue offers. The default file also
 /// carries a display label per entry.
@@ -78,9 +78,9 @@ pub fn configured_profiles(catalog: &AgentCatalog) -> Vec<CliProfile> {
     profiles
 }
 
-/// The CLI engines that are `Ready` on this PC: installed, at least the minimum version, and their
-/// gate proven. Read-only: Alfred cannot switch to them yet.
-pub fn opencode_listing(profiles: &[CliProfile], gate_proven: bool) -> Vec<EngineListing> {
+/// The CLI engines `Ready` on this PC: OpenCode, when its gate is proven and it runs at least its
+/// minimum version. Read at start-up; each turn probes its engine again.
+pub fn ready_engines(profiles: &[CliProfile], gate_proven: bool) -> Vec<SelectedProfile> {
     if !gate_proven {
         return Vec::new();
     }
@@ -91,12 +91,23 @@ pub fn opencode_listing(profiles: &[CliProfile], gate_proven: bool) -> Vec<Engin
         return Vec::new();
     };
     match probe(profile) {
-        Some(version) if version >= profile.min_version => vec![EngineListing {
-            name: "opencode".to_owned(),
-            version: version.to_string(),
+        Some(version) if version >= profile.min_version => vec![SelectedProfile {
+            profile: profile.clone(),
+            version,
         }],
         _ => Vec::new(),
     }
+}
+
+/// The engines the API lists and Alfred may choose.
+pub fn engine_listing(engines: &[SelectedProfile]) -> Vec<EngineListing> {
+    engines
+        .iter()
+        .map(|engine| EngineListing {
+            name: engine.profile.id.as_str().to_owned(),
+            version: engine.version.to_string(),
+        })
+        .collect()
 }
 
 /// The label the default catalogue gives an agent.
@@ -182,6 +193,7 @@ mod tests {
     #[test]
     fn no_engine_is_listed_without_a_proven_gate() {
         let profiles = shipped();
-        assert!(opencode_listing(&profiles, false).is_empty());
+        assert!(ready_engines(&profiles, false).is_empty());
+        assert!(engine_listing(&[]).is_empty());
     }
 }

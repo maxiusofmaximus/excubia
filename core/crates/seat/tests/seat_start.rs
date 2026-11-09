@@ -26,6 +26,8 @@ fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {
         profiles: vec![test_profile("hn-no-such-cli-anywhere")],
         queue_capacity: 1,
         turn_timeout: Duration::from_secs(5),
+        engines: Vec::new(),
+        turn_engine: Arc::new(|| None),
         turn_env: Arc::new(TurnEnv::default),
         on_quota_exhausted: Arc::new(|| {}),
     };

@@ -42,6 +42,27 @@ pub fn clear(data_dir: &Path) -> io::Result<()> {
     }
 }
 
+/// The CLI engine that answers Alfred's turns, from the `alfred-engine` marker. `None` means Claude
+/// or the local model.
+pub fn engine(data_dir: &Path) -> Option<String> {
+    std::fs::read_to_string(paths::alfred_engine_path(data_dir))
+        .ok()
+        .map(|text| text.trim().to_owned())
+        .filter(|name| !name.is_empty())
+}
+
+pub fn set_engine(data_dir: &Path, name: &str) -> io::Result<()> {
+    paths::ensure_data_dir(data_dir)?;
+    hn_core_persist::write_atomic(&paths::alfred_engine_path(data_dir), name.as_bytes())
+}
+
+pub fn clear_engine(data_dir: &Path) -> io::Result<()> {
+    match std::fs::remove_file(paths::alfred_engine_path(data_dir)) {
+        Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error),
+        _ => Ok(()),
+    }
+}
+
 /// The environment that points Claude Code at the local server. The `claude-local` entry and
 /// Alfred's turns both take it from here.
 pub fn local_env() -> Vec<(&'static str, String)> {
@@ -193,6 +214,24 @@ mod tests {
         clear(&dir).expect("clear");
         clear(&dir).expect("clearing an absent marker is not an error");
         assert!(!is_on(&dir));
+    }
+
+    #[test]
+    fn the_engine_marker_names_the_engine_and_clears_twice() {
+        let dir = TestDir::new("alfred-engine");
+        assert_eq!(engine(&dir), None);
+        set_engine(&dir, "opencode").expect("set engine");
+        assert_eq!(engine(&dir).as_deref(), Some("opencode"));
+        clear_engine(&dir).expect("clear engine");
+        clear_engine(&dir).expect("clearing an absent engine marker is not an error");
+        assert_eq!(engine(&dir), None);
+    }
+
+    #[test]
+    fn an_engine_marker_leaves_the_turn_env_on_claude() {
+        let dir = TestDir::new("alfred-engine-env");
+        set_engine(&dir, "opencode").expect("set engine");
+        assert_eq!(turn_env(&dir), TurnEnv::default());
     }
 
     #[test]

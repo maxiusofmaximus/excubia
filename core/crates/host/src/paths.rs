@@ -106,6 +106,11 @@ pub fn alfred_local_path(data_dir: &Path) -> PathBuf {
     data_dir.join("alfred-local")
 }
 
+/// Present while Alfred answers with a CLI engine (`alfred_backend.rs`); its text is the engine's name.
+pub fn alfred_engine_path(data_dir: &Path) -> PathBuf {
+    data_dir.join("alfred-engine")
+}
+
 /// The LAN listener's certificate and key slots (`tls_slots.rs`).
 pub fn tls_dir(data_dir: &Path) -> PathBuf {
     data_dir.join("tls")
@@ -136,6 +141,7 @@ mod tests {
         assert!(attachments_dir(dir).ends_with(Path::new("chat").join("attachments")));
         assert!(local_mode_path(dir).ends_with("local-mode"));
         assert!(alfred_local_path(dir).ends_with("alfred-local"));
+        assert!(alfred_engine_path(dir).ends_with("alfred-engine"));
     }
 
     /// The named variables; every other variable is unset.

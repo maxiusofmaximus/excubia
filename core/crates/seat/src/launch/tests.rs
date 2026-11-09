@@ -216,6 +216,7 @@ fn opencode_plan_sets_agent_prompt_and_session() {
     let config: serde_json::Value =
         serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
     assert_eq!(config["agent"]["alfred"]["prompt"], "role");
+    assert_eq!(config["model"], "opencode/crouton-alpha-free");
     assert_eq!(
         config["mcp"]["hn-core"]["environment"]["HN_TOOL_URL"],
         "http://127.0.0.1:9/internal/chat/tools"
@@ -224,6 +225,15 @@ fn opencode_plan_sets_agent_prompt_and_session() {
     assert_eq!(config["permission"]["bash"], "deny");
     assert_eq!(config["permission"]["edit"], "deny");
     assert!(config.get("plugin").is_none());
+}
+
+#[test]
+fn opencode_turns_run_in_the_folder_that_outlives_them() {
+    // The session is bound to its first folder: every turn must run in the same one.
+    let profile = crate::profile::shipped().remove(2);
+    let root = PathBuf::from("seat").join("runs").join("turn-1");
+    let plan = prepare(&input(&profile, &root, "role", "prompt")).expect("plan");
+    assert_eq!(plan.cwd, PathBuf::from("seat").join("runs"));
 }
 
 #[test]

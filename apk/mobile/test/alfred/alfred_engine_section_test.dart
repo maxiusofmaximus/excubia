@@ -9,7 +9,8 @@ import 'package:herdr_notify/core/api/host_client.dart';
 import 'package:herdr_notify/src/rust/api/catalog.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 import 'package:herdr_notify/ui/alfred/alfred_engine_section.dart';
-import 'package:herdr_notify/ui/new_conversation_screen.dart' show CatalogLoader;
+import 'package:herdr_notify/ui/new_conversation_screen.dart'
+    show CatalogLoader;
 
 import '../support/widget_mount.dart';
 
@@ -140,7 +141,7 @@ void main() {
     expect(find.text('Claude Code'), findsOneWidget);
     expect(find.text('Codex · Windows no lo arranca todavía'), findsOneWidget);
     expect(find.textContaining('Gemini CLI'), findsNothing);
-    expect(find.textContaining('Elegir otro agente para Alfred'), findsOneWidget);
+    expect(find.textContaining('Alfred elige entre Claude'), findsOneWidget);
     expect(engine.count(_change), 0);
   });
 
@@ -351,7 +352,7 @@ void main() {
     expect(_buttonOf(tester, 'Usar el modelo local').onPressed, isNotNull);
   });
 
-  testWidgets('a ready CLI engine is listed read-only, with no button for it', (
+  testWidgets('a ready CLI engine is offered as a button and can be chosen', (
     tester,
   ) async {
     final engine = _Engine({
@@ -359,16 +360,59 @@ void main() {
         '{"backend":"claude","state":"claude","detail":null,"since":1,'
             '"voice_suspended":false,"engines":[{"name":"opencode","version":"2.2.6"}]}',
       ],
+      _change: [
+        '{"backend":"opencode","state":"starting","detail":null,"since":1,'
+            '"voice_suspended":false,"engines":[{"name":"opencode","version":"2.2.6"}]}',
+      ],
     });
     await _mount(tester, engine);
 
     expect(
-      find.text(
-        'Motores listos en este PC: opencode 2.2.6 (aún no se puede elegir)',
-      ),
+      find.text('Motores listos en este PC: opencode 2.2.6'),
       findsOneWidget,
     );
-    expect(_button('opencode'), findsNothing);
+    expect(_buttonOf(tester, 'Usar opencode').onPressed, isNotNull);
+    await tester.tap(_button('Usar opencode'));
+    await tester.pumpAndSettle();
+
+    expect(engine.calls, contains(_change));
+    expect(engine.sent.single['route'], _change);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the CLI that answers now is not offered again', (tester) async {
+    final engine = _Engine({
+      _read: [
+        '{"backend":"opencode","state":"engine","detail":null,"since":1,'
+            '"voice_suspended":false,"engines":[{"name":"opencode","version":"2.2.6"}]}',
+      ],
+    });
+    await _mount(tester, engine);
+
+    expect(find.text('Motor: opencode'), findsOneWidget);
+    expect(_button('Usar opencode'), findsNothing);
+    expect(_buttonOf(tester, 'Volver a Claude').onPressed, isNotNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a failed CLI that is no longer listed offers the way back', (
+    tester,
+  ) async {
+    final engine = _Engine({
+      _read: [
+        '{"backend":"opencode","state":"failed",'
+            '"detail":"opencode no está listo en este PC","since":1,'
+            '"voice_suspended":false,"engines":[]}',
+      ],
+    });
+    await _mount(tester, engine);
+
+    expect(
+      find.text('No pude cambiar: opencode no está listo en este PC'),
+      findsOneWidget,
+    );
+    expect(_buttonOf(tester, 'Volver a Claude').onPressed, isNotNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('no engine listed shows no engine line', (tester) async {

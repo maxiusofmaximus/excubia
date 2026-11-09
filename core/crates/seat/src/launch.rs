@@ -228,11 +228,21 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
         }
     }
 
+    // OpenCode binds its session to the folder it first ran in. The per-turn folder is
+    // removed after each turn, so the session would point at nothing; the folder that
+    // holds the turn folders outlives them.
+    let session_cwd = matches!(input.profile.prompt, PromptDelivery::AgentConfig)
+        && input.profile.mode == TurnMode::Session;
+    let cwd = match input.run_dir.parent() {
+        Some(seat_runs) if session_cwd => seat_runs.to_path_buf(),
+        _ => input.run_dir.to_path_buf(),
+    };
+
     Ok(LaunchPlan {
         program,
         args,
         env,
-        cwd: input.run_dir.to_path_buf(),
+        cwd,
         stdin: input.prompt.to_string(),
         files,
     })

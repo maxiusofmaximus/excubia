@@ -68,7 +68,8 @@ mod term_size;
 pub mod tls_slots;
 
 pub use agents::{
-    configured_profiles, default_catalog, load_or_create as load_agents, opencode_listing,
+    configured_profiles, default_catalog, engine_listing, load_or_create as load_agents,
+    ready_engines,
 };
 pub use alerts::spawn as spawn_alerts;
 pub use hook_token::load_or_create as load_hook_token;

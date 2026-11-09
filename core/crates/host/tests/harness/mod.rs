@@ -498,6 +498,8 @@ impl TestHost {
                     queue_capacity: 1,
                     turn_timeout,
                     turn_env: opencode_turn_env(&data_dir, &provider_url, approval_ttl_seconds),
+                    engines: Vec::new(),
+                    turn_engine: Arc::new(|| None),
                     on_quota_exhausted: quota_counter(),
                 })
                 .expect("seat service"),
@@ -515,6 +517,8 @@ impl TestHost {
                     queue_capacity: 1,
                     turn_timeout,
                     turn_env: alfred_turn_env(&data_dir),
+                    engines: Vec::new(),
+                    turn_engine: Arc::new(|| None),
                     on_quota_exhausted: quota_counter(),
                 })
                 .expect("seat service"),
@@ -532,6 +536,8 @@ impl TestHost {
                     queue_capacity: 1,
                     turn_timeout: Duration::from_secs(5),
                     turn_env: alfred_turn_env(&data_dir),
+                    engines: Vec::new(),
+                    turn_engine: Arc::new(|| None),
                     on_quota_exhausted: quota_counter(),
                 })
                 .expect("seat service"),
@@ -549,6 +555,8 @@ impl TestHost {
                     queue_capacity: 8,
                     turn_timeout,
                     turn_env: alfred_turn_env(&data_dir),
+                    engines: Vec::new(),
+                    turn_engine: Arc::new(|| None),
                     on_quota_exhausted: quota_counter(),
                 })
                 .expect("seat service"),

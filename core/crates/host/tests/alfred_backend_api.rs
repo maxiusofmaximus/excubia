@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use harness::{FakeEngine, TestHost};
-use hn_core_api::{AlfredBackend, EngineListing};
+use hn_core_api::{AlfredBackend, EngineListing, Requested};
 use hn_core_auth::Permission;
 use hn_core_chat::{ChatStore, ConversationFilter};
 use hn_core_host::alfred_backend;
@@ -324,14 +324,28 @@ async fn the_state_is_read_from_the_markers_after_a_restart() {
     assert_eq!(status["voice_suspended"], false);
 }
 
+/// Polls the switch until no change runs: its status with the state settled.
+async fn settled(switch: &Switch) -> Value {
+    let deadline = Instant::now() + WAIT;
+    loop {
+        let body = switch.status().await.to_json();
+        let moving = body["state"] == "starting" || body["state"] == "stopping";
+        if !moving || Instant::now() > deadline {
+            return body;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
 #[tokio::test(flavor = "multi_thread")]
-async fn a_ready_cli_engine_is_listed_and_never_selected() {
+async fn a_listed_cli_engine_is_chosen_and_an_unlisted_one_is_refused() {
     let host = TestHost::start("alfred-backend-engines").await;
     let engine = Arc::new(FakeEngine::default());
+    engine.ready.store(true, Ordering::SeqCst);
     let notices = Arc::new(PairingNotice::new(&host.data_dir, Arc::clone(&host.chat)));
     let switch = Switch::new(
         host.data_dir.clone(),
-        notices,
+        Arc::clone(&notices),
         Arc::clone(&engine) as Arc<dyn Engine>,
     )
     .with_engines(vec![EngineListing {
@@ -346,6 +360,55 @@ async fn a_ready_cli_engine_is_listed_and_never_selected() {
     );
     assert_eq!(status["backend"], "claude");
 
-    // Listing is not switching: a request for an engine other than local or claude is refused.
-    assert!(switch.request("opencode").await.is_err());
+    // Only a listed engine can be chosen; an unlisted CLI is refused, never tried.
+    assert!(switch.request("commandcode").await.is_err());
+
+    // Choosing it runs in the background and stops the local model.
+    assert!(matches!(
+        switch.request("opencode").await,
+        Ok(Requested::Started)
+    ));
+    let body = settled(&switch).await;
+    assert_eq!(body["state"], "engine", "{body}");
+    assert_eq!(body["backend"], "opencode");
+    assert_eq!(body["detail"], Value::Null, "{body}");
+    assert!(
+        !engine.ready.load(Ordering::SeqCst),
+        "Strata stops for the engine"
+    );
+    assert_eq!(engine.starts.load(Ordering::SeqCst), 0, "no local start");
+
+    // Asking for the same engine again is already done.
+    assert!(matches!(
+        switch.request("opencode").await,
+        Ok(Requested::Unchanged)
+    ));
+
+    // Back to Claude: the engine marker goes, and nothing else answers.
+    assert!(matches!(
+        switch.request("claude").await,
+        Ok(Requested::Started)
+    ));
+    let body = settled(&switch).await;
+    assert_eq!(body["state"], "claude", "{body}");
+    assert_eq!(body["backend"], "claude");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_engine_marker_for_an_engine_no_longer_listed_fails_visibly() {
+    let host = TestHost::start("alfred-backend-engine-gone").await;
+    let engine = Arc::new(FakeEngine::default());
+    let notices = Arc::new(PairingNotice::new(&host.data_dir, Arc::clone(&host.chat)));
+    // The marker survives a restart, but the CLI is gone from this PC: no fallback to Claude.
+    alfred_backend::set_engine(&host.data_dir, "opencode").expect("set the engine marker");
+    let switch = Switch::new(
+        host.data_dir.clone(),
+        notices,
+        Arc::clone(&engine) as Arc<dyn Engine>,
+    );
+
+    let status = switch.status().await.to_json();
+    assert_eq!(status["state"], "failed", "{status}");
+    assert_eq!(status["backend"], "opencode");
+    assert_eq!(status["detail"], "opencode no está listo en este PC");
 }

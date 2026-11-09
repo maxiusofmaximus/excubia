@@ -16,8 +16,8 @@ class AlfredBackendApi {
     await runPlan(_transport, planAlfredBackendRead()),
   );
 
-  /// [backend] is `local` or `claude`. The PC answers 200 when it is already there and
-  /// 202 when the change has started; both carry the status.
+  /// [backend] is `local`, `claude`, or a CLI name from the status' `engines`. The PC answers
+  /// 200 when it is already there and 202 when the change has started; both carry the status.
   Future<AlfredBackendStatus> change(String backend) async =>
       parseAlfredBackendStatus(
         await runPlan(_transport, planAlfredBackendSet(backend: backend)),
