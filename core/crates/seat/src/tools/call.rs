@@ -3,7 +3,8 @@
 use hn_core_chat::PlanStep;
 
 use super::{
-    AlertCall, ApprovalDecide, ApprovalRequest, CalendarCall, ContactCall, MailCall, NoteCall,
+    AlertCall, ApprovalDecide, ApprovalRequest, CalendarCall, ContactCall, DocCreate, DocRead,
+    MailCall, NoteCall,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -11,6 +12,7 @@ pub enum ToolCall {
     Reply {
         text: String,
         suggestions: Vec<String>,
+        attachment_ids: Vec<String>,
     },
     AskUser(String),
     Progress(String),
@@ -29,6 +31,8 @@ pub enum ToolCall {
     Contact(ContactCall),
     Calendar(CalendarCall),
     Alert(AlertCall),
+    Doc(DocRead),
+    DocCreate(DocCreate),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -3,6 +3,7 @@
 
 #![allow(dead_code)]
 
+pub mod docs;
 mod http;
 #[allow(unused_imports)]
 pub use http::{approval_body, detail, raw_exchange};
@@ -26,9 +27,12 @@ use hn_core_api::voice::{EngineStarter, VoiceService};
 use hn_core_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext};
 use hn_core_auth::{DeviceStore, Permission};
 use hn_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
+use hn_core_crafting::App;
 use hn_core_host::alfred_switch::{Engine, Switch};
 use hn_core_host::audit::AuditLog;
+use hn_core_host::doc_tools::DocTools;
 use hn_core_host::mail_api::MailLogins;
+use hn_core_host::mail_cli::ACCOUNTS_DIR;
 use hn_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
 use hn_core_host::mail_tools::{MailTools, LEDGER_FILE};
 use hn_core_host::pairing_notice::PairingNotice;
@@ -238,6 +242,8 @@ pub struct TestHost {
     /// The alfred switch of the host, over [`Self::alfred_engine`] (a double).
     pub alfred: Arc<Switch>,
     pub alfred_engine: Arc<FakeEngine>,
+    /// The document CLIs of the host: every run is recorded here (DOC5B).
+    pub cli: Arc<docs::FakeCli>,
     /// The scratch directory of the host. It is the last field, so it goes
     /// after the stores, whose open database would keep it on Windows; a
     /// restart hands it to the next host.
@@ -267,7 +273,16 @@ impl TestHost {
         let scratch = TestDir::new(&format!("core3-tests-{name}"));
         write_catalog(&scratch);
         let data_dir = scratch.to_path_buf();
-        Self::open(data_dir, hook_ttl, seat, Some(scratch), None, None).await
+        Self::open(
+            data_dir,
+            hook_ttl,
+            seat,
+            Some(scratch),
+            None,
+            None,
+            &App::ALL,
+        )
+        .await
     }
 
     /// A host whose speech engine is `starter`; `None` is a host without speech.
@@ -282,6 +297,7 @@ impl TestHost {
             Some(scratch),
             None,
             starter,
+            &App::ALL,
         )
         .await
     }
@@ -309,9 +325,49 @@ impl TestHost {
             Some(scratch),
             Some(transport),
             None,
+            &App::ALL,
         )
         .await;
         (host, world)
+    }
+
+    /// A host whose document CLIs are `apps` (the others are missing, DOC5B).
+    pub async fn start_with_docs(name: &str, apps: &[App]) -> Self {
+        let scratch = TestDir::new(&format!("core3-tests-{name}"));
+        write_catalog(&scratch);
+        let data_dir = scratch.to_path_buf();
+        Self::open(
+            data_dir,
+            DEFAULT_HOOK_TTL,
+            SeatKind::Fake,
+            Some(scratch),
+            None,
+            None,
+            apps,
+        )
+        .await
+    }
+
+    /// A team host (Alfred and the project seats) whose document CLIs are `apps`.
+    pub async fn start_team_with_docs(name: &str, apps: &[App]) -> Self {
+        let scratch = TestDir::new(&format!("core3-tests-{name}"));
+        write_catalog(&scratch);
+        let data_dir = scratch.to_path_buf();
+        let seat = SeatKind::Team {
+            turn_timeout: Duration::from_secs(30),
+            delegation_timeout: Duration::from_secs(30),
+            uac_plugin: None,
+        };
+        Self::open(
+            data_dir,
+            DEFAULT_HOOK_TTL,
+            seat,
+            Some(scratch),
+            None,
+            None,
+            apps,
+        )
+        .await
     }
 
     /// A second host over the same data directory: what a restart looks like.
@@ -323,7 +379,7 @@ impl TestHost {
         let scratch = self.scratch.take();
         let data_dir = self.data_dir.clone();
         drop(self);
-        Self::open(data_dir, hook_ttl, seat, scratch, None, None).await
+        Self::open(data_dir, hook_ttl, seat, scratch, None, None, &App::ALL).await
     }
 
     async fn open(
@@ -333,6 +389,7 @@ impl TestHost {
         scratch: Option<TestDir>,
         mail: Option<Arc<dyn HttpTransport>>,
         voice: Option<Arc<dyn EngineStarter>>,
+        apps: &[App],
     ) -> Self {
         let devices = Arc::new(DeviceStore::open(Some(paths::devices_path(&data_dir))));
         let host_pin = hn_core_pin::Fingerprint::of_spki(b"harness host certificate");
@@ -351,6 +408,8 @@ impl TestHost {
             .expect("bind internal");
         let internal_addr = internal.local_addr().expect("internal addr");
         let tool_url = format!("http://{internal_addr}/internal/chat/tools");
+        let cli = Arc::new(docs::FakeCli::default());
+        let craft = Arc::new(docs::craft(&data_dir, apps, Arc::clone(&cli)));
         let seat_service = match seat {
             SeatKind::Fake | SeatKind::Silent | SeatKind::Tools => None,
             SeatKind::Cli { turn_timeout } => Some(
@@ -447,6 +506,11 @@ impl TestHost {
                     workspaces_root: data_dir.join("workspaces"),
                     delegation_timeout,
                     uac_plugin_dir: uac_plugin,
+                    docs: Arc::new(DocTools::new(
+                        Arc::clone(&craft),
+                        Arc::clone(&chat),
+                        hn_core_mail::AuditLog::new(&data_dir.join(ACCOUNTS_DIR)),
+                    )),
                     mail: Arc::new(test_mail_tools(
                         &data_dir,
                         Arc::clone(&chat),
@@ -481,6 +545,7 @@ impl TestHost {
             alfred: Arc::clone(&alfred) as Arc<dyn AlfredBackend>,
             pairing_audit: notices,
             audit: Arc::new(AuditLog::new(&data_dir)),
+            docs: craft as Arc<dyn hn_core_api::DocumentPages>,
         })
         .with_host_pin(Some(host_pin));
         let pake_slot = Arc::clone(&context.pake_slot);
@@ -507,6 +572,7 @@ impl TestHost {
             pake_slot,
             alfred,
             alfred_engine,
+            cli,
             scratch,
         }
     }

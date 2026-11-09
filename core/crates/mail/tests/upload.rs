@@ -8,7 +8,7 @@ use hn_core_mail::{
 };
 use support::mock::{Call, MockResponse, MockTransport};
 use support::{
-    attachment_item, draft_input, in_memory_ledger, message_body, pending_body, session_body,
+    attachment_item, attachments_body, draft_input, in_memory_ledger, message_body, pending_body, session_body,
     sparse_file, CountingApproval, Harness, ACCESS_TOKEN, ACCOUNT, DRAFT_ID, UPLOAD_URL,
 };
 
@@ -66,6 +66,25 @@ fn the_default_chunk_is_twelve_granules_and_within_the_ceiling() {
         DEFAULT_UPLOAD_CHUNK_BYTES.min(MAX_UPLOAD_CHUNK_BYTES),
         DEFAULT_UPLOAD_CHUNK_BYTES
     );
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_empty_final_answer_is_resolved_from_the_draft_attachments() {
+    let h = Harness::new("upload-empty-final");
+    let file = h.root.join("plano.xlsx");
+    sparse_file(&file, SEVEN_MIB);
+    let transport = MockTransport::new(vec![
+        MockResponse::created(message_body(DRAFT_ID, "Hola", false)),
+        MockResponse::ok(session_body(UPLOAD_URL)),
+        MockResponse::status(202, pending_body(&format!("{CHUNK}-"))),
+        MockResponse::created(""),
+        MockResponse::ok(attachments_body(&["otro.pdf", "plano.xlsx"])),
+    ]);
+    let ledger = in_memory_ledger();
+    let client = client_with_draft(&transport, &ledger).await;
+
+    let attached = attach_once(&client, &h, &file).await.expect("uploaded");
+    assert_eq!(attached.attachment_id, "att-plano.xlsx");
 }
 
 #[tokio::test(start_paused = true)]

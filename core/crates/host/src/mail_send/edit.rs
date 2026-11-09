@@ -11,7 +11,7 @@ use hn_core_seat::check_draft_fields;
 
 use super::graph::{owner_view, sender};
 use super::MailSends;
-use crate::mail_tools::{input, HtmlOrigin};
+use crate::mail_draft_input::{input, HtmlOrigin};
 
 /// The longest preview a card shows, in characters.
 const PREVIEW_CHARS: usize = 160;

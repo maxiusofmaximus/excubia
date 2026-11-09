@@ -23,8 +23,8 @@ pub use approvals::{
     list as list_approvals, state as approval_state,
 };
 pub use attachments::{
-    attachment_content, complete_attachment, create_attachment, delete_attachment, show_attachment,
-    upload_chunk,
+    attachment_content, attachment_preview, complete_attachment, create_attachment,
+    delete_attachment, show_attachment, upload_chunk,
 };
 pub use bootstrap::bootstrap;
 pub use conversations::{

@@ -55,7 +55,7 @@ Widget _composer({
     voice: voice,
     voiceSend: voiceSend,
     onVoiceSend: onVoiceSend ?? (_) async => false,
-    onAttach: () {},
+    onAttach: (_) {},
     onSend: () {},
     onStop: () {},
   ),

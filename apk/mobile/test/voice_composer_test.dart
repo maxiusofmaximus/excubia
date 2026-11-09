@@ -54,7 +54,7 @@ void main() {
             voice: voice,
             voiceSend: VoiceSendSettings(),
             onVoiceSend: (_) async => false,
-            onAttach: () {},
+            onAttach: (_) {},
             onSend: () {},
             onStop: () {},
           );
@@ -114,7 +114,7 @@ void main() {
             voice: voice,
             voiceSend: VoiceSendSettings(),
             onVoiceSend: (_) async => false,
-            onAttach: () {},
+            onAttach: (_) {},
             onSend: () => sent = true,
             onStop: () {},
           ),

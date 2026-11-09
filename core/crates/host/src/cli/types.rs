@@ -24,6 +24,8 @@ pub struct RunOptions {
     pub data_dir: PathBuf,
     /// Where every project of this host lives. Paths are resolved inside it.
     pub workspaces_root: PathBuf,
+    /// Where the document CLIs are looked for, one folder per app (DOC5B). Default `<data-dir>/tools`.
+    pub tools_dir: PathBuf,
     /// Where the OpenCode UAC plugin lives. Without it the seats are not
     /// verified and stay degraded.
     pub uac_plugin_dir: Option<PathBuf>,

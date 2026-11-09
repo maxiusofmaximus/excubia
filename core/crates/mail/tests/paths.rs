@@ -4,10 +4,10 @@ use std::fs;
 use std::path::Path;
 
 use hn_core_mail::{
-    MailError, PathApproval, PathDecision, PathPolicy, DEFAULT_MAX_ATTACHMENT_BYTES,
+    CheckedFile, MailError, PathApproval, PathDecision, PathPolicy, DEFAULT_MAX_ATTACHMENT_BYTES,
     HARD_MAX_ATTACHMENT_BYTES,
 };
-use support::{sparse_file, Harness};
+use support::{sha256_hex, sparse_file, Harness};
 
 const MIB: u64 = 1024 * 1024;
 
@@ -197,4 +197,44 @@ fn a_digest_already_approved_is_allowed() {
         policy.decide(&file).expect("a decision"),
         PathDecision::Allowed(_)
     ));
+}
+
+/// The trusted path: a file the host resolved from the chat. It keeps the checks
+/// that do not depend on where the file is, and never asks for an approval.
+fn trusted_rejected(result: Result<CheckedFile, MailError>) {
+    match result {
+        Err(MailError::PathRejected(_)) => {}
+        other => panic!("expected PathRejected, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_trusted_file_outside_the_root_is_checked_and_allowed_without_approval() {
+    let h = Harness::new("paths-trusted");
+    let file = h.outside.join("adjunto.bin");
+    fs::write(&file, b"contenido").expect("file");
+
+    let checked = h.policy().decide_trusted(&file).expect("checked");
+    assert_eq!(checked.size, 9);
+    assert_eq!(checked.sha256, sha256_hex(b"contenido"));
+}
+
+#[test]
+fn a_trusted_file_keeps_the_refusals_that_do_not_depend_on_its_place() {
+    let h = Harness::new("paths-trusted-refused");
+    let folder = h.outside.join("carpeta");
+    fs::create_dir(&folder).expect("folder");
+    trusted_rejected(h.policy().decide_trusted(&folder));
+
+    let empty = h.outside.join("vacio.txt");
+    fs::write(&empty, b"").expect("file");
+    trusted_rejected(h.policy().decide_trusted(&empty));
+
+    let big = h.outside.join("grande.bin");
+    fs::write(&big, b"12345").expect("file");
+    let small_limit = PathPolicy::new(&h.root, 4).expect("policy");
+    trusted_rejected(small_limit.decide_trusted(&big));
+
+    let device = if cfg!(windows) { "NUL" } else { "/dev/null" };
+    trusted_rejected(h.policy().decide_trusted(Path::new(device)));
 }

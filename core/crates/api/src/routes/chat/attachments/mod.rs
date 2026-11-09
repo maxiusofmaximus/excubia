@@ -2,8 +2,12 @@
 //! re-encode on `complete` (see `finish`), and the read of the stored bytes.
 //! The store owns the rows and the quotas, `AttachmentFiles` owns the bytes.
 
+mod documents;
 mod errors;
 mod finish;
+mod preview;
+
+pub use preview::attachment_preview;
 
 use axum::body::Bytes;
 use axum::extract::{Path, State};
@@ -11,7 +15,9 @@ use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use hn_core_chat::{Attachment, AttachmentError, AttachmentFiles, AttachmentState};
+use std::fmt::Write;
+
+use hn_core_chat::{Attachment, AttachmentError, AttachmentFiles, AttachmentState, FileKind};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -76,7 +82,7 @@ pub async fn upload_chunk(
         Ok(data) => data,
         Err(_) => {
             return ApiError::invalid_field("invalid_base64", "data", "data must be base64")
-                .into_response()
+                .into_response();
         }
     };
     match append_chunk(
@@ -111,7 +117,7 @@ fn append_chunk(
         .map_err(map_error)
 }
 
-/// `POST …/attachments/{att}/complete`: check the declared size and hash, process the image and store it.
+/// `POST …/attachments/{att}/complete`: check the declared size and hash, then check the document or process the image, and store it.
 pub async fn complete_attachment(
     State(ctx): State<ApiContext>,
     Path((conversation_id, attachment_id)): Path<(String, String)>,
@@ -139,7 +145,7 @@ pub async fn attachment_content(
     Path((conversation_id, attachment_id)): Path<(String, String)>,
 ) -> Response {
     match read_content(&ctx, &conversation_id, &attachment_id) {
-        Ok((mime, bytes)) => served(&mime, bytes),
+        Ok((mime, name, bytes)) => served(&mime, &name, bytes),
         Err(error) => error.into_response(),
     }
 }
@@ -148,30 +154,44 @@ fn read_content(
     ctx: &ApiContext,
     conversation_id: &str,
     attachment_id: &str,
-) -> Result<(String, Vec<u8>), ApiError> {
+) -> Result<(String, String, Vec<u8>), ApiError> {
     let attachment = owned_attachment(ctx, conversation_id, attachment_id)?;
     match (attachment.state, attachment.mime) {
         (AttachmentState::Ready, Some(mime)) => {
             let bytes = file_store(ctx)?
                 .read_file(conversation_id, attachment_id)
                 .map_err(map_error)?;
-            Ok((mime, bytes))
+            Ok((mime, attachment.name, bytes))
         }
         _ => Err(map_error(AttachmentError::NotReady)),
     }
 }
 
-fn served(mime: &str, bytes: Vec<u8>) -> Response {
+fn served(mime: &str, name: &str, bytes: Vec<u8>) -> Response {
     (
         [
             (header::CONTENT_TYPE, mime.to_owned()),
             (header::X_CONTENT_TYPE_OPTIONS, "nosniff".to_owned()),
-            (header::CONTENT_DISPOSITION, "attachment".to_owned()),
+            (header::CONTENT_DISPOSITION, content_disposition(name)),
             (header::CACHE_CONTROL, "private, no-store".to_owned()),
         ],
         bytes,
     )
         .into_response()
+}
+
+/// `attachment` with the user's name in RFC 5987 form, so the phone saves the
+/// file under it. Path separators are dropped: the name never moves the save path.
+fn content_disposition(name: &str) -> String {
+    let mut encoded = String::from("attachment; filename*=UTF-8''");
+    for byte in name.bytes().filter(|byte| !matches!(byte, b'/' | b'\\')) {
+        if byte.is_ascii_alphanumeric() || b"-._~".contains(&byte) {
+            encoded.push(char::from(byte));
+        } else {
+            let _ = write!(encoded, "%{byte:02X}");
+        }
+    }
+    encoded
 }
 
 /// `DELETE …/attachments/{att}`: drop an attachment that no message takes.
@@ -243,6 +263,8 @@ fn meta_view(attachment: &Attachment) -> Value {
         "size": attachment.size,
         "w": attachment.width,
         "h": attachment.height,
+        "kind": attachment.width.zip(attachment.height).map(|(w, h)| FileKind::of(w, h)),
+        "previewable": attachment.previewable(),
         "state": state_label(attachment.state),
     })
 }
@@ -251,5 +273,26 @@ fn state_label(state: AttachmentState) -> &'static str {
     match state {
         AttachmentState::Uploading => "uploading",
         AttachmentState::Ready => "ready",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::content_disposition;
+
+    #[test]
+    fn the_name_travels_percent_encoded_in_utf8() {
+        assert_eq!(
+            content_disposition("Informe Ñandú 2026.xlsx"),
+            "attachment; filename*=UTF-8''Informe%20%C3%91and%C3%BA%202026.xlsx"
+        );
+    }
+
+    #[test]
+    fn path_separators_never_reach_the_header() {
+        assert_eq!(
+            content_disposition("..\\a/b.pdf"),
+            "attachment; filename*=UTF-8''..ab.pdf"
+        );
     }
 }

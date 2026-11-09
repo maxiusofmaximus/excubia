@@ -407,3 +407,60 @@ fn a_reopened_store_keeps_the_uploads_and_their_quota() {
     let refused = upload(&reopened, &conversation_id, &new_ulid(), 1);
     assert!(matches!(refused, Err(AttachmentError::ConversationQuota)));
 }
+
+const OTHER_ID: &str = "att_01J5Z8K2M3N4P5Q6R7S8T9V0WY";
+const ID: &str = "att_01J5Z8K2M3N4P5Q6R7S8T9V0WX";
+const CONVERSATION: &str = "cnv_01J5Z8K2M3N4P5Q6R7S8T9V0WX";
+
+#[test]
+fn a_preview_lives_beside_its_file_and_goes_with_it() {
+    let dir = TestDir::new("core-chat-attachments-previews");
+    let files = files(&dir);
+    files
+        .finish(CONVERSATION, ID, b"%PDF-1.4\n")
+        .expect("store the document");
+    assert_eq!(files.read_preview(CONVERSATION, ID, 1).expect("read"), None);
+
+    files
+        .write_preview(CONVERSATION, ID, 1, b"png one")
+        .expect("write page 1");
+    files
+        .write_preview(CONVERSATION, ID, 2, b"png two")
+        .expect("write page 2");
+    files
+        .write_preview(CONVERSATION, OTHER_ID, 1, b"other")
+        .expect("write another file's preview");
+    assert_eq!(
+        files.read_preview(CONVERSATION, ID, 2).expect("read"),
+        Some(b"png two".to_vec())
+    );
+
+    files.remove(CONVERSATION, ID).expect("remove the file");
+    assert_eq!(files.read_preview(CONVERSATION, ID, 1).expect("read"), None);
+    assert_eq!(files.read_preview(CONVERSATION, ID, 2).expect("read"), None);
+    assert_eq!(
+        files.read_preview(CONVERSATION, OTHER_ID, 1).expect("read"),
+        Some(b"other".to_vec())
+    );
+}
+
+#[test]
+fn a_preview_takes_only_checked_ids() {
+    let dir = TestDir::new("core-chat-attachments-preview-ids");
+    let files = files(&dir);
+    assert!(files.write_preview(CONVERSATION, "../x", 1, b"x").is_err());
+    assert!(files.read_preview("../cnv", ID, 1).is_err());
+    assert!(files.remove("../cnv", ID).is_err());
+}
+
+#[test]
+fn only_excel_word_and_pdf_documents_are_previewable() {
+    use hn_core_chat::FileKind::{Document, Image};
+    for name in ["Informe.xlsx", "carta.DOCX", "factura.pdf"] {
+        assert!(hn_core_chat::previewable(name, Document), "{name}");
+    }
+    for name in ["datos.csv", "notas.txt", "deck.pptx", "sin_extension"] {
+        assert!(!hn_core_chat::previewable(name, Document), "{name}");
+    }
+    assert!(!hn_core_chat::previewable("foto.pdf", Image));
+}

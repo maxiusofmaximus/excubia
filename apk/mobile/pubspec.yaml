@@ -1,7 +1,7 @@
 name: herdr_notify
 description: "herdr-notify Android client: Flutter UI over the Rust contract core."
 publish_to: 'none'
-version: 2.2.1+43
+version: 2.3.0-alpha.3+46
 
 environment:
   sdk: ^3.13.5
@@ -21,6 +21,9 @@ dependencies:
   timezone: ^0.11.2
   # System file dialogs (MIT): pick a .ics and save one, with the bytes in memory.
   file_picker: ^13.3.0
+  # Opens a chat document with the phone's app for its type. The plugin ships
+  # the FileProvider that covers the app cache.
+  open_filex: ^5.0.0
 
 dev_dependencies:
   flutter_test:

@@ -9,6 +9,12 @@ use serde::Deserialize;
 pub struct CatalogEntry {
     pub name: String,
     pub available: bool,
+    /// Windows can start it as the host has it right now.
+    pub runnable: bool,
+    /// The host can repoint it at its `.CMD` shim (needs `APPROVE`).
+    pub fixable: bool,
+    /// Why it cannot run, as the host words it.
+    pub problem: Option<String>,
     /// Display hint; falls back to `name`.
     pub label: String,
 }
@@ -35,6 +41,13 @@ pub fn parse_catalog(json: String) -> Option<Vec<CatalogEntry>> {
                 Some(CatalogEntry {
                     name,
                     available: agent.available,
+                    // A host that predates `runnable` only reports `available`.
+                    runnable: agent.runnable.unwrap_or(agent.available),
+                    fixable: agent.fixable,
+                    problem: agent
+                        .problem
+                        .map(|problem| problem.trim().to_string())
+                        .filter(|problem| !problem.is_empty()),
                     label,
                 })
             })
@@ -55,6 +68,10 @@ struct WireAgent {
     name: Option<String>,
     #[serde(default)]
     available: bool,
+    runnable: Option<bool>,
+    #[serde(default)]
+    fixable: bool,
+    problem: Option<String>,
     label: Option<String>,
 }
 
@@ -79,6 +96,25 @@ mod tests {
         assert_eq!(entries[0].label, "Fake agent");
         assert!(!entries[1].available);
         assert_eq!(entries[2].label, "opencode");
+    }
+
+    #[test]
+    fn says_what_windows_can_run_and_what_can_be_fixed() {
+        let entries = parse_catalog(
+            r#"{"ok":true,"agents":[
+                {"name":"codex","available":true,"runnable":false,"fixable":true,"problem":" Windows no puede ejecutarlo. "},
+                {"name":"claude","available":false,"runnable":false,"fixable":false,"problem":"No está instalado en este equipo."},
+                {"name":"opencode","available":true,"runnable":true,"fixable":false,"problem":""},
+                {"name":"old","available":true}
+            ]}"#
+            .to_string(),
+        )
+        .unwrap();
+        assert!(!entries[0].runnable && entries[0].fixable);
+        assert_eq!(entries[0].problem.as_deref(), Some("Windows no puede ejecutarlo."));
+        assert!(!entries[1].runnable && entries[1].problem.is_some());
+        assert!(entries[2].runnable && entries[2].problem.is_none());
+        assert!(entries[3].runnable, "a host without the field is trusted as available");
     }
 
     #[test]

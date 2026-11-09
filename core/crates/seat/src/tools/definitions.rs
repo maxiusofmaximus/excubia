@@ -6,7 +6,9 @@ use serde_json::{json, Value};
 use super::agenda_definitions;
 use super::alert_definitions;
 use super::calendar_definitions;
+use super::doc_definitions;
 use super::mail_organize_definitions;
+use super::reply_definitions;
 
 /// One bounded text argument.
 pub(super) fn string_property(description: &str) -> Value {
@@ -21,24 +23,7 @@ pub(super) fn string_property(description: &str) -> Value {
 pub fn definitions() -> Value {
     let mut listing = json!({
         "tools": [
-            {
-                "name": "chat.reply",
-                "description": "Send Alfred's final answer to the chat. This is the only way a chat turn can complete successfully.",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "text": string_property("The complete answer, in the user's language."),
-                        "suggestions": {
-                            "type": "array",
-                            "maxItems": 4,
-                            "items": { "type": "string", "minLength": 1, "maxLength": 60 },
-                            "description": "Optional quick replies the user can send with one tap, for a short closed choice only."
-                        }
-                    },
-                    "required": ["text"],
-                    "additionalProperties": false
-                }
-            },
+            reply_definitions::chat_reply(),
             {
                 "name": "chat.ask_user",
                 "description": "Post a clarification question to the chat. It does not close the turn; finish with chat.reply.",
@@ -235,15 +220,16 @@ pub fn definitions() -> Value {
             },
             {
                 "name": "mail.attach_file",
-                "description": "Attach a local file to a draft this host created. A file outside the workspace needs the operator's approval in the chat first; if it is refused or unanswered nothing is uploaded. The draft is not sent.",
+                "description": "Attach a file to a draft this host created. Para un archivo que el usuario adjuntó en el chat usa attachment_id (no pide aprobación); para una ruta del PC usa path. A path outside the workspace needs the operator's approval in the chat first; if it is refused or unanswered nothing is uploaded. Give exactly one of attachment_id and path. The draft is not sent.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "account": account_property(),
                         "draft_id": draft_id_property(),
+                        "attachment_id": { "type": "string", "minLength": 1, "maxLength": 512, "description": "Id (att_…) of a file the user sent in this conversation." },
                         "path": { "type": "string", "minLength": 1, "maxLength": 1024, "description": "Local path of the file." }
                     },
-                    "required": ["account", "draft_id", "path"],
+                    "required": ["account", "draft_id"],
                     "additionalProperties": false
                 }
             },
@@ -310,6 +296,7 @@ pub fn definitions() -> Value {
         tools.extend(calendar_definitions::tools());
         tools.extend(alert_definitions::tools());
         tools.extend(mail_organize_definitions::tools());
+        tools.extend(doc_definitions::tools());
     }
     listing
 }

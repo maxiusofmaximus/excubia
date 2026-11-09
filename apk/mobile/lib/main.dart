@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 
 import 'core/alerts/alert_entry.dart';
+import 'core/state/chat_document_opener.dart';
 import 'core/storage/pairing_store.dart';
 import 'ui/app.dart';
 import 'ui/palette/palette_prefs.dart';
@@ -15,6 +18,7 @@ Future<void> main(List<String> args) async {
     await runAlertStream();
     return;
   }
+  unawaited(pruneChatDocuments());
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

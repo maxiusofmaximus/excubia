@@ -10,20 +10,21 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use hn_core_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
-use hn_core_mail::attach::{attach_file, AttachContext};
+use hn_core_mail::attach::{attach_chat_file, attach_file, AttachContext};
 use hn_core_mail::auth;
 use hn_core_mail::{
-    agent_html, sanitize_html, sanitize_text, AccountStore, ActionLog, AuditLog, DraftBody,
-    DraftInput, DraftMeta, GraphClient, HttpTransport, Ledger, MailError, PathPolicy, Policy,
-    ReadRecord, Redacted, DEFAULT_MAX_ATTACHMENT_BYTES,
+    AccountStore, ActionLog, AuditLog, DraftInput, DraftMeta, GraphClient, HttpTransport, Ledger,
+    MailError, PathPolicy, ReadRecord, Redacted, DEFAULT_MAX_ATTACHMENT_BYTES,
 };
 use hn_core_seat::{
-    BodyFormat, DraftFields, DraftRef, InboxQuery, MailAttach, MailCall, MessageRef,
+    AttachSource, DraftFields, DraftRef, InboxQuery, MailAttach, MailCall, MessageRef,
 };
 use serde_json::{json, Value};
 
+use crate::chat_file;
 use crate::mail_approval::ChatApprovalGate;
 use crate::mail_cli::ACCOUNTS_DIR;
+use crate::mail_draft_input::{input, HtmlOrigin};
 use crate::mail_move_pick::ambiguous_reply;
 use crate::mail_read;
 use crate::mail_routes::{message_of, parts};
@@ -245,7 +246,13 @@ impl MailTools {
             audit: &self.audit,
             scratch: &self.scratch,
         };
-        let attached = attach_file(&ctx, &file.draft_id, Path::new(&file.path)).await?;
+        let attached = match &file.source {
+            AttachSource::Path(path) => attach_file(&ctx, &file.draft_id, Path::new(path)).await?,
+            AttachSource::Chat(id) => {
+                let stored = chat_file::resolve(&self.chat, &actor.conversation_id, id)?;
+                attach_chat_file(&ctx, &file.draft_id, &stored.path, &stored.name).await?
+            }
+        };
         self.sends.draft_changed(&file.account, &file.draft_id)?;
         Ok(json!({
             "ok": true,
@@ -336,32 +343,6 @@ fn create_dir(path: &Path) -> Result<(), MailError> {
         .map_err(|error| MailError::Store(Redacted::new(error.to_string())))
 }
 
-/// Where an HTML body comes from. The owner's HTML is cleaned; an agent template is
-/// the host's own markup and reaches Graph as it was drawn.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum HtmlOrigin {
-    Owner,
-    AgentTemplate,
-}
-
-pub(crate) fn input(fields: &DraftFields, origin: HtmlOrigin) -> Result<DraftInput, MailError> {
-    let subject = sanitize_text(&fields.subject, Policy::Outgoing)?;
-    let body = match fields.format {
-        BodyFormat::Text => DraftBody::Text(sanitize_text(&fields.body, Policy::Outgoing)?.text),
-        BodyFormat::Html => DraftBody::Html(match origin {
-            HtmlOrigin::Owner => sanitize_html(&fields.body)?,
-            HtmlOrigin::AgentTemplate => fields.body.clone(),
-        }),
-        BodyFormat::Agent => DraftBody::Html(agent_html(&fields.subject, &fields.body)?),
-    };
-    Ok(DraftInput {
-        to: fields.to.clone(),
-        cc: fields.cc.clone(),
-        subject: subject.text,
-        body,
-    })
-}
-
 /// The metadata the tools return: no body, the draft's own recipients and the
 /// names of its attachments.
 fn draft_json(meta: &DraftMeta) -> Value {
@@ -382,6 +363,10 @@ fn draft_json(meta: &DraftMeta) -> Value {
 /// host or Graph failing.
 fn tool_error(error: MailError) -> ToolError {
     let code = error.code();
+    if !error.is_refusal() {
+        // The tool message is fixed on purpose; the operator still needs the real cause in the host log.
+        eprintln!("mail tool failure {code}: {error}");
+    }
     let kind = if error.is_refusal() {
         ToolErrorKind::Invalid
     } else {

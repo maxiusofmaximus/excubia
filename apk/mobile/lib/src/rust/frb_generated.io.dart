@@ -624,6 +624,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ChatSection>? dco_decode_opt_list_chat_section(dynamic raw);
 
   @protected
+  Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
+
+  @protected
   PairingLinkInfo dco_decode_pairing_link_info(dynamic raw);
 
   @protected
@@ -670,6 +673,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PinnedResponse dco_decode_pinned_response(dynamic raw);
+
+  @protected
+  PreviewFailure dco_decode_preview_failure(dynamic raw);
+
+  @protected
+  PreviewRefusal dco_decode_preview_refusal(dynamic raw);
 
   @protected
   (String, int) dco_decode_record_string_u_32(dynamic raw);
@@ -1432,6 +1441,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
   PairingLinkInfo sse_decode_pairing_link_info(SseDeserializer deserializer);
 
   @protected
@@ -1484,6 +1496,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PinnedResponse sse_decode_pinned_response(SseDeserializer deserializer);
+
+  @protected
+  PreviewFailure sse_decode_preview_failure(SseDeserializer deserializer);
+
+  @protected
+  PreviewRefusal sse_decode_preview_refusal(SseDeserializer deserializer);
 
   @protected
   (String, int) sse_decode_record_string_u_32(SseDeserializer deserializer);
@@ -2454,6 +2472,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_list_prim_u_8_strict(
+    Uint8List? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_pairing_link_info(
     PairingLinkInfo self,
     SseSerializer serializer,
@@ -2531,6 +2555,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_pinned_response(
     PinnedResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_preview_failure(
+    PreviewFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_preview_refusal(
+    PreviewRefusal self,
     SseSerializer serializer,
   );
 

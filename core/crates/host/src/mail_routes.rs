@@ -238,6 +238,16 @@ fn refusal(error: MailError) -> MailFailure {
         _ => None,
     };
     let code = error.code();
+    // The API message is fixed on purpose; the operator still needs Graph's own answer in the host log.
+    if matches!(
+        error,
+        MailError::Graph { .. }
+            | MailError::Transport(_)
+            | MailError::BadResponse(_)
+            | MailError::UploadFailed(_)
+    ) {
+        eprintln!("mail failure {code}: {error}");
+    }
     MailFailure {
         code,
         message: message_of(code),
@@ -252,6 +262,7 @@ pub(crate) fn message_of(code: &str) -> &'static str {
         "mail_not_configured" => "the mail app is not configured on this host",
         "mail_invalid_input" => "the request names an unknown login, account, draft or tenant",
         "mail_path_rejected" => "the file cannot be attached from that path",
+        "attachment_not_found" => "no file of this conversation has that attachment_id",
         "mail_approval_denied" => "the operator did not allow this action; nothing was done",
         "mail_approval_unavailable" => "no operator answer could be asked for this file",
         "mail_content_changed" => "the file changed while it was being read; nothing was sent",

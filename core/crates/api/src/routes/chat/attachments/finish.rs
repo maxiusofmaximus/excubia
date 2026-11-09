@@ -1,5 +1,5 @@
-//! `complete`: the host checks the bytes it holds against what was declared,
-//! re-encodes the image in an isolated worker and stores what the worker returns.
+//! `complete`: the host checks the bytes it holds against what was declared, then
+//! stores a listed document as sent, or re-encodes an image in an isolated worker.
 
 use std::time::Duration;
 
@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 use crate::error::ApiError;
 use crate::ApiContext;
 
+use super::documents;
 use super::errors::map_error;
 use super::{file_store, owned_attachment};
 
@@ -69,14 +70,45 @@ async fn process_and_store(
             "the upload does not match the declared sha256",
         ));
     }
-    let processed = tokio::task::spawn_blocking(move || {
+    match documents::document_mime(&attachment.name, &bytes)? {
+        Some(mime) => {
+            let ready = ReadyFile {
+                mime: mime.to_owned(),
+                width: 0,
+                height: 0,
+                size: bytes.len() as u64,
+                sha256: attachment.declared_sha256.clone(),
+            };
+            store_ready(ctx, &files, conversation_id, attachment_id, &bytes, &ready)
+        }
+        None => {
+            let processed = process_image(bytes).await?;
+            let ready = ReadyFile {
+                mime: processed.mime.to_owned(),
+                width: processed.width,
+                height: processed.height,
+                size: processed.bytes.len() as u64,
+                sha256: processed.sha256,
+            };
+            store_ready(
+                ctx,
+                &files,
+                conversation_id,
+                attachment_id,
+                &processed.bytes,
+                &ready,
+            )
+        }
+    }
+}
+
+async fn process_image(bytes: Vec<u8>) -> Result<ProcessedImage, ApiError> {
+    tokio::task::spawn_blocking(move || {
         process_image_isolated(&bytes, Limits::default(), PROCESS_TIMEOUT)
     })
     .await
     .map_err(ApiError::internal)?
-    .map_err(media_error)?;
-
-    store_ready(ctx, &files, conversation_id, attachment_id, processed)
+    .map_err(media_error)
 }
 
 fn store_ready(
@@ -84,21 +116,13 @@ fn store_ready(
     files: &AttachmentFiles,
     conversation_id: &str,
     attachment_id: &str,
-    processed: ProcessedImage,
+    bytes: &[u8],
+    ready: &ReadyFile,
 ) -> Result<(), ApiError> {
     files
-        .finish(conversation_id, attachment_id, &processed.bytes)
+        .finish(conversation_id, attachment_id, bytes)
         .map_err(map_error)?;
-    let ready = ReadyFile {
-        mime: processed.mime.to_owned(),
-        width: processed.width,
-        height: processed.height,
-        size: processed.bytes.len() as u64,
-        sha256: processed.sha256,
-    };
-    ctx.chat
-        .mark_ready(attachment_id, &ready)
-        .map_err(map_error)
+    ctx.chat.mark_ready(attachment_id, ready).map_err(map_error)
 }
 
 fn media_error(error: MediaError) -> ApiError {

@@ -16,8 +16,9 @@ const DEVICES: &str = "/v1/devices";
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Device {
     pub device_id: String,
+    /// `null` for a device enrolled without a name: a null here must not fail the whole list.
     #[serde(default)]
-    pub label: String,
+    pub label: Option<String>,
     #[serde(default)]
     pub created_at: f64,
     /// Seconds since the epoch; `None` for a device that never signed a request.
@@ -347,11 +348,20 @@ mod tests {
             {"device_id":"dev-c3","label":"Nuevo","created_at":1730000200.0,
              "last_seen_at":null,"revoked":false,"permissions":[],"sas":"097665"}]}"#;
         let response: DevicesResponse = serde_json::from_str(body).unwrap();
-        assert_eq!(response.devices[0].label, "Pixel 9");
+        assert_eq!(response.devices[0].label.as_deref(), Some("Pixel 9"));
         assert_eq!(response.devices[0].last_seen_at, Some(1730000100.5));
         assert_eq!(response.devices[0].sas, None);
         assert_eq!(response.devices[1].last_seen_at, None);
         assert!(response.devices[1].revoked);
         assert_eq!(response.devices[2].sas.as_deref(), Some("097665"));
+    }
+
+    #[test]
+    fn a_device_enrolled_without_a_name_does_not_break_the_list() {
+        let body = r#"{"ok":true,"devices":[
+            {"device_id":"dev-d4","label":null,"owner_id":"1","created_at":1730000300.0,
+             "last_seen_at":null,"revoked":false,"permissions":["read_state"]}]}"#;
+        let response: DevicesResponse = serde_json::from_str(body).unwrap();
+        assert_eq!(response.devices[0].label, None);
     }
 }

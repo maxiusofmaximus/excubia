@@ -132,7 +132,7 @@ impl super::ChatStore {
     }
 }
 
-fn require_open_conversation(
+pub(super) fn require_open_conversation(
     connection: &Connection,
     conversation_id: &str,
 ) -> Result<(), AttachmentError> {
@@ -220,7 +220,7 @@ pub(crate) fn linked_files(
     Ok(grouped)
 }
 
-fn read(
+pub(super) fn read(
     connection: &Connection,
     attachment_id: &str,
 ) -> Result<Option<Attachment>, AttachmentError> {
@@ -249,7 +249,7 @@ fn find_by_client(
 /// Refuse `added` bytes when the conversation or the host would pass its quota.
 /// `except` leaves one attachment out of the count: the one being completed,
 /// whose declared size is about to be replaced by its final size.
-fn check_quota(
+pub(super) fn check_quota(
     connection: &Connection,
     conversation_id: &str,
     except: Option<&str>,

@@ -68,6 +68,7 @@ class _MessageBubble extends StatelessWidget {
     this.turnStep,
     this.attachments,
     this.images,
+    this.documents,
   });
 
   final ChatEntry entry;
@@ -88,6 +89,7 @@ class _MessageBubble extends StatelessWidget {
   /// The files this message names; null or empty shows no thumbnails.
   final List<ChatAttachment>? attachments;
   final ChatAttachmentImages? images;
+  final ChatDocumentOpener? documents;
 
   /// Only a message the host has (not one still sending) can be an answer's target.
   bool get _canReply =>
@@ -168,8 +170,12 @@ class _MessageBubble extends StatelessWidget {
                 ),
                 const SizedBox(height: Spacing.xs),
               ],
-              if (images case final cache? when files.isNotEmpty) ...[
-                ChatAttachmentStrip(attachments: files, images: cache),
+              if (images case final cache? when files.isNotEmpty && documents != null) ...[
+                ChatAttachmentStrip(
+                  attachments: files,
+                  images: cache,
+                  documents: documents!,
+                ),
                 const SizedBox(height: Spacing.xs),
               ],
               // Alfred's replies carry markdown; the operator's own text is plain.

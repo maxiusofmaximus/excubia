@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use hn_core_chat::{
-    ChatError, ChatSeat, ChatStore, SeatActor, SeatError, ToolError, ToolErrorKind, ToolReply,
-    ToolRequest, Turn,
+    AttachmentError, ChatError, ChatSeat, ChatStore, SeatActor, SeatError, ToolError,
+    ToolErrorKind, ToolReply, ToolRequest, Turn,
 };
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -197,7 +197,11 @@ impl ChatSeat for SeatService {
             .ok_or_else(|| ToolError::unauthorized("unknown or expired tool token"))?;
         let call = tools::parse(&request)?;
         match call {
-            ToolCall::Reply { text, suggestions } => self.reply(&grant, text, &suggestions),
+            ToolCall::Reply {
+                text,
+                suggestions,
+                attachment_ids,
+            } => self.reply(&grant, text, &suggestions, &attachment_ids),
             ToolCall::AskUser(question) => self.ask(&grant, question),
             ToolCall::Progress(text) => self.progress(&grant, &text),
             ToolCall::ApprovalRequest(request) => self.ask_approval(&grant, request).await,
@@ -236,7 +240,26 @@ impl Drop for SeatService {
     }
 }
 
+/// A file the reply named that cannot be shown: the agent reads the Spanish line and
+/// fixes its list. Any other attachment failure stays an unavailable chat.
+fn file_refusal(error: &AttachmentError) -> Option<&'static str> {
+    Some(match error {
+        AttachmentError::UnknownAttachment => {
+            "ese archivo no existe en esta conversación o no lo creó Alfred"
+        }
+        AttachmentError::AlreadyLinked => "ese archivo ya está en otro mensaje",
+        AttachmentError::NotReady => "ese archivo todavía no está listo",
+        AttachmentError::TooManyAttachments => "un mensaje lleva como máximo 4 archivos",
+        _ => return None,
+    })
+}
+
 pub(crate) fn tool_chat_error(error: ChatError) -> ToolError {
+    if let ChatError::Attachment(file) = &error {
+        if let Some(message) = file_refusal(file) {
+            return ToolError::invalid("invalid_arguments", "attachment_ids", message);
+        }
+    }
     match error {
         ChatError::RunNotActive(_) | ChatError::NoSuchRun(_) => {
             ToolError::conflict("run_closed", "the run is no longer active")

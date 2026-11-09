@@ -24,6 +24,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<Command, Str
         spawns: Vec::new(),
         data_dir: PathBuf::new(),
         workspaces_root: PathBuf::new(),
+        tools_dir: PathBuf::new(),
         uac_plugin_dir: None,
         hook_ttl: crate::DEFAULT_HOOK_TTL,
         snapshot_lines: crate::DEFAULT_SNAPSHOT_LINES,
@@ -32,6 +33,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<Command, Str
     };
     let mut data_dir = None;
     let mut workspaces_root = None;
+    let mut tools_dir = None;
     let mut uac_plugin_dir = None;
     let (mut asr_python, mut asr_script, mut asr_model) = (None, None, None);
     let mut corrector = Corrector::On;
@@ -85,6 +87,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<Command, Str
                     args.next().ok_or("--workspaces-root needs a value")?,
                 ))
             }
+            "--tools-dir" => tools_dir = Some(path_arg(&mut args, "--tools-dir")?),
             "--uac-plugin-dir" => {
                 uac_plugin_dir = Some(PathBuf::from(
                     args.next().ok_or("--uac-plugin-dir needs a value")?,
@@ -108,6 +111,10 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<Command, Str
     options.workspaces_root = match workspaces_root {
         Some(root) => root,
         None => options.data_dir.join("workspaces"),
+    };
+    options.tools_dir = match tools_dir {
+        Some(dir) => dir,
+        None => options.data_dir.join("tools"),
     };
     options.uac_plugin_dir = uac_plugin_dir;
     options.asr = asr_config(asr_python, asr_script, asr_model)?.map(|mut config| {

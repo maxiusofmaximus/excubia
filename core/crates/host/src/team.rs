@@ -20,6 +20,7 @@ use serde_json::json;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 
+use crate::doc_tools::DocTools;
 use crate::mail_tools::MailTools;
 use crate::AgentHost;
 
@@ -42,6 +43,8 @@ pub struct TeamConfig {
     pub uac_plugin_dir: Option<PathBuf>,
     /// The `mail.*` tools Alfred may call.
     pub mail: Arc<MailTools>,
+    /// The `doc.read` tool Alfred may call (DOC5B).
+    pub docs: Arc<DocTools>,
 }
 
 pub struct TeamService {
@@ -53,6 +56,7 @@ pub struct TeamService {
     pub(super) delegation_timeout: Duration,
     pub(super) uac_plugin_dir: Option<PathBuf>,
     pub(super) mail: Arc<MailTools>,
+    pub(super) docs: Arc<DocTools>,
     pub(super) grants: Mutex<HashMap<String, TeamGrant>>,
     pub(super) watchers: Mutex<HashMap<String, Watcher>>,
     pub(super) synthesis: Arc<Notify>,
@@ -94,6 +98,7 @@ impl TeamService {
             delegation_timeout: config.delegation_timeout,
             uac_plugin_dir: config.uac_plugin_dir,
             mail: config.mail,
+            docs: config.docs,
             grants: Mutex::new(HashMap::new()),
             watchers: Mutex::new(HashMap::new()),
             synthesis: Arc::new(Notify::new()),

@@ -19,9 +19,12 @@ use hn_core_host::alfred_switch::{Strata, Switch};
 use hn_core_host::audit::AuditLog;
 use hn_core_host::calendar_reminders;
 use hn_core_host::cli::RunOptions;
+use hn_core_host::craft::Craft;
+use hn_core_host::doc_tools::DocTools;
 use hn_core_host::local_mode;
 use hn_core_host::mail_routes;
 use hn_core_host::mail_shadow::Shadow;
+use hn_core_host::mail_cli::ACCOUNTS_DIR;
 use hn_core_host::mail_tools::MailTools;
 use hn_core_host::mdns;
 use hn_core_host::pairing_notice::PairingNotice;
@@ -156,6 +159,20 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     let mail_tools = Arc::new(mail_tools);
     mail.attach_tools(Arc::clone(&mail_tools));
 
+    // The document CLIs (DOC5B). A configuration that cannot be read leaves them off; the host still starts.
+    let craft = Arc::new(match Craft::open(&options.data_dir, &options.tools_dir) {
+        Ok(craft) => craft,
+        Err(error) => {
+            println!("host: herramientas de documentos desactivadas: {error}");
+            Craft::without_tools(&options.data_dir)
+        }
+    });
+    let docs = Arc::new(DocTools::new(
+        Arc::clone(&craft),
+        Arc::clone(&chat),
+        hn_core_mail::AuditLog::new(&options.data_dir.join(ACCOUNTS_DIR)),
+    ));
+
     // The team seat is the only surface the API knows: it routes Alfred's
     // chat turns and every project seat's MCP calls.
     let team = TeamService::start(TeamConfig {
@@ -167,6 +184,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         delegation_timeout: DELEGATION_TIMEOUT,
         uac_plugin_dir: options.uac_plugin_dir.clone(),
         mail: mail_tools,
+        docs,
     })
     .map_err(|error| anyhow::anyhow!("start the team seat: {error}"))?;
     println!(
@@ -238,6 +256,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         alfred: Arc::new(alfred),
         pairing_audit: notices.clone(),
         audit: Arc::new(AuditLog::new(&options.data_dir)),
+        docs: craft as Arc<dyn hn_core_api::DocumentPages>,
     })
     // The active pin is the input of each pending device's SAS. A host that cannot
     // read it still serves; it only shows no verification string.

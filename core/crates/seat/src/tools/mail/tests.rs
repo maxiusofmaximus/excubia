@@ -244,6 +244,46 @@ fn the_four_tools_that_take_an_account_parse() {
     );
 }
 
+const CHAT_FILE: &str = "att_01JZ0000000000000000000000";
+
+fn attach(arguments: Value) -> Result<MailCall, ToolError> {
+    parse(&request("mail.attach_file", arguments))
+}
+
+#[test]
+fn an_attachment_takes_a_chat_file_or_a_path_and_not_both() {
+    let base = json!({"account": "t", "draft_id": "d1"});
+    let with = |key: &str, value: &str| {
+        let mut arguments = base.clone();
+        arguments[key] = json!(value);
+        arguments
+    };
+
+    let chat = attach(with("attachment_id", CHAT_FILE));
+    assert_eq!(
+        chat,
+        Ok(MailCall::AttachFile(MailAttach {
+            account: "t".into(),
+            draft_id: "d1".into(),
+            source: AttachSource::Chat(CHAT_FILE.into()),
+        }))
+    );
+    let path = attach(with("path", "C:\\docs\\a.pdf"));
+    assert_eq!(
+        path,
+        Ok(MailCall::AttachFile(MailAttach {
+            account: "t".into(),
+            draft_id: "d1".into(),
+            source: AttachSource::Path("C:\\docs\\a.pdf".into()),
+        }))
+    );
+
+    let mut both = with("path", "C:\\docs\\a.pdf");
+    both["attachment_id"] = json!(CHAT_FILE);
+    assert_eq!(attach(both).unwrap_err().code, "mail_invalid_input");
+    assert_eq!(attach(base).unwrap_err().code, "mail_invalid_input");
+}
+
 #[test]
 fn a_folder_listing_takes_the_account_and_nothing_else() {
     assert_eq!(

@@ -58,6 +58,7 @@ class ChatScreen extends StatefulWidget {
     required this.onOpenTeam,
     required this.onUnpaired,
     this.pickImage = pickChatImage,
+    this.pickDocument = pickChatDocument,
   });
 
   final ChatController controller;
@@ -67,6 +68,9 @@ class ChatScreen extends StatefulWidget {
 
   /// Opens the gallery for one image; tests pass a fake.
   final Future<ChatAttachmentSource?> Function() pickImage;
+
+  /// Opens the file manager for one document; tests pass a fake.
+  final Future<ChatAttachmentSource?> Function() pickDocument;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -223,10 +227,13 @@ class _ChatScreenState extends State<ChatScreen> {
     return sent;
   }
 
-  /// Adds one picked image to the composer. A conversation is opened first:
+  /// Adds one picked file to the composer. A conversation is opened first:
   /// a file belongs to the one it was uploaded into.
-  Future<void> _attach() async {
-    final source = await widget.pickImage();
+  Future<void> _attach(ChatAttachKind kind) async {
+    final source = switch (kind) {
+      ChatAttachKind.image => await widget.pickImage(),
+      ChatAttachKind.file => await widget.pickDocument(),
+    };
     if (source == null || !mounted) return;
     final id = _chat.current?.id ?? await _chat.createConversation();
     if (id == null) return;

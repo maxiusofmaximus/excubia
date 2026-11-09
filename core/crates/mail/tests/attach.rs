@@ -4,8 +4,8 @@ use std::fs;
 use std::path::Path;
 
 use hn_core_mail::{
-    attach_file, Approval, AttachContext, AttachedFile, GraphClient, Ledger, MailError,
-    SMALL_ATTACHMENT_LIMIT,
+    attach_chat_file, attach_file, Approval, AttachContext, AttachedFile, GraphClient, Ledger,
+    MailError, SMALL_ATTACHMENT_LIMIT,
 };
 use support::mock::{MockResponse, MockTransport};
 use support::{
@@ -278,4 +278,36 @@ async fn the_audit_of_a_session_upload_holds_no_upload_url() {
         "the audit must hold no upload URL"
     );
     assert_eq!(audit_lines(&h)[0]["decision"], "approved");
+}
+
+#[tokio::test]
+async fn a_file_from_the_chat_goes_under_the_users_name_and_is_audited_as_chat() {
+    let h = Harness::new("attach-chat");
+    let stored = h.outside.join("att_01JZ0000000000000000000000");
+    fs::write(&stored, b"contenido de prueba").expect("file");
+    let transport = MockTransport::new(vec![
+        MockResponse::created(message_body(DRAFT_ID, "Hola", false)),
+        MockResponse::created(attachment_item("att-3", "Informe final.xlsx", 19)),
+    ]);
+    let ledger = in_memory_ledger();
+    let client = client_with_draft(&transport, &ledger).await;
+    let gate = CountingApproval::new(Approval::Denied);
+    let policy = h.policy();
+    let ctx = AttachContext {
+        client: &client,
+        account: ACCOUNT,
+        policy: &policy,
+        approval: &gate,
+        audit: &h.audit,
+        scratch: &h.scratch,
+    };
+
+    let attached = attach_chat_file(&ctx, DRAFT_ID, &stored, "Informe final.xlsx")
+        .await
+        .expect("attached");
+    assert_eq!(attached.name, "Informe final.xlsx");
+    assert_eq!(gate.asked(), 0, "a file the user sent is never asked about");
+    let calls = transport.calls();
+    assert_eq!(calls[1].json_body()["name"], "Informe final.xlsx");
+    assert_eq!(audit_lines(&h).last().expect("a line")["decision"], "chat");
 }

@@ -41,6 +41,20 @@ void main() {
     test('an answer that is not an object is refused', () {
       expect(() => parseAlfredBackendStatus('[]'), throwsA(anything));
     });
+
+    test('the ready CLI engines are read by name and version', () {
+      final status = parseAlfredBackendStatus(
+        '{"backend":"claude","state":"claude","detail":null,"since":1,'
+        '"voice_suspended":false,"engines":[{"name":"opencode","version":"2.2.6"}]}',
+      );
+      expect(status.engines.single.name, 'opencode');
+      expect(status.engines.single.version, '2.2.6');
+    });
+
+    test('a PC that predates the engines list reads as none listed', () {
+      final status = parseAlfredBackendStatus(_claude);
+      expect(status.engines, isEmpty);
+    });
   });
 
   group('the calls', () {

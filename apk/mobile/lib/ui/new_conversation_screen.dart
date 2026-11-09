@@ -38,6 +38,8 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
   bool _creating = false;
   ErrorInfo? _loadError;
   ErrorInfo? _createError;
+  String? _fixing;
+  ErrorInfo? _fixError;
 
   @override
   void initState() {
@@ -60,18 +62,32 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
     });
     final result = await (widget.catalogLoader ?? widget.triage.loadCatalog)();
     if (!mounted) return;
-    final available = (result.entries ?? const <CatalogEntry>[])
-        .where((entry) => entry.available)
-        .toList();
+    final entries = result.entries ?? const <CatalogEntry>[];
+    final runnable = entries.where((entry) => entry.runnable).toList();
     setState(() {
-      _entries = available;
+      _entries = entries;
       _loading = false;
       _loadError = result.error;
       if (_selected == null ||
-          !available.any((entry) => entry.name == _selected)) {
-        _selected = available.isEmpty ? null : available.first.name;
+          !runnable.any((entry) => entry.name == _selected)) {
+        _selected = runnable.isEmpty ? null : runnable.first.name;
       }
     });
+  }
+
+  /// Repoints an entry Windows cannot start; the list reloads only on success.
+  Future<void> _fix(String name) async {
+    setState(() {
+      _fixing = name;
+      _fixError = null;
+    });
+    final error = await widget.triage.fixAgent(name);
+    if (!mounted) return;
+    setState(() {
+      _fixing = null;
+      _fixError = error;
+    });
+    if (error == null) await _load();
   }
 
   Future<void> _create() async {
@@ -237,6 +253,13 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
         children: [
           Text('Agente', style: context.text.title),
           const SizedBox(height: Spacing.xs),
+          if (!_entries.any((entry) => entry.runnable)) ...[
+            Text(
+              'Ningún agente de este equipo se puede usar todavía.',
+              style: context.text.bodySecondary,
+            ),
+            const SizedBox(height: Spacing.xs),
+          ],
           RadioGroup<String>(
             groupValue: _selected,
             onChanged: (value) => setState(() => _selected = value),
@@ -245,19 +268,50 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
               child: Column(
                 children: [
                   for (final entry in _entries)
-                    RadioListTile<String>(
-                      value: entry.name,
-                      contentPadding: EdgeInsets.zero,
-                      activeColor: context.colors.accentText,
-                      title: Text(entry.label, style: context.text.body),
-                      subtitle: entry.label == entry.name
-                          ? null
-                          : Text(entry.name, style: context.text.small),
-                    ),
+                    entry.runnable
+                        ? RadioListTile<String>(
+                            value: entry.name,
+                            contentPadding: EdgeInsets.zero,
+                            activeColor: context.colors.accentText,
+                            title: Text(entry.label, style: context.text.body),
+                            subtitle: entry.label == entry.name
+                                ? null
+                                : Text(entry.name, style: context.text.small),
+                          )
+                        : _unusableTile(entry),
                 ],
               ),
             ),
           ),
+          if (_fixError != null) ...[
+            const SizedBox(height: Spacing.sm),
+            ErrorBox(error: _fixError!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// An entry the PC cannot start now: shown so the cause is visible, never selectable.
+  Widget _unusableTile(CatalogEntry entry) {
+    final fixing = _fixing == entry.name;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(entry.label, style: context.text.bodySecondary),
+          Text(
+            entry.problem ?? 'No se puede usar en este equipo.',
+            style: context.text.small,
+          ),
+          if (entry.fixable) ...[
+            const SizedBox(height: Spacing.sm),
+            OutlinedButton(
+              onPressed: _fixing == null ? () => _fix(entry.name) : null,
+              child: Text(fixing ? 'Arreglando…' : 'Arreglar ahora'),
+            ),
+          ],
         ],
       ),
     );

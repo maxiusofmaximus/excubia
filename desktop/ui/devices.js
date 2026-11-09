@@ -81,7 +81,7 @@ function row(device, thisDevice) {
   if (mine) title.append(element("span", "device-tag", "Este equipo"));
   if (device.revoked) title.append(element("span", "device-tag is-revoked", "Revocado"));
 
-  const facts = [deviceKind(device.label), seenText(device.last_seen_at), `Alta ${addedText(device.created_at)}`];
+  const facts = [deviceKind(device.label || ""),seenText(device.last_seen_at), `Alta ${addedText(device.created_at)}`];
   const id = element("p", "device-id");
   id.append(
     element("code", null, shortDeviceId(device.device_id)),

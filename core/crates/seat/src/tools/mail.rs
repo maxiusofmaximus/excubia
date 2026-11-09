@@ -11,11 +11,13 @@ use hn_core_chat::{ToolError, ToolRequest};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
+mod attach;
 mod folder;
 mod folders;
 mod organize;
 mod triage;
 
+pub use attach::{AttachSource, MailAttach};
 pub use folder::InboxFolder;
 pub use folders::FoldersQuery;
 pub use organize::{
@@ -95,14 +97,6 @@ pub struct DraftRef {
     pub draft_id: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MailAttach {
-    pub account: String,
-    pub draft_id: String,
-    /// As the operator named it; the host checks it against the path policy.
-    pub path: String,
-}
-
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NoArgs {}
@@ -142,14 +136,6 @@ struct DraftUpdateArgs {
 struct DraftRefArgs {
     account: String,
     draft_id: String,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AttachArgs {
-    account: String,
-    draft_id: String,
-    path: String,
 }
 
 #[derive(Deserialize)]
@@ -212,14 +198,7 @@ pub fn parse(request: &ToolRequest) -> Result<MailCall, ToolError> {
                 draft_id: bounded("draft_id", &args.draft_id, MAX_ID_CHARS)?,
             }))
         }
-        "mail.attach_file" => {
-            let args: AttachArgs = arguments(request)?;
-            Ok(MailCall::AttachFile(MailAttach {
-                account: bounded("account", &args.account, MAX_ID_CHARS)?,
-                draft_id: bounded("draft_id", &args.draft_id, MAX_ID_CHARS)?,
-                path: bounded("path", &args.path, MAX_PATH_CHARS)?,
-            }))
-        }
+        "mail.attach_file" => attach::parse(request),
         "mail.inbox_list" => {
             let args: InboxArgs = arguments(request)?;
             Ok(MailCall::InboxList(InboxQuery {

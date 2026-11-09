@@ -105,6 +105,22 @@ impl TeamService {
                     "the alert tools belong to Alfred, not to a project seat",
                 )),
             },
+            ToolCall::Doc(call) => match grant.actor.role_id.as_str() {
+                "alfred" => self.docs.call(&grant.actor, call).await,
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "the document tools belong to Alfred, not to a project seat",
+                )),
+            },
+            ToolCall::DocCreate(call) => match grant.actor.role_id.as_str() {
+                "alfred" => self.docs.create(&grant.actor, call).await,
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "the document tools belong to Alfred, not to a project seat",
+                )),
+            },
             ToolCall::Reply { .. } | ToolCall::AskUser(_) | ToolCall::Progress(_) => {
                 Err(ToolError::invalid(
                     "scope_denied",
@@ -143,6 +159,8 @@ impl TeamService {
             ToolCall::ApprovalPending => self.pending_approvals(&actor),
             ToolCall::StatusOverview => self.status_overview(&actor).await,
             ToolCall::Mail(call) => self.mail.call(&actor, call).await,
+            ToolCall::Doc(call) => self.docs.call(&actor, call).await,
+            ToolCall::DocCreate(call) => self.docs.create(&actor, call).await,
             ToolCall::Note(call) => self.note_tool(&actor, call).await,
             ToolCall::Contact(call) => self.contact_tool(&actor, call),
             ToolCall::Calendar(call) => self.calendar_tool(&actor, call),

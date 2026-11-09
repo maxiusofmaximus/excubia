@@ -3,7 +3,7 @@
 //! side moves them in base64 chunks and keeps every coded refusal.
 
 use base64::{engine::general_purpose::STANDARD, Engine};
-use reqwest::Method;
+use reqwest::{header::CONTENT_DISPOSITION, Method};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -41,8 +41,16 @@ const REFUSALS: &[&str] = &[
     "timeout",
 ];
 
+/// What the host keeps: a picture, re-encoded to WebP, or a document as it was sent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AttachmentKind {
+    Image,
+    Document,
+}
+
 /// One attachment as the routes and the timeline describe it. Fields stay
-/// `None` while the upload is still in progress.
+/// `None` while the upload is still in progress. A picture has no `kind`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Attachment {
     pub id: String,
@@ -52,6 +60,8 @@ pub struct Attachment {
     pub w: Option<u32>,
     pub h: Option<u32>,
     pub state: Option<String>,
+    #[serde(default)]
+    pub kind: Option<AttachmentKind>,
 }
 
 /// The stored bytes of a ready attachment, base64 so they cross IPC as text.
@@ -59,6 +69,14 @@ pub struct Attachment {
 pub struct AttachmentContent {
     pub mime: &'static str,
     pub data: String,
+}
+
+/// The bytes of a ready attachment as the host keeps them, with the name its
+/// download carries (`None` when the host sends no name).
+#[derive(Debug, Clone)]
+pub struct AttachmentFile {
+    pub name: Option<String>,
+    pub bytes: Vec<u8>,
 }
 
 #[derive(Deserialize)]
@@ -92,7 +110,7 @@ pub(super) fn attachment_refusal(body: &[u8]) -> Option<ChatFailure> {
         })
 }
 
-fn attachment_path(conversation_id: &str, attachment_id: &str) -> ChatResult<String> {
+pub(super) fn attachment_path(conversation_id: &str, attachment_id: &str) -> ChatResult<String> {
     validate_prefixed_id(conversation_id, "cnv_", "conversación")?;
     validate_prefixed_id(attachment_id, "att_", "adjunto")?;
     Ok(format!(
@@ -167,6 +185,21 @@ impl HostClient {
         conversation_id: &str,
         attachment_id: &str,
     ) -> ChatResult<AttachmentContent> {
+        let file = self
+            .chat_attachment_file(conversation_id, attachment_id)
+            .await?;
+        Ok(AttachmentContent {
+            mime: CONTENT_MIME,
+            data: STANDARD.encode(&file.bytes),
+        })
+    }
+
+    /// The stored bytes as they were sent, with the name the download gives.
+    pub async fn chat_attachment_file(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+    ) -> ChatResult<AttachmentFile> {
         let path = attachment_path(conversation_id, attachment_id)?;
         let request = self
             .signed_call(Method::GET, &format!("{path}/content"), &[], None)
@@ -176,6 +209,11 @@ impl HostClient {
             .await
             .map_err(|error| ChatFailure::from_core(&CoreError::from(error), false))?;
         let status = response.status();
+        let name = response
+            .headers()
+            .get(CONTENT_DISPOSITION)
+            .and_then(|value| value.to_str().ok())
+            .and_then(filename_from_disposition);
         let bytes = response
             .bytes()
             .await
@@ -183,9 +221,84 @@ impl HostClient {
         if !status.is_success() {
             return Err(status_failure(status, &bytes, None, false));
         }
-        Ok(AttachmentContent {
-            mime: CONTENT_MIME,
-            data: STANDARD.encode(&bytes),
+        Ok(AttachmentFile {
+            name,
+            bytes: bytes.into(),
         })
+    }
+}
+
+/// The file name of a `Content-Disposition` header: the RFC 5987 `filename*`
+/// when the host sends one, otherwise a plain `filename`.
+pub fn filename_from_disposition(header: &str) -> Option<String> {
+    let mut plain = None;
+    for part in header.split(';').map(str::trim) {
+        if let Some(name) = part.strip_prefix("filename*=").and_then(rfc5987_name) {
+            return Some(name);
+        }
+        if let Some(quoted) = part.strip_prefix("filename=") {
+            plain = Some(quoted.trim_matches('"').to_string()).filter(|name| !name.is_empty());
+        }
+    }
+    plain
+}
+
+fn rfc5987_name(value: &str) -> Option<String> {
+    let encoded = value
+        .strip_prefix("UTF-8''")
+        .or_else(|| value.strip_prefix("utf-8''"))?;
+    percent_decode(encoded).filter(|name| !name.is_empty())
+}
+
+fn percent_decode(text: &str) -> Option<String> {
+    let mut bytes = Vec::with_capacity(text.len());
+    let mut rest = text.bytes();
+    while let Some(byte) = rest.next() {
+        if byte != b'%' {
+            bytes.push(byte);
+            continue;
+        }
+        let high = hex_digit(rest.next()?)?;
+        let low = hex_digit(rest.next()?)?;
+        bytes.push(high * 16 + low);
+    }
+    String::from_utf8(bytes).ok()
+}
+
+fn hex_digit(byte: u8) -> Option<u8> {
+    char::from(byte).to_digit(16).map(|digit| digit as u8)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{filename_from_disposition, percent_decode};
+
+    #[test]
+    fn the_rfc_5987_name_wins_and_is_decoded() {
+        let header =
+            "attachment; filename=\"plain.xlsx\"; filename*=UTF-8''Informe%20Q1%20%C3%B1.xlsx";
+        assert_eq!(
+            filename_from_disposition(header).as_deref(),
+            Some("Informe Q1 ñ.xlsx")
+        );
+    }
+
+    #[test]
+    fn a_plain_name_is_read_without_its_quotes() {
+        assert_eq!(
+            filename_from_disposition("attachment; filename=\"bitacora.pdf\"").as_deref(),
+            Some("bitacora.pdf")
+        );
+    }
+
+    #[test]
+    fn a_missing_or_broken_name_is_none() {
+        assert_eq!(filename_from_disposition("attachment"), None);
+        assert_eq!(filename_from_disposition("attachment; filename=\"\""), None);
+        assert_eq!(
+            filename_from_disposition("attachment; filename*=UTF-8''%zz"),
+            None
+        );
+        assert_eq!(percent_decode("%C3"), None, "a cut escape is not UTF-8");
     }
 }

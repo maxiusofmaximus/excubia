@@ -5,6 +5,7 @@ import '../../core/state/chat_attachment_tray.dart';
 import '../../core/state/voice_notes.dart';
 import '../../core/state/voice_send_settings.dart';
 import '../theme.dart';
+import 'chat_attachments_picker.dart';
 import 'chat_attachments_tray_view.dart';
 import 'voice_button.dart';
 
@@ -46,7 +47,8 @@ class ChatComposer extends StatelessWidget {
 
   /// Sends a dictated note in auto mode; false when it did not go.
   final Future<bool> Function(String text) onVoiceSend;
-  final VoidCallback onAttach;
+  /// Called with what the «+» menu picked: an image or a document.
+  final ValueChanged<ChatAttachKind> onAttach;
   final VoidCallback onSend;
   final VoidCallback onStop;
 
@@ -109,10 +111,27 @@ class ChatComposer extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              IconButton(
-                tooltip: 'Adjuntar imagen',
-                onPressed: enabled && attachments.canAdd ? onAttach : null,
+              PopupMenuButton<ChatAttachKind>(
+                tooltip: 'Adjuntar',
+                enabled: enabled && attachments.canAdd,
                 icon: const Icon(Icons.attach_file),
+                onSelected: onAttach,
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: ChatAttachKind.image,
+                    child: ListTile(
+                      leading: Icon(Icons.image_outlined),
+                      title: Text('Imagen'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: ChatAttachKind.file,
+                    child: ListTile(
+                      leading: Icon(Icons.description_outlined),
+                      title: Text('Archivo'),
+                    ),
+                  ),
+                ],
               ),
               Expanded(
                 child: TextField(

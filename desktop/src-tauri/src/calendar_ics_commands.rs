@@ -2,14 +2,14 @@
 //! webview gets the answer and the name it may show, never a path it did not pick.
 
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use herdr_desktop_core::chat::{ChatFailure, IcsImport, ICS_MAX_BYTES};
 use tauri::{AppHandle, State};
-use tauri_plugin_dialog::{DialogExt, FilePath};
-use tokio::sync::oneshot;
+use tauri_plugin_dialog::DialogExt;
 
 use crate::chat_commands::{client, shared, Shared};
+use crate::file_dialog::chosen;
 
 #[tauri::command]
 pub async fn calendar_import_ics(
@@ -58,19 +58,6 @@ pub async fn calendar_export_ics(
     };
     std::fs::write(&path, &export.bytes).map_err(|_| file_refused("write_failed"))?;
     Ok(Some(export.file_name))
-}
-
-/// The path the operator picked, or `None` when the dialog was closed.
-async fn chosen(open: impl FnOnce(Box<dyn FnOnce(Option<FilePath>) + Send>)) -> Option<PathBuf> {
-    let (sender, receiver) = oneshot::channel();
-    open(Box::new(move |path| {
-        let _ = sender.send(path);
-    }));
-    receiver
-        .await
-        .ok()
-        .flatten()
-        .and_then(|path| path.into_path().ok())
 }
 
 /// The file's bytes, read at most one byte past the limit: the core refuses anything over it.

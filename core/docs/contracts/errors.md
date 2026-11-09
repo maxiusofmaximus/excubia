@@ -287,8 +287,53 @@ with the case of each code, is in `api.md` (Attachments). By status:
   `size_mismatch`, `hash_mismatch`, `unknown_attachment`, `too_many_attachments`;
   and with `field: "file"`, the image refusals `unsupported_type`,
   `invalid_image`, `image_too_large`, `dimensions_too_large`, `input_too_large`,
-  `timeout`.
+  `timeout`; and `unsupported_document`, a document whose content does not match
+  the format of its extension. Its message names neither the file nor its content.
 - `500`: `"internal error"`. The worker's `worker_failed` is logged, never sent.
+
+## Vistas previas y `doc.read` (DOC5B)
+
+Vistas previas (`GET …/attachments/{att}/preview`), con `{"detail":{"code","message"}}`:
+
+- `400` `invalid_page`: `page` no es un entero desde 1.
+- `404` `preview_unavailable`: el adjunto no es xlsx, docx ni pdf (csv, txt, md, json o pptx).
+- `404` `page_out_of_range`: el documento no tiene esa página. No se guarda nada.
+- `409` `not_ready`: el adjunto aún no está listo.
+- `503` `tool_missing`: falta el CLI de documentos; el mensaje dice cuál, en español
+  («Falta GridCraft en este PC. El Master puede instalarla desde Herramientas de documentos»).
+- `502` `preview_failed`: el CLI falló o no escribió una imagen PNG. Mensaje fijo.
+
+`doc.read` (herramienta de Alfred; el cuerpo de error es el de las herramientas):
+
+- `422` `attachment_not_found` (campo `attachment_id`): el adjunto no está en esta
+  conversación o no se ha enviado todavía.
+- `422` `unsupported_document` (campo `attachment_id`): un formato sin lector (pptx).
+- `422` `bad_document` (campo `attachment_id`): el archivo no se puede leer.
+- `422` `page_out_of_range` y `422` `invalid_arguments` (campo `page`).
+- `503` `tool_missing` (mismo texto que en las vistas previas) y `503` `tool_failed`.
+- `422` `scope_denied` para un seat de proyecto (sin leer ni cargar el archivo).
+
+## Documentos nuevos y `attachment_ids` (DOC8)
+
+`doc.create` (herramienta de Alfred; el cuerpo de error es el de las herramientas):
+
+- `422` `invalid_arguments` (campo `format`, `name` o `content`): formato fuera de la lista,
+  nombre vacío o con controles, contenido vacío o de más de 10 MiB.
+- `422` `bad_content` (campo `content`): el contenido no sirve, por ejemplo una hoja con más
+  de 50 000 celdas o un `json` no válido. Mensaje: «El contenido no sirve: …».
+- `422` `quota_exceeded`: la conversación o el equipo no tienen espacio para otro archivo.
+  Mensaje: «No hay espacio para otro archivo en esta conversación».
+- `503` `tool_missing`: falta el CLI que el formato necesita (mismo texto que en las vistas
+  previas). `csv`, `txt`, `md` y `json` no necesitan CLI.
+- `503` `tool_failed`: fallo del CLI, salida no válida o registro no guardado. Mensaje fijo:
+  «No se pudo crear el documento». Nunca lleva rutas ni salida del CLI.
+- `422` `scope_denied` para un seat de proyecto.
+
+`chat.reply` con `attachment_ids` (DOC8): `422` `invalid_arguments` (campo `attachment_ids`)
+si hay más de 4, un id repetido o vacío, o un archivo que no existe en la conversación, no
+lo creó Alfred, ya está en otro mensaje o no está listo. Mensajes: «ese archivo no existe en
+esta conversación o no lo creó Alfred», «ese archivo ya está en otro mensaje», «ese archivo
+todavía no está listo», «un mensaje lleva como máximo 4 archivos».
 
 ## Approval delegation (CORE9-B)
 

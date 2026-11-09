@@ -6,8 +6,10 @@ import 'package:herdr_notify/core/api/alfred_backend_api.dart';
 import 'package:herdr_notify/core/api/chat_transport.dart';
 import 'package:herdr_notify/core/api/connection_failure.dart';
 import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:herdr_notify/src/rust/api/catalog.dart';
 import 'package:herdr_notify/src/rust/frb_generated.dart';
 import 'package:herdr_notify/ui/alfred/alfred_engine_section.dart';
+import 'package:herdr_notify/ui/new_conversation_screen.dart' show CatalogLoader;
 
 import '../support/widget_mount.dart';
 
@@ -55,12 +57,18 @@ class _Engine implements ChatTransport {
       throw UnimplementedError();
 }
 
-Future<void> _mount(WidgetTester tester, _Engine engine) => mountWidget(
+Future<void> _mount(
+  WidgetTester tester,
+  _Engine engine, {
+  CatalogLoader? catalog,
+}) => mountWidget(
   tester,
   Scaffold(
     body: ListView(
       padding: const EdgeInsets.all(16),
-      children: [AlfredEngineSection(api: AlfredBackendApi(engine))],
+      children: [
+        AlfredEngineSection(api: AlfredBackendApi(engine), catalog: catalog),
+      ],
     ),
   ),
 );
@@ -88,6 +96,51 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('34 GB de RAM'), findsOneWidget);
     expect(find.textContaining('unos 4 minutos'), findsOneWidget);
+    expect(engine.count(_change), 0);
+  });
+
+  testWidgets('the installed agents are listed, read-only, under the engine', (
+    tester,
+  ) async {
+    final engine = _Engine({
+      _read: [_state('claude')],
+    });
+    await _mount(
+      tester,
+      engine,
+      catalog: () async => (
+        entries: [
+          const CatalogEntry(
+            name: 'claude',
+            available: true,
+            runnable: true,
+            fixable: false,
+            label: 'Claude Code',
+          ),
+          const CatalogEntry(
+            name: 'codex',
+            available: true,
+            runnable: false,
+            fixable: true,
+            label: 'Codex',
+          ),
+          const CatalogEntry(
+            name: 'gemini',
+            available: false,
+            runnable: false,
+            fixable: false,
+            label: 'Gemini CLI',
+          ),
+        ],
+        error: null,
+      ),
+    );
+
+    expect(find.text('AGENTES INSTALADOS EN TU PC'), findsOneWidget);
+    expect(find.text('Claude Code'), findsOneWidget);
+    expect(find.text('Codex · Windows no lo arranca todavía'), findsOneWidget);
+    expect(find.textContaining('Gemini CLI'), findsNothing);
+    expect(find.textContaining('Elegir otro agente para Alfred'), findsOneWidget);
     expect(engine.count(_change), 0);
   });
 
@@ -296,6 +349,35 @@ void main() {
       findsOneWidget,
     );
     expect(_buttonOf(tester, 'Usar el modelo local').onPressed, isNotNull);
+  });
+
+  testWidgets('a ready CLI engine is listed read-only, with no button for it', (
+    tester,
+  ) async {
+    final engine = _Engine({
+      _read: [
+        '{"backend":"claude","state":"claude","detail":null,"since":1,'
+            '"voice_suspended":false,"engines":[{"name":"opencode","version":"2.2.6"}]}',
+      ],
+    });
+    await _mount(tester, engine);
+
+    expect(
+      find.text(
+        'Motores listos en este PC: opencode 2.2.6 (aún no se puede elegir)',
+      ),
+      findsOneWidget,
+    );
+    expect(_button('opencode'), findsNothing);
+  });
+
+  testWidgets('no engine listed shows no engine line', (tester) async {
+    final engine = _Engine({
+      _read: [_state('claude')],
+    });
+    await _mount(tester, engine);
+
+    expect(find.textContaining('Motores listos'), findsNothing);
   });
 
   testWidgets(

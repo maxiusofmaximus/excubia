@@ -45,10 +45,27 @@ struct RawStatus {
     next_expected_ranges: Vec<String>,
 }
 
+#[derive(Deserialize)]
+struct RawList {
+    #[serde(default)]
+    value: Vec<RawListed>,
+}
+
+#[derive(Deserialize)]
+struct RawListed {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    size: u64,
+}
+
 /// What a chunk answer means for the loop.
 enum Sent {
     Accepted,
-    Finished(AttachmentMeta),
+    /// Graph's last answer, which for Outlook attachments is often an empty 201.
+    Finished(Option<AttachmentMeta>),
 }
 
 enum ChunkFailure {
@@ -82,7 +99,11 @@ impl GraphClient<'_> {
                     offset += len as u64;
                     failures = 0;
                 }
-                Ok(Sent::Finished(meta)) => {
+                Ok(Sent::Finished(found)) => {
+                    let meta = match found {
+                        Some(meta) => meta,
+                        None => self.find_uploaded(draft_id, name).await?,
+                    };
                     self.record_attachment(draft_id, &file.sha256, &meta)?;
                     return Ok(meta);
                 }
@@ -143,14 +164,37 @@ impl GraphClient<'_> {
             .map_err(|_| ChunkFailure::Retry)?;
         match response.status {
             202 => Ok(Sent::Accepted),
-            200 | 201 if last => Ok(Sent::Finished(
+            200 | 201 if last && response.body.trim().is_empty() => Ok(Sent::Finished(None)),
+            200 | 201 if last => Ok(Sent::Finished(Some(
                 parse_attachment(&response.body).map_err(ChunkFailure::Fatal)?,
-            )),
+            ))),
             416 | 429 | 500..=599 => Err(ChunkFailure::Retry),
             status => Err(ChunkFailure::Fatal(upload_failed(format!(
                 "Graph refused a chunk with HTTP {status}"
             )))),
         }
+    }
+
+    /// The attachment a bodiless final answer created: the last one of the draft with that name.
+    async fn find_uploaded(&self, draft_id: &str, name: &str) -> Result<AttachmentMeta, MailError> {
+        let url = format!(
+            "{GRAPH_BASE}/me/messages/{}/attachments?$select=id,name,size",
+            encode_segment(draft_id)
+        );
+        let response = self.transport.get_json(&url, self.access_token).await?;
+        check_status(&response)?;
+        let list: RawList = serde_json::from_str(&response.body)
+            .map_err(|_| upload_failed("the attachment list is unreadable"))?;
+        list.value
+            .into_iter()
+            .rev()
+            .find(|item| item.name == name)
+            .map(|item| AttachmentMeta {
+                id: item.id,
+                name: item.name,
+                size: item.size,
+            })
+            .ok_or_else(|| upload_failed("the upload finished but the attachment is not on the draft"))
     }
 
     /// The byte Graph expects next, from the session status.

@@ -10,17 +10,19 @@ use crate::service::{lock, tool_chat_error, Phase, RunGrant, SeatService};
 use crate::tools::ApprovalRequest;
 
 impl SeatService {
-    /// The final answer of the run. It closes the turn for good.
+    /// The final answer of the run, with the files it shows. It closes the turn for good.
     pub(crate) fn reply(
         &self,
         grant: &RunGrant,
         text: String,
         suggestions: &[String],
+        attachment_ids: &[String],
     ) -> Result<ToolReply, ToolError> {
         let mut phase = lock(&grant.phase);
         Self::check_phase(&phase)?;
+        let files: Vec<&str> = attachment_ids.iter().map(String::as_str).collect();
         self.chat
-            .complete_run_with_reply(&grant.run_id, &text, suggestions)
+            .complete_run_with_files(&grant.run_id, &text, suggestions, &files)
             .map_err(tool_chat_error)?;
         *phase = Phase::Replied;
         grant.notify.notify_one();

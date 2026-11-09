@@ -8,6 +8,8 @@ pub(super) struct ReplyArgs {
     pub(super) text: String,
     #[serde(default)]
     pub(super) suggestions: Vec<String>,
+    #[serde(default)]
+    pub(super) attachment_ids: Vec<String>,
 }
 
 #[derive(Deserialize)]

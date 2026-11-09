@@ -72,6 +72,7 @@ impl Rig {
             alfred: Arc::clone(&host.alfred) as Arc<dyn AlfredBackend>,
             pairing_audit: Arc::new(PairingNotice::new(&host.data_dir, Arc::clone(&host.chat))),
             audit: Arc::new(hn_core_host::audit::AuditLog::new(&host.data_dir)),
+            docs: Arc::new(hn_core_host::craft::Craft::without_tools(&host.data_dir)),
         })
         .with_host_pin(Some(pin));
         let base = Instant::now();

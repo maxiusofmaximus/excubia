@@ -8,7 +8,7 @@ import '../../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `attachment_from`, `attachments_from`, `dimension`, `fallback_code`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`
 
 AttachmentFailure explainAttachmentError({
   required int status,
@@ -39,6 +39,18 @@ ChatAttachment? parseAttachmentCompleted({required String json}) => RustLib
 /// `true` when the host dropped the upload or the unsent file.
 bool parseAttachmentDeleted({required String json}) => RustLib.instance.api
     .crateApiChatAttachModelParseAttachmentDeleted(json: json);
+
+PreviewRefusal explainPreviewError({
+  required int status,
+  required String body,
+}) => RustLib.instance.api.crateApiChatAttachModelExplainPreviewError(
+  status: status,
+  body: body,
+);
+
+/// The bytes of a page when they are a PNG of at most [`MAX_PREVIEW_BYTES`].
+Uint8List? checkedPreviewPng({required List<int> bytes}) =>
+    RustLib.instance.api.crateApiChatAttachModelCheckedPreviewPng(bytes: bytes);
 
 /// A refused attachment call. `code` is the contract code, `offline` for a
 /// transport failure, or `http_<status>` when the body names none.
@@ -119,4 +131,38 @@ class ChatAttachment {
           size == other.size &&
           w == other.w &&
           h == other.h;
+}
+
+/// Why a page has no picture.
+enum PreviewFailure {
+  /// The file is not an xlsx, docx or pdf.
+  unavailable,
+
+  /// The document has no such page.
+  outOfRange,
+
+  /// The PC lacks the document app that renders the page; the message says which.
+  toolMissing,
+
+  /// Anything else: not ready, a failed render, or no answer at all.
+  other,
+}
+
+/// A refused page: its kind, and for `ToolMissing` the host's text in Spanish.
+class PreviewRefusal {
+  final PreviewFailure failure;
+  final String? message;
+
+  const PreviewRefusal({required this.failure, this.message});
+
+  @override
+  int get hashCode => failure.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PreviewRefusal &&
+          runtimeType == other.runtimeType &&
+          failure == other.failure &&
+          message == other.message;
 }

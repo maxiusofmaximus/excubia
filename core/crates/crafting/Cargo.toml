@@ -1,0 +1,15 @@
+[package]
+name = "hn-core-crafting"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Runs the ArtCraft document CLIs (GridCraft, WordCraft, PdfCraft) with limits: reads and previews chat attachments (DOC5A)"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+ulid.workspace = true
+
+[dev-dependencies]
+hn-core-test-dir = { path = "../test-dir" }

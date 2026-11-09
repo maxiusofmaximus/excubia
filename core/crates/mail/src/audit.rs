@@ -25,6 +25,8 @@ const FILE_NAME: &str = "audit.jsonl";
 pub enum Decision {
     /// Inside the workspaces root, or approved before.
     Auto,
+    /// A file the user sent in the chat: the user chose it, so nobody was asked.
+    Chat,
     Approved,
     Denied,
     /// The file no longer matched the approval; nothing was sent.
@@ -144,6 +146,27 @@ impl ReadRecord {
             account: account.to_owned(),
             tool,
             message_id: message_id.map(str::to_owned),
+        }
+    }
+}
+
+/// A document Alfred made (DOC8): the tool and the attachment id, never the content
+/// or the name the file was given.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct CreateRecord {
+    pub kind: &'static str,
+    pub ts: u64,
+    pub tool: &'static str,
+    pub attachment_id: String,
+}
+
+impl CreateRecord {
+    pub fn new(tool: &'static str, attachment_id: &str) -> Self {
+        Self {
+            kind: "create",
+            ts: unix_now(),
+            tool,
+            attachment_id: attachment_id.to_owned(),
         }
     }
 }

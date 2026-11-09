@@ -15,6 +15,7 @@ hn-core-api = { path = "../api" }
 hn-core-asr = { path = "../asr" }
 hn-core-auth = { path = "../auth" }
 hn-core-chat = { path = "../chat" }
+hn-core-crafting = { path = "../crafting" }
 hn-core-detect = { path = "../detect" }
 hn-core-mail = { path = "../mail" }
 hn-core-persist = { path = "../persist" }

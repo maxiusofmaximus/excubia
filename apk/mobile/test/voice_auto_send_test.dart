@@ -57,7 +57,7 @@ void main() {
     voice: voice,
     voiceSend: voiceSend,
     onVoiceSend: onVoiceSend,
-    onAttach: () {},
+    onAttach: (_) {},
     onSend: () {},
     onStop: () {},
   );

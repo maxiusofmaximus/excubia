@@ -7,6 +7,7 @@ import 'package:herdr_notify/src/rust/api/error/chat.dart';
 
 import '../../core/state/approvals_controller.dart';
 import '../../core/state/chat_attachment_images.dart';
+import '../../core/state/chat_document_opener.dart';
 import '../mail/mail_code_card.dart';
 import '../mail/mail_draft_card.dart';
 import '../theme.dart';
@@ -47,6 +48,7 @@ class TimelineRow extends StatelessWidget {
     this.onOpenQuote,
     this.onSuggestion,
     this.images,
+    this.documents,
     this.sentAttachments,
   });
 
@@ -77,6 +79,9 @@ class TimelineRow extends StatelessWidget {
 
   /// The timeline's image cache; null leaves the thumbnails out.
   final ChatAttachmentImages? images;
+
+  /// Opens the documents of the timeline; null leaves their cards out.
+  final ChatDocumentOpener? documents;
 
   /// The files of an unsent message, shown until the host's entry carries them.
   final List<ChatAttachment>? sentAttachments;
@@ -167,6 +172,7 @@ class TimelineRow extends StatelessWidget {
       onOpenQuote: onOpenQuote,
       attachments: entry.attachments ?? sentAttachments,
       images: images,
+      documents: documents,
     );
   }
 }

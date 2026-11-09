@@ -15,6 +15,7 @@ import 'alerts/alerts_screen.dart';
 import 'chat/approval_entry.dart';
 import 'chat/voice_settings_screen.dart';
 import 'mail/mail_settings_screen.dart';
+import 'new_conversation_screen.dart' show CatalogLoader;
 import 'palette/palette_screen.dart';
 import 'theme.dart';
 import 'widgets/grouped_card.dart';
@@ -35,6 +36,7 @@ class SettingsScreen extends StatelessWidget {
     this.conversationId,
     this.projects = const <ChatProject>[],
     this.alfredSeat,
+    this.catalog,
   });
 
   final MailApi mail;
@@ -50,6 +52,9 @@ class SettingsScreen extends StatelessWidget {
   final String? conversationId;
   final List<ChatProject> projects;
   final ChatSeat? alfredSeat;
+
+  /// The host's agent catalogue, for the installed-agents list under Alfred's engine.
+  final CatalogLoader? catalog;
 
   Future<void> _confirmRepair(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -108,7 +113,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: Spacing.xl),
           AgendaSettingsSection(api: agenda, phone: phone),
           const SizedBox(height: Spacing.xl),
-          AlfredEngineSection(api: alfred),
+          AlfredEngineSection(api: alfred, catalog: catalog),
           const SizedBox(height: Spacing.xl),
           if (approvals != null) ...[
             _SettingsSection(

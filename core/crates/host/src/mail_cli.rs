@@ -18,7 +18,7 @@ use hn_core_mail::{
 use crate::paths;
 
 pub(crate) const CONFIG_FILE: &str = "mail.toml";
-pub(crate) const ACCOUNTS_DIR: &str = "mail/accounts";
+pub const ACCOUNTS_DIR: &str = "mail/accounts";
 pub(crate) const CLIENT_ID_ENV: &str = "EXCUBIA_MAIL_CLIENT_ID";
 
 #[derive(Debug)]

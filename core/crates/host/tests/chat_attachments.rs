@@ -149,7 +149,7 @@ async fn a_photo_is_stored_as_webp_and_served_with_nosniff() {
     );
     assert_eq!(
         headers["content-disposition"].to_str().unwrap(),
-        "attachment"
+        "attachment; filename*=UTF-8''captura.png"
     );
     assert_eq!(
         headers["cache-control"].to_str().unwrap(),

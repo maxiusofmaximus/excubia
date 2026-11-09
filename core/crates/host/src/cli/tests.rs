@@ -159,6 +159,29 @@ fn the_daemon_accepts_spawns_bind_and_data_dir() {
 }
 
 #[test]
+fn the_document_tools_default_to_a_tools_folder_in_the_data_dir() {
+    let Command::Run(options) = parse(args(&["--data-dir", "C:/tmp/hn"])).expect("parse") else {
+        panic!("expected run");
+    };
+    assert_eq!(options.tools_dir, options.data_dir.join("tools"));
+
+    let Command::Run(options) = parse(args(&[
+        "--data-dir",
+        "C:/tmp/hn",
+        "--tools-dir",
+        "C:/Herramientas",
+    ]))
+    .expect("parse") else {
+        panic!("expected run");
+    };
+    assert_eq!(options.tools_dir.to_string_lossy(), "C:/Herramientas");
+    assert!(
+        parse(args(&["--tools-dir"])).is_err(),
+        "the flag needs a value"
+    );
+}
+
+#[test]
 fn wildcard_binds_are_refused() {
     let error = parse(args(&["--bind", "0.0.0.0"])).unwrap_err();
     assert!(error.contains("wildcard"), "{error}");

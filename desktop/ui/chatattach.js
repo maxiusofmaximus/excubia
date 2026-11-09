@@ -1,14 +1,15 @@
-// The picture tray above the composer: pick, drop or paste up to four images, watch
-// each one prepare and upload, and send them with the next message.
+// The attachment tray above the composer: pick, drop or paste up to four pictures or
+// documents, watch each one prepare and upload, and send them with the next message.
 import { $ } from "./core.js";
 import { chat, failure } from "./chatstate.js";
 import { element, action } from "./chatdom.js";
 import { preparePicture } from "./chatattach-image.js";
+import { documentBadgeNode } from "./chatattach-doc.js";
 import { dropRemote, uploadPicture } from "./chatattach-upload.js";
 import {
   ACCEPT_ATTR,
-  acceptsType,
   blocksSend,
+  classifyFile,
   failureText,
   hasRoom,
   itemStatus,
@@ -44,8 +45,8 @@ export function installAttachments({ ensureConversation: create }) {
   attach = element("button", "attach-btn");
   attach.type = "button";
   attach.id = "btn-attach";
-  attach.title = "Adjuntar imagen";
-  attach.setAttribute("aria-label", "Adjuntar imagen");
+  attach.title = "Adjuntar imagen o archivo";
+  attach.setAttribute("aria-label", "Adjuntar imagen o archivo");
   attach.innerHTML =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -114,18 +115,16 @@ export function takeAttachments(taken) {
 
 // The pictures of a refused message return to the front of the tray, in the order they were sent.
 export function restoreAttachments(rows) {
-  for (const item of rows) item.preview = item.blob ? URL.createObjectURL(item.blob) : null;
+  for (const item of rows) item.preview = previewOf(item);
   items.unshift(...rows);
   renderTray();
 }
 
 function onPaste(event) {
-  const pictures = [...(event.clipboardData ? event.clipboardData.files : [])].filter((file) =>
-    file.type.startsWith("image/"),
-  );
-  if (!pictures.length) return;
+  const files = [...(event.clipboardData ? event.clipboardData.files : [])];
+  if (!files.length) return;
   event.preventDefault();
-  addFiles(pictures);
+  addFiles(files);
 }
 
 const carriesFiles = (event) => Boolean(event.dataTransfer) && [...event.dataTransfer.types].includes("Files");
@@ -158,22 +157,25 @@ function addFiles(files) {
   if (blocked) return;
   status.textContent = "";
   for (const file of files) {
-    if (!acceptsType(file.type)) {
-      status.textContent = failureText("unsupported_type");
+    const verdict = classifyFile(file.name, file.size);
+    if (!verdict.ok) {
+      status.textContent = failureText(verdict.code);
     } else if (!hasRoom(items.length)) {
       status.textContent = failureText("too_many_attachments");
       break;
     } else {
-      startItem(file);
+      startItem(file, verdict.kind);
     }
   }
   renderTray();
 }
 
-function startItem(file) {
+// A picture is re-encoded before it leaves; a document is sent as it was picked.
+function startItem(file, kind) {
   const item = {
     localId: newId(),
     clientId: newId(),
+    kind,
     name: safeName(file.name),
     state: "preparing",
     sent: 0,
@@ -195,10 +197,10 @@ async function run(item, file) {
   try {
     const conversation = chat.conversation || (await ensureConversation());
     item.conversationId = conversation.id;
-    item.blob = await preparePicture(file);
+    item.blob = item.kind === "image" ? await preparePicture(file) : file;
     if (item.removed) return;
     item.size = item.blob.size;
-    item.preview = URL.createObjectURL(item.blob);
+    item.preview = previewOf(item);
     renderTray();
     await uploadPicture(conversation.id, item);
   } catch (error) {
@@ -221,6 +223,11 @@ function releasePreview(item) {
   item.preview = null;
 }
 
+// Only a picture has a thumbnail; a document row shows its badge instead.
+function previewOf(item) {
+  return item.kind === "image" && item.blob ? URL.createObjectURL(item.blob) : null;
+}
+
 // Removes, from the last row back, every row the predicate names.
 function drop(predicate) {
   for (let index = items.length - 1; index >= 0; index -= 1) {
@@ -238,9 +245,7 @@ function renderTray() {
 
 function rowNode(item) {
   const row = element("div", `attach-item is-${item.state}`);
-  const thumb = element("img", "attach-thumb");
-  thumb.alt = item.name;
-  if (item.preview) thumb.src = item.preview;
+  const thumb = item.kind === "image" ? pictureThumb(item) : documentBadgeNode(item.name);
 
   const text = element("div", "attach-text");
   const detail = element(
@@ -261,4 +266,11 @@ function rowNode(item) {
   remove.setAttribute("aria-label", `Quitar ${item.name}`);
   row.append(thumb, text, remove);
   return row;
+}
+
+function pictureThumb(item) {
+  const thumb = element("img", "attach-thumb");
+  thumb.alt = item.name;
+  if (item.preview) thumb.src = item.preview;
+  return thumb;
 }

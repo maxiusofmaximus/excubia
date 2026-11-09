@@ -16,12 +16,15 @@ mod call;
 mod contact;
 mod decide;
 mod definitions;
+mod doc;
+mod doc_definitions;
 mod mail;
 mod mail_organize_definitions;
 mod note;
 mod parse;
 mod pending;
 mod plan;
+mod reply_definitions;
 mod status;
 
 #[cfg(test)]
@@ -34,10 +37,11 @@ pub use call::{AgentSpawn, DelegationAssign, DelegationComplete, ProjectCreate, 
 pub use contact::ContactCall;
 pub use decide::ApprovalDecide;
 pub use definitions::definitions;
+pub use doc::{DocCreate, DocFormat, DocRead};
 pub use mail::{
-    check_draft_fields, BodyFormat, DraftFields, DraftRef, DraftUpdate, FoldersQuery, InboxFolder,
-    InboxQuery, MailAttach, MailCall, MessageRef, MoveApply, MoveFolder, MoveProposal, MoveUndo,
-    Organize, ProposedMove, TriageQuery, UndoList,
+    check_draft_fields, AttachSource, BodyFormat, DraftFields, DraftRef, DraftUpdate, FoldersQuery,
+    InboxFolder, InboxQuery, MailAttach, MailCall, MessageRef, MoveApply, MoveFolder, MoveProposal,
+    MoveUndo, Organize, ProposedMove, TriageQuery, UndoList,
 };
 pub use note::NoteCall;
 pub use parse::parse;

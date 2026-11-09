@@ -1,6 +1,6 @@
-// Image attachments before a send, free of the DOM so the tests can run them: the
-// limit of four, the states of one file, the size a picture is reduced to, the
-// point a failed chunk resumes from and the words of each refusal.
+// Attachments before a send, free of the DOM so the tests can run them: the limit of
+// four, the kind of each file, the states of one file, the size a picture is reduced
+// to, the point a failed chunk resumes from and the words of each refusal.
 
 export const MAX_ATTACHMENTS = 4;
 export const MAX_BYTES = 10 * 1024 * 1024;
@@ -8,24 +8,26 @@ export const CHUNK_BYTES = 128 * 1024;
 export const MAX_SIDE = 2048;
 export const WEBP_QUALITY = 0.85;
 export const CHUNK_ATTEMPTS = 3;
-export const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
-export const ACCEPT_ATTR = ACCEPTED_TYPES.join(",");
-// The body the host stores for a message that is only pictures.
+// Pictures are re-encoded; documents go up exactly as picked.
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
+const DOCUMENT_EXTENSIONS = ["xlsx", "docx", "pptx", "pdf", "csv", "txt", "md", "json"];
+export const ACCEPT_ATTR = [...IMAGE_EXTENSIONS, ...DOCUMENT_EXTENSIONS].map((ext) => `.${ext}`).join(",");
+// The body the host stores for a message that is only attachments.
 export const ATTACHMENT_BODY = "(adjunto)";
 
 const DECODE_FAILED = "No se pudo procesar la imagen. Prueba con otra";
 const ATTACHMENT_TEXT = {
-  unsupported_type: "Solo PNG, JPEG o WebP",
+  unsupported_type: "Ese tipo de archivo no se puede adjuntar",
   invalid_image: DECODE_FAILED,
   timeout: DECODE_FAILED,
   worker_failed: DECODE_FAILED,
   image_too_large: "La imagen es demasiado grande",
   dimensions_too_large: "La imagen es demasiado grande",
   input_too_large: "La imagen es demasiado grande",
-  file_too_large: "La imagen es demasiado grande",
+  file_too_large: "El archivo supera los 10 MB",
   conversation_quota: "Se llenó el espacio de adjuntos de esta conversación",
   host_quota: "Se llenó el espacio de adjuntos del equipo",
-  too_many_attachments: "Solo puedes adjuntar hasta 4 imágenes",
+  too_many_attachments: "Solo puedes adjuntar hasta 4 archivos",
   unknown_attachment: "Una imagen ya no está disponible. Quítala y vuelve a adjuntarla",
   no_such_attachment: "Esa subida ya no existe. Vuelve a adjuntar la imagen",
   not_uploading: "Esa subida ya no existe. Vuelve a adjuntar la imagen",
@@ -39,8 +41,54 @@ const FALLBACK_TEXT = "No se pudo adjuntar la imagen.";
 // Only these failures can succeed on a second try; a refusal never can.
 const RETRYABLE = ["offline", "host", "agentBusy"];
 
-export function acceptsType(type) {
-  return ACCEPTED_TYPES.includes(type);
+// The lower-case extension of a file name, or "" when it has none.
+export function extensionOf(name) {
+  const text = String(name || "");
+  const dot = text.lastIndexOf(".");
+  return dot < 0 ? "" : text.slice(dot + 1).toLowerCase();
+}
+
+// The kind a picked file goes up as, or the refusal code when the chat keeps no such file.
+export function classifyFile(name, size) {
+  const ext = extensionOf(name);
+  if (IMAGE_EXTENSIONS.includes(ext)) return { ok: true, kind: "image" };
+  if (!DOCUMENT_EXTENSIONS.includes(ext)) return { ok: false, code: "unsupported_type" };
+  if (size > MAX_BYTES) return { ok: false, code: "file_too_large" };
+  return { ok: true, kind: "document" };
+}
+
+// A thread attachment without `kind` is a picture, as before documents existed.
+export function attachmentKind(attachment) {
+  return attachment.kind === "document" ? "document" : "image";
+}
+
+const FAMILY_BY_EXTENSION = new Map([
+  ["xlsx", "sheet"],
+  ["csv", "sheet"],
+  ["docx", "doc"],
+  ["pptx", "slides"],
+  ["pdf", "pdf"],
+  ["txt", "text"],
+  ["md", "text"],
+  ["json", "text"],
+]);
+
+// The badge of a document: its family, which sets the colour, and its extension in capitals.
+export function documentBadge(name) {
+  const ext = extensionOf(name);
+  return {
+    family: FAMILY_BY_EXTENSION.get(ext) || "file",
+    label: ext ? ext.toUpperCase() : "ARCHIVO",
+  };
+}
+
+// What a document card shows: the name as the host has it, its size in Spanish and its badge.
+export function documentCard(attachment) {
+  return {
+    name: attachment.name || "Archivo",
+    size: attachment.size ? sizeLabel(attachment.size) : "",
+    ...documentBadge(attachment.name),
+  };
 }
 
 export function hasRoom(count) {

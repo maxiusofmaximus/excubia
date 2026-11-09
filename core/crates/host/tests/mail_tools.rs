@@ -2,6 +2,8 @@
 //! answer without a token, refuse what they did not create before reading any
 //! path, and keep the rotated refresh token of the account they used.
 
+#[path = "mail_tools/chat_attach.rs"]
+mod chat_attach;
 mod mail_support;
 
 use std::sync::Arc;
@@ -192,7 +194,9 @@ async fn attaching_to_a_foreign_draft_is_refused_before_the_path_is_read() {
             MailCall::AttachFile(hn_core_seat::MailAttach {
                 account: "trabajo".into(),
                 draft_id: "d-ajena".into(),
-                path: dir.join("no-existe.pdf").display().to_string(),
+                source: hn_core_seat::AttachSource::Path(
+                    dir.join("no-existe.pdf").display().to_string(),
+                ),
             }),
         )
         .await

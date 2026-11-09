@@ -15,6 +15,8 @@ use crate::model_attachment::{CHUNK_MAX_BYTES, FILE_MAX_BYTES};
 const CONVERSATION_PREFIX: &str = "cnv_";
 const ATTACHMENT_PREFIX: &str = "att_";
 const PART_SUFFIX: &str = ".part";
+/// The folder, inside a conversation's, that holds the page previews of its files.
+const PREVIEWS_DIR: &str = "previews";
 
 /// Clones share the write lock: the offset check and the append must not
 /// interleave with another chunk of the same upload.
@@ -85,14 +87,69 @@ impl AttachmentFiles {
         remove_if_exists(&self.part_path(conversation_id, attachment_id)?)
     }
 
-    /// Remove the stored file and any upload in progress of one attachment.
+    /// Remove the stored file, its previews and any upload in progress of one attachment.
     pub fn remove(
         &self,
         conversation_id: &str,
         attachment_id: &str,
     ) -> Result<(), AttachmentError> {
         remove_if_exists(&self.part_path(conversation_id, attachment_id)?)?;
-        remove_if_exists(&self.file_path(conversation_id, attachment_id)?)
+        remove_if_exists(&self.file_path(conversation_id, attachment_id)?)?;
+        self.remove_previews(conversation_id, attachment_id)
+    }
+
+    /// The PNG of one page of a stored file, if it was rendered before.
+    pub fn read_preview(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+        page: u32,
+    ) -> Result<Option<Vec<u8>>, AttachmentError> {
+        match fs::read(self.preview_path(conversation_id, attachment_id, page)?) {
+            Ok(bytes) => Ok(Some(bytes)),
+            Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    /// Keep the PNG of one page of a stored file for the next request.
+    pub fn write_preview(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+        page: u32,
+        png: &[u8],
+    ) -> Result<(), AttachmentError> {
+        let path = self.preview_path(conversation_id, attachment_id, page)?;
+        fs::create_dir_all(self.previews_dir(conversation_id)?)?;
+        write_atomic(&path, png)?;
+        Ok(())
+    }
+
+    /// The page count of a stored file, when the renderer told it before.
+    pub fn read_pages(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+    ) -> Result<Option<u32>, AttachmentError> {
+        match fs::read_to_string(self.pages_path(conversation_id, attachment_id)?) {
+            Ok(text) => Ok(text.trim().parse().ok()),
+            Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    /// Keep the page count of a stored file beside its previews, for the cached answers.
+    pub fn write_pages(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+        pages: u32,
+    ) -> Result<(), AttachmentError> {
+        let path = self.pages_path(conversation_id, attachment_id)?;
+        fs::create_dir_all(self.previews_dir(conversation_id)?)?;
+        write_atomic(&path, pages.to_string().as_bytes())?;
+        Ok(())
     }
 
     /// The bytes sent so far of an upload. Empty when nothing was stored yet.
@@ -132,6 +189,55 @@ impl AttachmentFiles {
         Ok(self
             .root
             .join(checked(conversation_id, CONVERSATION_PREFIX)?))
+    }
+
+    fn previews_dir(&self, conversation_id: &str) -> Result<PathBuf, AttachmentError> {
+        Ok(self.conversation_dir(conversation_id)?.join(PREVIEWS_DIR))
+    }
+
+    /// Previews are named by attachment and page, so the attachment's own id is their prefix.
+    fn preview_path(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+        page: u32,
+    ) -> Result<PathBuf, AttachmentError> {
+        let attachment = checked(attachment_id, ATTACHMENT_PREFIX)?;
+        Ok(self
+            .previews_dir(conversation_id)?
+            .join(format!("{attachment}-p{page}.png")))
+    }
+
+    /// The page count sits beside the previews, named so that its name never ends in `.png`.
+    fn pages_path(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+    ) -> Result<PathBuf, AttachmentError> {
+        let attachment = checked(attachment_id, ATTACHMENT_PREFIX)?;
+        Ok(self
+            .previews_dir(conversation_id)?
+            .join(format!("{attachment}-pages")))
+    }
+
+    fn remove_previews(
+        &self,
+        conversation_id: &str,
+        attachment_id: &str,
+    ) -> Result<(), AttachmentError> {
+        let prefix = format!("{}-p", checked(attachment_id, ATTACHMENT_PREFIX)?);
+        let entries = match fs::read_dir(self.previews_dir(conversation_id)?) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error.into()),
+        };
+        for entry in entries {
+            let entry = entry?;
+            if entry.file_name().to_string_lossy().starts_with(&prefix) {
+                remove_if_exists(&entry.path())?;
+            }
+        }
+        Ok(())
     }
 
     fn ensure_conversation_dir(&self, conversation_id: &str) -> Result<(), AttachmentError> {

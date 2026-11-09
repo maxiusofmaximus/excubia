@@ -247,8 +247,8 @@ class LiveTriage extends ChangeNotifier {
         },
       );
 
-  /// The host's closed catalogue. Only `available` entries are offered by the
-  /// screen; this method returns everything it was given.
+  /// The host's closed catalogue. The screen offers only `runnable` entries and
+  /// offers the fix for `fixable` ones; this method returns everything it was given.
   Future<({List<CatalogEntry>? entries, ErrorInfo? error})>
   loadCatalog() async {
     try {
@@ -324,6 +324,33 @@ class LiveTriage extends ChangeNotifier {
         created: null,
         error: ErrorInfo(message: e.toString(), kind: FailureKind.retry),
       );
+    }
+  }
+
+  /// Point a non-runnable agent at its `.CMD` shim. Null means the host
+  /// accepted it (or it was already runnable); the screen reloads either way.
+  Future<ErrorInfo?> fixAgent(String name) async {
+    final plan = planFixAgent(name: name);
+    final problem = plan.problem;
+    if (problem != null) return problem;
+    final call = plan.request;
+    if (call == null) {
+      return const ErrorInfo(
+        message: 'La petición no es válida.',
+        kind: FailureKind.retry,
+      );
+    }
+    try {
+      await _client.call(call.method, call.target, call.body);
+      return null;
+    } on HostError catch (e) {
+      return explainHttpError(
+        status: e.status,
+        body: e.body,
+        action: WriteAction.fixAgent,
+      );
+    } on Exception catch (e) {
+      return ErrorInfo(message: e.toString(), kind: FailureKind.retry);
     }
   }
 

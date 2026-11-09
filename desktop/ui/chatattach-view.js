@@ -1,7 +1,9 @@
 // Pictures in the thread: each one loads its bytes once from the host and opens in a
-// plain full-size view that Esc or the close button dismisses.
+// plain full-size view that Esc or the close button dismisses. Documents get a card.
 import { invoke } from "./core.js";
 import { element } from "./chatdom.js";
+import { attachmentKind } from "./chatattach-model.js";
+import { documentCardNode } from "./chatattach-doc.js";
 
 // Attachment id → the data URL of its bytes, or the request that will bring them.
 const loaded = new Map();
@@ -11,17 +13,25 @@ let returnFocus = null;
 export function attachmentsNode(conversationId, attachments) {
   const list = element("div", "msg-attachments");
   for (const attachment of attachments) {
-    const button = element("button", "msg-attachment");
-    button.type = "button";
-    button.dataset.attachmentId = attachment.id;
-    button.dataset.conversationId = conversationId;
-    const image = element("img");
-    image.alt = attachment.name || "Imagen adjunta";
-    button.append(image);
-    button.addEventListener("click", () => openViewer(button));
-    list.append(button);
+    list.append(
+      attachmentKind(attachment) === "document"
+        ? documentCardNode(conversationId, attachment)
+        : pictureNode(conversationId, attachment),
+    );
   }
   return list;
+}
+
+function pictureNode(conversationId, attachment) {
+  const button = element("button", "msg-attachment");
+  button.type = "button";
+  button.dataset.attachmentId = attachment.id;
+  button.dataset.conversationId = conversationId;
+  const image = element("img");
+  image.alt = attachment.name || "Imagen adjunta";
+  button.append(image);
+  button.addEventListener("click", () => openViewer(button));
+  return button;
 }
 
 // Fills the thumbnails the thread has just drawn; a loaded one keeps its source.

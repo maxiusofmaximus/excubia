@@ -53,6 +53,10 @@ pub enum MailError {
     UseUploadSession { size: u64 },
     #[error("the path was rejected: {0}")]
     PathRejected(Redacted),
+    /// No file of the conversation has this id, or it is not ready and sent. The same
+    /// answer for all of them, so a reply never reveals another conversation.
+    #[error("no such attachment in this conversation")]
+    AttachmentNotFound,
     #[error("the owner did not approve attaching this file")]
     ApprovalDenied,
     #[error("the file changed after it was approved; nothing was sent")]
@@ -113,6 +117,7 @@ impl MailError {
             Self::MessageNotFound => "mail_not_found",
             Self::UseUploadSession { .. } => "mail_use_upload_session",
             Self::PathRejected(_) => "mail_path_rejected",
+            Self::AttachmentNotFound => "attachment_not_found",
             Self::ApprovalDenied => "mail_approval_denied",
             Self::ContentChanged => "mail_content_changed",
             Self::ApprovalUnavailable(_) => "mail_approval_unavailable",
@@ -140,6 +145,7 @@ impl MailError {
             self.code(),
             "mail_invalid_input"
                 | "mail_path_rejected"
+                | "attachment_not_found"
                 | "mail_approval_denied"
                 | "mail_content_changed"
                 | "mail_unknown_draft"

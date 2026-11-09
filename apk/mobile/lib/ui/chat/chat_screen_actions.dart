@@ -82,10 +82,11 @@ extension _ChatScreenActions on _ChatScreenState {
         .showSnackBar(SnackBar(content: Text(failure.message)));
   }
 
-  Future<void> _openHistory() async {
-    await _chat.loadHistory();
-    if (!mounted) return;
+  /// Opens at once: the list is read from the host behind the drawer, so an
+  /// offline or slow host never delays or swallows the tap.
+  void _openHistory() {
     _scaffold.currentState?.openDrawer();
+    unawaited(_chat.loadHistory());
   }
 
   void _openApprovals() {

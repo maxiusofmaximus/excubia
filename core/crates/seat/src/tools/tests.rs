@@ -19,6 +19,7 @@ fn reply_and_ask_are_typed() {
         Ok(ToolCall::Reply {
             text: "hola".to_string(),
             suggestions: Vec::new(),
+            attachment_ids: Vec::new(),
         })
     );
     assert_eq!(
@@ -40,6 +41,7 @@ fn reply_carries_its_quick_replies_and_refuses_bad_ones() {
         Ok(ToolCall::Reply {
             text: "¿Qué nombre?".to_string(),
             suggestions: vec!["Sí, créalo".to_string(), "Cámbialo".to_string()],
+            attachment_ids: Vec::new(),
         })
     );
 
@@ -57,6 +59,60 @@ fn reply_carries_its_quick_replies_and_refuses_bad_ones() {
     ))
     .expect_err("61 characters");
     assert_eq!(too_long.field, Some("suggestions"));
+}
+
+#[test]
+fn reply_names_its_files_and_refuses_more_than_four_or_repeats() {
+    let named = parse(&request(
+        "chat.reply",
+        json!({"text": "Aquí tienes", "attachment_ids": ["att_1", "att_2"]}),
+    ))
+    .expect("two files");
+    assert!(matches!(
+        named,
+        ToolCall::Reply { ref attachment_ids, .. } if attachment_ids == &["att_1", "att_2"]
+    ));
+
+    let five = parse(&request(
+        "chat.reply",
+        json!({"text": "ok", "attachment_ids": ["a", "b", "c", "d", "e"]}),
+    ))
+    .expect_err("five files");
+    assert_eq!(five.field, Some("attachment_ids"));
+
+    let repeated = parse(&request(
+        "chat.reply",
+        json!({"text": "ok", "attachment_ids": ["att_1", "att_1"]}),
+    ))
+    .expect_err("a repeated file");
+    assert_eq!(repeated.field, Some("attachment_ids"));
+
+    let empty = parse(&request(
+        "chat.reply",
+        json!({"text": "ok", "attachment_ids": [" "]}),
+    ))
+    .expect_err("a blank id");
+    assert_eq!(empty.field, Some("attachment_ids"));
+}
+
+#[test]
+fn doc_create_is_typed_and_its_format_is_checked_by_the_parser() {
+    let created = parse(&request(
+        "doc.create",
+        json!({"format": "xlsx", "name": "Gastos", "content": "a,b\n1,2"}),
+    ))
+    .expect("xlsx");
+    assert!(matches!(
+        created,
+        ToolCall::DocCreate(ref doc) if doc.format == DocFormat::Xlsx && doc.name == "Gastos"
+    ));
+
+    let refused = parse(&request(
+        "doc.create",
+        json!({"format": "exe", "name": "x", "content": "x"}),
+    ))
+    .expect_err("exe");
+    assert_eq!(refused.field, Some("format"));
 }
 
 #[test]
@@ -212,8 +268,33 @@ fn tool_definitions_list_the_team_tools() {
             "mail.move_apply",
             "mail.undo_list",
             "mail.undo",
+            "doc.create",
+            "doc.read",
         ]
     );
+}
+
+/// `doc.read` parses to a typed read, and the host decides what the file is.
+#[test]
+fn doc_read_is_typed() {
+    assert_eq!(
+        parse(&request(
+            "doc.read",
+            json!({"attachment_id": "att_1", "sheet": "Hoja1", "page": 1})
+        )),
+        Ok(ToolCall::Doc(DocRead {
+            attachment_id: "att_1".to_string(),
+            sheet: Some("Hoja1".to_string()),
+            range: None,
+            page: Some(1),
+        }))
+    );
+    let refused = parse(&request(
+        "doc.read",
+        json!({"attachment_id": "att_1", "page": 0}),
+    ))
+    .expect_err("page 0");
+    assert_eq!(refused.code, "invalid_arguments");
 }
 
 /// The approval mode is the operator's (CORE9-D, RFC §8): no agent tool

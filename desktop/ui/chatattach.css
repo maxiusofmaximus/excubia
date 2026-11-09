@@ -22,7 +22,8 @@
 
 .attach-btn:focus-visible,
 .attach-remove:focus-visible,
-.msg-attachment:focus-visible {
+.msg-attachment:focus-visible,
+.msg-document:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
@@ -180,4 +181,170 @@
   max-height: 80vh;
   border-radius: 12px;
   object-fit: contain;
+}
+
+/* Documents: a badge per family, and a card the thread shows in place of a picture. */
+.doc-badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--raised-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.doc-badge.is-sheet {
+  background: color-mix(in srgb, var(--done) 22%, var(--raised-2));
+  color: var(--done);
+}
+
+.doc-badge.is-doc {
+  background: color-mix(in srgb, var(--working) 22%, var(--raised-2));
+  color: var(--working);
+}
+
+.doc-badge.is-slides {
+  background: color-mix(in srgb, var(--warning) 22%, var(--raised-2));
+  color: var(--warning);
+}
+
+.doc-badge.is-pdf {
+  background: color-mix(in srgb, var(--blocked) 22%, var(--raised-2));
+  color: var(--blocked);
+}
+
+.msg-document {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 260px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.msg-document:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.msg-document.is-failed {
+  border-color: var(--blocked);
+}
+
+.doc-text {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+/* Two lines at most; the rest is cut with an ellipsis. */
+.doc-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.doc-size,
+.doc-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.msg-document.is-failed .doc-status {
+  color: var(--blocked);
+}
+
+.doc-status:empty {
+  display: none;
+}
+
+/* The page viewer: one page as an image that fits the width, its buttons and the document's actions.
+   It opens and closes without motion, so it needs no reduced-motion rule. */
+.doc-preview[hidden],
+.doc-preview [hidden] {
+  display: none;
+}
+
+.doc-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+
+.doc-preview-bar,
+.doc-preview-nav,
+.doc-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.doc-preview-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-preview-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 0;
+}
+
+.doc-preview-page {
+  max-width: 100%;
+  max-height: 70vh;
+  height: auto;
+  border-radius: 8px;
+  background: var(--qr-paper);
+  object-fit: contain;
+}
+
+.doc-preview-message {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.doc-preview-label {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-preview-status {
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
 }

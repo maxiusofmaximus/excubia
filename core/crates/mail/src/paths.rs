@@ -96,11 +96,7 @@ impl PathPolicy {
     }
 
     pub fn decide(&self, requested: &Path) -> Result<PathDecision, MailError> {
-        let path = fs::canonicalize(requested)
-            .map_err(|_| rejected("the file does not exist or cannot be resolved"))?;
-        if is_device(&path) {
-            return Err(rejected("device paths are never attached"));
-        }
+        let path = resolved(requested)?;
         let inside = path.starts_with(&self.workspaces_root);
         if !inside && is_unc(&path) {
             return Err(rejected("UNC paths are not authorized"));
@@ -117,6 +113,13 @@ impl PathPolicy {
         } else {
             Ok(PathDecision::NeedsApproval(PathApproval { digest, file }))
         }
+    }
+
+    /// For a file the host resolved itself (a chat attachment), never a path Alfred
+    /// named. The checks that do not depend on where the file lives still apply, and
+    /// the file is always allowed: the user chose it in the conversation.
+    pub fn decide_trusted(&self, requested: &Path) -> Result<CheckedFile, MailError> {
+        self.check_file(resolved(requested)?)
     }
 
     /// Size and kind first, so a huge or special file is refused without being read.
@@ -142,6 +145,16 @@ impl PathPolicy {
 
 fn rejected(reason: impl Into<String>) -> MailError {
     MailError::PathRejected(Redacted::new(reason))
+}
+
+/// The requested path with every link resolved; a device is never a file to attach.
+fn resolved(requested: &Path) -> Result<PathBuf, MailError> {
+    let path = fs::canonicalize(requested)
+        .map_err(|_| rejected("the file does not exist or cannot be resolved"))?;
+    if is_device(&path) {
+        return Err(rejected("device paths are never attached"));
+    }
+    Ok(path)
 }
 
 /// A local read that failed, as a refused path: the file cannot be attached.

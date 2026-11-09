@@ -15,6 +15,8 @@ import 'package:herdr_notify/src/rust/api/error.dart'
 import 'package:herdr_notify/src/rust/api/state.dart' show AgentEntry;
 import 'package:herdr_notify/src/rust/api/write.dart' show HttpCall;
 
+import '../api/chat_document_files.dart';
+import '../api/chat_document_previews.dart';
 import '../api/chat_transport.dart';
 import '../api/connection_failure.dart';
 import '../api/connection_text.dart';
@@ -30,6 +32,7 @@ import 'approvals_controller.dart';
 import 'chat_attachment_errors.dart';
 import 'chat_attachment_images.dart';
 import 'chat_attachment_tray.dart';
+import 'chat_document_opener.dart';
 import 'live_triage.dart';
 import 'mail_drafts.dart';
 import 'voice_notes.dart';
@@ -128,6 +131,14 @@ class ChatController extends ChangeNotifier {
   /// The stored images of the timeline, by attachment id.
   late final ChatAttachmentImages images = ChatAttachmentImages(
     (id) => _attachmentBytes(id),
+  );
+
+  /// The documents of the timeline: opened with the system, saved, or previewed.
+  late final ChatDocumentOpener documents = ChatDocumentOpener(
+    fetch: (id) => _attachmentBytes(id),
+    files: const SystemChatDocumentFiles(),
+    root: chatDocumentsDirectory,
+    previews: ChatDocumentPreviews(_transport, conversation: () => current?.id),
   );
 
   ChatBootstrap? get bootstrap => _bootstrap;

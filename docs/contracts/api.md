@@ -73,9 +73,10 @@ request to the port is refused at the handshake.
 | `POST` | `/v1/chat/conversations/{id}/read` | signed | `READ_STATE` | none | Move the read cursor to `last_seq` (non-destructive) |
 | `POST` | `/v1/chat/conversations/{id}/attachments` | signed | `RESPOND` | write | Start an upload (`client_id`, `name`, `size`, `sha256`); `201` |
 | `POST` | `/v1/chat/conversations/{id}/attachments/{att}/chunks` | signed | `RESPOND` | read | Append the next chunk at `offset` (base64); `409 offset_mismatch` carries `next_offset` |
-| `POST` | `/v1/chat/conversations/{id}/attachments/{att}/complete` | signed | `RESPOND` | write | Check size and sha256, decode and re-encode as WebP, store; a failure drops the upload |
+| `POST` | `/v1/chat/conversations/{id}/attachments/{att}/complete` | signed | `RESPOND` | write | Check size and sha256; store a listed document as sent, or decode and re-encode an image as WebP; a failure drops the upload |
 | `GET` | `/v1/chat/conversations/{id}/attachments/{att}` | signed | `READ_STATE` | read | Metadata of one attachment |
-| `GET` | `/v1/chat/conversations/{id}/attachments/{att}/content` | signed | `READ_STATE` | read | The stored bytes of a ready attachment (`image/webp`) |
+| `GET` | `/v1/chat/conversations/{id}/attachments/{att}/content` | signed | `READ_STATE` | read | The stored bytes of a ready attachment (its mime) |
+| `GET` | `/v1/chat/conversations/{id}/attachments/{att}/preview?page=N` | signed | `READ_STATE` | read | The PNG of one page (from 1, by default 1) of an xlsx, docx or pdf attachment; rendered once, kept beside the file (DOC5B) |
 | `DELETE` | `/v1/chat/conversations/{id}/attachments/{att}` | signed | `RESPOND` | write | Drop an upload in progress or a ready file that no message took |
 | `GET` | `/v1/chat/sections` | signed | `READ_STATE` | read | User sections and their order |
 | `POST` | `/v1/chat/sections` | signed | `RESPOND` | write | Create or rename a section |
@@ -653,7 +654,7 @@ clients see the same JSON as before:
 ```
 
 `suggestions` has no write route in this contract: the agent writes them
-through `chat.reply`. `POST …/messages` takes an optional `reply_to` (below);
+through `chat.reply`, which also takes `attachment_ids` (DOC8, see "Documentos nuevos"). `POST …/messages` takes an optional `reply_to` (below);
 an unknown field in a request body is ignored.
 
 `GET …/messages?after_seq=&before_seq=&limit=` is the raw sync: full `body_md`,
@@ -735,9 +736,10 @@ backwards and never past the last message; response
 
 ### Attachments (ATT4/ATT5)
 
-A user can attach up to four images to a message. The host checks the bytes it
-receives, decodes each image in an isolated worker and keeps only the result it
-re-encodes. The six routes are signed and scoped to their conversation: an id of
+A user can attach up to four files to a message: images, and documents from the
+list under Complete. The host checks the bytes it receives. It decodes each image
+in an isolated worker and keeps only the result it re-encodes; it keeps a document
+as sent. The six routes are signed and scoped to their conversation: an id of
 another conversation gets the same `404` as an unknown one.
 
 Order of use: `POST …/attachments`, then `POST …/{att}/chunks` until every byte
@@ -781,12 +783,34 @@ Chunk (`RESPOND`, read budget: 120/min; a 10 MiB file is 80 chunks):
 
 Complete (`RESPOND`, write budget, no body):
 
-`200 {"ok":true,"attachment":{"id":"att_01K…","name":"captura.png","mime":"image/webp","size":48212,"w":1024,"h":768,"state":"ready"}}`
+`200 {"ok":true,"attachment":{"id":"att_01K…","name":"captura.png","mime":"image/webp","size":48212,"w":1024,"h":768,"kind":"image","state":"ready"}}`
 
-The host checks that the stored bytes have the declared size and sha256, decodes
-the image in a worker process with a 5 s timeout, and re-encodes it as WebP with
-the longest side at most 2048 px and no metadata. A `ready` attachment answers
-`200` again with the same body.
+The host checks that the stored bytes have the declared size and sha256. Then:
+
+- An image (any name not in the list below) is decoded in a worker process with
+  a 5 s timeout and re-encoded as WebP with the longest side at most 2048 px and
+  no metadata. `kind` is `image`.
+- A document is one whose name ends in a listed extension, compared in lower
+  case. Its bytes are stored as sent, with `w` and `h` at `0`. `kind` is
+  `document`. The mime is set by the host, not by the client:
+
+  | Extension | Mime | Content must be |
+  |-----------|------|-----------------|
+  | `xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | a zip (starts `PK\x03\x04`) |
+  | `docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | a zip (starts `PK\x03\x04`) |
+  | `pptx` | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | a zip (starts `PK\x03\x04`) |
+  | `pdf` | `application/pdf` | starts `%PDF-` |
+  | `csv` | `text/csv` | UTF-8 without NUL bytes |
+  | `txt` | `text/plain` | UTF-8 without NUL bytes |
+  | `md` | `text/markdown` | UTF-8 without NUL bytes |
+  | `json` | `application/json` | UTF-8 and valid JSON |
+
+  Any other extension, such as `xlsm`, `docm`, `xls`, `doc`, `zip` or an
+  executable, takes the image path and is refused as an image. The check of the
+  zip is its signature only: the central directory and the expansion limits are
+  not read yet. A mismatch answers `422 unsupported_document` (see `errors.md`).
+
+A `ready` attachment answers `200` again with the same body.
 
 **A failed `complete` drops the upload**: its row and its bytes are removed, so
 later calls answer `404 no_such_attachment` and the client starts again with
@@ -794,14 +818,25 @@ later calls answer `404 no_such_attachment` and the client starts again with
 
 Read:
 
-- `GET …/attachments/{att}` answers `200 {"ok":true,"attachment":{"id","name","mime","size","w","h","state"}}`.
-  `mime`, `size`, `w` and `h` are `null` while the state is `uploading`.
+- `GET …/attachments/{att}` answers `200 {"ok":true,"attachment":{"id","name","mime","size","w","h","kind","state","previewable"}}`.
+  `mime`, `size`, `w`, `h` and `kind` are `null` while the state is `uploading`.
+  `previewable` is `true` for an xlsx, docx or pdf that is ready (the preview route below).
 - `GET …/attachments/{att}/content` answers the bytes with the headers
-  `Content-Type: image/webp`, `X-Content-Type-Options: nosniff`,
-  `Content-Disposition: attachment` and `Cache-Control: private, no-store`.
-  A file that is not ready answers `409 not_ready`.
+  `Content-Type` (the mime above), `X-Content-Type-Options: nosniff`,
+  `Content-Disposition: attachment; filename*=UTF-8''<name>` and
+  `Cache-Control: private, no-store`. The name is percent-encoded (RFC 5987) with
+  `/` and `\` removed, so the client saves the file under its name. A file that
+  is not ready answers `409 not_ready`.
+- `GET …/attachments/{att}/preview?page=N` answers the PNG of that page (`image/png`)
+  with `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store` and
+  `Content-Disposition: inline; filename="preview.png"`. `page` is a whole number from 1
+  (1 by default). The host renders the page once with its document CLIs and keeps the
+  PNG beside the file, in `previews/`; later requests for that page read it. Two requests
+  for one page at once render it once. The page count is known for xlsx and pdf, not for docx: `X-Preview-Pages: N` gives the
+  total pages of the document (also when the PNG comes from the cache), and the header is
+  absent when the count is unknown. Refusals are in `errors.md` (Vistas previas).
 - `DELETE …/attachments/{att}` answers `200 {"ok":true}`. It drops an upload in
-  progress or a ready file that no message has taken.
+  progress or a ready file that no message has taken. Its previews go with it.
 
 Send (`RESPOND`, write; see `POST …/messages` above):
 
@@ -819,8 +854,9 @@ Send (`RESPOND`, write; see `POST …/messages` above):
   `(adjunto)`. Without attachments the text rules above apply unchanged.
 - The timeline shows the files of a user message in send order, in
   `attachments` (omitted when empty):
-  `{"id":"att_…","name":"captura.png","mime":"image/webp","size":48212,"w":1024,"h":768}`.
-  The raw sync `GET …/messages` does not carry them.
+  `{"id":"att_…","name":"captura.png","mime":"image/webp","size":48212,"w":1024,"h":768,"kind":"image"}`.
+  `kind` is `document` for a document (`w` and `h` are `0`). The raw sync
+  `GET …/messages` does not carry them.
 
 #### Attachment errors
 
@@ -835,6 +871,7 @@ Send (`RESPOND`, write; see `POST …/messages` above):
 | `422` | `{ "code": "size_mismatch", "field": "size", … }` | `complete`: the stored bytes are not the declared size |
 | `422` | `{ "code": "hash_mismatch", "field": "sha256", … }` | `complete`: the stored bytes do not match the declared sha256 |
 | `422` | `{ "code": "unsupported_type" \| "invalid_image" \| "image_too_large" \| "dimensions_too_large" \| "input_too_large" \| "timeout", "field": "file", … }` | `complete`: the image is refused or took more than 5 s |
+| `422` | `{ "code": "unsupported_document", "field": "file", … }` | `complete`: a document whose content does not match its extension |
 | `422` | `{ "code": "unknown_attachment", "field": "attachments", … }` | a message names an id that is unknown, of another conversation, not ready or already sent |
 | `422` | `{ "code": "too_many_attachments", "field": "attachments", … }` | a message names more than four ids |
 | `404` | `"no_such_attachment"` | unknown id, or an id of another conversation |
@@ -1483,6 +1520,44 @@ Recurrencia (CALENDARIO-F4b):
   `calendar_today` cuenta las ocurrencias del día de la zona de la empresa.
 - Fuera de F4b: `.ics` (import y export) pasa a F4c, y las ocurrencias sueltas (editar o
   borrar una sola) no existen todavía.
+
+## Documentos de Alfred (`doc.read`, DOC5B)
+
+Alfred lee un documento que el usuario ha enviado en esta conversación. El host lo busca
+como lo hace el correo (`chat_file`) y lo lee con sus CLIs de documentos. Solo devuelve
+texto. Cada lectura queda en la auditoría de correo con la herramienta y el id del adjunto,
+nunca su contenido. Solo Alfred la tiene: un seat de proyecto recibe `scope_denied`.
+
+| Herramienta | Argumentos | `result` |
+|---|---|---|
+| `doc.read` | `attachment_id` (obligatorio), `sheet?` (xlsx; por defecto la primera hoja), `range?` (xlsx), `page?` (pdf y docx; desde 1) | `{"ok":true,"untrusted_content":true,"name","kind","text","truncated","parts"}` |
+
+- `kind` es `xlsx`, `docx`, `pdf`, `csv`, `txt`, `md` o `json`. `text` es la hoja o la página
+  pedida; `parts` lista las hojas de un xlsx o las páginas leídas de un pdf.
+- Errores de la herramienta: `attachment_not_found`, `unsupported_document` y
+  `bad_document` (campo `attachment_id`); `page_out_of_range` e `invalid_arguments`
+  (campo `page`), y `tool_missing` y `tool_failed` (sin campo). Los textos están en `errors.md`.
+
+### Documentos nuevos (`doc.create`, DOC8)
+
+| Herramienta | Argumentos | `result` |
+|---|---|---|
+| `doc.create` | `format` (obligatorio: `xlsx`, `docx`, `pdf`, `csv`, `txt`, `md` o `json`), `name` (obligatorio; el host lo limpia y le pone la extensión), `content` (obligatorio) | `{"ok":true,"attachment_id","name","kind":"document","mime"}` |
+
+- `content`: en `xlsx`, CSV en UTF-8 con fila de cabecera y como máximo 50 000 celdas; en
+  `docx` y `pdf`, Markdown; en `csv`, `txt`, `md` y `json` se guarda tal cual (un `json`
+  debe ser válido). Como máximo 10 MiB.
+- El archivo queda como adjunto listo de la conversación, sin mensaje todavía. Cada
+  creación es un adjunto nuevo: nunca sobrescribe ni cambia un archivo existente.
+- `chat.reply` acepta `attachment_ids` (hasta 4, sin repetir) con los archivos que Alfred
+  creó en esta conversación y que ningún mensaje lleva. Si el turno termina sin nombrar sus
+  archivos, el host publica un mensaje de Alfred («Te dejo el archivo <nombre>») con ellos
+  enlazados; son más de 4, va en mensajes de hasta 4.
+- Solo Alfred la tiene: un seat de proyecto recibe `scope_denied`. La auditoría guarda la
+  herramienta y el id del adjunto, nunca el contenido.
+- Errores: `invalid_arguments` (campo `format`, `name` o `content`), `bad_content` (campo
+  `content`), `quota_exceeded`, `tool_missing` y `tool_failed` (sin campo). Los textos
+  están en `errors.md`.
 
 ## Agenda de la app (AGENDA-REST): `/v1/notes` y `/v1/contacts`
 

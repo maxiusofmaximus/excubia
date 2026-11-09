@@ -226,6 +226,9 @@ fn chat_rule(method: &str, segments: &[&str]) -> Option<EndpointRule> {
         (["", "v1", "chat", "conversations", _id, "attachments", _att, "content"], "GET") => {
             rule(Permission::ReadState, Budget::Read)
         }
+        (["", "v1", "chat", "conversations", _id, "attachments", _att, "preview"], "GET") => {
+            rule(Permission::ReadState, Budget::Read)
+        }
         (["", "v1", "chat", "delegations", _id], "GET") => {
             rule(Permission::ReadState, Budget::Read)
         }

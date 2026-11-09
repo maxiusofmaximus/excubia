@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-pub const KNOWN_AGENTS: [&str; 4] = ["claude", "codex", "gemini", "opencode"];
+pub const KNOWN_AGENTS: [&str; 5] = ["claude", "codex", "commandcode", "gemini", "opencode"];
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SeedOutcome {
@@ -37,12 +37,14 @@ pub fn env_search() -> (Vec<PathBuf>, Vec<String>) {
     let search = std::env::var_os("PATH")
         .map(|value| std::env::split_paths(&value).collect())
         .unwrap_or_default();
+    // The bare name comes last: npm and pnpm shims put an extensionless sh script
+    // beside the `.cmd`, and CreateProcess cannot run that script.
     let extensions = if cfg!(windows) {
         vec![
-            String::new(),
             ".exe".to_string(),
             ".cmd".to_string(),
             ".bat".to_string(),
+            String::new(),
         ]
     } else {
         vec![String::new()]
@@ -188,6 +190,19 @@ mod tests {
         let outcome = seed(&data, &[], &[""]).unwrap();
         assert_eq!(outcome, SeedOutcome::NoneFound);
         assert!(!data.join("agents.toml").exists());
+    }
+
+    #[test]
+    fn a_windows_shim_is_found_as_cmd_not_as_the_bare_script() {
+        let bin = temp_dir("shim");
+        std::fs::write(bin.join("commandcode"), b"#!/bin/sh").unwrap();
+        std::fs::write(bin.join("commandcode.cmd"), b"").unwrap();
+        let (_, extensions) = env_search();
+        let extensions: Vec<&str> = extensions.iter().map(String::as_str).collect();
+        let found = resolve_program("commandcode", std::slice::from_ref(&bin), &extensions);
+        if cfg!(windows) {
+            assert!(found.unwrap().ends_with("commandcode.cmd"));
+        }
     }
 
     #[test]

@@ -47,6 +47,7 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
             &host.data_dir,
         )),
         audit: Arc::new(hn_core_host::audit::AuditLog::new(&host.data_dir)),
+        docs: Arc::new(hn_core_host::craft::Craft::without_tools(&host.data_dir)),
     });
     (addr, tokio::spawn(serve_client(listener, context)))
 }

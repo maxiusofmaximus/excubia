@@ -51,9 +51,12 @@ pub mod undo;
 pub mod upload;
 
 pub use actions::{ActionLog, MailActionRecord};
-pub use attach::{attach_file, Approval, ApprovalGate, AttachContext, AttachedFile};
+pub use attach::{
+    attach_chat_file, attach_file, Approval, ApprovalGate, AttachContext, AttachedFile,
+};
 pub use audit::{
-    domain_of, AuditLog, AuditRecord, Decision, EditRecord, ReadRecord, SendRecord, SendResult,
+    domain_of, AuditLog, AuditRecord, CreateRecord, Decision, EditRecord, ReadRecord, SendRecord,
+    SendResult,
 };
 pub use auth::{
     assert_scopes_safe, assert_send_scopes_safe, poll_device_login, refresh, refresh_send,

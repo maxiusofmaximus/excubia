@@ -190,6 +190,24 @@ pub fn plan_stop(pane_id: String) -> WritePlan {
     })
 }
 
+/// Point a catalogue entry that Windows cannot start at its `.CMD` shim:
+/// `POST /v1/catalog/{name}/fix` with no body. The host requires `APPROVE`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn plan_fix_agent(name: String) -> WritePlan {
+    let valid = !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    if !valid {
+        return problem("invalid_body");
+    }
+    plan(HttpCall {
+        method: "POST".to_string(),
+        target: format!("/v1/catalog/{name}/fix"),
+        body: Vec::new(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -356,5 +374,17 @@ mod tests {
             plan_stop("w1".to_string()).problem.unwrap().message,
             "Ese panel no es válido."
         );
+    }
+
+    #[test]
+    fn fixing_is_a_post_to_the_catalogue_and_only_plain_names_reach_it() {
+        let call = plan_fix_agent("codex".to_string()).request.unwrap();
+        assert_eq!(call.method, "POST");
+        assert_eq!(call.target, "/v1/catalog/codex/fix");
+        assert!(call.body.is_empty());
+
+        for name in ["", "../codex", "codex/x", "co dex"] {
+            assert!(plan_fix_agent(name.to_string()).request.is_none(), "{name}");
+        }
     }
 }

@@ -36,7 +36,8 @@ pub use calendar_ics::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
 pub use catalog::list as catalog;
 pub use chat::{
     approval_settings as chat_approval_settings, approval_state as chat_approval_state,
-    attachment_content as chat_attachment_content, bootstrap as chat_bootstrap,
+    attachment_content as chat_attachment_content, attachment_preview as chat_attachment_preview,
+    bootstrap as chat_bootstrap,
     cancel_conversation as chat_cancel_conversation, cancel_delegation as chat_cancel_delegation,
     change_approval_settings as chat_change_approval_settings,
     complete_attachment as chat_complete_attachment, consume_approval as chat_consume_approval,

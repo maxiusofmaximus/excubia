@@ -13,6 +13,7 @@ pub enum AgentKind {
     Codex,
     Gemini,
     OpenCode,
+    CommandCode,
     Fake,
     Unknown,
 }
@@ -24,6 +25,7 @@ impl AgentKind {
             AgentKind::Codex => "codex",
             AgentKind::Gemini => "gemini",
             AgentKind::OpenCode => "opencode",
+            AgentKind::CommandCode => "commandcode",
             AgentKind::Fake => "fake",
             AgentKind::Unknown => "unknown",
         }
@@ -37,6 +39,7 @@ impl AgentKind {
             AgentKind::Codex => Some("codex"),
             AgentKind::Gemini => Some("gemini"),
             AgentKind::OpenCode => Some("opencode"),
+            AgentKind::CommandCode => Some("commandcode"),
             AgentKind::Fake => Some("fake-agent"),
             AgentKind::Unknown => None,
         }
@@ -49,6 +52,7 @@ impl AgentKind {
             AgentKind::Codex => Some("codex"),
             AgentKind::Gemini => None,
             AgentKind::OpenCode => Some("opencode"),
+            AgentKind::CommandCode => None,
             AgentKind::Fake => Some("fake"),
             AgentKind::Unknown => None,
         }
@@ -63,6 +67,7 @@ pub fn identify_program(program: &str) -> AgentKind {
         "codex" => AgentKind::Codex,
         "gemini" => AgentKind::Gemini,
         "opencode" | "opencode2" | "open-code" => AgentKind::OpenCode,
+        "commandcode" | "command-code" => AgentKind::CommandCode,
         "fake-agent" | "fake_agent" => AgentKind::Fake,
         _ => AgentKind::Unknown,
     }
@@ -98,6 +103,7 @@ mod tests {
         assert_eq!(identify_program("opencode"), AgentKind::OpenCode);
         assert_eq!(identify_program("opencode.exe"), AgentKind::OpenCode);
         assert_eq!(identify_program("opencode2"), AgentKind::OpenCode);
+        assert_eq!(identify_program("commandcode.cmd"), AgentKind::CommandCode);
         assert_eq!(identify_program("fake-agent.exe"), AgentKind::Fake);
         assert_eq!(
             identify_program(r"C:\Users\user\.local\bin\claude.exe"),

@@ -10,6 +10,8 @@ use crate::error::ChatError;
 use crate::model::{preview, Message, RunState};
 use crate::schema;
 
+use super::agent_files::{announce_message, check_agent_files};
+use super::attachments::link_in;
 use super::{append_event, conversation_exists, journal_turns, open_run_ids, run_info};
 
 const MAX_SUGGESTIONS: usize = 4;
@@ -86,6 +88,18 @@ impl super::ChatStore {
         text: &str,
         suggestions: &[String],
     ) -> Result<Message, ChatError> {
+        self.complete_run_with_files(run_id, text, suggestions, &[])
+    }
+
+    /// The same close, with the files Alfred made in this turn: `attachment_ids` are
+    /// the ones the reply shows; the others follow in messages of their own.
+    pub fn complete_run_with_files(
+        &self,
+        run_id: &str,
+        text: &str,
+        suggestions: &[String],
+        attachment_ids: &[&str],
+    ) -> Result<Message, ChatError> {
         validate_suggestions(suggestions)?;
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
@@ -113,35 +127,24 @@ impl super::ChatStore {
                 params![serde_json::to_string(suggestions)?, message_id],
             )?;
         }
-        let body = serde_json::json!({
-            "event": "chat.message",
-            "conversation_id": info.conversation_id,
-            "message_id": message_id,
-            "seq": seq,
-            "change": "created",
-            "author_kind": "agent",
-            "preview": preview(text),
-        });
-        let created = append_event(&transaction, "chat.message", &info.conversation_id, body)?;
-        let updated = append_event(
+        check_agent_files(&transaction, &info.conversation_id, attachment_ids)?;
+        link_in(&transaction, &info.conversation_id, &message_id, attachment_ids)?;
+        let mut frames = announce_message(
             &transaction,
-            "chat.message",
             &info.conversation_id,
-            serde_json::json!({
-                "event": "chat.message",
-                "conversation_id": info.conversation_id,
-                "message_id": message_id,
-                "seq": seq,
-                "change": "updated",
-                "author_kind": "agent",
-                "state": "complete",
-                "preview": preview(text),
-            }),
+            &message_id,
+            seq,
+            text,
         )?;
+        frames.extend(self.deliver_unnamed_files(
+            &transaction,
+            &info.conversation_id,
+            &info.agent_id,
+            run_id,
+        )?);
         let turn = journal_turns(&transaction, [run_id])?;
         transaction.commit()?;
-        self.publish(created);
-        self.publish(updated);
+        self.publish_all(frames);
         self.publish_all(turn);
         Ok(Message {
             id: message_id,

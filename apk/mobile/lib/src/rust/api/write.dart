@@ -18,6 +18,11 @@ WritePlan planWrite({required AgentAction action}) =>
 WritePlan planStop({required String paneId}) =>
     RustLib.instance.api.crateApiWritePlanStop(paneId: paneId);
 
+/// Point a catalogue entry that Windows cannot start at its `.CMD` shim:
+/// `POST /v1/catalog/{name}/fix` with no body. The host requires `APPROVE`.
+WritePlan planFixAgent({required String name}) =>
+    RustLib.instance.api.crateApiWritePlanFixAgent(name: name);
+
 class AgentAction {
   final AgentActionKind kind;
   final String paneId;

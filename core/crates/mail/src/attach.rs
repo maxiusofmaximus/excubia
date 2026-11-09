@@ -69,8 +69,8 @@ pub async fn attach_file(
         .file_name()
         .ok_or_else(|| MailError::PathRejected(Redacted::new("the file has no name")))?
         .to_owned();
-    if let Some(meta) = ctx.client.attached(draft_id, &file.sha256, &name)? {
-        return Ok(attached_file(meta, file.sha256));
+    if let Some(attached) = already_attached(ctx, draft_id, &file, &name)? {
+        return Ok(attached);
     }
 
     let audited = match decision {
@@ -81,18 +81,56 @@ pub async fn attach_file(
             Approval::Expired => return refuse(ctx, draft_id, &file, Decision::Expired),
         },
     };
-    let snapshot = match Snapshot::take(&file, ctx.scratch) {
+    send(ctx, draft_id, &file, &name, audited).await
+}
+
+/// Attaches a file the user sent in the chat, under the name the user gave it. The
+/// host resolved `path` from its own store, so no approval is asked.
+pub async fn attach_chat_file(
+    ctx: &AttachContext<'_, '_>,
+    draft_id: &str,
+    path: &Path,
+    name: &str,
+) -> Result<AttachedFile, MailError> {
+    ctx.client.owned(draft_id)?;
+    let file = ctx.policy.decide_trusted(path)?;
+    if let Some(attached) = already_attached(ctx, draft_id, &file, name)? {
+        return Ok(attached);
+    }
+    send(ctx, draft_id, &file, name, Decision::Chat).await
+}
+
+/// The file is on the draft already, under this name: nothing is sent twice.
+fn already_attached(
+    ctx: &AttachContext<'_, '_>,
+    draft_id: &str,
+    file: &CheckedFile,
+    name: &str,
+) -> Result<Option<AttachedFile>, MailError> {
+    let attached = ctx.client.attached(draft_id, &file.sha256, name)?;
+    Ok(attached.map(|meta| attached_file(meta, file.sha256.clone())))
+}
+
+/// The private copy, checked against the decision, then the audit line, then the upload.
+async fn send(
+    ctx: &AttachContext<'_, '_>,
+    draft_id: &str,
+    file: &CheckedFile,
+    name: &str,
+    audited: Decision,
+) -> Result<AttachedFile, MailError> {
+    let snapshot = match Snapshot::take(file, ctx.scratch) {
         Ok(snapshot) => snapshot,
         Err(MailError::ContentChanged) => {
-            record(ctx, draft_id, &file, Decision::Changed)?;
+            record(ctx, draft_id, file, Decision::Changed)?;
             return Err(MailError::ContentChanged);
         }
         Err(err) => return Err(err),
     };
-    record(ctx, draft_id, &file, audited)?;
+    record(ctx, draft_id, file, audited)?;
 
-    let meta = upload(ctx.client, draft_id, &name, snapshot.file()).await?;
-    Ok(attached_file(meta, file.sha256))
+    let meta = upload(ctx.client, draft_id, name, snapshot.file()).await?;
+    Ok(attached_file(meta, file.sha256.clone()))
 }
 
 fn record(

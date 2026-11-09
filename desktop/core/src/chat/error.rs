@@ -94,6 +94,11 @@ pub enum ChatFailure {
     FileRefused {
         code: String,
     },
+    /// A downloaded document the system could not open or the disk could not
+    /// keep. The message is already in Spanish.
+    FileOpenFailed {
+        message: String,
+    },
     /// A refusal of an alert rule (`rule_exists`, `rule_limit`, `not_found`). The message is
     /// already in Spanish.
     AlertRefused {

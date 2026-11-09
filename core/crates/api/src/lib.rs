@@ -11,6 +11,7 @@ mod alfred;
 mod audit;
 mod catalog;
 mod contact_api;
+mod doc_pages;
 mod error;
 mod hire_api;
 mod mail;
@@ -30,6 +31,7 @@ pub mod voice;
 pub use alfred::{AlfredBackend, BackendStatus, Requested};
 pub use audit::{AuditEvent, AuditSink};
 pub use catalog::{AgentCatalog, AgentSpec};
+pub use doc_pages::{DocumentPages, PageError, PageSource, PreviewLocks, RenderedPage};
 pub use error::ApiError;
 pub use mail::{
     DraftEdit, MailAccount, MailActions, MailDraft, MailDraftAttachment, MailFailure,
@@ -164,6 +166,10 @@ pub struct ApiContext {
     /// The host's active certificate pin: the input of a pending device's SAS.
     /// `None` when there is no certificate to read, and then no SAS is shown.
     pub host_pin: Option<Fingerprint>,
+    /// The renderer of the document previews (DOC5B): the host's document CLIs.
+    pub docs: Arc<dyn DocumentPages>,
+    /// One lock per attachment, so a page renders once for two requests.
+    pub preview_locks: Arc<PreviewLocks>,
     /// The PAKE pairing code, in memory only. It is never written to the trust store and `POST /v1/pair` does not
     /// read it.
     pub pake_slot: Arc<PakeSlot>,
@@ -183,6 +189,7 @@ pub struct ApiConfig {
     pub alfred: Arc<dyn AlfredBackend>,
     pub pairing_audit: Arc<dyn PairingAudit>,
     pub audit: Arc<dyn AuditSink>,
+    pub docs: Arc<dyn DocumentPages>,
 }
 
 impl ApiContext {
@@ -207,6 +214,8 @@ impl ApiContext {
             revocations,
             host_pin: None,
             pake_slot: Arc::new(PakeSlot::new()),
+            docs: config.docs,
+            preview_locks: Arc::new(PreviewLocks::default()),
         }
     }
 
@@ -343,6 +352,10 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route(
             "/v1/chat/conversations/{conversation_id}/attachments/{attachment_id}/content",
             get(routes::chat_attachment_content),
+        )
+        .route(
+            "/v1/chat/conversations/{conversation_id}/attachments/{attachment_id}/preview",
+            get(routes::chat_attachment_preview),
         )
         .route(
             "/v1/chat/sections",

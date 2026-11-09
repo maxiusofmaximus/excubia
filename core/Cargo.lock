@@ -1041,6 +1041,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hn-core-crafting"
+version = "0.1.0"
+dependencies = [
+ "hn-core-test-dir",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "ulid",
+]
+
+[[package]]
 name = "hn-core-detect"
 version = "0.1.0"
 dependencies = [
@@ -1064,6 +1075,7 @@ dependencies = [
  "hn-core-asr",
  "hn-core-auth",
  "hn-core-chat",
+ "hn-core-crafting",
  "hn-core-detect",
  "hn-core-mail",
  "hn-core-pake",

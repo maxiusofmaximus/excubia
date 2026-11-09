@@ -5,17 +5,21 @@ import 'package:flutter/material.dart';
 import '../../core/api/alfred_backend_api.dart';
 import '../../core/api/alfred_backend_models.dart';
 import '../../core/api/host_client.dart';
+import '../../src/rust/api/catalog.dart';
 import '../../src/rust/api/error.dart';
+import '../new_conversation_screen.dart' show CatalogLoader;
 import '../theme.dart';
 import '../widgets/surface_card.dart';
 
 /// The engine switch of Alfred in the settings page: Claude or the local model on the PC.
 /// Going local asks first; going back to Claude does not. While the PC is starting or
-/// stopping the model, the status is read again every few seconds.
+/// stopping the model, the status is read again every few seconds. Below it, the agents
+/// installed on the PC, read-only: Alfred cannot run on them yet.
 class AlfredEngineSection extends StatefulWidget {
-  const AlfredEngineSection({super.key, required this.api});
+  const AlfredEngineSection({super.key, required this.api, this.catalog});
 
   final AlfredBackendApi api;
+  final CatalogLoader? catalog;
 
   @override
   State<AlfredEngineSection> createState() => _AlfredEngineSectionState();
@@ -30,11 +34,26 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
   bool _unsupported = false;
   bool _busy = false;
   Timer? _timer;
+  List<CatalogEntry>? _installed;
+  ErrorInfo? _catalogFailure;
 
   @override
   void initState() {
     super.initState();
     _read();
+    _readCatalog();
+  }
+
+  /// The agents the PC has installed (`available`), whether or not Windows starts them yet.
+  Future<void> _readCatalog() async {
+    final load = widget.catalog;
+    if (load == null) return;
+    final result = await load();
+    if (!mounted) return;
+    setState(() {
+      _installed = result.entries?.where((entry) => entry.available).toList();
+      _catalogFailure = result.error;
+    });
   }
 
   @override
@@ -157,8 +176,42 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
                 : _body(context),
           ),
         ),
+        if (widget.catalog != null) ...[
+          const SizedBox(height: Spacing.xl),
+          Text('AGENTES INSTALADOS EN TU PC', style: context.text.label),
+          const SizedBox(height: Spacing.sm),
+          SurfaceCard(child: _installedBody(context)),
+        ],
       ],
     );
+  }
+
+  Widget _installedBody(BuildContext context) {
+    final failure = _catalogFailure;
+    if (failure != null) {
+      return Text(failure.message, style: context.text.bodySecondary);
+    }
+    final installed = _installed;
+    if (installed == null) return Text('Leyendo…', style: context.text.body);
+    if (installed.isEmpty) {
+      return Text(
+        'Ningún agente instalado en este PC.',
+        style: context.text.body,
+      );
+    }
+    return _column([
+      for (final entry in installed)
+        Text(
+          entry.runnable
+              ? entry.label
+              : '${entry.label} · Windows no lo arranca todavía',
+          style: context.text.body,
+        ),
+      Text(
+        'Alfred sigue con Claude o con el modelo local. Elegir otro agente para Alfred llegará después.',
+        style: context.text.bodySecondary,
+      ),
+    ]);
   }
 
   Widget _body(BuildContext context) {
@@ -184,6 +237,14 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
           style: context.text.bodySecondary.copyWith(
             color: context.colors.statusBlocked,
           ),
+        ),
+      // Listed for information: the PC cannot switch to these engines yet.
+      if (status.engines.isNotEmpty)
+        Text(
+          'Motores listos en este PC: '
+          '${status.engines.map((engine) => '${engine.name} ${engine.version}').join(', ')}'
+          ' (aún no se puede elegir)',
+          style: context.text.bodySecondary,
         ),
       const SizedBox(height: Spacing.sm),
       // The button is the next step; while the PC is moving the model it waits, disabled.

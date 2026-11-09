@@ -97,6 +97,22 @@ pub fn plan_attachment_content(conversation_id: String, attachment_id: String) -
     }
 }
 
+/// `GET …/{att}/preview?page=N`: the PNG of one page, from 1.
+#[flutter_rust_bridge::frb(sync)]
+pub fn plan_attachment_preview(
+    conversation_id: String,
+    attachment_id: String,
+    page: u32,
+) -> ChatPlan {
+    if page == 0 {
+        return problem("invalid_page");
+    }
+    match attachment_path(&conversation_id, &attachment_id) {
+        Ok(path) => get(format!("{path}/preview?page={page}")),
+        Err(code) => problem(code),
+    }
+}
+
 /// The send plan of a message with up to four ready attachments. The text may
 /// be empty only when at least one attachment is named.
 #[flutter_rust_bridge::frb(sync)]
@@ -302,6 +318,25 @@ mod tests {
                 .problem
                 .is_some()
         );
+    }
+
+    #[test]
+    fn a_preview_is_a_get_of_one_page_and_page_zero_is_refused() {
+        let request = call(plan_attachment_preview(
+            CONVERSATION.into(),
+            "att_1".into(),
+            3,
+        ));
+        assert_eq!(request.method, "GET");
+        assert_eq!(
+            request.target,
+            "/v1/chat/conversations/cnv_01J9/attachments/att_1/preview?page=3"
+        );
+        assert!(request.body.is_empty());
+
+        let first_page = plan_attachment_preview(CONVERSATION.into(), "att_1".into(), 0);
+        assert!(first_page.request.is_none());
+        assert!(first_page.problem.is_some());
     }
 
     #[test]

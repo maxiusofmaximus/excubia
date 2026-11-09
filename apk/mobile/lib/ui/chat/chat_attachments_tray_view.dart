@@ -3,11 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../core/api/chat_attachment_source.dart';
+import '../../core/api/chat_documents.dart';
 import '../../core/state/chat_attachment_tray.dart';
+import '../mail/mail_facts.dart';
 import '../theme.dart';
+import 'chat_document_card.dart';
 
-/// The images the composer holds: a thumbnail, the name, the size, the upload's
-/// progress or refusal, and «Quitar».
+/// The files the composer holds: a thumbnail or a document icon, the name, the
+/// size, the upload's progress or refusal, and «Quitar».
 class ChatAttachmentTrayView extends StatelessWidget {
   const ChatAttachmentTrayView({super.key, required this.tray});
 
@@ -42,6 +45,7 @@ class _DraftTile extends StatelessWidget {
     final source = draft.source;
     final path = source is FileAttachmentSource ? source.path : null;
     final failed = draft.status == DraftStatus.failed;
+    final kind = documentKindOf(draft.name);
     final percent = (draft.progress * 100).round();
     return Container(
       width: 164,
@@ -57,7 +61,7 @@ class _DraftTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Preview(path: path),
+              _Preview(path: path, kind: kind),
               const SizedBox(width: Spacing.sm),
               Expanded(
                 child: Column(
@@ -70,7 +74,7 @@ class _DraftTile extends StatelessWidget {
                       style: context.text.small,
                     ),
                     Text(
-                      _sizeLabel(draft.source.size),
+                      sizeLabel(draft.source.size),
                       style: context.text.label.copyWith(color: c.textMuted),
                     ),
                   ],
@@ -113,20 +117,26 @@ class _DraftTile extends StatelessWidget {
 }
 
 class _Preview extends StatelessWidget {
-  const _Preview({required this.path});
+  const _Preview({required this.path, required this.kind});
 
   final String? path;
+
+  /// Set for a document, which shows its icon instead of a picture.
+  final ChatDocKind? kind;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final path = this.path;
+    final kind = this.kind;
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 48,
         height: 48,
-        child: path == null
+        child: kind != null
+            ? Icon(documentIcon(kind), color: c.textMuted)
+            : path == null
             ? Icon(Icons.image_outlined, color: c.textMuted)
             : Image.file(
                 File(path),
@@ -139,7 +149,3 @@ class _Preview extends StatelessWidget {
     );
   }
 }
-
-String _sizeLabel(int bytes) => bytes < 1024 * 1024
-    ? '${(bytes / 1024).ceil()} KB'
-    : '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';

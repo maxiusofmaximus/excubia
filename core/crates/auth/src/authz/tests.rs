@@ -86,6 +86,10 @@ fn the_chat_matrix_separates_reads_from_writes() {
         ("GET", "/v1/chat/conversations/cnv_1/timeline"),
         ("GET", "/v1/chat/conversations/cnv_1/messages"),
         ("GET", "/v1/chat/sections"),
+        (
+            "GET",
+            "/v1/chat/conversations/cnv_1/attachments/att_1/preview",
+        ),
     ];
     for (method, path) in reads {
         let rule = classify(method, path).expect(path);

@@ -17,17 +17,35 @@ class CatalogEntry {
   final String name;
   final bool available;
 
+  /// Windows can start it as the host has it right now.
+  final bool runnable;
+
+  /// The host can repoint it at its `.CMD` shim (needs `APPROVE`).
+  final bool fixable;
+
+  /// Why it cannot run, as the host words it.
+  final String? problem;
+
   /// Display hint; falls back to `name`.
   final String label;
 
   const CatalogEntry({
     required this.name,
     required this.available,
+    required this.runnable,
+    required this.fixable,
+    this.problem,
     required this.label,
   });
 
   @override
-  int get hashCode => name.hashCode ^ available.hashCode ^ label.hashCode;
+  int get hashCode =>
+      name.hashCode ^
+      available.hashCode ^
+      runnable.hashCode ^
+      fixable.hashCode ^
+      problem.hashCode ^
+      label.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -36,5 +54,8 @@ class CatalogEntry {
           runtimeType == other.runtimeType &&
           name == other.name &&
           available == other.available &&
+          runnable == other.runnable &&
+          fixable == other.fixable &&
+          problem == other.problem &&
           label == other.label;
 }

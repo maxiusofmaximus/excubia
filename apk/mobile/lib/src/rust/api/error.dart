@@ -106,4 +106,4 @@ class StopFailure {
 }
 
 /// The intent behind a request, used to name the missing grant on a 403.
-enum WriteAction { read, respond, keys, seen, create, stop, admin }
+enum WriteAction { read, respond, keys, seen, create, stop, admin, fixAgent }

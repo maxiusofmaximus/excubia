@@ -68,6 +68,17 @@ ChatPlan planAttachmentContent({
   attachmentId: attachmentId,
 );
 
+/// `GET …/{att}/preview?page=N`: the PNG of one page, from 1.
+ChatPlan planAttachmentPreview({
+  required String conversationId,
+  required String attachmentId,
+  required int page,
+}) => RustLib.instance.api.crateApiChatAttachPlanPlanAttachmentPreview(
+  conversationId: conversationId,
+  attachmentId: attachmentId,
+  page: page,
+);
+
 /// The send plan of a message with up to four ready attachments. The text may
 /// be empty only when at least one attachment is named.
 ChatPlan planChatSendWithAttachments({

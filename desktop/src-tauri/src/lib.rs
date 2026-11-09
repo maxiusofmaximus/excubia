@@ -9,6 +9,7 @@ pub mod chat_commands;
 pub mod commands;
 pub mod config;
 pub mod devices_commands;
+pub mod file_dialog;
 pub mod host_process;
 pub mod lan;
 pub mod mail_commands;
@@ -22,6 +23,7 @@ pub mod team_commands;
 pub mod voice_commands;
 
 use std::sync::Arc;
+use std::time::SystemTime;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
@@ -74,6 +76,12 @@ pub fn run() {
             if let Err(error) = registered {
                 eprintln!("los avisos no podrán abrir su agente: {error}");
             }
+            if let Ok(cache) = app.path().app_cache_dir() {
+                let folder = chat_commands::documents::folder(&cache);
+                if let Err(error) = chat_commands::documents::sweep(&folder, SystemTime::now()) {
+                    eprintln!("no se pudieron limpiar los documentos antiguos: {error}");
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -117,6 +125,9 @@ pub fn run() {
             chat_commands::attachments::chat_attachment_complete,
             chat_commands::attachments::chat_attachment_delete,
             chat_commands::attachments::chat_attachment_content,
+            chat_commands::attachments::chat_attachment_open,
+            chat_commands::attachments::chat_attachment_save,
+            chat_commands::preview::chat_attachment_preview,
             voice_commands::voice_transcribe,
             chat_commands::writes::chat_mark_read,
             chat_commands::writes::chat_create,

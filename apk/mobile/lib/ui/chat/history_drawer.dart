@@ -50,6 +50,8 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
     return Drawer(
       width: 330,
       backgroundColor: c.surface,
+      // Square edge: the Material default rounds the corners on the open side.
+      shape: const RoundedRectangleBorder(),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -105,6 +107,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                           phone: const ChannelPhoneContacts(),
                           alertRules: widget.controller.alertRules,
                           alfred: widget.controller.alfredBackend,
+                          catalog: widget.controller.triage.loadCatalog,
                           onUnpaired: widget.onUnpaired,
                           approvals: widget.controller.approvals,
                           conversationId: widget.controller.current?.id,

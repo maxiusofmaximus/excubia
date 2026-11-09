@@ -5,13 +5,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  ACCEPT_ATTR,
   CHUNK_BYTES,
   MAX_BYTES,
-  acceptsType,
+  attachmentKind,
   blocksSend,
   bubbleBody,
   chooseUpload,
   chunkRetry,
+  classifyFile,
+  documentBadge,
+  documentCard,
   failureText,
   hasRoom,
   itemFailureText,
@@ -36,10 +40,61 @@ test("a message takes at most four pictures", () => {
   assert.equal(hasRoom(4), false);
 });
 
-test("only PNG, JPEG and WebP are accepted", () => {
-  assert.ok(["image/png", "image/jpeg", "image/webp"].every(acceptsType));
-  assert.equal(acceptsType("image/gif"), false);
-  assert.equal(acceptsType("application/pdf"), false);
+test("pictures and the documents the chat keeps are accepted, by extension", () => {
+  assert.deepEqual(classifyFile("foto.PNG", 10), { ok: true, kind: "image" });
+  assert.deepEqual(classifyFile("informe.xlsx", 10), { ok: true, kind: "document" });
+  assert.deepEqual(classifyFile("tabla.csv", 10), { ok: true, kind: "document" });
+  assert.deepEqual(classifyFile("a.b.pdf", 10), { ok: true, kind: "document" });
+  for (const name of ["macro.xlsm", "viejo.xls", "viejo.doc", "app.exe", "gif.gif", "sin-extension", "x.constructor"]) {
+    assert.deepEqual(classifyFile(name, 10), { ok: false, code: "unsupported_type" }, name);
+  }
+  assert.ok(ACCEPT_ATTR.split(",").includes(".xlsx"));
+  assert.ok(!ACCEPT_ATTR.split(",").includes(".xls"));
+});
+
+test("a document over 10 MiB is refused before it leaves the machine", () => {
+  assert.deepEqual(classifyFile("grande.pdf", MAX_BYTES), { ok: true, kind: "document" });
+  assert.deepEqual(classifyFile("grande.pdf", MAX_BYTES + 1), { ok: false, code: "file_too_large" });
+  assert.equal(failureText("file_too_large"), "El archivo supera los 10 MB");
+});
+
+test("a thread attachment without kind is a picture, as before documents existed", () => {
+  assert.equal(attachmentKind({ id: "att_1" }), "image");
+  assert.equal(attachmentKind({ id: "att_1", kind: null }), "image");
+  assert.equal(attachmentKind({ id: "att_1", kind: "image" }), "image");
+  assert.equal(attachmentKind({ id: "att_1", kind: "document" }), "document");
+});
+
+test("each document family has its badge; an unknown extension gets a plain one", () => {
+  assert.deepEqual(documentBadge("datos.xlsx"), { family: "sheet", label: "XLSX" });
+  assert.deepEqual(documentBadge("carta.docx"), { family: "doc", label: "DOCX" });
+  assert.deepEqual(documentBadge("deck.pptx"), { family: "slides", label: "PPTX" });
+  assert.deepEqual(documentBadge("factura.PDF"), { family: "pdf", label: "PDF" });
+  assert.deepEqual(documentBadge("notas.md"), { family: "text", label: "MD" });
+  assert.deepEqual(documentBadge("leeme"), { family: "file", label: "ARCHIVO" });
+  assert.deepEqual(documentBadge("x.constructor"), { family: "file", label: "CONSTRUCTOR" });
+});
+
+test("a document card shows its name as written, its size in Spanish and its badge", () => {
+  const card = documentCard({ id: "att_1", kind: "document", name: "Bitácora 6.xlsx", size: 3_565_158 });
+  assert.deepEqual(card, { name: "Bitácora 6.xlsx", size: "3,4 MB", family: "sheet", label: "XLSX" });
+});
+
+test("special characters in a long name reach the card as plain text", () => {
+  const hostile = `<img src=x onerror="alert(1)"> ${"é".repeat(150)}.pdf`;
+  const card = documentCard({ id: "att_1", kind: "document", name: hostile, size: 500 });
+  assert.equal(card.name, hostile);
+  assert.equal(card.size, "1 KB");
+  assert.equal(card.label, "PDF");
+});
+
+test("a card with no name or size still reads", () => {
+  assert.deepEqual(documentCard({ id: "att_1", kind: "document", name: null, size: null }), {
+    name: "Archivo",
+    size: "",
+    family: "file",
+    label: "ARCHIVO",
+  });
 });
 
 test("a send waits until every picture is ready, failed ones included", () => {
@@ -117,7 +172,7 @@ test("a network or busy chunk is tried again, three times at most", () => {
 });
 
 test("each refusal has its words in Spanish, and an unknown one a plain fallback", () => {
-  assert.equal(failureText("unsupported_type"), "Solo PNG, JPEG o WebP");
+  assert.equal(failureText("unsupported_type"), "Ese tipo de archivo no se puede adjuntar");
   assert.equal(failureText("image_too_large"), "La imagen es demasiado grande");
   assert.equal(failureText("dimensions_too_large"), "La imagen es demasiado grande");
   assert.equal(failureText("conversation_quota"), "Se llenó el espacio de adjuntos de esta conversación");
@@ -127,7 +182,7 @@ test("each refusal has its words in Spanish, and an unknown one a plain fallback
 });
 
 test("a refused picture shows its code's words, other failures their message", () => {
-  assert.equal(itemFailureText(refusal("unsupported_type")), "Solo PNG, JPEG o WebP");
+  assert.equal(itemFailureText(refusal("unsupported_type")), "Ese tipo de archivo no se puede adjuntar");
   assert.equal(itemFailureText({ kind: "offline", message: "Sin conexión" }), "Sin conexión");
   assert.equal(itemFailureText({}), "No se pudo adjuntar la imagen.");
 });

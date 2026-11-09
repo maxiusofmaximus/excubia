@@ -105,7 +105,7 @@ void main() {
 
   group('the messages', () {
     test('each refusal code reads as its line; an unknown one is generic', () {
-      expect(attachmentErrorText('unsupported_type'), 'Solo PNG, JPEG o WebP');
+      expect(attachmentErrorText('unsupported_image'), 'Solo PNG, JPEG o WebP');
       expect(
         attachmentErrorText('dimensions_too_large'),
         'La imagen es demasiado grande',
@@ -116,7 +116,7 @@ void main() {
       );
       expect(
         attachmentErrorText('weird'),
-        'No se pudo subir la imagen. Vuelve a intentarlo',
+        'No se pudo subir el archivo. Vuelve a intentarlo',
       );
     });
 

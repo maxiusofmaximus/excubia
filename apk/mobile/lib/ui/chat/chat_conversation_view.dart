@@ -154,6 +154,7 @@ class ConversationView extends StatelessWidget {
             alfred: chat.alfredSeat,
             onOpenDraft: onOpenDraft,
             images: chat.images,
+            documents: chat.documents,
             sentAttachments: chat.attachmentsOfSend(entries[cursor].clientId),
           );
         }

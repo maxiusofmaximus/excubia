@@ -92,7 +92,7 @@ movimiento se propone con `mail.move_propose` y se hace con `mail.move_apply`
 | `mail.draft_create` | `account`, `to[]` (≥1), `cc[]`, `subject`, `body`, `body_format` (`text` por defecto, o `html`) | `{ok, draft{id, subject, to, cc, is_draft, attachments[]}}` |
 | `mail.draft_update` | lo mismo más `draft_id`; reemplaza el contenido | igual |
 | `mail.draft_get` | `account`, `draft_id` | igual, sin `body`: el agente nunca lee el cuerpo. La ruta humana `GET /v1/mail/drafts/{id}` sí lo devuelve (ver Envío, Revisión) |
-| `mail.attach_file` | `account`, `draft_id`, `path` | `{ok, attachment{id, name, size, sha256}}` |
+| `mail.attach_file` | `account`, `draft_id` y exactamente uno de `attachment_id` (adjunto del chat, `att_…`) o `path` | `{ok, attachment{id, name, size, sha256}}` |
 | `mail.inbox_list` | `account`, `folder` (`inbox`, `sentitems` o `junkemail`), `limit` (1..=20, 10 por defecto), `unread_only`, `from` | `{ok, untrusted_content, notice, messages[]}`; ver «Lectura de la bandeja» |
 | `mail.message_get` | `account`, `message_id` | `{ok, untrusted_content, notice, message{…, checks}}`; ver «Lectura de la bandeja» |
 | `mail.triage` | `account`, `folder` (`inbox` o `junkemail`, `inbox` por defecto), `limit` (1..=10, 10 por defecto), `unread_only` | `{ok, untrusted_content, notice, account, folder, messages[]{id, from_name, from_address, subject, received_at, level, signals, checks}}`; ver «Veredicto de triaje» |
@@ -120,6 +120,11 @@ Reglas:
   y solo después sube. Una ruta fuera de `workspaces_root` pide aprobación en el
   chat (acción `mail.attach_path`, tipo `tool`, nunca delegada). Sin respuesta,
   se trata como denegación.
+- `mail.attach_file` con `attachment_id` (DOC2) adjunta un archivo que el
+  usuario envió en esa conversación: no pide aprobación, se sube con el nombre
+  que él le dio y se audita como `chat`. El adjunto debe ser de la conversación
+  del turno, estar listo y formar parte de un mensaje; si no, `attachment_not_found`,
+  sin distinguir el motivo. Una ruta del PC sigue la política de siempre.
 
 ## Lectura de la bandeja (MAIL-LECTURA)
 
@@ -221,6 +226,7 @@ Reglas:
 | `mail_not_found` | El mensaje no está en el buzón de la cuenta. | corregir el id |
 | `mail_use_upload_session` | El adjunto supera el límite simple; requiere sesión de subida. | interno |
 | `mail_path_rejected` | Ruta inexistente, enlace que escapa, dispositivo, directorio o por encima del límite. | corregir la ruta |
+| `attachment_not_found` | El `attachment_id` no es un adjunto listo y enviado de esta conversación (sin distinguir motivos). | pedir al usuario que lo envíe de nuevo |
 | `mail_approval_denied` | El operador no permitió el fichero, o no respondió a tiempo. | ninguna acción |
 | `mail_approval_unavailable` | No se pudo preguntar al operador. | reintentar luego |
 | `mail_content_changed` | El fichero cambió entre la aprobación y la lectura. Nada se envió. | repetir |
@@ -677,7 +683,8 @@ lo aplica y lo cuenta en el chat. Alfred ya no aplica nada: tras proponer dice u
 - Fichero: `mail/accounts/audit.jsonl` dentro del directorio de datos.
 - Un registro por decisión sobre un adjunto: `ts`, `account`, `draft_id`,
   `path`, `size`, `sha256`, `decision`. Nunca el contenido.
-- `decision`: `auto` (dentro del espacio de trabajo), `approved`, `denied`,
+- `decision`: `auto` (dentro del espacio de trabajo), `chat` (adjunto que el
+  usuario envió en el chat, DOC2), `approved`, `denied`,
   `changed` (el fichero no coincidía con la aprobación) o `expired` (la pregunta
   caducó sin respuesta). `denied` y `expired` son hechos distintos.
 - Se audita antes de cualquier byte enviado.

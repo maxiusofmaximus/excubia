@@ -46,6 +46,7 @@ mod schema_ics;
 mod schema_mail;
 mod schema_plan;
 mod schema_recipe;
+mod schema_agent_file;
 mod schema_schedule;
 mod schema_progress;
 mod schema_recurrence;
@@ -81,8 +82,9 @@ pub use model_approval::{
     MAX_TTL_SECONDS,
 };
 pub use model_attachment::{
-    Attachment, AttachmentState, LinkedFile, ReadyFile, ATTACHMENT_ONLY_TEXT, CHUNK_MAX_BYTES,
-    CONVERSATION_QUOTA_BYTES, FILE_MAX_BYTES, HOST_QUOTA_BYTES, MAX_ATTACHMENTS_PER_MESSAGE,
+    previewable, Attachment, AttachmentState, FileKind, LinkedFile, ReadyFile, ATTACHMENT_ONLY_TEXT,
+    CHUNK_MAX_BYTES, CONVERSATION_QUOTA_BYTES, FILE_MAX_BYTES, HOST_QUOTA_BYTES,
+    MAX_ATTACHMENTS_PER_MESSAGE,
 };
 pub use model_calendar::{
     CalendarEvent, EventPatch, Listed, Listing, NewEvent, Window, CALENDAR_DELETE_TOOL,

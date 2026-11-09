@@ -3,20 +3,26 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:herdr_notify/src/rust/api/chat/attach_model.dart';
 
+import '../../core/api/chat_documents.dart';
 import '../../core/state/chat_attachment_images.dart';
+import '../../core/state/chat_document_opener.dart';
 import '../theme.dart';
+import 'chat_document_card.dart';
 
-/// The thumbnails of a message's files. A file still loading shows a spinner,
-/// one that failed a broken-image mark; a tap opens it full size.
+/// A message's files: a thumbnail for each picture, a card for each document.
+/// A picture still loading shows a spinner, one that failed a broken-image
+/// mark; a tap opens it full size.
 class ChatAttachmentStrip extends StatelessWidget {
   const ChatAttachmentStrip({
     super.key,
     required this.attachments,
     required this.images,
+    required this.documents,
   });
 
   final List<ChatAttachment> attachments;
   final ChatAttachmentImages images;
+  final ChatDocumentOpener documents;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +30,11 @@ class ChatAttachmentStrip extends StatelessWidget {
       spacing: Spacing.xs,
       runSpacing: Spacing.xs,
       children: [
-        for (final file in attachments) _Thumb(file: file, images: images),
+        for (final file in attachments)
+          if (isDocumentFile(file))
+            ChatDocumentCard(file: file, documents: documents)
+          else
+            _Thumb(file: file, images: images),
       ],
     );
   }

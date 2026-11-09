@@ -49,8 +49,9 @@ pub use profile::{
 pub use service::{SeatConfig, SeatService, TurnEnv, CONTEXT_CHARS, CONTEXT_MESSAGES};
 pub use tools::{
     check_draft_fields, parse as parse_tool, AgentSpawn, AlertCall, ApprovalDecide,
-    ApprovalRequest, BodyFormat, CalendarCall, ContactCall, DelegationAssign, DelegationComplete,
-    DraftFields, DraftRef, DraftUpdate, FoldersQuery, InboxFolder, InboxQuery, MailAttach,
-    MailCall, MessageRef, MoveApply, MoveFolder, MoveProposal, MoveUndo, NoteCall, Organize,
-    ProjectCreate, ProposedMove, ToolCall, TriageQuery, UndoList,
+    ApprovalRequest, AttachSource, BodyFormat, CalendarCall, ContactCall, DelegationAssign,
+    DelegationComplete, DocCreate, DocFormat, DocRead, DraftFields, DraftRef, DraftUpdate,
+    FoldersQuery, InboxFolder, InboxQuery, MailAttach, MailCall, MessageRef, MoveApply, MoveFolder,
+    MoveProposal, MoveUndo, NoteCall, Organize, ProjectCreate, ProposedMove, ToolCall, TriageQuery,
+    UndoList,
 };

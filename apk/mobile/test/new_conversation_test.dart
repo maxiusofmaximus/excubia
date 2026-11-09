@@ -15,8 +15,21 @@ LiveTriage dummyTriage() => LiveTriage(
   ),
 );
 
-CatalogEntry entry(String name, {bool available = true, String? label}) =>
-    CatalogEntry(name: name, available: available, label: label ?? name);
+CatalogEntry entry(
+  String name, {
+  bool available = true,
+  bool? runnable,
+  bool fixable = false,
+  String? problem,
+  String? label,
+}) => CatalogEntry(
+  name: name,
+  available: available,
+  runnable: runnable ?? available,
+  fixable: fixable,
+  problem: problem,
+  label: label ?? name,
+);
 
 Future<void> pumpScreen(
   WidgetTester tester, {
@@ -38,26 +51,50 @@ Future<void> pumpScreen(
 
 void main() {
   testWidgets(
-    'only available agents are offered and the folder enables create',
+    'agents the PC cannot start are shown with the cause, not chosen',
     (tester) async {
       await pumpScreen(
         tester,
         loader: () async => (
           entries: [
             entry('fake', label: 'Agente falso'),
-            entry('claude', available: false, label: 'Claude Code'),
+            entry(
+              'claude',
+              available: false,
+              label: 'Claude Code',
+              problem: 'No está instalado en este equipo.',
+            ),
+            entry(
+              'codex',
+              available: true,
+              runnable: false,
+              fixable: true,
+              label: 'Codex',
+              problem: 'Windows no puede ejecutarlo tal como está instalado; se puede arreglar.',
+            ),
           ],
           error: null,
         ),
       );
 
       expect(find.text('Agente falso'), findsOneWidget);
-      expect(find.text('Claude Code'), findsNothing);
+      expect(find.text('Claude Code'), findsOneWidget);
+      expect(find.text('No está instalado en este equipo.'), findsOneWidget);
+      expect(find.text('Codex'), findsOneWidget);
+      expect(find.text('Arreglar ahora'), findsOneWidget, reason: 'only Codex');
       expect(find.textContaining('no puede explorarla'), findsOneWidget);
 
-      FilledButton create() => tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Crear conversación'),
+      // The list builds lazily: scroll the create button into view first.
+      final createFinder = find.widgetWithText(
+        FilledButton,
+        'Crear conversación',
       );
+      await tester.dragUntilVisible(
+        createFinder,
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      FilledButton create() => tester.widget<FilledButton>(createFinder);
       expect(create().onPressed, isNull);
 
       await tester.enterText(find.byType(TextField).first, r'D:\work');

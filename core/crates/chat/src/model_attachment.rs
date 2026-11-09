@@ -57,6 +57,36 @@ pub struct Attachment {
     pub created_at: String,
 }
 
+/// What a ready file is: an image the host re-encoded, or a document kept as sent.
+/// A document has no dimensions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FileKind {
+    Image,
+    Document,
+}
+
+impl FileKind {
+    pub fn of(width: u32, height: u32) -> Self {
+        if width == 0 && height == 0 {
+            Self::Document
+        } else {
+            Self::Image
+        }
+    }
+}
+
+/// Whether the host can draw a page preview of a file: a document named as Excel, Word or PDF.
+pub fn previewable(name: &str, kind: FileKind) -> bool {
+    kind == FileKind::Document
+        && name.rsplit_once('.').is_some_and(|(_, extension)| {
+            matches!(
+                extension.to_ascii_lowercase().as_str(),
+                "xlsx" | "docx" | "pdf"
+            )
+        })
+}
+
 /// A ready file as a message shows it, in the timeline and in the agent's context.
 /// The user's name is shown to the user only; the prompt never carries it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -69,6 +99,8 @@ pub struct LinkedFile {
     pub width: u32,
     #[serde(rename = "h")]
     pub height: u32,
+    pub kind: FileKind,
+    pub previewable: bool,
 }
 
 /// What `mark_ready` stores: the content as the host decoded and re-encoded it.
@@ -87,6 +119,13 @@ pub(crate) const COLUMNS: &str = "id, conversation_id, client_id, name, declared
      declared_sha256, state, mime, width, height, final_size, final_sha256, message_id, created_at";
 
 impl Attachment {
+    /// Whether the host can draw a page preview of this attachment.
+    pub fn previewable(&self) -> bool {
+        self.width
+            .zip(self.height)
+            .is_some_and(|(width, height)| previewable(&self.name, FileKind::of(width, height)))
+    }
+
     pub(crate) fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
         Ok(Self {
             id: row.get(0)?,
@@ -110,13 +149,18 @@ impl Attachment {
 /// The message id and the file, from a row of the `linked_files` query: the
 /// message id first, then the `COLUMNS` the file needs.
 pub(crate) fn linked_from_row(row: &Row<'_>) -> rusqlite::Result<(String, LinkedFile)> {
+    let width: u32 = unsigned(row, 5)?;
+    let height: u32 = unsigned(row, 6)?;
+    let name: String = row.get(2)?;
     let file = LinkedFile {
         id: row.get(1)?,
-        name: row.get(2)?,
+        previewable: previewable(&name, FileKind::of(width, height)),
+        name,
         mime: row.get(3)?,
         size: unsigned(row, 4)?,
-        width: unsigned(row, 5)?,
-        height: unsigned(row, 6)?,
+        width,
+        height,
+        kind: FileKind::of(width, height),
     };
     Ok((row.get(0)?, file))
 }
@@ -180,6 +224,17 @@ mod tests {
         assert_eq!(check_sha256(&upper).expect("hex"), "ab".repeat(32));
         assert!(check_sha256("zz").is_err());
         assert!(check_sha256(&"g".repeat(64)).is_err());
+    }
+
+    #[test]
+    fn a_file_without_dimensions_is_a_document() {
+        assert_eq!(FileKind::of(0, 0), FileKind::Document);
+        assert_eq!(FileKind::of(1, 0), FileKind::Image);
+        assert_eq!(FileKind::of(1024, 768), FileKind::Image);
+        assert_eq!(
+            serde_json::to_value(FileKind::Document).expect("json"),
+            "document"
+        );
     }
 
     #[test]

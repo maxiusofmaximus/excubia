@@ -12,7 +12,7 @@ use super::args::{
 use super::call::{AgentSpawn, DelegationAssign, DelegationComplete, ProjectCreate};
 
 use super::{
-    alert, approval, calendar, contact, decide, mail, note, pending, plan, status, ToolCall,
+    alert, approval, calendar, contact, decide, doc, mail, note, pending, plan, status, ToolCall,
 };
 
 /// The longest progress line, in characters. Longer text is refused, never cut.
@@ -26,9 +26,11 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
             validate_suggestions(&args.suggestions).map_err(|error| {
                 ToolError::invalid("invalid_arguments", "suggestions", error.to_string())
             })?;
+            let attachment_ids = reply_attachment_ids(&args.attachment_ids)?;
             Ok(ToolCall::Reply {
                 text,
                 suggestions: args.suggestions,
+                attachment_ids,
             })
         }
         "chat.ask_user" => {
@@ -137,6 +139,8 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
         "alert.rule_update" => Ok(ToolCall::Alert(alert::rule_update(request)?)),
         "alert.rule_delete" => Ok(ToolCall::Alert(alert::rule_delete(request)?)),
         "alert.mode_set" => Ok(ToolCall::Alert(alert::mode_set(request)?)),
+        "doc.read" => Ok(ToolCall::Doc(doc::read(request)?)),
+        "doc.create" => Ok(ToolCall::DocCreate(doc::create(request)?)),
         other => Err(ToolError::invalid(
             "unknown_tool",
             "tool",
@@ -144,7 +148,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
                 "unknown MCP tool {other:?}; use chat.reply, chat.ask_user, chat.progress, \
                  project.create, agent.spawn, delegation.assign, delegation.complete, \n                 plan.propose, plan.status, \
                  approval.request, approval.decide, approval.pending, status.overview, \
-                 a mail.*, note.*, contact.*, calendar.* or alert.* tool"
+                 a mail.*, note.*, contact.*, calendar.*, alert.*, doc.read or doc.create tool"
             ),
         )),
     }
@@ -169,6 +173,33 @@ pub(super) fn progress_text(raw: &str) -> Result<String, ToolError> {
         ));
     }
     Ok(text)
+}
+
+/// The most files one reply shows: the limit the host's message links keep.
+pub(super) const REPLY_MAX_FILES: usize = 4;
+
+/// The files a reply shows: at most four ids, each named once, none empty.
+fn reply_attachment_ids(raw: &[String]) -> Result<Vec<String>, ToolError> {
+    if raw.len() > REPLY_MAX_FILES {
+        return Err(ToolError::invalid(
+            "invalid_arguments",
+            "attachment_ids",
+            format!("attachment_ids is at most {REPLY_MAX_FILES}"),
+        ));
+    }
+    let mut ids: Vec<String> = Vec::with_capacity(raw.len());
+    for id in raw {
+        let id = name_field("attachment_ids", id)?;
+        if ids.contains(&id) {
+            return Err(ToolError::invalid(
+                "invalid_arguments",
+                "attachment_ids",
+                "attachment_ids cannot repeat an id",
+            ));
+        }
+        ids.push(id);
+    }
+    Ok(ids)
 }
 
 pub(super) fn name_field(field: &'static str, raw: &str) -> Result<String, ToolError> {
