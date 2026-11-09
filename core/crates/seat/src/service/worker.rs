@@ -22,6 +22,7 @@ pub(super) struct Worker {
     pub(super) tool_url: String,
     pub(super) hook_url: String,
     pub(super) hook_command: PathBuf,
+    pub(super) plugin_dir: Option<PathBuf>,
     pub(super) seat_dir: PathBuf,
     pub(super) role: Role,
     pub(super) timeout: Duration,

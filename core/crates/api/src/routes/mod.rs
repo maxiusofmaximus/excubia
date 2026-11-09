@@ -33,12 +33,12 @@ pub use agenda::agenda_routes;
 pub use alfred::{request as alfred_request, status as alfred_status};
 pub use basic::{health, state};
 pub use calendar_ics::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
-pub use catalog::list as catalog;
+pub use catalog::{fix as catalog_fix, list as catalog};
 pub use chat::{
     approval_settings as chat_approval_settings, approval_state as chat_approval_state,
     attachment_content as chat_attachment_content, attachment_preview as chat_attachment_preview,
-    bootstrap as chat_bootstrap,
-    cancel_conversation as chat_cancel_conversation, cancel_delegation as chat_cancel_delegation,
+    bootstrap as chat_bootstrap, cancel_conversation as chat_cancel_conversation,
+    cancel_delegation as chat_cancel_delegation,
     change_approval_settings as chat_change_approval_settings,
     complete_attachment as chat_complete_attachment, consume_approval as chat_consume_approval,
     conversation_counts as chat_conversation_counts, conversations as chat_conversations,
@@ -82,12 +82,12 @@ pub use recipes::{
 pub use restore::{
     changes as restore_changes, points as restore_points, restore as restore_point, RestoreRefusal,
 };
+pub use roles::list as role_catalog;
 pub use schedules::{
     create as create_schedule, delete as delete_schedule, list as list_schedules,
     pause as pause_schedule, resume as resume_schedule, run_now as run_schedule_now,
     runs as schedule_runs, update as update_schedule,
 };
-pub use roles::list as role_catalog;
 pub use voice::transcribe as transcribe_voice;
 pub use workspaces::create as create_workspace;
 

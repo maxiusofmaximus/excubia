@@ -97,26 +97,79 @@ pub(super) fn test_mcp(command: &str, tool_url: &str) -> Result<Vec<u8>, LaunchE
     .map_err(|error| LaunchError::Encode(error.to_string()))
 }
 
-pub(super) fn opencode_config(
-    command: &str,
-    tool_url: &str,
-    role: &str,
+/// The agent body of the preflight canary. The canary runs the same `alfred`
+/// agent a seat runs, with a fixed role.
+const CANARY_ROLE: &str = "Ejecuta el comando de prueba que te pidan, sin comentarios.";
+
+/// Which run an OpenCode configuration is for. The preflight canary and a seat
+/// render through [`opencode_config`], so the canary proves the permission block
+/// and the plugin key a seat gets. They differ only in the provider and the MCP
+/// server.
+pub(crate) enum OpenCodeRun<'a> {
+    /// The preflight canary: a local provider answers, no MCP server.
+    Canary { provider_url: &'a str },
+    /// A seat: the operator's own model, the MCP server and the role.
+    Seat {
+        command: &'a str,
+        tool_url: &'a str,
+        role: &'a str,
+    },
+}
+
+/// The OpenCode configuration of one run. Edit and fetch are always denied. Shell
+/// is allowed only with the UAC plugin: the plugin is then the gate, and a native
+/// denial would make an approved command never run (probe on opencode 2.2.6,
+/// 2026-11-08, RFC alfred-cli-engine §8). Without a plugin, shell stays denied.
+/// `plugin` is the plugin directory to load, when the run has one.
+pub(crate) fn opencode_config(
+    plugin: Option<&Path>,
+    run: OpenCodeRun<'_>,
 ) -> Result<Vec<u8>, LaunchError> {
-    serde_json::to_vec_pretty(&json!({
+    let (role, provider_url, mcp) = match run {
+        OpenCodeRun::Canary { provider_url } => (CANARY_ROLE, Some(provider_url), None),
+        OpenCodeRun::Seat {
+            command,
+            tool_url,
+            role,
+        } => (role, None, Some((command, tool_url))),
+    };
+    let shell = if plugin.is_some() { "allow" } else { "deny" };
+    let mut body = json!({
         "$schema": "https://opencode.ai/config.json",
-        "agent": { "alfred": { "prompt": role } },
-        "mcp": {
-            "servers": {
-                "hn-core": {
-                    "type": "local",
-                    "command": [command],
-                    "environment": { "HN_TOOL_URL": tool_url }
+        "autoupdate": false,
+        "share": "disabled",
+        "permission": { "bash": shell, "edit": "deny", "webfetch": "deny" },
+        "agent": { "alfred": { "prompt": role } }
+    });
+    if let Some(plugin) = plugin {
+        // The CLI resolves a relative plugin path against its own directory and
+        // rejects Windows verbatim paths (`\\?\`), so it gets a plain absolute one.
+        let plugin = std::path::absolute(plugin).unwrap_or_else(|_| plugin.to_path_buf());
+        body["plugin"] = json!([plugin.to_string_lossy()]);
+    }
+    if let Some(base_url) = provider_url {
+        body["model"] = json!("mock/mock");
+        body["provider"] = json!({
+            "mock": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Mock",
+                "options": { "baseURL": base_url, "apiKey": "dummy" },
+                "models": {
+                    "mock": { "name": "Mock", "tool_call": true, "limit": { "context": 200000, "output": 8192 } }
                 }
             }
-        },
-        "permissions": { "shell": "deny", "edit": "deny" }
-    }))
-    .map_err(|error| LaunchError::Encode(error.to_string()))
+        });
+    }
+    if let Some((command, tool_url)) = mcp {
+        body["mcp"] = json!({
+            (MCP_SERVER): {
+                "type": "local",
+                "command": [command],
+                "environment": { "HN_TOOL_URL": tool_url }
+            }
+        });
+    }
+    serde_json::to_vec_pretty(&body).map_err(|error| LaunchError::Encode(error.to_string()))
 }
 
 pub(super) fn codex_config(

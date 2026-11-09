@@ -39,8 +39,18 @@ pub struct CatalogAgent {
     pub name: String,
     #[serde(default)]
     pub available: bool,
+    /// An older host does not send this; it was always startable then.
+    #[serde(default = "startable_by_default")]
+    pub runnable: bool,
+    /// What the host says is wrong, in Spanish. Never a path.
+    #[serde(default)]
+    pub problem: Option<String>,
     #[serde(default)]
     pub label: Option<String>,
+}
+
+fn startable_by_default() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize)]

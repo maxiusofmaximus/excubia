@@ -30,25 +30,25 @@ async function loadCatalog() {
     const agents = await invoke("agent_catalog");
     for (const agent of agents) {
       const label = document.createElement("label");
-      label.className = agent.available ? "nc-agent" : "nc-agent is-unavailable";
+      label.className = agent.runnable ? "nc-agent" : "nc-agent is-unavailable";
       const radio = document.createElement("input");
       radio.type = "radio";
       radio.name = "nc-agent-option";
       radio.value = agent.name;
-      radio.disabled = !agent.available;
+      radio.disabled = !agent.runnable;
       radio.addEventListener("change", updateSubmit);
       const name = document.createElement("span");
       name.className = "nc-agent-name";
       name.textContent = agent.label || agent.name;
       const note = document.createElement("span");
       note.className = "nc-agent-note";
-      note.textContent = agent.available
+      note.textContent = agent.runnable
         ? "disponible"
-        : "no instalado en este equipo";
+        : agent.problem || "no se puede usar en este equipo";
       label.append(radio, name, note);
       list.append(label);
     }
-    const first = agents.find((agent) => agent.available);
+    const first = agents.find((agent) => agent.runnable);
     if (first) {
       const radio = list.querySelector(
         `input[value="${CSS.escape(first.name)}"]`,

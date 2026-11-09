@@ -7,8 +7,9 @@
 use std::path::Path;
 
 use anyhow::{anyhow, Context, Result};
-use hn_core_api::AgentCatalog;
+use hn_core_api::{AgentCatalog, EngineListing};
 use hn_core_detect::AgentKind;
+use hn_core_seat::{probe, shipped, CliId, CliProfile};
 
 /// Agents the nucleus's default catalogue offers. The default file also
 /// carries a display label per entry.
@@ -60,6 +61,42 @@ pub fn default_catalog() -> String {
         }
     }
     text
+}
+
+/// The shipped CLI profiles, with the OpenCode command the catalogue names. On Windows the PATH
+/// holds only a `.CMD` shim that `Command` cannot start, so the operator points `agents.toml` at the `.exe`.
+pub fn configured_profiles(catalog: &AgentCatalog) -> Vec<CliProfile> {
+    let mut profiles = shipped();
+    if let Some(spec) = catalog.resolve("opencode") {
+        for profile in profiles
+            .iter_mut()
+            .filter(|profile| matches!(profile.id, CliId::OpenCode))
+        {
+            profile.command.clone_from(&spec.command);
+        }
+    }
+    profiles
+}
+
+/// The CLI engines that are `Ready` on this PC: installed, at least the minimum version, and their
+/// gate proven. Read-only: Alfred cannot switch to them yet.
+pub fn opencode_listing(profiles: &[CliProfile], gate_proven: bool) -> Vec<EngineListing> {
+    if !gate_proven {
+        return Vec::new();
+    }
+    let Some(profile) = profiles
+        .iter()
+        .find(|profile| matches!(profile.id, CliId::OpenCode))
+    else {
+        return Vec::new();
+    };
+    match probe(profile) {
+        Some(version) if version >= profile.min_version => vec![EngineListing {
+            name: "opencode".to_owned(),
+            version: version.to_string(),
+        }],
+        _ => Vec::new(),
+    }
 }
 
 /// The label the default catalogue gives an agent.
@@ -121,5 +158,30 @@ mod tests {
         let catalog = load_or_create(&dir).expect("keep edits");
         assert!(!catalog.names().iter().any(|name| name == "commandcode"));
         assert!(catalog.names().iter().any(|name| name == "mine"));
+    }
+
+    #[test]
+    fn the_catalogue_command_replaces_the_opencode_profile_command() {
+        let catalog = AgentCatalog::from_toml(
+            "[agents.opencode]\ncommand = \"C:/tools/opencode.exe\"\nargs = []\nlabel = \"opencode\"\n",
+        )
+        .expect("catalogue");
+        let profiles = configured_profiles(&catalog);
+        let opencode = profiles
+            .iter()
+            .find(|profile| matches!(profile.id, CliId::OpenCode))
+            .expect("opencode profile");
+        assert_eq!(opencode.command, "C:/tools/opencode.exe");
+        let claude = profiles
+            .iter()
+            .find(|profile| matches!(profile.id, CliId::Claude))
+            .expect("claude profile");
+        assert_eq!(claude.command, "claude");
+    }
+
+    #[test]
+    fn no_engine_is_listed_without_a_proven_gate() {
+        let profiles = shipped();
+        assert!(opencode_listing(&profiles, false).is_empty());
     }
 }

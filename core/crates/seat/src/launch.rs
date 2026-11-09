@@ -16,7 +16,8 @@ mod render;
 mod tests;
 
 pub use render::claude_settings;
-use render::{claude_mcp, codex_config, opencode_config, test_mcp};
+pub(crate) use render::{opencode_config, OpenCodeRun};
+use render::{claude_mcp, codex_config, test_mcp};
 
 pub struct LaunchInput<'a> {
     pub profile: &'a CliProfile,
@@ -35,6 +36,9 @@ pub struct LaunchInput<'a> {
     pub hook_token: &'a str,
     /// The `excubia-uac-hook` binary the CLI runs before each shell command.
     pub hook_command: &'a Path,
+    /// The OpenCode plugin directory that gates its shell commands. Only the
+    /// OpenCode configuration renders it; the seat stays non-blocking until F-D.
+    pub plugin_dir: Option<&'a Path>,
     /// Folders that hold this turn's attachments. Only the restricted Claude CLI
     /// needs them: it reads files only under its working directory.
     pub attachment_dirs: &'a [PathBuf],
@@ -182,10 +186,12 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
         PromptDelivery::AgentConfig => {
             let config_dir = input.run_dir.join("opencode");
             let config = config_dir.join("opencode.json");
-            files.push((
-                config,
-                opencode_config(&mcp_command, input.tool_url, input.role)?,
-            ));
+            let run = OpenCodeRun::Seat {
+                command: &mcp_command,
+                tool_url: input.tool_url,
+                role: input.role,
+            };
+            files.push((config, opencode_config(input.plugin_dir, run)?));
             env.extend([
                 (
                     "OPENCODE_CONFIG_DIR".to_string(),
@@ -203,7 +209,13 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
                 "alfred".to_string(),
             ]);
             if input.profile.mode == TurnMode::Session {
-                args.extend(["--session".to_string(), input.session_id.to_string()]);
+                // OpenCode only takes session ids that start with `ses` (it creates
+                // the session on first use). The seat's id is the suffix, so an
+                // agent keeps the same session across turns.
+                args.extend([
+                    "--session".to_string(),
+                    format!("ses_{}", input.session_id),
+                ]);
             }
         }
         PromptDelivery::TestStdin => {

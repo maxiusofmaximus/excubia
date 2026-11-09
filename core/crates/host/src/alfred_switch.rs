@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Result};
 use async_trait::async_trait;
-use hn_core_api::{AlfredBackend, BackendStatus, Requested};
+use hn_core_api::{AlfredBackend, BackendStatus, EngineListing, Requested};
 use tokio::sync::Mutex as AsyncMutex;
 
 use crate::pairing_notice::PairingNotice;
@@ -75,6 +75,8 @@ pub struct Switch {
     /// Held while a request decides and starts its change, so two requests never start two.
     gate: AsyncMutex<()>,
     job: Arc<Mutex<Job>>,
+    /// The CLI engines that are `Ready` on this PC, fixed at startup. Listed, never selectable yet.
+    engines: Vec<EngineListing>,
 }
 
 impl Switch {
@@ -88,7 +90,13 @@ impl Switch {
                 since: now(),
                 ..Job::default()
             })),
+            engines: Vec::new(),
         }
+    }
+
+    pub fn with_engines(mut self, engines: Vec<EngineListing>) -> Self {
+        self.engines = engines;
+        self
     }
 
     fn lock_job(&self) -> MutexGuard<'_, Job> {
@@ -164,6 +172,7 @@ fn describe(job: &Job, model: State, alfred_on: bool, voice_on: bool) -> Backend
         since: job.since,
         // A local start takes the voice down first, so it counts from the moment it runs.
         voice_suspended: voice_on || job.running == Some(Target::Local),
+        engines: Vec::new(),
     }
 }
 
@@ -182,7 +191,9 @@ impl AlfredBackend for Switch {
         })
         .await
         .unwrap_or((State::Stopped, false, false));
-        describe(&self.lock_job(), model, alfred_on, voice_on)
+        let mut status = describe(&self.lock_job(), model, alfred_on, voice_on);
+        status.engines.clone_from(&self.engines);
+        status
     }
 
     async fn request(&self, backend: &str) -> Result<Requested, String> {

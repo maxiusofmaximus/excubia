@@ -57,6 +57,17 @@ fn the_matrix_classifies_every_route() {
         classify("GET", "/v1/catalog").unwrap().permission,
         Some(Permission::ReadState)
     );
+    // Repointing an agent is the owner's decision: APPROVE, never an agent's RESPOND.
+    assert_eq!(
+        classify("POST", "/v1/catalog/codex/fix")
+            .unwrap()
+            .permission,
+        Some(Permission::Approve)
+    );
+    assert!(
+        classify("POST", "/v1/catalog/codex").is_err(),
+        "no bare catalogue write"
+    );
     assert_eq!(
         classify("GET", "/v1/roles").unwrap().permission,
         Some(Permission::ReadState)

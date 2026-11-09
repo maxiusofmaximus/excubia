@@ -71,6 +71,7 @@ pub(super) async fn run_turn(
         hook_url: &worker.hook_url,
         hook_token: &hook_token,
         hook_command: &worker.hook_command,
+        plugin_dir: worker.plugin_dir.as_deref(),
         attachment_dirs: &attachment_dirs,
     };
     let plan = match launch::prepare(&input) {

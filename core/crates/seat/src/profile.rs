@@ -68,7 +68,7 @@ pub enum Isolation {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HookSupport {
-    /// A blocking pre-tool hook exists (CORE8 will install it).
+    /// A blocking pre-tool hook exists and the host has proven it blocks.
     Blocking,
     /// No blocking hook verified; UAC cannot rely on this CLI.
     None,
@@ -206,7 +206,9 @@ pub fn shipped() -> Vec<CliProfile> {
             prompt: PromptDelivery::AgentConfig,
             mcp: McpDeclaration::OpenCodeJson,
             isolation: Isolation::OpenCodeConfigDir,
-            hook: HookSupport::None,
+            // Proven on opencode 2.2.6 by `tests/opencode_uac.rs` (approve runs once,
+            // deny and TTL do not run). The seat still launches only with a Safe canary.
+            hook: HookSupport::Blocking,
             mode: TurnMode::Session,
         },
     ]
@@ -324,7 +326,7 @@ mod tests {
         assert_eq!(opencode.prompt, PromptDelivery::AgentConfig);
         assert_eq!(opencode.mcp, McpDeclaration::OpenCodeJson);
         assert_eq!(opencode.isolation, Isolation::OpenCodeConfigDir);
-        assert_eq!(opencode.hook, HookSupport::None);
+        assert_eq!(opencode.hook, HookSupport::Blocking);
         assert_eq!(opencode.mode, TurnMode::Session);
     }
 

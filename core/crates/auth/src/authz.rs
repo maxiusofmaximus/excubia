@@ -62,6 +62,10 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         (["", "v1", "devices", _id, action], "POST") => Some(*action),
         _ => None,
     };
+    let catalog_fix = matches!(
+        (segments.as_slice(), method.as_str()),
+        (["", "v1", "catalog", _name, "fix"], "POST")
+    );
     if let Some(rule) = chat_rule(method.as_str(), &segments) {
         return Ok(rule);
     }
@@ -123,6 +127,8 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         // (a button and a confirmation on the phone), never an agent's RESPOND.
         ("GET", "/v1/alfred/backend") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("POST", "/v1/alfred/backend") => Ok(rule(Permission::Approve, Budget::Write)),
+        // Repointing an agent's command on the host is the owner's decision, like the engine switch.
+        _ if catalog_fix => Ok(rule(Permission::Approve, Budget::Write)),
         // A device names its own push endpoint: a write to its own record only.
         ("POST", "/v1/me/push-endpoint") => Ok(rule(Permission::ReadState, Budget::Write)),
         _ if matches!(device_action, Some("revoke" | "grant")) => {

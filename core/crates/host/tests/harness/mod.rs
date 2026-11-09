@@ -41,7 +41,7 @@ use hn_core_host::team::{TeamConfig, TeamService};
 use hn_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
 use hn_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
 use hn_core_pty::PtySize;
-use hn_core_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
+use hn_core_seat::{shipped, test_profile, CliId, CliProfile, SeatConfig, SeatService, TurnEnv};
 use hn_core_state::StateStore;
 use hn_core_test_dir::TestDir;
 use hn_core_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
@@ -53,6 +53,63 @@ use hn_core_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
 fn alfred_turn_env(data_dir: &Path) -> Arc<dyn Fn() -> TurnEnv + Send + Sync> {
     let data_dir = data_dir.to_path_buf();
     Arc::new(move || hn_core_host::alfred_backend::turn_env(&data_dir))
+}
+
+/// The real OpenCode of the test: `HN_OPENCODE_BIN` names it, the shipped command otherwise.
+pub fn real_opencode() -> CliProfile {
+    let mut profile = shipped()
+        .into_iter()
+        .find(|profile| profile.id == CliId::OpenCode)
+        .expect("the shipped OpenCode profile");
+    if let Ok(binary) = std::env::var("HN_OPENCODE_BIN") {
+        if !binary.trim().is_empty() {
+            profile.command = binary;
+        }
+    }
+    profile
+}
+
+/// The turn environment of the real OpenCode: the local provider answers the turn,
+/// and the plugin waits `ttl_seconds` for the operator.
+fn opencode_turn_env(
+    data_dir: &Path,
+    provider_url: &str,
+    ttl_seconds: u64,
+) -> Arc<dyn Fn() -> TurnEnv + Send + Sync> {
+    let data_dir = data_dir.to_path_buf();
+    let provider_url = provider_url.to_string();
+    Arc::new(move || {
+        let mut env = hn_core_host::alfred_backend::turn_env(&data_dir);
+        env.set.push((
+            "OPENCODE_CONFIG_CONTENT".to_string(),
+            opencode_provider(&provider_url),
+        ));
+        env.set.push((
+            "HN_UAC_TTL_SECONDS".to_string(),
+            ttl_seconds.to_string(),
+        ));
+        env.set
+            .push(("HN_UAC_POLL_MS".to_string(), "250".to_string()));
+        env
+    })
+}
+
+/// The inline OpenCode configuration that points its model at the local provider.
+fn opencode_provider(provider_url: &str) -> String {
+    serde_json::json!({
+        "model": "mock/mock",
+        "provider": {
+            "mock": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Mock",
+                "options": { "baseURL": provider_url, "apiKey": "dummy" },
+                "models": {
+                    "mock": { "name": "Mock", "tool_call": true, "limit": { "context": 200000, "output": 8192 } }
+                }
+            }
+        }
+    })
+    .to_string()
 }
 
 /// How many times the seat reported a quota-exhausted turn to its test host.
@@ -215,6 +272,17 @@ pub enum SeatKind {
         delegation_timeout: Duration,
         /// Where the UAC plugin lives; the seats are verified against it.
         uac_plugin: Option<PathBuf>,
+    },
+    /// The real OpenCode with the UAC plugin: its turn asks `provider_url` for a
+    /// shell command, and the plugin decides whether that command runs.
+    OpenCode {
+        turn_timeout: Duration,
+        /// The plugin the seat loads.
+        plugin_dir: PathBuf,
+        /// The local provider of the turn (a `CanaryProvider`): no quota is spent.
+        provider_url: String,
+        /// How long the plugin waits for the operator, in seconds.
+        approval_ttl_seconds: u64,
     },
     /// A seat with no chat turn, only an MCP endpoint.
     Tools,
@@ -410,8 +478,30 @@ impl TestHost {
         let tool_url = format!("http://{internal_addr}/internal/chat/tools");
         let cli = Arc::new(docs::FakeCli::default());
         let craft = Arc::new(docs::craft(&data_dir, apps, Arc::clone(&cli)));
-        let seat_service = match seat {
+        let seat_service = match seat.clone() {
             SeatKind::Fake | SeatKind::Silent | SeatKind::Tools => None,
+            SeatKind::OpenCode {
+                turn_timeout,
+                plugin_dir,
+                provider_url,
+                approval_ttl_seconds,
+            } => Some(
+                SeatService::start(SeatConfig {
+                    data_dir: data_dir.clone(),
+                    chat: Arc::clone(&chat),
+                    mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_excubia-mcp")),
+                    tool_url: tool_url.clone(),
+                    hook_url: format!("http://{addr}"),
+                    hook_command: hook_command(),
+                    plugin_dir: Some(plugin_dir),
+                    profiles: vec![real_opencode()],
+                    queue_capacity: 1,
+                    turn_timeout,
+                    turn_env: opencode_turn_env(&data_dir, &provider_url, approval_ttl_seconds),
+                    on_quota_exhausted: quota_counter(),
+                })
+                .expect("seat service"),
+            ),
             SeatKind::Cli { turn_timeout } => Some(
                 SeatService::start(SeatConfig {
                     data_dir: data_dir.clone(),
@@ -420,6 +510,7 @@ impl TestHost {
                     tool_url: tool_url.clone(),
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),
+                    plugin_dir: None,
                     profiles: vec![test_profile(env!("CARGO_BIN_EXE_fake-cli"))],
                     queue_capacity: 1,
                     turn_timeout,
@@ -436,6 +527,7 @@ impl TestHost {
                     tool_url: tool_url.clone(),
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),
+                    plugin_dir: None,
                     profiles: vec![test_profile("hn-no-such-cli-anywhere")],
                     queue_capacity: 1,
                     turn_timeout: Duration::from_secs(5),
@@ -452,6 +544,7 @@ impl TestHost {
                     tool_url: tool_url.clone(),
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),
+                    plugin_dir: None,
                     profiles: vec![test_profile(env!("CARGO_BIN_EXE_fake-cli"))],
                     queue_capacity: 8,
                     turn_timeout,
@@ -488,7 +581,7 @@ impl TestHost {
             SeatKind::Fake => Arc::new(FakeSeat::replying(Arc::clone(&chat))),
             SeatKind::Silent => Arc::new(FakeSeat::silent()),
             SeatKind::Tools => Arc::new(ToolSeat),
-            SeatKind::Cli { .. } | SeatKind::CliMissing => {
+            SeatKind::Cli { .. } | SeatKind::CliMissing | SeatKind::OpenCode { .. } => {
                 let service = seat_service.expect("the CLI seat needs a service");
                 Arc::clone(&service) as Arc<dyn ChatSeat>
             }

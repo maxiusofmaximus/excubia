@@ -67,7 +67,9 @@ mod team_tools;
 mod term_size;
 pub mod tls_slots;
 
-pub use agents::{default_catalog, load_or_create as load_agents};
+pub use agents::{
+    configured_profiles, default_catalog, load_or_create as load_agents, opencode_listing,
+};
 pub use alerts::spawn as spawn_alerts;
 pub use hook_token::load_or_create as load_hook_token;
 

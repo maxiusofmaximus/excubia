@@ -92,7 +92,7 @@ export async function refreshHome() {
     setBootstrap(chat.home);
     chat.loadFailure = null;
     filters.scheduleCounts(0);
-    if (offline()) chat.cacheOnly = true;
+    chat.cacheOnly = offline();
     for (const row of [...chat.home.conversations, ...chat.home.archived]) {
       syncProgress(chat.progress, row);
     }
@@ -237,7 +237,8 @@ export function chatOnEvent(event) {
 export function chatOnConnection() {
   renderChat();
   if (connection().kind === "connected") {
-    if (!chat.home) refreshHome();
+    // A home loaded from the cache must be replaced once the PC answers.
+    if (!chat.home || chat.cacheOnly) refreshHome();
     if (chat.conversation) scheduleRefresh(0);
   }
 }

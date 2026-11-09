@@ -27,6 +27,7 @@ fn input<'a>(
         hook_url: "http://127.0.0.1:9",
         hook_token: "test-hook-token",
         hook_command: Path::new("C:\\bin\\excubia-uac-hook.exe"),
+        plugin_dir: None,
         attachment_dirs: &[],
     }
 }
@@ -205,14 +206,52 @@ fn opencode_plan_sets_agent_prompt_and_session() {
     let profile = crate::profile::shipped().remove(2);
     let root = PathBuf::from("run-dir");
     let plan = prepare(&input(&profile, &root, "role", "prompt")).expect("plan");
-    assert!(plan.args.iter().any(|arg| arg == "--session"));
+    // OpenCode takes only `ses`-prefixed session ids: the seat's id is the suffix.
+    let session = plan
+        .args
+        .iter()
+        .position(|arg| arg == "--session")
+        .expect("--session");
+    assert_eq!(plan.args[session + 1], "ses_alfred");
     let config: serde_json::Value =
         serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
     assert_eq!(config["agent"]["alfred"]["prompt"], "role");
     assert_eq!(
-        config["mcp"]["servers"]["hn-core"]["environment"]["HN_TOOL_URL"],
+        config["mcp"]["hn-core"]["environment"]["HN_TOOL_URL"],
         "http://127.0.0.1:9/internal/chat/tools"
     );
+    // Native shell and edit are refused. No plugin directory means no plugin key.
+    assert_eq!(config["permission"]["bash"], "deny");
+    assert_eq!(config["permission"]["edit"], "deny");
+    assert!(config.get("plugin").is_none());
+}
+
+#[test]
+fn opencode_plan_registers_the_plugin_by_absolute_path() {
+    let profile = crate::profile::shipped().remove(2);
+    let root = PathBuf::from("run-dir");
+    let plugin = PathBuf::from("tooling").join("opencode-uac-plugin");
+    let mut launch = input(&profile, &root, "role", "prompt");
+    launch.plugin_dir = Some(&plugin);
+    let plan = prepare(&launch).expect("plan");
+    let config: serde_json::Value =
+        serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
+    let registered = config["plugin"][0].as_str().expect("plugin path");
+    assert!(Path::new(registered).is_absolute(), "{registered}");
+    assert!(registered.ends_with("opencode-uac-plugin"), "{registered}");
+    // With the plugin, shell runs and the plugin decides; edit and fetch stay denied.
+    assert_eq!(config["permission"]["bash"], "allow");
+    assert_eq!(config["permission"]["edit"], "deny");
+}
+
+#[test]
+fn opencode_without_a_plugin_keeps_shell_denied() {
+    let profile = crate::profile::shipped().remove(2);
+    let root = PathBuf::from("run-dir");
+    let plan = prepare(&input(&profile, &root, "role", "prompt")).expect("plan");
+    let config: serde_json::Value =
+        serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
+    assert_eq!(config["permission"]["bash"], "deny");
 }
 
 #[test]

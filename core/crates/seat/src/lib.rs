@@ -40,7 +40,7 @@ pub use launch::{claude_settings, prepare_resident, LaunchError, LaunchPlan, Res
 pub use mcp::run_stdio;
 pub use preflight::{
     canary_plan, classify as classify_canary, run_canary, CanaryOutcome, CanaryPlan, UacState,
-    BLOCKED_MARKER, CANARY_COMMAND, CANARY_MARKER, LOAD_FAILURE_MARKER,
+    canary_command, BLOCKED_MARKER, CANARY_MARKER, LOAD_FAILURE_MARKER,
 };
 pub use profile::{
     probe, select, shipped, test_profile, CliId, CliProfile, HookSupport, Isolation,

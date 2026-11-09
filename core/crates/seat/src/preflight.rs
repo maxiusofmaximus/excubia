@@ -19,6 +19,7 @@ use tokio::process::Command;
 use tokio::time::timeout;
 
 use crate::canary_provider::CanaryProvider;
+use crate::launch::{opencode_config, OpenCodeRun};
 use crate::profile::{CliId, CliProfile};
 
 /// The line OpenCode writes when a plugin does not load. The plugin cannot
@@ -26,11 +27,17 @@ use crate::profile::{CliId, CliProfile};
 pub const LOAD_FAILURE_MARKER: &str = "failed to load plugin";
 /// The prefix of the denial the plugin throws when it blocks a tool.
 pub const BLOCKED_MARKER: &str = "[UAC]";
-/// The canary command the plugin must block. It leaves a file behind when it
-/// runs, so the proof is not only a log line.
-pub const CANARY_COMMAND: &str = "echo hn-uac-canary > hn-uac-canary.txt";
-/// The file [`CANARY_COMMAND`] would create.
+/// The file the canary command writes when it runs. The name is relative to the
+/// canary's work directory; the command gets the absolute path.
 pub const CANARY_MARKER: &str = "hn-uac-canary.txt";
+
+/// The canary command the plugin must block. It leaves `marker` behind when it
+/// runs, so the proof is not only a log line. The path must be absolute: the CLI
+/// runs shell commands in its own project directory, not in the spawn's, so a
+/// relative marker lands elsewhere and a "no marker" verdict proves nothing.
+pub fn canary_command(marker: &Path) -> String {
+    format!("echo hn-uac-canary > \"{}\"", marker.to_string_lossy())
+}
 
 /// The verdict of the preflight.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -180,7 +187,10 @@ async fn opencode_canary(
     work_dir: &Path,
     cache_dir: &Path,
 ) -> CanaryPlan {
-    let provider = match CanaryProvider::start(CANARY_COMMAND).await {
+    let marker = std::path::absolute(work_dir.join(CANARY_MARKER))
+        .unwrap_or_else(|_| work_dir.join(CANARY_MARKER));
+    let command = canary_command(&marker);
+    let provider = match CanaryProvider::start(&command).await {
         Ok(provider) => Some(provider),
         Err(error) => {
             eprintln!("seat: the UAC canary provider did not start: {error}");
@@ -192,67 +202,51 @@ async fn opencode_canary(
         .map(CanaryProvider::base_url)
         .unwrap_or("http://127.0.0.1:9/v1")
         .to_string();
-    let config = work_dir.join("opencode.json");
-    write_config(&config, plugin_dir, &base_url);
-    let env = canary_env(&config, cache_dir);
+    // The seat's own config directory, so the canary reads what a seat reads.
+    let config_dir = work_dir.join("opencode");
+    write_config(&config_dir, plugin_dir, &base_url);
+    let env = canary_env(&config_dir, cache_dir);
     CanaryPlan {
         program: profile.command.clone(),
+        // The working directory is the spawn's `current_dir`: opencode 2.2.6 has
+        // no `--dir` flag, and it takes `--log-level` in lowercase only.
         args: vec![
             "run".to_string(),
+            "--standalone".to_string(),
             "--print-logs".to_string(),
             "--log-level".to_string(),
-            "INFO".to_string(),
+            "info".to_string(),
             "--format".to_string(),
             "json".to_string(),
             "--model".to_string(),
             "mock/mock".to_string(),
             "--agent".to_string(),
-            "build".to_string(),
-            "--dir".to_string(),
-            path(work_dir),
-            format!("Ejecuta este comando de prueba: {CANARY_COMMAND}"),
+            "alfred".to_string(),
+            format!("Ejecuta este comando de prueba: {command}"),
         ],
         env,
         cwd: work_dir.to_path_buf(),
-        marker: work_dir.join(CANARY_MARKER),
+        marker,
         provider,
     }
 }
 
-/// The isolated OpenCode configuration of the canary: only the plugin and the
-/// local provider, so it never reads the operator's settings or quota.
-fn write_config(config: &Path, plugin_dir: &Path, base_url: &str) {
-    // The CLI resolves a relative plugin path against its own directory and
-    // rejects Windows verbatim paths (`\\?\`), so the canary hands it a plain
-    // absolute one.
-    let plugin = std::path::absolute(plugin_dir).unwrap_or_else(|_| plugin_dir.to_path_buf());
-    let body = serde_json::json!({
-        "$schema": "https://opencode.ai/config.json",
-        "autoupdate": false,
-        "share": "disabled",
-        "plugin": [plugin.to_string_lossy()],
-        "permission": { "bash": "allow", "edit": "allow", "read": "allow", "webfetch": "allow" },
-        "provider": {
-            "mock": {
-                "npm": "@ai-sdk/openai-compatible",
-                "name": "Mock",
-                "options": { "baseURL": base_url, "apiKey": "dummy" },
-                "models": {
-                    "mock": {
-                        "name": "Mock",
-                        "tool_call": true,
-                        "limit": { "context": 200000, "output": 8192 }
-                    }
-                }
-            }
-        },
-        "model": "mock/mock"
-    });
-    match serde_json::to_vec_pretty(&body) {
+/// Write the canary's configuration into `config_dir`. The canary and a seat
+/// render through the same generator, so the canary proves the seat's blocking
+/// setup. A write that fails leaves no configuration: the plugin does not load
+/// and the canary is `unsafe`.
+fn write_config(config_dir: &Path, plugin_dir: &Path, base_url: &str) {
+    let _ = std::fs::create_dir_all(config_dir);
+    let run = OpenCodeRun::Canary {
+        provider_url: base_url,
+    };
+    match opencode_config(Some(plugin_dir), run) {
         Ok(bytes) => {
-            let _ = std::fs::write(config, bytes);
+            if let Err(error) = std::fs::write(config_dir.join("opencode.json"), bytes) {
+                eprintln!("seat: the UAC canary config was not written: {error}");
+            }
         }
-        Err(error) => eprintln!("seat: the UAC canary config was not written: {error}"),
+        Err(error) => eprintln!("seat: the UAC canary config was not encoded: {error}"),
     }
 }
 
@@ -260,11 +254,11 @@ fn write_config(config: &Path, plugin_dir: &Path, base_url: &str) {
 /// host: OpenCode installs its plugin SDK in `xdg/config/opencode` on first
 /// use, so only the first canary pays for it (or nothing, when the host
 /// preinstalled that tree with pnpm).
-fn canary_env(config: &Path, cache_dir: &Path) -> Vec<(String, String)> {
+fn canary_env(config_dir: &Path, cache_dir: &Path) -> Vec<(String, String)> {
     let home = cache_dir.join("home");
     let _ = std::fs::create_dir_all(&home);
     let values = [
-        ("OPENCODE_CONFIG", config.to_path_buf()),
+        ("OPENCODE_CONFIG_DIR", config_dir.to_path_buf()),
         ("OPENCODE_DISABLE_PROJECT_CONFIG", PathBuf::from("1")),
         ("HOME", home.clone()),
         ("USERPROFILE", home),
@@ -333,16 +327,50 @@ mod tests {
     #[test]
     fn the_canary_config_uses_a_plain_absolute_plugin_path() {
         let dir = TestDir::new("canary-config");
-        let config = dir.join("opencode.json");
+        let config_dir = dir.join("opencode");
 
-        write_config(&config, Path::new("tooling"), "http://127.0.0.1:9/v1");
+        write_config(&config_dir, Path::new("tooling"), "http://127.0.0.1:9/v1");
 
-        let body: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(&config).expect("config")).expect("json");
+        let body: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(config_dir.join("opencode.json")).expect("config"),
+        )
+        .expect("json");
         let plugin = body["plugin"][0].as_str().expect("plugin path");
         assert!(Path::new(plugin).is_absolute(), "{plugin}");
         assert!(!plugin.starts_with(r"\\?\"), "verbatim path: {plugin}");
         assert_eq!(body["provider"]["mock"]["npm"], "@ai-sdk/openai-compatible");
-        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_canary_and_a_seat_share_the_permission_block_and_the_plugin_key() {
+        let canary = opencode_config(
+            Some(Path::new("tooling")),
+            OpenCodeRun::Canary {
+                provider_url: "http://127.0.0.1:9/v1",
+            },
+        )
+        .expect("canary");
+        let seat = opencode_config(
+            Some(Path::new("tooling")),
+            OpenCodeRun::Seat {
+                command: "excubia-mcp",
+                tool_url: "http://127.0.0.1:9/internal/chat/tools",
+                role: "role",
+            },
+        )
+        .expect("seat");
+        let canary: serde_json::Value = serde_json::from_slice(&canary).expect("json");
+        let seat: serde_json::Value = serde_json::from_slice(&seat).expect("json");
+
+        assert_eq!(canary["permission"], seat["permission"]);
+        assert_eq!(canary["plugin"], seat["plugin"]);
+        assert_eq!(
+            seat["permission"],
+            // With the plugin registered, shell runs and the plugin is the gate.
+            serde_json::json!({ "bash": "allow", "edit": "deny", "webfetch": "deny" })
+        );
+        assert!(canary.get("mcp").is_none(), "the canary has no MCP server");
+        assert_eq!(seat["mcp"]["hn-core"]["type"], "local");
+        assert_eq!(seat["agent"]["alfred"]["prompt"], "role");
     }
 }

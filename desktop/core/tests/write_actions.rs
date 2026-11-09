@@ -171,6 +171,17 @@ async fn the_catalogue_is_a_signed_get_with_names_and_availability() {
 }
 
 #[tokio::test]
+async fn the_catalogue_says_what_windows_can_run_and_why_not() {
+    let body = r#"{"ok":true,"agents":[{"name":"codex","available":true,"runnable":false,"problem":"Windows no puede ejecutarlo tal como está instalado."},{"name":"claude","available":true,"runnable":true}]}"#;
+    let (base_url, _) = spawn_server(vec![(200, body)]).await;
+
+    let agents = client(&base_url).catalog().await.unwrap();
+    assert!(!agents[0].runnable);
+    assert!(agents[0].problem.is_some());
+    assert!(agents[1].runnable);
+}
+
+#[tokio::test]
 async fn stop_is_a_signed_empty_post_and_a_second_one_is_pane_gone() {
     let (base_url, captured) = spawn_server(vec![(200, r#"{"ok":true,"pane_id":"w1:p1"}"#)]).await;
     client(&base_url).stop_agent("w1:p1").await.unwrap();

@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use harness::{FakeEngine, TestHost};
-use hn_core_api::AlfredBackend;
+use hn_core_api::{AlfredBackend, EngineListing};
 use hn_core_auth::Permission;
 use hn_core_chat::{ChatStore, ConversationFilter};
 use hn_core_host::alfred_backend;
@@ -322,4 +322,30 @@ async fn the_state_is_read_from_the_markers_after_a_restart() {
     let status = restarted.status().await.to_json();
     assert_eq!(status["state"], "claude", "{status}");
     assert_eq!(status["voice_suspended"], false);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_ready_cli_engine_is_listed_and_never_selected() {
+    let host = TestHost::start("alfred-backend-engines").await;
+    let engine = Arc::new(FakeEngine::default());
+    let notices = Arc::new(PairingNotice::new(&host.data_dir, Arc::clone(&host.chat)));
+    let switch = Switch::new(
+        host.data_dir.clone(),
+        notices,
+        Arc::clone(&engine) as Arc<dyn Engine>,
+    )
+    .with_engines(vec![EngineListing {
+        name: "opencode".to_owned(),
+        version: "2.2.6".to_owned(),
+    }]);
+
+    let status = switch.status().await.to_json();
+    assert_eq!(
+        status["engines"],
+        serde_json::json!([{ "name": "opencode", "version": "2.2.6" }])
+    );
+    assert_eq!(status["backend"], "claude");
+
+    // Listing is not switching: a request for an engine other than local or claude is refused.
+    assert!(switch.request("opencode").await.is_err());
 }

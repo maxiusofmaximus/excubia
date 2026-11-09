@@ -74,12 +74,42 @@ impl AgentSpec {
     /// exists, or a bare name found on `PATH` (with the Windows executable
     /// extensions when applicable). The resolved path is never returned.
     pub fn available(&self) -> bool {
-        resolves(
+        self.located().is_some()
+    }
+
+    /// The file the command resolves to here, if any. Private to the host's own checks.
+    fn located(&self) -> Option<PathBuf> {
+        locate(
             &self.command,
             std::env::var_os("PATH"),
             std::env::var_os("PATHEXT"),
         )
     }
+
+    /// True when the host can start the command as it stands. On Windows a file without an
+    /// extension (pnpm's `sh` script) is found but cannot be started, so it is not runnable.
+    pub fn runnable(&self) -> bool {
+        self.located().is_some_and(|file| runnable_file(&file))
+    }
+
+    /// Windows: the `.CMD` shim beside the extensionless script the command resolves to, the one
+    /// `cmd.exe /c` can run. None when the command is runnable or there is no shim to use.
+    pub fn cmd_shim(&self) -> Option<PathBuf> {
+        let file = self.located()?;
+        if runnable_file(&file) {
+            return None;
+        }
+        let mut shim = file.into_os_string();
+        shim.push(".CMD");
+        let shim = PathBuf::from(shim);
+        shim.is_file().then_some(shim)
+    }
+}
+
+/// Whether the host can start this file directly. On Windows only a file with an extension
+/// (`.exe`, `.cmd`, …) can be started. A `.exe` that is not a program is not caught here: the start fails.
+fn runnable_file(file: &Path) -> bool {
+    !cfg!(windows) || file.extension().is_some()
 }
 
 /// One catalogue entry as the API publishes it.
@@ -87,7 +117,30 @@ impl AgentSpec {
 pub struct CatalogEntry {
     pub name: String,
     pub label: Option<String>,
+    /// The command resolves on this machine.
     pub available: bool,
+    /// The host can start it as it stands.
+    pub runnable: bool,
+    /// `fix` can make it runnable (a `.CMD` shim beside it, Windows).
+    pub fixable: bool,
+}
+
+/// What `AgentCatalog::fix` did.
+#[derive(Debug, PartialEq, Eq)]
+pub enum FixOutcome {
+    /// The entry was already runnable; nothing was written.
+    AlreadyRunnable,
+    /// The entry now runs through `cmd.exe /c <shim>`; the backup is beside `agents.toml`.
+    Fixed,
+}
+
+#[derive(Debug)]
+pub enum FixError {
+    UnknownAgent,
+    /// Not runnable, and no `.CMD` shim beside the command to point at.
+    NotFixable,
+    /// Read, backup or write failed, or the new file would not parse. Nothing changed.
+    Write(String),
 }
 
 #[derive(Debug, Deserialize)]
@@ -199,8 +252,66 @@ impl AgentCatalog {
                 name: name.clone(),
                 label: spec.label.clone(),
                 available: spec.available(),
+                runnable: spec.runnable(),
+                fixable: spec.cmd_shim().is_some(),
             })
             .collect()
+    }
+
+    /// Point a non-runnable entry at its `.CMD` shim through `cmd.exe /c`. The file is backed up
+    /// beside itself first, and written only if the result still parses; the catalogue then reloads.
+    pub fn fix(&self, name: &str) -> Result<FixOutcome, FixError> {
+        self.reload_if_changed();
+        let spec = self.resolve(name).ok_or(FixError::UnknownAgent)?;
+        if spec.runnable() {
+            return Ok(FixOutcome::AlreadyRunnable);
+        }
+        let shim = spec.cmd_shim().ok_or(FixError::NotFixable)?;
+        let path = self
+            .source
+            .as_ref()
+            .ok_or_else(|| FixError::Write("the catalogue has no file".to_string()))?;
+        let text =
+            std::fs::read_to_string(path).map_err(|error| FixError::Write(error.to_string()))?;
+        let mut doc: toml_edit::DocumentMut = text
+            .parse()
+            .map_err(|error: toml_edit::TomlError| FixError::Write(error.to_string()))?;
+        let entry = doc
+            .get_mut("agents")
+            .and_then(|agents| agents.as_table_mut())
+            .and_then(|agents| agents.get_mut(name))
+            .and_then(|entry| entry.as_table_mut())
+            .ok_or_else(|| FixError::Write(format!("agent {name:?} is not a table")))?;
+        let mut args = toml_edit::Array::new();
+        args.push("/c");
+        args.push(shim.to_string_lossy().into_owned());
+        entry["command"] = toml_edit::value("cmd.exe");
+        entry["args"] = toml_edit::value(args);
+        let new_text = doc.to_string();
+        parse(&new_text).map_err(FixError::Write)?;
+
+        let stamp_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_secs());
+        let file_name = path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let backup = path.with_file_name(format!("{file_name}.bak-{stamp_secs}"));
+        std::fs::copy(path, &backup).map_err(|error| FixError::Write(error.to_string()))?;
+        let temporary = path.with_file_name(format!("{file_name}.tmp"));
+        std::fs::write(&temporary, &new_text)
+            .map_err(|error| FixError::Write(error.to_string()))?;
+        std::fs::rename(&temporary, path).map_err(|error| FixError::Write(error.to_string()))?;
+
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.agents = parse(&new_text).map_err(FixError::Write)?;
+        state.stamp = stamp_of(path);
+        state.error = None;
+        Ok(FixOutcome::Fixed)
     }
 
     /// One entry by name, if the catalogue has it.
@@ -248,25 +359,28 @@ fn stamp_of(path: &Path) -> Option<SystemTime> {
 
 /// Resolve a command the way the host would start it, without running it.
 /// `path` and `pathext` are the environment values, injectable for tests.
+#[cfg(test)]
 fn resolves(program: &str, path: Option<OsString>, pathext: Option<OsString>) -> bool {
+    locate(program, path, pathext).is_some()
+}
+
+/// The first existing file a command would refer to, in the order the host tries them.
+fn locate(program: &str, path: Option<OsString>, pathext: Option<OsString>) -> Option<PathBuf> {
     let program = program.trim();
     if program.is_empty() {
-        return false;
+        return None;
     }
     let path_like = program.contains('/') || program.contains('\\');
-    let candidate = Path::new(program);
     if path_like {
-        return candidates(candidate, &pathext)
-            .iter()
-            .any(|file| file.is_file());
+        return candidates(Path::new(program), &pathext)
+            .into_iter()
+            .find(|file| file.is_file());
     }
-    let Some(path_var) = path else {
-        return false;
-    };
-    std::env::split_paths(&path_var).any(|directory| {
+    let path_var = path?;
+    std::env::split_paths(&path_var).find_map(|directory| {
         candidates(&directory.join(program), &pathext)
-            .iter()
-            .any(|file| file.is_file())
+            .into_iter()
+            .find(|file| file.is_file())
     })
 }
 
@@ -440,5 +554,57 @@ env = { ANTHROPIC_BASE_URL = "http://127.0.0.1:8080", ANTHROPIC_AUTH_TOKEN = "st
         std::fs::write(&path, "[agents.gamma]\ncommand = 'gamma'\n").expect("write");
         assert_eq!(catalog.names(), vec!["gamma"]);
         assert!(catalog.warning().is_none());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn an_extensionless_script_is_not_runnable_and_gets_its_cmd_shim() {
+        let dir = temp_dir("shim");
+        let script = dir.join("tool");
+        let shim = dir.join("tool.CMD");
+        std::fs::write(&script, b"#!/bin/sh").expect("write");
+        std::fs::write(&shim, b"@echo off").expect("write");
+        let spec = AgentSpec {
+            command: script.to_string_lossy().to_string(),
+            args: Vec::new(),
+            label: None,
+            env: BTreeMap::new(),
+        };
+        assert!(spec.available(), "the script is found");
+        assert!(!spec.runnable(), "but Windows cannot start it");
+        assert_eq!(spec.cmd_shim(), Some(shim));
+    }
+
+    #[test]
+    fn fix_points_the_entry_at_its_shim_and_keeps_a_backup() {
+        let dir = temp_dir("fix");
+        let path = dir.join("agents.toml");
+        let script = dir.join("tool");
+        std::fs::write(&script, b"#!/bin/sh").expect("write");
+        std::fs::write(dir.join("tool.CMD"), b"@echo off").expect("write");
+        let text = format!(
+            "[agents.tool]\ncommand = '{}'\nargs = []\nlabel = \"Tool\"\n",
+            script.display()
+        );
+        std::fs::write(&path, &text).expect("write");
+        let catalog = AgentCatalog::open(path.clone()).expect("open");
+
+        assert!(matches!(catalog.fix("nope"), Err(FixError::UnknownAgent)));
+        if cfg!(windows) {
+            assert_eq!(catalog.fix("tool").expect("fixed"), FixOutcome::Fixed);
+            let spec = catalog.resolve("tool").expect("spec");
+            assert_eq!(spec.command, "cmd.exe");
+            assert_eq!(spec.args.first().map(String::as_str), Some("/c"));
+            assert_eq!(spec.label.as_deref(), Some("Tool"));
+            let backups = std::fs::read_dir(&dir)
+                .expect("dir")
+                .flatten()
+                .filter(|entry| entry.file_name().to_string_lossy().contains(".bak-"))
+                .count();
+            assert_eq!(backups, 1, "the file is backed up before it changes");
+        } else {
+            assert!(matches!(catalog.fix("tool"), Err(FixError::NotFixable)));
+            assert_eq!(std::fs::read_to_string(&path).expect("read"), text);
+        }
     }
 }

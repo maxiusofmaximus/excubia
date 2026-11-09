@@ -21,14 +21,14 @@ mod pairing_audit;
 mod pake_slot;
 mod recipe_api;
 pub mod role_catalog;
-mod schedule_api;
 mod routes;
+mod schedule_api;
 mod sse;
 mod tls;
 mod validate;
 pub mod voice;
 
-pub use alfred::{AlfredBackend, BackendStatus, Requested};
+pub use alfred::{AlfredBackend, BackendStatus, EngineListing, Requested};
 pub use audit::{AuditEvent, AuditSink};
 pub use catalog::{AgentCatalog, AgentSpec};
 pub use doc_pages::{DocumentPages, PageError, PageSource, PreviewLocks, RenderedPage};
@@ -237,6 +237,7 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route("/v1/agents/{pane_id}/seen", post(routes::seen))
         .route("/v1/agents/{pane_id}/stop", post(routes::stop))
         .route("/v1/catalog", get(routes::catalog))
+        .route("/v1/catalog/{name}/fix", post(routes::catalog_fix))
         .route("/v1/roles", get(routes::role_catalog))
         .route(
             "/v1/hires",
@@ -277,10 +278,22 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             "/v1/schedules/{schedule_id}",
             put(routes::update_schedule).delete(routes::delete_schedule),
         )
-        .route("/v1/schedules/{schedule_id}/pause", post(routes::pause_schedule))
-        .route("/v1/schedules/{schedule_id}/resume", post(routes::resume_schedule))
-        .route("/v1/schedules/{schedule_id}/run_now", post(routes::run_schedule_now))
-        .route("/v1/schedules/{schedule_id}/runs", get(routes::schedule_runs))
+        .route(
+            "/v1/schedules/{schedule_id}/pause",
+            post(routes::pause_schedule),
+        )
+        .route(
+            "/v1/schedules/{schedule_id}/resume",
+            post(routes::resume_schedule),
+        )
+        .route(
+            "/v1/schedules/{schedule_id}/run_now",
+            post(routes::run_schedule_now),
+        )
+        .route(
+            "/v1/schedules/{schedule_id}/runs",
+            get(routes::schedule_runs),
+        )
         .route("/v1/plans", get(routes::list_plans))
         .route("/v1/plans/{plan_id}/approve", post(routes::approve_plan))
         .route("/v1/plans/{plan_id}/reject", post(routes::reject_plan))

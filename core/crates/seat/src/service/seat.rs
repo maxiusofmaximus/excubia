@@ -38,6 +38,9 @@ pub struct SeatConfig {
     pub hook_url: String,
     /// The `excubia-uac-hook` binary, wired as the Claude blocking pre-tool hook.
     pub hook_command: PathBuf,
+    /// The OpenCode UAC plugin directory, when the host has one. Without it the
+    /// OpenCode seat runs with no plugin.
+    pub plugin_dir: Option<PathBuf>,
     pub profiles: Vec<CliProfile>,
     pub queue_capacity: usize,
     pub turn_timeout: Duration,
@@ -134,6 +137,7 @@ impl SeatService {
             tool_url: config.tool_url,
             hook_url: config.hook_url,
             hook_command: config.hook_command,
+            plugin_dir: config.plugin_dir,
             seat_dir,
             role,
             timeout: config.turn_timeout,

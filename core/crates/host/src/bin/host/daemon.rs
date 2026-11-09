@@ -31,16 +31,49 @@ use hn_core_host::pairing_notice::PairingNotice;
 use hn_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
 use hn_core_host::tls_slots::TlsSlots;
 use hn_core_host::{
-    load_agents, load_hook_token, paths, spawn_alerts, AgentHost, HostOptions, SpawnSpec,
+    configured_profiles, load_agents, load_hook_token, opencode_listing, paths, spawn_alerts,
+    AgentHost, HostOptions, SpawnSpec,
 };
 use hn_core_pin::Identity;
 use hn_core_pty::PtySize;
-use hn_core_seat::{shipped, SeatConfig, SeatService};
+use hn_core_seat::{canary_plan, run_canary, CliId, CliProfile, SeatConfig, SeatService, UacState};
 use hn_core_state::StateStore;
 use tokio::task::JoinHandle;
 
 const SEAT_QUEUE: usize = 8;
 const SEAT_TIMEOUT: Duration = Duration::from_secs(600);
+/// Same bound as the team seats: a cold provider cache is the slow part.
+const UAC_CANARY_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// The plugin the seats may run with. OpenCode runs shell only through the
+/// plugin, so the plugin is handed out only when its canary proves the gate is
+/// `Safe`. Any other verdict keeps shell denied for every seat (fail closed).
+async fn proven_plugin_dir(
+    data_dir: &std::path::Path,
+    plugin: Option<&std::path::Path>,
+    profiles: &[CliProfile],
+) -> (Option<PathBuf>, String) {
+    let Some(plugin) = plugin else {
+        return (None, "no --uac-plugin-dir".to_string());
+    };
+    let Some(profile) = profiles
+        .iter()
+        .find(|profile| matches!(profile.id, CliId::OpenCode))
+    else {
+        return (None, "no OpenCode profile".to_string());
+    };
+    let cache = data_dir.join("uac-canary");
+    let work = cache.join("work");
+    let _ = std::fs::create_dir_all(&work);
+    let Some(plan) = canary_plan(profile, plugin, &work, &cache).await else {
+        return (None, "OpenCode has no blocking UAC adapter".to_string());
+    };
+    let outcome = run_canary(&plan, UAC_CANARY_TIMEOUT).await;
+    match outcome.state {
+        UacState::Safe => (Some(plugin.to_path_buf()), outcome.reason),
+        _ => (None, outcome.reason),
+    }
+}
 
 pub(super) async fn run(options: RunOptions) -> Result<()> {
     paths::ensure_data_dir(&options.data_dir)?;
@@ -92,6 +125,24 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     let mcp_command = sibling_binary("excubia-mcp")?;
     // The notices of the pairing and of the local model share «Avisos del sistema».
     let notices = Arc::new(PairingNotice::new(&options.data_dir, Arc::clone(&chat)));
+    let profiles = configured_profiles(&catalog);
+    let (proven_plugin, gate_reason) = proven_plugin_dir(
+        &options.data_dir,
+        options.uac_plugin_dir.as_deref(),
+        &profiles,
+    )
+    .await;
+    match &proven_plugin {
+        Some(dir) => println!("host: UAC plugin proven from {}", dir.display()),
+        None => println!("host: warning: OpenCode seats keep shell denied ({gate_reason})"),
+    }
+    let engines = opencode_listing(&profiles, proven_plugin.is_some());
+    match engines.first() {
+        Some(engine) => println!("host: engine listed: {} {}", engine.name, engine.version),
+        None => {
+            println!("host: no CLI engine listed (opencode needs its gate proven and --version)")
+        }
+    }
     let seat_service = SeatService::start(SeatConfig {
         data_dir: options.data_dir.clone(),
         chat: Arc::clone(&chat),
@@ -99,7 +150,8 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         tool_url: format!("http://{internal_address}/internal/chat/tools"),
         hook_url: format!("http://{local}"),
         hook_command: sibling_binary("excubia-uac-hook")?,
-        profiles: shipped(),
+        plugin_dir: proven_plugin,
+        profiles,
         queue_capacity: SEAT_QUEUE,
         turn_timeout: SEAT_TIMEOUT,
         turn_env: {
@@ -191,12 +243,6 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         "host: projects live under {} (canonical)",
         options.workspaces_root.display()
     );
-    match &options.uac_plugin_dir {
-        Some(dir) => println!("host: UAC plugin verified from {}", dir.display()),
-        None => println!(
-            "host: warning: no --uac-plugin-dir; the seats stay degraded (no blocking UAC)"
-        ),
-    }
     let seat: Arc<dyn ChatSeat> = Arc::clone(&team) as Arc<dyn ChatSeat>;
     calendar_reminders::watch(Arc::clone(&chat), Arc::clone(&store), Arc::clone(&seat));
 
@@ -231,7 +277,8 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         options.data_dir.clone(),
         Arc::clone(&notices),
         Arc::new(Strata),
-    );
+    )
+    .with_engines(engines);
     // A running local model keeps the ASR down: no warm-up while its marker is there.
     if !local_mode::is_on(&options.data_dir) {
         Arc::clone(&voice).warm_up();

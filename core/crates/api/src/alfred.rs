@@ -14,6 +14,14 @@ pub enum Requested {
     Started,
 }
 
+/// A CLI engine the host can run, listed only once it is `Ready` (installed and its gate proven).
+/// Listing is read-only: Alfred cannot switch to it yet.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EngineListing {
+    pub name: String,
+    pub version: String,
+}
+
 /// Which engine answers Alfred, read from the markers and from Strata.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BackendStatus {
@@ -26,6 +34,8 @@ pub struct BackendStatus {
     pub since: u64,
     /// True while the voice recognizer is down for the local model.
     pub voice_suspended: bool,
+    /// CLI engines that are `Ready` on this PC. Empty when none is.
+    pub engines: Vec<EngineListing>,
 }
 
 impl BackendStatus {
@@ -36,6 +46,11 @@ impl BackendStatus {
             "detail": self.detail,
             "since": self.since,
             "voice_suspended": self.voice_suspended,
+            "engines": self
+                .engines
+                .iter()
+                .map(|engine| json!({ "name": engine.name, "version": engine.version }))
+                .collect::<Vec<_>>(),
         })
     }
 }
@@ -48,4 +63,37 @@ pub trait AlfredBackend: Send + Sync + 'static {
     /// `backend` is `local` or `claude`; the route has checked it. `Err` is a refusal, with the
     /// text for the phone: the other engine is being switched to right now.
     async fn request(&self, backend: &str) -> Result<Requested, String>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn status(engines: Vec<EngineListing>) -> BackendStatus {
+        BackendStatus {
+            backend: "claude",
+            state: "claude",
+            detail: None,
+            since: 0,
+            voice_suspended: false,
+            engines,
+        }
+    }
+
+    #[test]
+    fn no_ready_engine_lists_an_empty_array() {
+        assert_eq!(status(Vec::new()).to_json()["engines"], json!([]));
+    }
+
+    #[test]
+    fn a_ready_engine_is_listed_by_name_and_version() {
+        let listed = status(vec![EngineListing {
+            name: "opencode".to_owned(),
+            version: "2.2.6".to_owned(),
+        }]);
+        assert_eq!(
+            listed.to_json()["engines"],
+            json!([{ "name": "opencode", "version": "2.2.6" }])
+        );
+    }
 }

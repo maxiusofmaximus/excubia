@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use hn_core_seat::http::{self, LoopbackUrl};
 use hn_core_seat::{
-    canary_plan, run_canary, shipped, CanaryProvider, CliId, CliProfile, UacState, CANARY_COMMAND,
+    canary_command, canary_plan, run_canary, shipped, CanaryProvider, CliId, CliProfile, UacState,
     CANARY_MARKER,
 };
 use hn_core_test_dir::TestDir;
@@ -81,9 +81,8 @@ async fn post(url: &LoopbackUrl, streaming: bool) -> String {
 
 #[tokio::test]
 async fn the_provider_asks_once_for_the_command_and_then_closes() {
-    let provider = CanaryProvider::start(CANARY_COMMAND)
-        .await
-        .expect("provider");
+    let command = canary_command(Path::new("marker.txt"));
+    let provider = CanaryProvider::start(&command).await.expect("provider");
     let url =
         LoopbackUrl::parse(&format!("{}/chat/completions", provider.base_url())).expect("url");
 
@@ -94,7 +93,7 @@ async fn the_provider_asks_once_for_the_command_and_then_closes() {
         .as_str()
         .expect("arguments");
     let arguments: serde_json::Value = serde_json::from_str(arguments).expect("arguments json");
-    assert_eq!(arguments["command"], CANARY_COMMAND);
+    assert_eq!(arguments["command"], command);
 
     // The second turn ends the run: a loop of tool calls would hang the canary.
     let second = post(&url, false).await;
@@ -157,8 +156,10 @@ async fn the_real_opencode_canary_refuses_a_plugin_without_a_hook() {
     let outcome = run_canary(&plan, Duration::from_secs(120)).await;
     eprintln!("canary verdict: {:?} — {}", outcome.state, outcome.reason);
     assert_eq!(outcome.state, UacState::Unsafe, "{}", outcome.reason);
+    // With a plugin, native shell is allowed: a plugin without a hook lets the
+    // command run, which is exactly what the canary must refuse.
     assert!(
         work.join(CANARY_MARKER).exists(),
-        "the test command ran, which is why the canary is unsafe"
+        "the plugin without a hook did not run the command: the canary is not testing the gate"
     );
 }

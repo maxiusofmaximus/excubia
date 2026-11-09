@@ -22,6 +22,7 @@ fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {
         tool_url: "http://127.0.0.1:9/internal/chat/tools".to_string(),
         hook_url: "http://127.0.0.1:9".to_string(),
         hook_command: hook.clone(),
+        plugin_dir: None,
         profiles: vec![test_profile("hn-no-such-cli-anywhere")],
         queue_capacity: 1,
         turn_timeout: Duration::from_secs(5),
