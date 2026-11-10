@@ -5,10 +5,10 @@
 
 use std::sync::Arc;
 
-use hn_core_chat::{AttachmentError, SeatActor, ToolError, ToolErrorKind, ToolReply};
-use hn_core_crafting::{safe_name, CraftError, Kind};
-use hn_core_mail::CreateRecord;
-use hn_core_seat::{DocCreate, DocFormat};
+use excubia_core_chat::{AttachmentError, SeatActor, ToolError, ToolErrorKind, ToolReply};
+use excubia_core_crafting::{safe_name, CraftError, Kind};
+use excubia_core_mail::CreateRecord;
+use excubia_core_seat::{DocCreate, DocFormat};
 use serde_json::json;
 
 use crate::doc_tools::DocTools;

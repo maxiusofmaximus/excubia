@@ -14,9 +14,9 @@ use std::time::Duration;
 
 use axum::response::sse::Event;
 use futures_core::Stream;
-use hn_core_auth::{DeviceStore, StreamRegistry};
-use hn_core_chat::ChatFrame;
-use hn_core_state::SharedFrame;
+use excubia_core_auth::{DeviceStore, StreamRegistry};
+use excubia_core_chat::ChatFrame;
+use excubia_core_state::SharedFrame;
 use tokio::sync::{broadcast, mpsc};
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);

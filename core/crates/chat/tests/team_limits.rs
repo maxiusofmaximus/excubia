@@ -4,7 +4,7 @@
 mod common;
 
 use common::{team, temp_dir};
-use hn_core_chat::{
+use excubia_core_chat::{
     ChatError, ChatStore, DelegationState, NewConversation, NewDelegation, NewProject, NewSeat,
 };
 #[test]

@@ -1,14 +1,14 @@
 //! Needs CUDA and the Whisper large-v3 snapshot (faster-whisper); the venv needs faster-whisper 1.2.1
 //! and the nvidia-* CUDA wheels. Run once with:
 //! `EXCUBIA_ASR_PYTHON=<venv python> EXCUBIA_ASR_MODEL=<snapshot dir> EXCUBIA_ASR_AUDIO=<16 kHz mono wav>`
-//! `cargo test -p hn-core-asr --test whisper -- --ignored --nocapture`
+//! `cargo test -p excubia-core-asr --test whisper -- --ignored --nocapture`
 
 mod common;
 
 use std::path::PathBuf;
 
 use common::{env_path, read_wav_16k_mono};
-use hn_core_asr::{AsrConfig, AsrEngine};
+use excubia_core_asr::{AsrConfig, AsrEngine};
 
 fn whisper_config() -> AsrConfig {
     let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

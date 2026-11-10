@@ -1,4 +1,4 @@
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
 
 /// Seconds until the host's deadline, or null when the host sent none. The
 /// deadline is the host's `expires_at`, never the local TTL.

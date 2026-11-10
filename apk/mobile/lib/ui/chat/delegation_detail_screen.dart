@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/src/rust/api/error.dart' show FailureKind;
-import 'package:herdr_notify/src/rust/api/error/chat.dart' show ChatFailure;
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/error.dart' show FailureKind;
+import 'package:excubia/src/rust/api/error/chat.dart' show ChatFailure;
 
 import '../../core/state/chat_controller.dart';
 import '../agent_detail_screen.dart';

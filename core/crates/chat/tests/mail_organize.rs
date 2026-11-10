@@ -7,7 +7,7 @@ mod common;
 use std::sync::Arc;
 
 use common::{assert_for_the_operator_alone, assert_no_agent_decides, team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, ApprovalKind, ApprovalStatus, ChatError, Decision, ManualClock, NewApproval,
     Reader, DEFAULT_TTL_SECONDS,
 };

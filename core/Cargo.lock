@@ -705,6 +705,296 @@ dependencies = [
 ]
 
 [[package]]
+name = "excubia-core-api"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "excubia-core-asr",
+ "excubia-core-auth",
+ "excubia-core-chat",
+ "excubia-core-media",
+ "excubia-core-pake",
+ "excubia-core-pin",
+ "excubia-core-seat",
+ "excubia-core-state",
+ "excubia-core-test-dir",
+ "futures-core",
+ "hex",
+ "rustls",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "subtle",
+ "tokio",
+ "tokio-rustls",
+ "toml",
+ "toml_edit",
+]
+
+[[package]]
+name = "excubia-core-asr"
+version = "0.1.0"
+dependencies = [
+ "ogg",
+ "opus-rs",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "excubia-core-auth"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "data-encoding",
+ "ed25519-dalek",
+ "excubia-core-persist",
+ "excubia-core-test-dir",
+ "hex",
+ "p256",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "excubia-core-chat"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "chrono-tz",
+ "excubia-core-persist",
+ "excubia-core-test-dir",
+ "hex",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "tokio",
+ "toml",
+ "ulid",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "excubia-core-crafting"
+version = "0.1.0"
+dependencies = [
+ "excubia-core-test-dir",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "ulid",
+]
+
+[[package]]
+name = "excubia-core-detect"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "regex",
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "excubia-core-host"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "excubia-core-api",
+ "excubia-core-asr",
+ "excubia-core-auth",
+ "excubia-core-chat",
+ "excubia-core-crafting",
+ "excubia-core-detect",
+ "excubia-core-mail",
+ "excubia-core-pake",
+ "excubia-core-persist",
+ "excubia-core-pin",
+ "excubia-core-pty",
+ "excubia-core-seat",
+ "excubia-core-state",
+ "excubia-core-test-dir",
+ "excubia-core-test-support",
+ "hex",
+ "image",
+ "mdns-sd",
+ "rand_core 0.6.4",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
+ "vt100",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "excubia-core-mail"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "ammonia",
+ "async-trait",
+ "base64 0.22.1",
+ "excubia-core-persist",
+ "excubia-core-test-dir",
+ "mrml",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "tokio",
+ "toml",
+ "ulid",
+ "unicode-general-category",
+ "unicode-normalization",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "excubia-core-media"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "image",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "webp",
+]
+
+[[package]]
+name = "excubia-core-pake"
+version = "0.1.0"
+dependencies = [
+ "curve25519-dalek",
+ "data-encoding",
+ "excubia-core-pake",
+ "hmac 0.12.1",
+ "rand_core 0.6.4",
+ "sha2 0.10.9",
+ "spake2",
+ "subtle",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
+name = "excubia-core-persist"
+version = "0.1.0"
+dependencies = [
+ "excubia-core-test-dir",
+ "rand_core 0.6.4",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "excubia-core-pin"
+version = "0.1.0"
+dependencies = [
+ "data-encoding",
+ "excubia-core-pake",
+ "rcgen",
+ "rustls",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "time",
+ "tokio",
+ "tokio-rustls",
+ "x509-parser",
+]
+
+[[package]]
+name = "excubia-core-pty"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "libc",
+ "portable-pty",
+ "tokio",
+]
+
+[[package]]
+name = "excubia-core-seat"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "excubia-core-chat",
+ "excubia-core-persist",
+ "excubia-core-test-dir",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "tokio",
+ "toml",
+]
+
+[[package]]
+name = "excubia-core-state"
+version = "0.1.0"
+dependencies = [
+ "excubia-core-persist",
+ "excubia-core-test-dir",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "excubia-core-test-dir"
+version = "0.1.0"
+
+[[package]]
+name = "excubia-core-test-support"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.22.1",
+ "excubia-core-auth",
+ "excubia-core-chat",
+ "hex",
+ "p256",
+ "rand_core 0.6.4",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+]
+
+[[package]]
+name = "excubia-core-transport"
+version = "0.1.0"
+dependencies = [
+ "excubia-core-pin",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
 name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -960,296 +1250,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6303bc9732ae41b04cb554b844a762b4115a61bfaa81e3e83050991eeb56863f"
 dependencies = [
  "digest 0.11.3",
-]
-
-[[package]]
-name = "hn-core-api"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "axum",
- "base64 0.22.1",
- "futures-core",
- "hex",
- "hn-core-asr",
- "hn-core-auth",
- "hn-core-chat",
- "hn-core-media",
- "hn-core-pake",
- "hn-core-pin",
- "hn-core-seat",
- "hn-core-state",
- "hn-core-test-dir",
- "rustls",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "subtle",
- "tokio",
- "tokio-rustls",
- "toml",
- "toml_edit",
-]
-
-[[package]]
-name = "hn-core-asr"
-version = "0.1.0"
-dependencies = [
- "ogg",
- "opus-rs",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "hn-core-auth"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "data-encoding",
- "ed25519-dalek",
- "hex",
- "hn-core-persist",
- "hn-core-test-dir",
- "p256",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "hn-core-chat"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "chrono-tz",
- "hex",
- "hn-core-persist",
- "hn-core-test-dir",
- "regex",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "tokio",
- "toml",
- "ulid",
- "unicode-normalization",
-]
-
-[[package]]
-name = "hn-core-crafting"
-version = "0.1.0"
-dependencies = [
- "hn-core-test-dir",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "ulid",
-]
-
-[[package]]
-name = "hn-core-detect"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "regex",
- "serde",
- "toml",
-]
-
-[[package]]
-name = "hn-core-host"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "axum",
- "base64 0.22.1",
- "chrono",
- "hex",
- "hn-core-api",
- "hn-core-asr",
- "hn-core-auth",
- "hn-core-chat",
- "hn-core-crafting",
- "hn-core-detect",
- "hn-core-mail",
- "hn-core-pake",
- "hn-core-persist",
- "hn-core-pin",
- "hn-core-pty",
- "hn-core-seat",
- "hn-core-state",
- "hn-core-test-dir",
- "hn-core-test-support",
- "image",
- "mdns-sd",
- "rand_core 0.6.4",
- "reqwest",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "tokio",
- "tokio-rustls",
- "vt100",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "hn-core-mail"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "ammonia",
- "async-trait",
- "base64 0.22.1",
- "hn-core-persist",
- "hn-core-test-dir",
- "mrml",
- "reqwest",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "tokio",
- "toml",
- "ulid",
- "unicode-general-category",
- "unicode-normalization",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "hn-core-media"
-version = "0.1.0"
-dependencies = [
- "hex",
- "image",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "webp",
-]
-
-[[package]]
-name = "hn-core-pake"
-version = "0.1.0"
-dependencies = [
- "curve25519-dalek",
- "data-encoding",
- "hmac 0.12.1",
- "hn-core-pake",
- "rand_core 0.6.4",
- "sha2 0.10.9",
- "spake2",
- "subtle",
- "thiserror 2.0.21",
- "zeroize",
-]
-
-[[package]]
-name = "hn-core-persist"
-version = "0.1.0"
-dependencies = [
- "hn-core-test-dir",
- "rand_core 0.6.4",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "hn-core-pin"
-version = "0.1.0"
-dependencies = [
- "data-encoding",
- "hn-core-pake",
- "rcgen",
- "rustls",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "time",
- "tokio",
- "tokio-rustls",
- "x509-parser",
-]
-
-[[package]]
-name = "hn-core-pty"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "libc",
- "portable-pty",
- "tokio",
-]
-
-[[package]]
-name = "hn-core-seat"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "hex",
- "hn-core-chat",
- "hn-core-persist",
- "hn-core-test-dir",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "tokio",
- "toml",
-]
-
-[[package]]
-name = "hn-core-state"
-version = "0.1.0"
-dependencies = [
- "hn-core-persist",
- "hn-core-test-dir",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "hn-core-test-dir"
-version = "0.1.0"
-
-[[package]]
-name = "hn-core-test-support"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.22.1",
- "hex",
- "hn-core-auth",
- "hn-core-chat",
- "p256",
- "rand_core 0.6.4",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tokio",
-]
-
-[[package]]
-name = "hn-core-transport"
-version = "0.1.0"
-dependencies = [
- "hn-core-pin",
- "thiserror 2.0.21",
- "tokio",
- "tokio-rustls",
 ]
 
 [[package]]

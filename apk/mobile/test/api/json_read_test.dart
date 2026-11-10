@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/json_read.dart';
+import 'package:excubia/core/api/json_read.dart';
 
 /// The host's JSON as it arrives, so an int and a double stay the types the wire gives.
 Map<String, Object?> wire(String json) =>

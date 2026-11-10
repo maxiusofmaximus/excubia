@@ -23,8 +23,8 @@ Widget withSystemBarsClear(BuildContext context, Widget? child) => ColoredBox(
   ),
 );
 
-class HerdrNotifyApp extends StatefulWidget {
-  const HerdrNotifyApp({
+class ExcubiaApp extends StatefulWidget {
+  const ExcubiaApp({
     super.key,
     required this.store,
     required this.palettePrefs,
@@ -34,10 +34,10 @@ class HerdrNotifyApp extends StatefulWidget {
   final PalettePrefs palettePrefs;
 
   @override
-  State<HerdrNotifyApp> createState() => _HerdrNotifyAppState();
+  State<ExcubiaApp> createState() => _ExcubiaAppState();
 }
 
-class _HerdrNotifyAppState extends State<HerdrNotifyApp>
+class _ExcubiaAppState extends State<ExcubiaApp>
     with WidgetsBindingObserver {
   Pairing? _pairing;
   PaletteController? _palette;

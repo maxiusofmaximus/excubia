@@ -1,7 +1,7 @@
 //! The wire shapes of the alert rules (F5): what the app sends, what it gets back, and how a
 //! refusal names its field, as the rest of the agenda does. The routes are in `routes/alerts.rs`.
 
-use hn_core_chat::{field_refusal, AlertMode, NewAlertRule};
+use excubia_core_chat::{field_refusal, AlertMode, NewAlertRule};
 use serde::Deserialize;
 
 use crate::error::ApiError;

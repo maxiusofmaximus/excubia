@@ -11,7 +11,7 @@ mod admin;
 mod daemon;
 
 use anyhow::Result;
-use hn_core_host::cli::{self, Command};
+use excubia_core_host::cli::{self, Command};
 
 use admin::{claude_settings, devices, hook_token, mail, pair_code, pair_code_pake, tls};
 use daemon::run;
@@ -20,8 +20,8 @@ use daemon::run;
 async fn main() -> Result<()> {
     // Before the arguments are read: an explicit `--data-dir` keeps its folder and is never moved.
     if !std::env::args().any(|arg| arg == "--data-dir") {
-        hn_core_host::paths::migrate_default_data_dir();
-        hn_core_mail::config::migrate_default_dir();
+        excubia_core_host::paths::migrate_default_data_dir();
+        excubia_core_mail::config::migrate_default_dir();
     }
     let command = cli::parse(std::env::args().skip(1))
         .map_err(|error| anyhow::anyhow!("{error}\n\n{}", cli::USAGE))?;
@@ -41,12 +41,12 @@ async fn main() -> Result<()> {
         Command::ClaudeSettings { hook, out } => claude_settings(&hook, out.as_deref()),
         Command::Devices { command, data_dir } => devices(command, &data_dir),
         Command::Mail(invocation) => mail(invocation).await,
-        Command::Strata { command, data_dir } => hn_core_host::strata::run(command, &data_dir),
+        Command::Strata { command, data_dir } => excubia_core_host::strata::run(command, &data_dir),
         Command::Alfred { command, data_dir } => {
-            hn_core_host::alfred_backend::run(command, &data_dir)
+            excubia_core_host::alfred_backend::run(command, &data_dir)
         }
         Command::AuditTail { n, data_dir } => {
-            for line in hn_core_host::audit::tail_lines(&data_dir, n) {
+            for line in excubia_core_host::audit::tail_lines(&data_dir, n) {
                 println!("{line}");
             }
             Ok(())

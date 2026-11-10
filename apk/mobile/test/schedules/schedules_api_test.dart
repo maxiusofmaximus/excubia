@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/schedule_models.dart';
-import 'package:herdr_notify/core/api/schedules_api.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/schedule_models.dart';
+import 'package:excubia/core/api/schedules_api.dart';
 
 import '../support/scripted_transport.dart';
 

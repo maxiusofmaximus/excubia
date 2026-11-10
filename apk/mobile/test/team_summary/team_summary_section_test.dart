@@ -2,18 +2,18 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/plans_api.dart';
-import 'package:herdr_notify/core/api/team_summary_api.dart';
-import 'package:herdr_notify/core/api/recipes_api.dart';
-import 'package:herdr_notify/core/state/hires_controller.dart';
-import 'package:herdr_notify/core/state/recipes_controller.dart';
-import 'package:herdr_notify/core/state/plans_controller.dart';
-import 'package:herdr_notify/core/state/team_summary_controller.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/team/team_summary_section.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/plans_api.dart';
+import 'package:excubia/core/api/team_summary_api.dart';
+import 'package:excubia/core/api/recipes_api.dart';
+import 'package:excubia/core/state/hires_controller.dart';
+import 'package:excubia/core/state/recipes_controller.dart';
+import 'package:excubia/core/state/plans_controller.dart';
+import 'package:excubia/core/state/team_summary_controller.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/team/team_summary_section.dart';
+import 'package:excubia/ui/theme.dart';
 
 import '../support/fake_team_host.dart';
 

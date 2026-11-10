@@ -24,8 +24,15 @@ ErrorInfo unreadableAnswerInfo() => ErrorInfo(
 );
 
 /// Sends the request that a Rust plan built. Dart never builds a route itself.
-Future<String> runPlan(ChatTransport transport, ChatPlan plan) {
-  final request = _requestOf(plan);
+Future<String> runPlan(ChatTransport transport, ChatPlan plan) =>
+    runCall(transport, _requestOf(plan));
+
+/// Sends one request a Rust plan built. A POST body is JSON: the host reads it as
+/// `Json<T>` and answers 415 without that type.
+Future<String> runCall(ChatTransport transport, HttpCall request) {
+  if (request.method == 'POST' && request.body.isNotEmpty) {
+    return transport.postBytes(request.target, request.body, 'application/json');
+  }
   return transport.call(request.method, request.target, request.body);
 }
 

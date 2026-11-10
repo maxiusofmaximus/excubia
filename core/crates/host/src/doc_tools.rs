@@ -5,10 +5,10 @@
 
 use std::sync::Arc;
 
-use hn_core_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
-use hn_core_crafting::{CraftError, Document, Kind, ReadOpts};
-use hn_core_mail::{AuditLog, MailError, ReadRecord};
-use hn_core_seat::DocRead;
+use excubia_core_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
+use excubia_core_crafting::{CraftError, Document, Kind, ReadOpts};
+use excubia_core_mail::{AuditLog, MailError, ReadRecord};
+use excubia_core_seat::DocRead;
 use serde_json::json;
 
 use crate::chat_file;

@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/restore_api.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/connection_text.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/restore_api.dart';
 
 /// Answers by exact route ("METHOD target"), the query included. A [HostError]
 /// answer is thrown the way the real client refuses.

@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use hn_core_chat::{ContextAttachment, ContextPage, FileKind};
+use excubia_core_chat::{ContextAttachment, ContextPage, FileKind};
 
 /// One line per file, from the host's data only: the id, the kind, the size and
 /// the path. The name the user chose stays out of the prompt.

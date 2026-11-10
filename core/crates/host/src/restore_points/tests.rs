@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::Path;
 
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 
 use super::paths::{is_point_id, safe_relative};
 use super::{store, Kind, Limits, Reason, RestoreError, RestoreStore, Status, POINT_LIMIT};

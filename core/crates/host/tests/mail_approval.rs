@@ -4,11 +4,11 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     ApprovalFilter, ApprovalStatus, ChatStore, Decision, NewConversation, SeatActor,
 };
-use hn_core_host::mail_approval::{ChatApprovalGate, ACTION};
-use hn_core_mail::{Approval, ApprovalGate, CheckedFile, PathApproval};
+use excubia_core_host::mail_approval::{ChatApprovalGate, ACTION};
+use excubia_core_mail::{Approval, ApprovalGate, CheckedFile, PathApproval};
 
 const OUTSIDE: &str = "C:/fuera/informe.xlsx";
 
@@ -23,7 +23,7 @@ fn request() -> PathApproval {
     }
 }
 
-fn pending(chat: &ChatStore) -> Vec<hn_core_chat::Approval> {
+fn pending(chat: &ChatStore) -> Vec<excubia_core_chat::Approval> {
     chat.approvals(&ApprovalFilter {
         status: Some(ApprovalStatus::Pending),
         conversation_id: None,

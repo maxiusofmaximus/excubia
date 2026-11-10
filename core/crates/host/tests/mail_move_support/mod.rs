@@ -5,15 +5,15 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use hn_core_chat::{ApprovalKind, ChatStore, NewApproval, NewConversation, SeatActor, ToolError};
-use hn_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
-use hn_core_host::mail_tools::{open_ledger, MailTools};
-use hn_core_mail::auth::Tenant;
-use hn_core_mail::{
+use excubia_core_chat::{ApprovalKind, ChatStore, NewApproval, NewConversation, SeatActor, ToolError};
+use excubia_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
+use excubia_core_host::mail_tools::{open_ledger, MailTools};
+use excubia_core_mail::auth::Tenant;
+use excubia_core_mail::{
     Account, AccountStore, ActionLog, FileKey, HttpResponse, HttpTransport, Secret, Tokens,
 };
-use hn_core_seat::{MailCall, MoveApply, MoveFolder, MoveProposal, Organize, ProposedMove};
-use hn_core_test_dir::TestDir;
+use excubia_core_seat::{MailCall, MoveApply, MoveFolder, MoveProposal, Organize, ProposedMove};
+use excubia_core_test_dir::TestDir;
 use serde_json::{json, Value};
 
 use crate::mail_support::{ok, Scripted};

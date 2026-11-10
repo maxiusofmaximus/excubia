@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide ConnectionState;
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/src/rust/api/workspace.dart';
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/workspace.dart';
 
 import '../core/api/connection_failure.dart';
 import '../core/api/connection_text.dart';

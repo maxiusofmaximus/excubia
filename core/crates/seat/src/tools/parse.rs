@@ -1,6 +1,6 @@
 //! Turns a tool request into a `ToolCall`, refusing anything malformed.
 
-use hn_core_chat::{message_text, validate_suggestions, TextError, ToolError, ToolRequest};
+use excubia_core_chat::{message_text, validate_suggestions, TextError, ToolError, ToolRequest};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 

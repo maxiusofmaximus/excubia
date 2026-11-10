@@ -8,36 +8,36 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use axum::serve::Listener;
-use hn_core_api::voice::{EngineStarter, VoiceService};
-use hn_core_api::{
+use excubia_core_api::voice::{EngineStarter, VoiceService};
+use excubia_core_api::{
     serve, serve_client, serve_internal, AgentActions, ApiConfig, ApiContext, TlsListener,
 };
-use hn_core_auth::DeviceStore;
-use hn_core_chat::{ChatSeat, ChatStore};
-use hn_core_host::alfred_backend;
-use hn_core_host::alfred_switch::{Strata, Switch};
-use hn_core_host::audit::AuditLog;
-use hn_core_host::calendar_reminders;
-use hn_core_host::cli::RunOptions;
-use hn_core_host::craft::Craft;
-use hn_core_host::doc_tools::DocTools;
-use hn_core_host::local_mode;
-use hn_core_host::mail_routes;
-use hn_core_host::mail_shadow::Shadow;
-use hn_core_host::mail_cli::ACCOUNTS_DIR;
-use hn_core_host::mail_tools::MailTools;
-use hn_core_host::mdns;
-use hn_core_host::pairing_notice::PairingNotice;
-use hn_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
-use hn_core_host::tls_slots::TlsSlots;
-use hn_core_host::{
+use excubia_core_auth::DeviceStore;
+use excubia_core_chat::{ChatSeat, ChatStore};
+use excubia_core_host::alfred_backend;
+use excubia_core_host::alfred_switch::{Strata, Switch};
+use excubia_core_host::audit::AuditLog;
+use excubia_core_host::calendar_reminders;
+use excubia_core_host::cli::RunOptions;
+use excubia_core_host::craft::Craft;
+use excubia_core_host::doc_tools::DocTools;
+use excubia_core_host::local_mode;
+use excubia_core_host::mail_routes;
+use excubia_core_host::mail_shadow::Shadow;
+use excubia_core_host::mail_cli::ACCOUNTS_DIR;
+use excubia_core_host::mail_tools::MailTools;
+use excubia_core_host::mdns;
+use excubia_core_host::pairing_notice::PairingNotice;
+use excubia_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
+use excubia_core_host::tls_slots::TlsSlots;
+use excubia_core_host::{
     configured_profiles, engine_listing, load_agents, load_hook_token, paths, ready_engines,
     spawn_alerts, AgentHost, HostOptions, SpawnSpec,
 };
-use hn_core_pin::Identity;
-use hn_core_pty::PtySize;
-use hn_core_seat::{canary_plan, run_canary, CliId, CliProfile, SeatConfig, SeatService, UacState};
-use hn_core_state::StateStore;
+use excubia_core_pin::Identity;
+use excubia_core_pty::PtySize;
+use excubia_core_seat::{canary_plan, run_canary, CliId, CliProfile, SeatConfig, SeatService, UacState};
+use excubia_core_state::StateStore;
 use tokio::task::JoinHandle;
 
 const SEAT_QUEUE: usize = 8;
@@ -231,7 +231,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     let docs = Arc::new(DocTools::new(
         Arc::clone(&craft),
         Arc::clone(&chat),
-        hn_core_mail::AuditLog::new(&options.data_dir.join(ACCOUNTS_DIR)),
+        excubia_core_mail::AuditLog::new(&options.data_dir.join(ACCOUNTS_DIR)),
     ));
 
     // The team seat is the only surface the API knows: it routes Alfred's
@@ -312,7 +312,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         alfred: Arc::new(alfred),
         pairing_audit: notices.clone(),
         audit: Arc::new(AuditLog::new(&options.data_dir)),
-        docs: craft as Arc<dyn hn_core_api::DocumentPages>,
+        docs: craft as Arc<dyn excubia_core_api::DocumentPages>,
     })
     // The active pin is the input of each pending device's SAS. A host that cannot
     // read it still serves; it only shows no verification string.
@@ -386,7 +386,7 @@ async fn lan_outcome(task: &mut Option<JoinHandle<std::io::Result<()>>>) -> std:
 /// The LAN listener, or `None` when it cannot start: the host then serves only
 /// loopback, and a device still reaches it there or over another transport.
 async fn bind_lan(address: SocketAddr, identity: &Identity) -> Option<TlsListener> {
-    let bound = match hn_core_pin::server_config(identity) {
+    let bound = match excubia_core_pin::server_config(identity) {
         Ok(config) => TlsListener::bind(address, Arc::new(config)).await,
         Err(error) => Err(std::io::Error::other(error.to_string())),
     };
@@ -405,7 +405,7 @@ async fn bind_lan(address: SocketAddr, identity: &Identity) -> Option<TlsListene
     }
 }
 
-/// The daemon's sibling binary (`excubia-mcp.exe` next to `host.exe`). Cargo builds
+/// The daemon's sibling binary (`excubia-mcp.exe` next to `excubia-host.exe`). Cargo builds
 /// it only when all binaries are requested, so the host reports a clear
 /// `seat_unavailable` if it is missing instead of guessing a path.
 fn sibling_binary(name: &str) -> Result<PathBuf> {

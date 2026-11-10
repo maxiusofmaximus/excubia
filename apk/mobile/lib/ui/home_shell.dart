@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/api/signing.dart';
 
 import '../core/api/host_client.dart';
 import '../core/state/approvals_controller.dart';

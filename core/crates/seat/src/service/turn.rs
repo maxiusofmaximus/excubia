@@ -2,7 +2,7 @@ use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use hn_core_chat::{new_ulid, HookScope, RunState, Turn};
+use excubia_core_chat::{new_ulid, HookScope, RunState, Turn};
 use tokio::io::AsyncWriteExt;
 use tokio::process::{Child, Command};
 
@@ -28,7 +28,7 @@ pub(super) async fn run_turn(
         .chat
         .context(&turn.conversation_id, CONTEXT_MESSAGES, CONTEXT_CHARS)
         .map_err(|error| format!("context_failed: {error}"))?;
-    let boundary = format!("HN-{}", new_ulid());
+    let boundary = format!("EXCUBIA-{}", new_ulid());
     let prompt = prompt::build_turn_prompt(&context, &boundary);
     let attachment_dirs = prompt::attachment_dirs(&context);
     let run_dir = worker.seat_dir.join("runs").join(&turn.id);
@@ -105,7 +105,7 @@ pub(super) async fn run_turn(
         command.env_remove(key);
     }
     command
-        .env("HN_TOOL_TOKEN", &token)
+        .env("EXCUBIA_TOOL_TOKEN", &token)
         .current_dir(&plan.cwd)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

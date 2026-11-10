@@ -363,7 +363,7 @@ mod tests {
 
     #[test]
     fn an_unknown_or_old_cli_is_not_selected() {
-        assert!(select(&[test_profile("hn-not-installed")], |_| None).is_none());
+        assert!(select(&[test_profile("excubia-not-installed")], |_| None).is_none());
         let claude_only = &shipped()[..1];
         assert!(select(claude_only, |_| Version::parse("2.0.0")).is_none());
     }

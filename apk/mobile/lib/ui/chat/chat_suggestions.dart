@@ -1,4 +1,4 @@
-import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
+import 'package:excubia/src/rust/api/onboarding/model.dart';
 
 /// One suggestion on the empty chat: [text] is what gets sent, [detail] says why.
 class ChatSuggestion {

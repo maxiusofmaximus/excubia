@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/src/rust/api/workspace.dart';
-import 'package:herdr_notify/src/rust/api/write.dart';
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/workspace.dart';
+import 'package:excubia/src/rust/api/write.dart';
 
 import '../core/api/connection_text.dart';
 import '../core/api/restore_api.dart';

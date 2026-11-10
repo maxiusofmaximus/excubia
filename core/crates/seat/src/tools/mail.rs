@@ -7,7 +7,7 @@
 //! There is no send and no delete, and an argument the schema does not name is
 //! refused, so nothing here can send a message.
 
-use hn_core_chat::{ToolError, ToolRequest};
+use excubia_core_chat::{ToolError, ToolRequest};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 

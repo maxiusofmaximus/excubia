@@ -8,7 +8,7 @@
 
 use std::process::ExitCode;
 
-use hn_core_test_support::{pair_device, DemoIdentity, HttpError, SignedClient};
+use excubia_core_test_support::{pair_device, DemoIdentity, HttpError, SignedClient};
 use serde::{Deserialize, Serialize};
 
 #[tokio::main]

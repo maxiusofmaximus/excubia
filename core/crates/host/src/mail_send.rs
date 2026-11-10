@@ -15,10 +15,10 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use hn_core_chat::{
+use excubia_core_chat::{
     new_ulid, Approval, ApprovalKind, ApprovalStatus, ChatError, ChatStore, NewApproval,
 };
-use hn_core_mail::{
+use excubia_core_mail::{
     check_budget, domain_of, Account, AccountStore, AuditLog, Closing, DraftReview, HttpTransport,
     Ledger, MailError, Redacted, SendQuestion, SendResult, SendRow, SendState, SendView,
     RATE_WINDOW_SECONDS,

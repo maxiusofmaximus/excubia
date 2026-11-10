@@ -6,11 +6,11 @@ mod harness;
 
 use base64::Engine as _;
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_chat::{ChatStore, ConversationFilter};
-use hn_core_host::pairing_audit::AUDIT_FILE;
-use hn_core_host::pairing_notice::NOTICE_TITLE;
-use hn_core_pin::sas;
+use excubia_core_auth::Permission;
+use excubia_core_chat::{ChatStore, ConversationFilter};
+use excubia_core_host::pairing_audit::AUDIT_FILE;
+use excubia_core_host::pairing_notice::NOTICE_TITLE;
+use excubia_core_pin::sas;
 use serde_json::{json, Value};
 
 fn grant_path(device_id: &str) -> String {

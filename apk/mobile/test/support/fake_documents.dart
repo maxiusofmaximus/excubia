@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:herdr_notify/core/api/chat_document_files.dart';
+import 'package:excubia/core/api/chat_document_files.dart';
 
 /// The phone's open and save dialogs, faked. [outcome] says what the system
 /// answers to an open; the last path and mime it was asked to open are kept.

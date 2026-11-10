@@ -4,7 +4,7 @@
 mod common;
 
 use common::{team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, ApprovalKind, NewApproval, NewPlan, PlanDecision, PlanStep, TimelineEntry,
     Touch, DEFAULT_TTL_SECONDS,
 };

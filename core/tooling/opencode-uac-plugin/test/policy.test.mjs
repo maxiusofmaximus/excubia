@@ -36,9 +36,15 @@ test("apply_patch siempre pide UAC aunque la ruta declarada esté dentro", () =>
 });
 
 test("herramienta extra configurada pide UAC", () => {
-  const extra = extraTools({ HN_UAC_EXTRA_TOOLS: "mcp_cliente, Otra" });
+  const extra = extraTools({ EXCUBIA_UAC_EXTRA_TOOLS: "mcp_cliente, Otra" });
   const result = classify("mcp_cliente", {}, cwd, extra);
   assert.equal(result.kind, "tool");
+});
+
+test("la lista extra legacy HN_ se lee solo si falta EXCUBIA_", () => {
+  assert.ok(extraTools({ HN_UAC_EXTRA_TOOLS: "mcp_cliente" }).has("mcp_cliente"));
+  const extra = extraTools({ EXCUBIA_UAC_EXTRA_TOOLS: "otra", HN_UAC_EXTRA_TOOLS: "mcp_cliente" });
+  assert.equal(extra.has("mcp_cliente"), false);
 });
 
 test("herramienta desconocida no se bloquea por defecto", () => {

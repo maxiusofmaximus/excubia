@@ -7,8 +7,8 @@ mod harness;
 use std::time::Duration;
 
 use harness::{detail, SeatKind, TestHost};
-use hn_core_auth::Permission;
-use hn_core_chat::{action_digest, ApprovalKind, ApprovalStatus, NewApproval, DEFAULT_TTL_SECONDS};
+use excubia_core_auth::Permission;
+use excubia_core_chat::{action_digest, ApprovalKind, ApprovalStatus, NewApproval, DEFAULT_TTL_SECONDS};
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);

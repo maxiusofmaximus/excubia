@@ -28,12 +28,12 @@ abstract interface class PhoneContacts {
   Future<void> openAppSettings();
 }
 
-/// The phone's contacts through `dev.herdrnotify/contacts` (HerdrContactsPlugin.kt).
+/// The phone's contacts through `dev.excubia/contacts` (HerdrContactsPlugin.kt).
 class ChannelPhoneContacts implements PhoneContacts {
   const ChannelPhoneContacts();
 
   static const MethodChannel _channel = MethodChannel(
-    'dev.herdrnotify/contacts',
+    'dev.excubia/contacts',
   );
 
   @override

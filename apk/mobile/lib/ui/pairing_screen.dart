@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api.dart' show coreVersion;
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
-import 'package:herdr_notify/src/rust/api/policy.dart';
-import 'package:herdr_notify/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/api.dart' show coreVersion;
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/policy.dart';
+import 'package:excubia/src/rust/api/signing.dart';
 
 import '../core/api/pair_discovery.dart';
 import '../core/api/pake_pairing.dart';

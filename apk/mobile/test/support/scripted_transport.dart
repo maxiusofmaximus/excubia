@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:herdr_notify/core/api/chat_transport.dart';
+import 'package:excubia/core/api/chat_transport.dart';
 
 /// Answers by `METHOD path` (the query is ignored), or by the whole
 /// `METHOD target` when a route names its query, and can fail the next calls

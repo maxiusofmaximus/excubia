@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:herdr_notify/core/storage/pairing_store.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
 
 import 'palette.dart';
 
@@ -9,6 +9,7 @@ import 'palette.dart';
 class PalettePrefs {
   PalettePrefs(this._store);
 
+  // legacy: persisted key from before the rename, kept as stored
   static const String storageKey = 'hn_palette';
 
   final KeyValueStore _store;

@@ -1,5 +1,5 @@
 //! Accounts at rest: one AES-256-GCM file per label, with the master key in
-//! the Windows Credential Manager (reusing `hn-core-persist`'s store, so this
+//! the Windows Credential Manager (reusing `excubia-core-persist`'s store, so this
 //! crate keeps its `forbid(unsafe_code)`) or in an owner-only `0600` file on
 //! other platforms.
 //!
@@ -119,7 +119,7 @@ impl KeySource for FileKey {
             Ok(raw) => key_from_bytes(&raw),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 let key = random_bytes::<KEY_BYTES>()?;
-                hn_core_persist::write_secret_atomic(&self.path, &key).map_err(store_error)?;
+                excubia_core_persist::write_secret_atomic(&self.path, &key).map_err(store_error)?;
                 Ok(key)
             }
             Err(error) => Err(store_error(error)),
@@ -132,14 +132,14 @@ pub use windows_key::CredentialKey;
 
 #[cfg(windows)]
 mod windows_key {
-    use hn_core_persist::credential::{CredentialManager, SecretStore};
+    use excubia_core_persist::credential::{CredentialManager, SecretStore};
 
     use super::{key_from_bytes, random_bytes, store_error, KeySource, KEY_BYTES};
     use crate::error::MailError;
     use crate::master_key::adopt_master_key;
 
     const TARGET: &str = "excubia/mail-master-key";
-    /// The name before the rename; its key is moved to `TARGET` once.
+    /// legacy: the name before the rename; its key is moved to `TARGET` once.
     const LEGACY_TARGET: &str = "herdr-notify/mail-master-key";
 
     /// The Windows secret store that holds the master key.
@@ -221,7 +221,7 @@ impl AccountStore {
             data: STANDARD.encode(ciphertext),
         };
         let json = serde_json::to_vec(&envelope).map_err(store_error)?;
-        hn_core_persist::write_secret_atomic(&path, &json).map_err(store_error)
+        excubia_core_persist::write_secret_atomic(&path, &json).map_err(store_error)
     }
 
     /// `Ok(None)` means this host has no account under that label.
@@ -399,7 +399,7 @@ fn key_from_bytes(raw: &[u8]) -> Result<[u8; KEY_BYTES], MailError> {
 
 fn random_bytes<const N: usize>() -> Result<[u8; N], MailError> {
     let mut bytes = [0u8; N];
-    hn_core_persist::fill_random(&mut bytes).map_err(store_error)?;
+    excubia_core_persist::fill_random(&mut bytes).map_err(store_error)?;
     Ok(bytes)
 }
 

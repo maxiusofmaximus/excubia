@@ -4,11 +4,11 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use hn_core_chat::{
+use excubia_core_chat::{
     activity_of, status_of, Clock, HireLink, ProjectSummary, SeatActor, StatusApproval,
     StatusDelegation, StatusFacts, SystemClock, TeamStatus, ToolError, ToolReply,
 };
-use hn_core_state::{StatePayload, Status, TriageRow};
+use excubia_core_state::{StatePayload, Status, TriageRow};
 use serde_json::{json, Value};
 
 use super::team::TeamService;
@@ -151,7 +151,7 @@ fn approvals(items: &[StatusApproval]) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use hn_core_chat::{ApprovalKind, DelegationState, PendingApproval};
+    use excubia_core_chat::{ApprovalKind, DelegationState, PendingApproval};
 
     use super::*;
 

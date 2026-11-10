@@ -12,7 +12,7 @@ export function startMockHost({ decision, token = "token-e2e" }) {
   const server = http.createServer((req, res) => {
     collect(req).then((raw) => {
       const body = raw ? JSON.parse(raw) : undefined;
-      const authorized = req.headers["x-hn-hook-token"] === token;
+      const authorized = req.headers["x-excubia-hook-token"] === token;
       const entry = { method: req.method, url: req.url, authorized, body };
       requests.push(entry);
       if (!authorized) return send(res, 401, { code: "forbidden" });

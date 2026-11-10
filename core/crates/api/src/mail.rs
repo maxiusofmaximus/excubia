@@ -4,7 +4,7 @@
 //! a login answers with what the user types, and the listing carries no credential.
 
 use async_trait::async_trait;
-use hn_core_chat::Approval;
+use excubia_core_chat::Approval;
 use serde::Serialize;
 
 /// The tenants a login may name (MAIL-SPEC §3). Personal accounts are `consumers`.

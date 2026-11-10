@@ -3,7 +3,7 @@
 //! who may call a tool, reads the times in the company's zone and opens the question for
 //! a delete.
 
-use hn_core_chat::{
+use excubia_core_chat::{
     EventPatch, EventTime, NewEvent, RecurrenceError, Rule, ToolError, ToolRequest, EVENT_LIST_MAX,
     EVENT_LOCATION_MAX_CHARS, EVENT_NOTES_MAX_BYTES, EVENT_TITLE_MAX_CHARS, REMINDER_MAX_MINUTES,
 };

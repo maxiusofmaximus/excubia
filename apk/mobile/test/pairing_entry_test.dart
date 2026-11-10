@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/pairing_entry.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/pairing_entry.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/pairing_fixtures.dart';
 
@@ -22,6 +22,7 @@ void main() {
 
   test('a link printed before the rename is refused like any unknown link', () {
     final expires = nowSeconds() + 600;
+    // legacy: links printed before the rename must stay refused
     for (final link in [
       pinnedLink(expiresAt: expires).replaceFirst('excubia:', 'herdr-notify:'),
       pakeLink(expiresAt: expires).replaceFirst('excubia:', 'herdr-notify:'),

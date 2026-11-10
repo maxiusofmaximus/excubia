@@ -6,9 +6,9 @@ el plugin se prueba contra un servidor de eco local. No sustituye al contrato de
 
 ## Invariantes
 
-1. Solo loopback. El plugin rechaza `HN_HOOK_URL` cuyo host no sea `127.0.0.1`,
+1. Solo loopback. El plugin rechaza `EXCUBIA_HOOK_URL` cuyo host no sea `127.0.0.1`,
    `::1` o `localhost`, y rechaza URL con usuario/contraseña.
-2. Token por run en `X-HN-Hook-Token` (el mismo `HN_HOOK_TOKEN` de `HOOKS.md`).
+2. Token por run en `X-Excubia-Hook-Token` (el mismo `EXCUBIA_HOOK_TOKEN` de `HOOKS.md`).
    El token nunca va en argv, prompt, URL ni logs.
 3. TTL por defecto 120 s, máximo 300 s. El host es la autoridad de `expires_at`.
 4. Un solo uso: tras `approved`, el plugin llama a `consume`; si falla, deniega.
@@ -94,6 +94,6 @@ Errores: `409 approval_expired`, `409 approval_already_decided`,
 
 ```sh
 curl -s -X POST http://127.0.0.1:8787/v1/chat/approvals \
-  -H "X-HN-Hook-Token: $HN_HOOK_TOKEN" -H "Content-Type: application/json" \
+  -H "X-Excubia-Hook-Token: $EXCUBIA_HOOK_TOKEN" -H "Content-Type: application/json" \
   -d '{"tool":"bash","kind":"command","summary":"echo hola","cwd":".","action_digest":"sha256:…","ttl_seconds":120}'
 ```

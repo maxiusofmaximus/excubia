@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/approvals_controller.dart';
-import 'package:herdr_notify/src/rust/api/approvals/error.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/approvals_controller.dart';
+import 'package:excubia/src/rust/api/approvals/error.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/approval_fixtures.dart';
 import 'support/scripted_transport.dart';

@@ -49,7 +49,7 @@ pub fn write(path: &Path, revision: u64, state_change_seq: u64) {
         revision,
         state_change_seq,
     };
-    if let Err(error) = hn_core_persist::write_json_atomic(path, &counters) {
+    if let Err(error) = excubia_core_persist::write_json_atomic(path, &counters) {
         eprintln!("state: could not persist counters: {error}");
     }
 }
@@ -57,7 +57,7 @@ pub fn write(path: &Path, revision: u64, state_change_seq: u64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
 
     /// The scratch directory, which the caller keeps alive, and the file in it.
     fn temp_path(name: &str) -> (TestDir, std::path::PathBuf) {

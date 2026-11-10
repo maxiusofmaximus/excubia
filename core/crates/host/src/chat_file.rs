@@ -5,8 +5,8 @@
 
 use std::path::PathBuf;
 
-use hn_core_chat::{Attachment, AttachmentState, ChatStore};
-use hn_core_mail::{MailError, Redacted};
+use excubia_core_chat::{Attachment, AttachmentState, ChatStore};
+use excubia_core_mail::{MailError, Redacted};
 
 /// The stored file of a chat attachment, and the name and mime type the user gave it.
 pub(crate) struct ChatFile {

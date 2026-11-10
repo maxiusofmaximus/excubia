@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/ui/team_projects.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/ui/team_projects.dart';
+import 'package:excubia/ui/theme.dart';
 
 AgentEntry agent({
   required String pane,

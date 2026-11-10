@@ -8,12 +8,12 @@ use std::path::Path;
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, ApprovalKind, NewApproval, NewConversation, NewDelegation, NewProject, NewSeat,
     SeatActor, DEFAULT_TTL_SECONDS,
 };
-use hn_core_host::paths;
-use hn_core_state::{NewAgent, Status};
+use excubia_core_host::paths;
+use excubia_core_state::{NewAgent, Status};
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);
@@ -164,7 +164,7 @@ fn raise_to_cto(host: &TestHost, approval_id: &str) {
 async fn call(host: &TestHost, token: &str, tool: &str, arguments: Value) -> (u16, Value) {
     let response = reqwest::Client::new()
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", token)
+        .header("X-Excubia-Tool-Token", token)
         .json(&json!({ "tool": tool, "arguments": arguments }))
         .send()
         .await

@@ -10,9 +10,9 @@ use std::fs;
 use std::path::Path;
 
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_host::SpawnSpec;
-use hn_core_test_dir::TestDir;
+use excubia_core_auth::Permission;
+use excubia_core_host::SpawnSpec;
+use excubia_core_test_dir::TestDir;
 use serde_json::Value;
 
 /// A point id that is well formed and was never issued.

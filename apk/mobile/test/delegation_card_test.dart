@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/api/error.dart' show FailureKind;
-import 'package:herdr_notify/src/rust/api/error/chat.dart';
-import 'package:herdr_notify/ui/chat/chat_bubbles.dart';
-import 'package:herdr_notify/ui/chat/delegation_card.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/error.dart' show FailureKind;
+import 'package:excubia/src/rust/api/error/chat.dart';
+import 'package:excubia/ui/chat/chat_bubbles.dart';
+import 'package:excubia/ui/chat/delegation_card.dart';
+import 'package:excubia/ui/theme.dart';
 
 ChatEntry cardEntry({required String status, int attention = 0}) => ChatEntry(
   seq: 3,

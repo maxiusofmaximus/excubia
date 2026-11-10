@@ -7,9 +7,9 @@ mod mail_support;
 
 use std::sync::Arc;
 
-use hn_core_chat::{ChatStore, Decision};
-use hn_core_seat::{MailCall, MoveFolder, MoveUndo, Organize, UndoList};
-use hn_core_test_dir::TestDir;
+use excubia_core_chat::{ChatStore, Decision};
+use excubia_core_seat::{MailCall, MoveFolder, MoveUndo, Organize, UndoList};
+use excubia_core_test_dir::TestDir;
 use mail_move_support::*;
 use mail_support::token_answer;
 use serde_json::json;

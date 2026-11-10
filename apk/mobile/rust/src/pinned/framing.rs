@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn a_header_line_break_is_refused_before_anything_is_written() {
         let headers = [HeaderField {
-            name: "X-HN-Nonce".to_string(),
+            name: "X-Excubia-Nonce".to_string(),
             value: "a\r\nX-Evil: 1".to_string(),
         }];
         let mut out = Vec::new();
@@ -312,7 +312,7 @@ mod tests {
     #[test]
     fn a_request_carries_host_close_and_length_only_with_a_body() {
         let headers = [HeaderField {
-            name: "X-HN-Device".to_string(),
+            name: "X-Excubia-Device".to_string(),
             value: "hn-1".to_string(),
         }];
         let mut out = Vec::new();
@@ -328,7 +328,7 @@ mod tests {
         let text = String::from_utf8(out).expect("utf8");
         assert!(text
             .starts_with("POST /v1/pair HTTP/1.1\r\nHost: 10.0.0.2:8443\r\nConnection: close\r\n"));
-        assert!(text.contains("X-HN-Device: hn-1\r\n"));
+        assert!(text.contains("X-Excubia-Device: hn-1\r\n"));
         assert!(text.ends_with("Content-Length: 2\r\n\r\n{}"));
     }
 }

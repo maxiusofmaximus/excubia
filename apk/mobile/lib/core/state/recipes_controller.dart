@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
 
 import '../api/host_client.dart';
 import '../api/recipe_models.dart';

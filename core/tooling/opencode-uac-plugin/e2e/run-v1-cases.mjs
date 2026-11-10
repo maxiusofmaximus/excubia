@@ -219,11 +219,11 @@ async function runScenario(scenario) {
     XDG_DATA_HOME: xdg("data"),
     XDG_CACHE_HOME: xdg("cache"),
     XDG_STATE_HOME: xdg("state"),
-    HN_HOOK_URL: host?.url ?? scenario.hostUrl,
-    HN_HOOK_TOKEN: host?.token ?? "token-e2e",
-    HN_PANE_ID: "w1:p9",
-    HN_UAC_TTL_SECONDS: String(scenario.ttlSeconds ?? 30),
-    HN_UAC_POLL_MS: String(scenario.pollMs ?? 250),
+    EXCUBIA_HOOK_URL: host?.url ?? scenario.hostUrl,
+    EXCUBIA_HOOK_TOKEN: host?.token ?? "token-e2e",
+    EXCUBIA_PANE_ID: "w1:p9",
+    EXCUBIA_UAC_TTL_SECONDS: String(scenario.ttlSeconds ?? 30),
+    EXCUBIA_UAC_POLL_MS: String(scenario.pollMs ?? 250),
   };
   const started = Date.now();
   const run = await runOpencode({ workspace, configPath, env });

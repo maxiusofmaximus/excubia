@@ -1,6 +1,6 @@
 //! The `ToolCall` values the parser produces and the typed arguments they carry.
 
-use hn_core_chat::PlanStep;
+use excubia_core_chat::PlanStep;
 
 use super::{
     AlertCall, ApprovalDecide, ApprovalRequest, CalendarCall, ContactCall, DocCreate, DocRead,

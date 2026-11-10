@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/approvals/error.dart';
-import 'package:herdr_notify/src/rust/api/approvals/model.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/approvals/error.dart';
+import 'package:excubia/src/rust/api/approvals/model.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/state.dart';
 
 import '../../core/state/approval_move.dart';
 import '../../core/state/approvals_controller.dart';

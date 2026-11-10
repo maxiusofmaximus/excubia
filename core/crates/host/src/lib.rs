@@ -1,9 +1,9 @@
 //! Agent host for the Excubia core.
 //!
-//! Supervises CLI agents: each one gets a pty ([`hn_core_pty`]), a terminal
+//! Supervises CLI agents: each one gets a pty ([`excubia_core_pty`]), a terminal
 //! emulator to read its screen, and a detector built from the manifests in
-//! [`hn_core_detect`]. Detected states are written into the authoritative
-//! store ([`hn_core_state`]) and the local API ([`hn_core_api`]) serves them.
+//! [`excubia_core_detect`]. Detected states are written into the authoritative
+//! store ([`excubia_core_state`]) and the local API ([`excubia_core_api`]) serves them.
 //!
 //! Panes survive a restart as records: the agents themselves are processes
 //! and are not relaunched, but their last screen is kept so a client never
@@ -81,9 +81,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use hn_core_detect::{identify_program, Detector, TitleTracker};
-use hn_core_pty::{CommandSpec, PtySession, PtySize};
-use hn_core_state::{NewAgent, StatePayload, StateStore};
+use excubia_core_detect::{identify_program, Detector, TitleTracker};
+use excubia_core_pty::{CommandSpec, PtySession, PtySize};
+use excubia_core_state::{NewAgent, StatePayload, StateStore};
 use tokio::sync::Notify;
 
 use restore_points::RestoreStore;
@@ -107,9 +107,9 @@ pub struct HostOptions {
     pub project: String,
     pub size: PtySize,
     pub hook_ttl: Duration,
-    /// What spawned agents get in `HN_HOOK_TOKEN` (empty: hooks disabled).
+    /// What spawned agents get in `EXCUBIA_HOOK_TOKEN` (empty: hooks disabled).
     pub hook_token: String,
-    /// What spawned agents get in `HN_HOOK_URL`.
+    /// What spawned agents get in `EXCUBIA_HOOK_URL`.
     pub hook_url: String,
     pub snapshot_lines: usize,
 }
@@ -239,12 +239,12 @@ impl AgentHost {
         }
         // What the agent's own hooks need to report back. A spawn may override
         // them (a panel carries its own hook token), so they go first.
-        cmd = cmd.env("HN_ENV", "1").env("HN_PANE_ID", &pane_id);
+        cmd = cmd.env("EXCUBIA_ENV", "1").env("EXCUBIA_PANE_ID", &pane_id);
         if !self.options.hook_token.is_empty() {
-            cmd = cmd.env("HN_HOOK_TOKEN", &self.options.hook_token);
+            cmd = cmd.env("EXCUBIA_HOOK_TOKEN", &self.options.hook_token);
         }
         if !self.options.hook_url.is_empty() {
-            cmd = cmd.env("HN_HOOK_URL", &self.options.hook_url);
+            cmd = cmd.env("EXCUBIA_HOOK_URL", &self.options.hook_url);
         }
         for (key, value) in &spec.env {
             cmd = cmd.env(key, value);
@@ -405,7 +405,7 @@ impl AgentHost {
 
     /// Pane events (`pane.agent_status_changed`, `pane.closed`) for the chat
     /// card state. The API already subscribes for SSE; broadcast is multi-reader.
-    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<hn_core_state::SharedFrame> {
+    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<excubia_core_state::SharedFrame> {
         self.store.receiver()
     }
 

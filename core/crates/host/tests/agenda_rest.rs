@@ -6,9 +6,9 @@
 mod harness;
 
 use harness::{TestHost, TOOL_TOKEN};
-use hn_core_auth::Permission;
-use hn_core_chat::{ApprovalFilter, ApprovalStatus};
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_chat::{ApprovalFilter, ApprovalStatus};
+use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 
 /// One signed request, answered as the status and the parsed body.
@@ -173,14 +173,14 @@ async fn a_seat_token_is_not_a_device_and_gets_401() {
 
     let read = http
         .get(&url)
-        .header("X-HN-Tool-Token", TOOL_TOKEN)
+        .header("X-Excubia-Tool-Token", TOOL_TOKEN)
         .send()
         .await
         .expect("read");
     assert_eq!(read.status().as_u16(), 401);
     let write = http
         .post(&url)
-        .header("X-HN-Tool-Token", TOOL_TOKEN)
+        .header("X-Excubia-Tool-Token", TOOL_TOKEN)
         .json(&json!({ "body": "de Alfred" }))
         .send()
         .await

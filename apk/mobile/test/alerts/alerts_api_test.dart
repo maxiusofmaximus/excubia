@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/alerts_api.dart';
-import 'package:herdr_notify/core/api/alerts_models.dart';
-import 'package:herdr_notify/core/api/alerts_failure_text.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:excubia/core/api/agenda_api.dart';
+import 'package:excubia/core/api/alerts_api.dart';
+import 'package:excubia/core/api/alerts_models.dart';
+import 'package:excubia/core/api/alerts_failure_text.dart';
+import 'package:excubia/core/api/host_client.dart';
 
 import '../support/recording_transport.dart';
 

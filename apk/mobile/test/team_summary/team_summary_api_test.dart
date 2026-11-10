@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/team_summary_api.dart';
-import 'package:herdr_notify/core/api/team_summary_models.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/connection_text.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/team_summary_api.dart';
+import 'package:excubia/core/api/team_summary_models.dart';
 
 /// Answers the one route the summary reads.
 class _Host implements ChatTransport {

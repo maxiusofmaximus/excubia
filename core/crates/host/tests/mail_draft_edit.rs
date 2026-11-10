@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use harness::mail_send_support::{ACCOUNT, BODY, DRAFT, TO};
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_chat::{Decision, MailDraftCard, ManualClock, NewConversation};
+use excubia_core_auth::Permission;
+use excubia_core_chat::{Decision, MailDraftCard, ManualClock, NewConversation};
 use serde_json::{json, Value};
 
 const ACCOUNTS: &str = "/v1/mail/accounts";

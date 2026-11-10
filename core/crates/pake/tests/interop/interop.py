@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reference side for hn-core-pake: python-spake2 (Ed25519 group) plus the same HMAC confirmation.
+"""Reference side for excubia-core-pake: python-spake2 (Ed25519 group) plus the same HMAC confirmation.
 
   interop.py vector      print the deterministic vector as JSON (pasted into tests/vectors.rs)
   interop.py peer ROLE CODE HOST_ID DEVICE_PUBKEY_HEX RUST_MESSAGE_HEX EXPORTER_HEX SPKI_HEX

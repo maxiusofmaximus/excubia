@@ -1,10 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/tailnet_cleartext.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/tailnet_cleartext.dart';
+import 'package:excubia/core/state/live_triage.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
 
 import 'support/memory_store.dart';
 

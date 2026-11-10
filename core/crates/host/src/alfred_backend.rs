@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use anyhow::{bail, Context, Result};
-use hn_core_seat::TurnEnv;
+use excubia_core_seat::TurnEnv;
 use tokio::task::JoinHandle;
 
 use crate::cli::AlfredCommand;
@@ -32,7 +32,7 @@ pub fn is_on(data_dir: &Path) -> bool {
 
 pub fn set(data_dir: &Path) -> io::Result<()> {
     paths::ensure_data_dir(data_dir)?;
-    hn_core_persist::write_atomic(&paths::alfred_local_path(data_dir), b"")
+    excubia_core_persist::write_atomic(&paths::alfred_local_path(data_dir), b"")
 }
 
 pub fn clear(data_dir: &Path) -> io::Result<()> {
@@ -53,7 +53,7 @@ pub fn engine(data_dir: &Path) -> Option<String> {
 
 pub fn set_engine(data_dir: &Path, name: &str) -> io::Result<()> {
     paths::ensure_data_dir(data_dir)?;
-    hn_core_persist::write_atomic(&paths::alfred_engine_path(data_dir), name.as_bytes())
+    excubia_core_persist::write_atomic(&paths::alfred_engine_path(data_dir), name.as_bytes())
 }
 
 pub fn clear_engine(data_dir: &Path) -> io::Result<()> {
@@ -203,7 +203,7 @@ pub fn run(command: AlfredCommand, data_dir: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
 
     #[test]
     fn the_marker_is_set_and_cleared_and_clearing_twice_is_fine() {

@@ -7,8 +7,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use hn_core_chat::{AlertDecision, ChatSeat, ChatStore};
-use hn_core_state::StateStore;
+use excubia_core_chat::{AlertDecision, ChatSeat, ChatStore};
+use excubia_core_state::StateStore;
 
 use crate::alerts::{self, AlertKind};
 use crate::schedule_runner;

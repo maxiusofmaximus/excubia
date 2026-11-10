@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/alerts/alert_status.dart';
+import 'package:excubia/core/alerts/alert_status.dart';
 
 void main() {
   test('reads the autostart and boot flags when the phone sends them', () {

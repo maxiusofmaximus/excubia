@@ -1,4 +1,4 @@
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
 
 import 'pake_pairing.dart';
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/state/voice_send_settings.dart';
-import 'package:herdr_notify/ui/chat/voice_settings_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/state/voice_send_settings.dart';
+import 'package:excubia/ui/chat/voice_settings_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 import 'support/memory_store.dart';
 

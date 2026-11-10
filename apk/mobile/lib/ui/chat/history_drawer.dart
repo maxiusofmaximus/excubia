@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/api/error/chat.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/error/chat.dart';
 
 import '../../core/api/phone_contacts.dart';
 import '../../core/state/chat_controller.dart';

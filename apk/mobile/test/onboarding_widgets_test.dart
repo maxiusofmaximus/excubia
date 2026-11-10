@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/onboarding_controller.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/onboarding/onboarding_gate.dart';
-import 'package:herdr_notify/ui/onboarding/onboarding_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/onboarding_controller.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/onboarding/onboarding_gate.dart';
+import 'package:excubia/ui/onboarding/onboarding_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 import 'support/fake_onboarding_host.dart';
 

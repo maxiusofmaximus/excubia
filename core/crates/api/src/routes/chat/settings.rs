@@ -6,8 +6,8 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use axum::Extension;
-use hn_core_auth::VerifiedDevice;
-use hn_core_chat::ApprovalMode;
+use excubia_core_auth::VerifiedDevice;
+use excubia_core_chat::ApprovalMode;
 use serde::Deserialize;
 use serde_json::json;
 

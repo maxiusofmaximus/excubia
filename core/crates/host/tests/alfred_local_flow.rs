@@ -9,10 +9,10 @@ use std::time::{Duration, Instant};
 use std::sync::atomic::Ordering;
 
 use harness::{SeatKind, TestHost, QUOTA_CALLS};
-use hn_core_auth::Permission;
-use hn_core_chat::RunState;
-use hn_core_host::alfred_backend;
-use hn_core_test_support::client::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_chat::RunState;
+use excubia_core_host::alfred_backend;
+use excubia_core_test_support::client::SignedClient;
 
 const TTL: Duration = Duration::from_secs(45);
 const CLI_TIMEOUT: Duration = Duration::from_secs(20);

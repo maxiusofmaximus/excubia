@@ -9,9 +9,9 @@ use std::sync::Arc;
 
 use axum::serve::Listener;
 use harness::TestHost;
-use hn_core_api::{serve_client, AgentActions, AlfredBackend, ApiConfig, ApiContext, TlsListener};
-use hn_core_host::tls_slots::TlsSlots;
-use hn_core_pin::{client_config, Identity, PinSet};
+use excubia_core_api::{serve_client, AgentActions, AlfredBackend, ApiConfig, ApiContext, TlsListener};
+use excubia_core_host::tls_slots::TlsSlots;
+use excubia_core_pin::{client_config, Identity, PinSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
@@ -22,7 +22,7 @@ use tokio_rustls::TlsConnector;
 /// state, with the certificate the host's slots hold.
 async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Result<()>>) {
     let identity = TlsSlots::open(&host.data_dir).active().expect("identity");
-    let config = Arc::new(hn_core_pin::server_config(&identity).expect("server config"));
+    let config = Arc::new(excubia_core_pin::server_config(&identity).expect("server config"));
     let listener = TlsListener::bind("127.0.0.1:0".parse().expect("address"), config)
         .await
         .expect("bind");
@@ -32,7 +32,7 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
         store: Arc::clone(&host.store),
         actions,
         devices: Arc::clone(&host.devices),
-        agents: Arc::new(hn_core_host::load_agents(&host.data_dir).expect("catalog")),
+        agents: Arc::new(excubia_core_host::load_agents(&host.data_dir).expect("catalog")),
         chat: Arc::clone(&host.chat),
         seat: Arc::clone(&host.seat),
         hook_token: Arc::new(host.hook_token.clone()),
@@ -41,13 +41,13 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
             Arc::clone(&host.chat),
             harness::mail_transport(None),
         )),
-        voice: Arc::new(hn_core_api::voice::VoiceService::new(None)),
+        voice: Arc::new(excubia_core_api::voice::VoiceService::new(None)),
         alfred: Arc::clone(&host.alfred) as Arc<dyn AlfredBackend>,
-        pairing_audit: Arc::new(hn_core_host::pairing_audit::JsonlPairingAudit::new(
+        pairing_audit: Arc::new(excubia_core_host::pairing_audit::JsonlPairingAudit::new(
             &host.data_dir,
         )),
-        audit: Arc::new(hn_core_host::audit::AuditLog::new(&host.data_dir)),
-        docs: Arc::new(hn_core_host::craft::Craft::without_tools(&host.data_dir)),
+        audit: Arc::new(excubia_core_host::audit::AuditLog::new(&host.data_dir)),
+        docs: Arc::new(excubia_core_host::craft::Craft::without_tools(&host.data_dir)),
     });
     (addr, tokio::spawn(serve_client(listener, context)))
 }
@@ -58,7 +58,7 @@ async fn exchange(addr: SocketAddr, pins: PinSet, request: &str) -> std::io::Res
     let config = client_config(pins).expect("client config");
     let connector = TlsConnector::from(Arc::new(config));
     let tcp = TcpStream::connect(addr).await?;
-    let name = ServerName::try_from("herdr-notify.lan")
+    let name = ServerName::try_from("excubia.lan")
         .expect("name")
         .to_owned();
     let mut tls = connector.connect(name, tcp).await?;
@@ -96,7 +96,7 @@ async fn the_lan_listener_has_no_hook_routes() {
     // The host token is valid, and the route still does not exist here.
     let body = r#"{"pane_id":"w1:p1","state":"working"}"#;
     let request = format!(
-        "POST /v1/hooks/report HTTP/1.1\r\nHost: lan\r\nX-HN-Hook-Token: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        "POST /v1/hooks/report HTTP/1.1\r\nHost: lan\r\nX-Excubia-Hook-Token: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
         host.hook_token,
         body.len()
     );

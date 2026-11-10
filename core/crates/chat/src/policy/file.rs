@@ -203,7 +203,7 @@ mod tests {
     use crate::model_approval::Risk;
     use crate::policy::rules::Verdict;
     use crate::policy::{category::Category, classify::Location, rules::Facts};
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
 
     const VALID: &str = r#"
 version = 1

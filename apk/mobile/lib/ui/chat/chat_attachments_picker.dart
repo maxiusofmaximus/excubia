@@ -25,18 +25,19 @@ Future<ChatAttachmentSource?> pickChatImage() async {
   return _sourceOf(picked.path, picked.name, await picked.length());
 }
 
-/// Opens the file manager for one document of the chat's types. Null when the
-/// user backs out. Android always gives the path of a picked file.
-Future<ChatAttachmentSource?> pickChatDocument() async {
+/// Opens the file manager for documents of the chat's types. Empty when the
+/// user backs out. pickFiles lets the user pick several at once, so all are
+/// kept; the tray enforces its own limit. Android always gives the path.
+Future<List<ChatAttachmentSource>> pickChatDocuments() async {
   final picked = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: chatDocumentExtensions,
   );
-  if (picked.isEmpty) return null;
-  final file = picked.single;
-  final path = file.path;
-  if (path == null) return null;
-  return _sourceOf(path, file.name, await File(path).length());
+  return [
+    for (final file in picked)
+      if (file.path case final path?)
+        _sourceOf(path, file.name, await File(path).length()),
+  ];
 }
 
 FileAttachmentSource _sourceOf(String path, String name, int size) =>

@@ -2,7 +2,7 @@
 //! parser bounds every field and refuses what it cannot bound; the host decides
 //! who may call a tool and what a delete needs.
 
-use hn_core_chat::{
+use excubia_core_chat::{
     message_text, ToolError, ToolRequest, NOTE_SEARCH_MAX_RESULTS, NOTE_SUBJECT_MAX_CHARS,
 };
 

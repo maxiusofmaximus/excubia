@@ -3,11 +3,11 @@
 //! payload the operator decides on carries the sender and the subject the host read,
 //! never a body, and the reason Alfred gave for each message.
 
-use hn_core_chat::{ApprovalKind, ChatError, NewApproval, SeatActor};
-use hn_core_mail::received::one_line;
-use hn_core_mail::triage::verdict;
-use hn_core_mail::{batch_digest, MailError, MoveDest, ReadRecord, Redacted};
-use hn_core_seat::{MoveFolder, MoveProposal, ProposedMove};
+use excubia_core_chat::{ApprovalKind, ChatError, NewApproval, SeatActor};
+use excubia_core_mail::received::one_line;
+use excubia_core_mail::triage::verdict;
+use excubia_core_mail::{batch_digest, MailError, MoveDest, ReadRecord, Redacted};
+use excubia_core_seat::{MoveFolder, MoveProposal, ProposedMove};
 use serde_json::{json, Value};
 
 use crate::mail_tools::MailTools;

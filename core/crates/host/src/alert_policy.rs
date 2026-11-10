@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use hn_core_state::Status;
+use excubia_core_state::Status;
 
 pub const HOUR_SECS: f64 = 3600.0;
 pub const DAY_SECS: f64 = 86_400.0;

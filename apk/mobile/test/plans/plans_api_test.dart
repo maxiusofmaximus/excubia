@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/plan_models.dart';
-import 'package:herdr_notify/core/api/plans_api.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/connection_text.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/plan_models.dart';
+import 'package:excubia/core/api/plans_api.dart';
 
 import '../support/scripted_transport.dart';
 

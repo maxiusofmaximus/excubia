@@ -6,7 +6,7 @@ use axum::extract::State;
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_asr::MAX_AUDIO_SECONDS;
+use excubia_core_asr::MAX_AUDIO_SECONDS;
 use serde_json::json;
 
 use crate::error::ApiError;

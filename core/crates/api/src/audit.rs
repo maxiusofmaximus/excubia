@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use hn_core_auth::unix_seconds;
+use excubia_core_auth::unix_seconds;
 use serde::Serialize;
 
 /// One action the host took for a request. Values never carry codes, keys, links or message bodies.

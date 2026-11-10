@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/pairing_api.dart';
-import 'package:herdr_notify/core/api/pinned_client.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
-import 'package:herdr_notify/src/rust/api/signing.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/pairing_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
-import 'package:herdr_notify/ui/widgets/pairing_error_box.dart';
+import 'package:excubia/core/api/pairing_api.dart';
+import 'package:excubia/core/api/pinned_client.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/pairing_screen.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/pairing_error_box.dart';
 
 import 'support/fake_pinned_client.dart';
 import 'support/memory_store.dart';

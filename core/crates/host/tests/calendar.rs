@@ -8,7 +8,7 @@ mod harness;
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_chat::{
+use excubia_core_chat::{
     Approval, ApprovalFilter, ApprovalStatus, ChatStore, Decision, NewConversation, SeatActor,
 };
 use serde_json::{json, Value};
@@ -33,7 +33,7 @@ async fn start(name: &str) -> TestHost {
 async fn call(host: &TestHost, token: &str, tool: &str, arguments: Value) -> (u16, Value) {
     let response = reqwest::Client::new()
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", token)
+        .header("X-Excubia-Tool-Token", token)
         .json(&json!({ "tool": tool, "arguments": arguments }))
         .send()
         .await
@@ -222,7 +222,7 @@ async fn a_lead_cannot_touch_the_calendar() {
     grant(&host, "tok-alfred", "alfred", &alfred, &conversation_id);
     let id = create_event(&host, "tok-alfred", "De Alfred").await;
     let project = chat
-        .create_project(hn_core_chat::NewProject {
+        .create_project(excubia_core_chat::NewProject {
             name: "Demo".to_string(),
             root_path: host.data_dir.join("demo"),
         })

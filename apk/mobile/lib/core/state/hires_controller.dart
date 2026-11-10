@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:herdr_notify/src/rust/api/chat/plan.dart';
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/error.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/plan.dart';
+import 'package:excubia/src/rust/api/chat/plan.dart';
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/onboarding/error.dart';
+import 'package:excubia/src/rust/api/onboarding/model.dart';
+import 'package:excubia/src/rust/api/onboarding/plan.dart';
 
 import '../api/chat_transport.dart';
 import '../api/host_client.dart';

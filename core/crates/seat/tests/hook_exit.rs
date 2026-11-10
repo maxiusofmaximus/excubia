@@ -131,13 +131,13 @@ async fn run(args: &[String], url: Option<&str>, token: Option<&str>) -> Output 
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     command
-        .env_remove("HN_HOOK_URL")
-        .env_remove("HN_HOOK_TOKEN");
+        .env_remove("EXCUBIA_HOOK_URL")
+        .env_remove("EXCUBIA_HOOK_TOKEN");
     if let Some(url) = url {
-        command.env("HN_HOOK_URL", url);
+        command.env("EXCUBIA_HOOK_URL", url);
     }
     if let Some(token) = token {
-        command.env("HN_HOOK_TOKEN", token);
+        command.env("EXCUBIA_HOOK_TOKEN", token);
     }
     tokio::time::timeout(Duration::from_secs(30), command.output())
         .await

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/ics_files.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/ics_files.dart';
 
 import 'scripted_transport.dart';
 

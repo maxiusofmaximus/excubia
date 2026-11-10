@@ -7,7 +7,7 @@ use axum::Extension;
 
 use serde_json::json;
 
-use hn_core_chat::is_well_formed;
+use excubia_core_chat::is_well_formed;
 
 use crate::error::ApiError;
 use crate::middleware::HookAuth;

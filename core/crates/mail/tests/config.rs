@@ -1,6 +1,6 @@
 mod support;
 
-use hn_core_mail::{MailConfig, DEFAULT_MAX_ATTACHMENT_BYTES, HARD_MAX_ATTACHMENT_BYTES};
+use excubia_core_mail::{MailConfig, DEFAULT_MAX_ATTACHMENT_BYTES, HARD_MAX_ATTACHMENT_BYTES};
 
 #[test]
 fn the_toml_section_supplies_the_client_and_the_limits() {
@@ -37,7 +37,7 @@ fn the_file_wins_over_the_environment() {
 #[test]
 fn a_missing_client_is_not_configured() {
     let error = MailConfig::from_toml("[mail]\n", None).expect_err("missing client");
-    assert!(matches!(error, hn_core_mail::MailError::NotConfigured));
+    assert!(matches!(error, excubia_core_mail::MailError::NotConfigured));
     assert_eq!(error.code(), "mail_not_configured");
     assert!(format!("{error}").contains("EXCUBIA_MAIL_CLIENT_ID"));
 }

@@ -4,8 +4,8 @@
 
 mod support;
 
-use hn_core_crafting::{App, CraftError, Driver, Kind};
-use hn_core_test_dir::TestDir;
+use excubia_core_crafting::{App, CraftError, Driver, Kind};
+use excubia_core_test_dir::TestDir;
 use std::fs;
 use support::{args, failed, fake_tools, ok, ooxml_zip, shape, ScriptedRunner};
 

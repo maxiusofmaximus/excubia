@@ -1,12 +1,12 @@
 //! PAKE pairing end to end (PAIRING-F2B3): a real host over a real TLS listener, and a test device that does what
-//! the app will do (F2d): reads the exporter and the SPKI of the connection it is on, runs `hn-core-pake`, and
+//! the app will do (F2d): reads the exporter and the SPKI of the connection it is on, runs `excubia-core-pake`, and
 //! sends base64 messages. No phone is involved.
 
 mod harness;
 mod pake_support;
 
-use hn_core_host::pairing_audit::AUDIT_FILE;
-use hn_core_pake::Code;
+use excubia_core_host::pairing_audit::AUDIT_FILE;
+use excubia_core_pake::Code;
 use pake_support::*;
 use serde_json::json;
 use std::time::Duration;

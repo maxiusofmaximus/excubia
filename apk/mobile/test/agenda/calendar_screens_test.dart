@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/ui/agenda/agenda_widgets.dart';
-import 'package:herdr_notify/ui/agenda/calendar_screen.dart';
+import 'package:excubia/core/api/agenda_api.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/ui/agenda/agenda_widgets.dart';
+import 'package:excubia/ui/agenda/calendar_screen.dart';
 
 import '../support/scripted_transport.dart';
 import '../support/widget_mount.dart';

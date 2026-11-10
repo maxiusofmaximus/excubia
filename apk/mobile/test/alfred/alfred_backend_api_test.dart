@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/alfred_backend_api.dart';
-import 'package:herdr_notify/core/api/alfred_backend_models.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/plan_runner.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/alfred_backend_api.dart';
+import 'package:excubia/core/api/alfred_backend_models.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/plan_runner.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import '../support/scripted_transport.dart';
 

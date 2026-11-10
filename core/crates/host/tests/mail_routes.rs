@@ -7,11 +7,11 @@ mod mail_support;
 use std::sync::Arc;
 use std::time::Duration;
 
-use hn_core_api::{MailActions, MailLoginStatus};
-use hn_core_chat::ChatStore;
-use hn_core_host::mail_api::MailLogins;
-use hn_core_mail::{AccountStore, FileKey, HttpTransport};
-use hn_core_test_dir::TestDir;
+use excubia_core_api::{MailActions, MailLoginStatus};
+use excubia_core_chat::ChatStore;
+use excubia_core_host::mail_api::MailLogins;
+use excubia_core_mail::{AccountStore, FileKey, HttpTransport};
+use excubia_core_test_dir::TestDir;
 use mail_support::{device_answer, ok, token_answer, Scripted, ACCESS, DEVICE, REFRESH, USER_CODE};
 use serde_json::json;
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 use serde_json::json;
 
 use super::*;

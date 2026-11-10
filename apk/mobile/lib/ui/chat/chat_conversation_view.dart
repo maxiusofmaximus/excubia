@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/approvals/model.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/api/error/chat.dart'
+import 'package:excubia/src/rust/api/approvals/model.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/error/chat.dart'
     show offlineChatFailure;
 
 import '../../core/api/connection_text.dart';

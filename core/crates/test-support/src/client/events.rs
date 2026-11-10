@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use hn_core_auth::canonical_string;
+use excubia_core_auth::canonical_string;
 
 use super::signed::{random_nonce, unix_seconds, HttpError, SignedClient};
 
@@ -27,10 +27,10 @@ impl SignedClient {
         let mut request = self
             .http
             .get(format!("{}/v1/events", self.base_url))
-            .header("X-HN-Device", self.identity.device_id())
-            .header("X-HN-Timestamp", timestamp.to_string())
-            .header("X-HN-Nonce", nonce)
-            .header("X-HN-Signature", signature)
+            .header("X-Excubia-Device", self.identity.device_id())
+            .header("X-Excubia-Timestamp", timestamp.to_string())
+            .header("X-Excubia-Nonce", nonce)
+            .header("X-Excubia-Signature", signature)
             .header("Accept", "text/event-stream");
         if let Some(last_id) = last_id {
             request = request.header("Last-Event-ID", last_id.to_string());

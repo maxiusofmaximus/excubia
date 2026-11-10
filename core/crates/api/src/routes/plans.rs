@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use axum::body::Bytes;
 use axum::extract::{Extension, Path, Query, State};
 use axum::response::{IntoResponse, Response};
-use hn_core_auth::VerifiedDevice;
-use hn_core_chat::{PlanDecision, PlanStatus};
+use excubia_core_auth::VerifiedDevice;
+use excubia_core_chat::{PlanDecision, PlanStatus};
 use serde::Deserialize;
 use serde_json::json;
 

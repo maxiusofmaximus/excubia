@@ -2,7 +2,7 @@
 
 use std::time::{Duration, Instant};
 
-use hn_core_detect::DetectedState;
+use excubia_core_detect::DetectedState;
 
 use super::detect::QueryResponder;
 use super::handle::Session;

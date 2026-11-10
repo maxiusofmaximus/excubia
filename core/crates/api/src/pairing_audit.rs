@@ -2,7 +2,7 @@
 //! the host supplies, so this crate never touches the disk. A record carries no
 //! code and no public key.
 
-use hn_core_auth::unix_seconds;
+use excubia_core_auth::unix_seconds;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

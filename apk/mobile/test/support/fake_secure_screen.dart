@@ -1,4 +1,4 @@
-import 'package:herdr_notify/core/api/secure_screen.dart';
+import 'package:excubia/core/api/secure_screen.dart';
 
 /// Records every flag change; the flag itself only exists on a device.
 class FakeSecureScreen implements SecureScreen {

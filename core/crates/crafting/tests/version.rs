@@ -1,7 +1,7 @@
 mod support;
 
-use hn_core_crafting::{App, CraftError, Driver};
-use hn_core_test_dir::TestDir;
+use excubia_core_crafting::{App, CraftError, Driver};
+use excubia_core_test_dir::TestDir;
 use support::{args, fake_tools, ok, ScriptedRunner};
 
 #[test]

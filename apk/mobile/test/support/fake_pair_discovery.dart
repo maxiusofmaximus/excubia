@@ -1,4 +1,4 @@
-import 'package:herdr_notify/core/api/pair_discovery.dart';
+import 'package:excubia/core/api/pair_discovery.dart';
 
 /// A network with the addresses the test sets. It records the timeout it was
 /// asked for and can fail like the platform does. With [script], call n

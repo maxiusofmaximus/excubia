@@ -3,8 +3,9 @@
 
 use std::time::{Duration, Instant};
 
-use hn_core_chat::action_digest;
-use hn_core_seat::http::{self, LoopbackUrl};
+use excubia_core_chat::action_digest;
+use excubia_core_seat::env;
+use excubia_core_seat::http::{self, LoopbackUrl};
 use serde_json::{json, Value};
 
 use super::request::Request;
@@ -29,10 +30,10 @@ enum State {
 }
 
 pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
-    let base = std::env::var("HN_HOOK_URL")
-        .map_err(|_| Refusal::NoDecision("HN_HOOK_URL is not set".to_string()))?;
-    let token = std::env::var("HN_HOOK_TOKEN")
-        .map_err(|_| Refusal::NoDecision("HN_HOOK_TOKEN is not set".to_string()))?;
+    let base = env::var_or_legacy("EXCUBIA_HOOK_URL", "HN_HOOK_URL")
+        .ok_or_else(|| Refusal::NoDecision("EXCUBIA_HOOK_URL is not set".to_string()))?;
+    let token = env::var_or_legacy("EXCUBIA_HOOK_TOKEN", "HN_HOOK_TOKEN")
+        .ok_or_else(|| Refusal::NoDecision("EXCUBIA_HOOK_TOKEN is not set".to_string()))?;
     let host = LoopbackUrl::parse(&base).map_err(Refusal::NoDecision)?;
     let digest = action_digest(
         &request.kind,
@@ -56,7 +57,7 @@ pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
         "POST",
         &[
             ("Content-Type", "application/json"),
-            ("X-HN-Hook-Token", &token),
+            ("X-Excubia-Hook-Token", &token),
         ],
         &serde_json::to_vec(&body).map_err(|error| Refusal::NoDecision(error.to_string()))?,
         REQUEST_TIMEOUT,
@@ -106,7 +107,7 @@ async fn poll(host: &LoopbackUrl, token: &str, approval_id: &str) -> Result<Stat
     let answer = http::request(
         &host.at(&format!("/v1/chat/approvals/{approval_id}")),
         "GET",
-        &[("X-HN-Hook-Token", token)],
+        &[("X-Excubia-Hook-Token", token)],
         &[],
         REQUEST_TIMEOUT,
     )
@@ -154,7 +155,7 @@ async fn consume(
         "POST",
         &[
             ("Content-Type", "application/json"),
-            ("X-HN-Hook-Token", token),
+            ("X-Excubia-Hook-Token", token),
         ],
         &serde_json::to_vec(&body).map_err(|error| Refusal::NoDecision(error.to_string()))?,
         REQUEST_TIMEOUT,

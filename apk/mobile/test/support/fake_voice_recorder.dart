@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:herdr_notify/core/state/voice_recorder.dart';
+import 'package:excubia/core/state/voice_recorder.dart';
 
 /// Writes a real file on [stop], so the notes' own cleanup is what gets tested.
 class FakeVoiceRecorder implements VoiceRecorder {

@@ -2,7 +2,7 @@
 //! before a risky action. The host computes the digest of the action itself:
 //! the agent never chooses it.
 
-use hn_core_chat::{ApprovalKind, ToolError, ToolRequest};
+use excubia_core_chat::{ApprovalKind, ToolError, ToolRequest};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -52,7 +52,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
     };
     let tool = name_field("tool", &args.tool)?;
     let summary =
-        hn_core_chat::message_text(&args.summary).map_err(|error| text_error("summary", error))?;
+        excubia_core_chat::message_text(&args.summary).map_err(|error| text_error("summary", error))?;
     let cwd = match args.cwd {
         Some(cwd) => Some(name_field("cwd", &cwd)?),
         None => None,
@@ -63,7 +63,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
         .map(|path| name_field("paths", path))
         .collect::<Result<Vec<_>, _>>()?;
     let ttl_seconds = match args.ttl_seconds {
-        Some(seconds) if (1..=hn_core_chat::MAX_TTL_SECONDS as u64).contains(&seconds) => {
+        Some(seconds) if (1..=excubia_core_chat::MAX_TTL_SECONDS as u64).contains(&seconds) => {
             Some(seconds as u32)
         }
         Some(_) => {
@@ -72,7 +72,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
                 "ttl_seconds",
                 format!(
                     "ttl_seconds must be between 1 and {}",
-                    hn_core_chat::MAX_TTL_SECONDS
+                    excubia_core_chat::MAX_TTL_SECONDS
                 ),
             ))
         }
@@ -92,7 +92,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_chat::ToolRequest;
+    use excubia_core_chat::ToolRequest;
     use serde_json::json;
 
     fn request(arguments: Value) -> ToolRequest {

@@ -1,5 +1,5 @@
 [package]
-name = "hn-core-api"
+name = "excubia-core-api"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,14 +11,14 @@ axum.workspace = true
 base64.workspace = true
 futures-core.workspace = true
 hex.workspace = true
-hn-core-asr = { path = "../asr" }
-hn-core-auth = { path = "../auth" }
-hn-core-chat = { path = "../chat" }
-hn-core-media = { path = "../media" }
-hn-core-pake = { path = "../pake" }
-hn-core-pin = { path = "../pin" }
-hn-core-seat = { path = "../seat" }
-hn-core-state = { path = "../state" }
+excubia-core-asr = { path = "../asr" }
+excubia-core-auth = { path = "../auth" }
+excubia-core-chat = { path = "../chat" }
+excubia-core-media = { path = "../media" }
+excubia-core-pake = { path = "../pake" }
+excubia-core-pin = { path = "../pin" }
+excubia-core-seat = { path = "../seat" }
+excubia-core-state = { path = "../state" }
 rustls = { version = "0.23", default-features = false, features = ["std", "logging", "tls12", "ring"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -30,4 +30,4 @@ toml.workspace = true
 toml_edit = "0.22"
 
 [dev-dependencies]
-hn-core-test-dir = { path = "../test-dir" }
+excubia-core-test-dir = { path = "../test-dir" }

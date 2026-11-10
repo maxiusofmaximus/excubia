@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'core/alerts/alert_entry.dart';
 import 'core/state/chat_document_opener.dart';
@@ -28,5 +28,5 @@ Future<void> main(List<String> args) async {
   );
   final values = SecureKeyValueStore();
   final store = PairingStore(values);
-  runApp(HerdrNotifyApp(store: store, palettePrefs: PalettePrefs(values)));
+  runApp(ExcubiaApp(store: store, palettePrefs: PalettePrefs(values)));
 }

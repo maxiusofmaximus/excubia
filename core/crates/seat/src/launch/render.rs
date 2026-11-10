@@ -10,10 +10,10 @@ use crate::hook_action::CLAUDE_HOOK_MATCHER;
 
 /// Seconds Claude waits for `excubia-uac-hook`: the approval TTL plus a margin, so
 /// the hook always answers before Claude gives up on it.
-pub(super) const CLAUDE_HOOK_TIMEOUT_SECONDS: u64 = hn_core_chat::DEFAULT_TTL_SECONDS as u64 + 30;
+pub(super) const CLAUDE_HOOK_TIMEOUT_SECONDS: u64 = excubia_core_chat::DEFAULT_TTL_SECONDS as u64 + 30;
 
 /// The MCP server name the seat declares to every CLI.
-pub(super) const MCP_SERVER: &str = "hn-core";
+pub(super) const MCP_SERVER: &str = "excubia-core";
 
 /// Claude names an MCP tool `mcp__<server>__<tool>` with the dots of the tool
 /// name turned into `_`.
@@ -79,7 +79,7 @@ pub(super) fn claude_mcp(command: &str, tool_url: &str) -> Result<Vec<u8>, Launc
                 "type": "stdio",
                 "command": command,
                 "args": [],
-                "env": { "HN_TOOL_URL": tool_url }
+                "env": { "EXCUBIA_TOOL_URL": tool_url }
             }
         }
     }))
@@ -91,7 +91,7 @@ pub(super) fn test_mcp(command: &str, tool_url: &str) -> Result<Vec<u8>, LaunchE
         "mcp": {
             "command": command,
             "args": [],
-            "env": { "HN_TOOL_URL": tool_url }
+            "env": { "EXCUBIA_TOOL_URL": tool_url }
         }
     }))
     .map_err(|error| LaunchError::Encode(error.to_string()))
@@ -172,7 +172,7 @@ pub(crate) fn opencode_config(
             (MCP_SERVER): {
                 "type": "local",
                 "command": [command],
-                "environment": { "HN_TOOL_URL": tool_url }
+                "environment": { "EXCUBIA_TOOL_URL": tool_url }
             }
         });
     }
@@ -196,7 +196,7 @@ pub(super) fn codex_config(
 
     let mut env = toml::map::Map::new();
     env.insert(
-        "HN_TOOL_URL".to_string(),
+        "EXCUBIA_TOOL_URL".to_string(),
         Value::String(tool_url.to_string()),
     );
     let mut mcp = toml::map::Map::new();
@@ -204,7 +204,7 @@ pub(super) fn codex_config(
     mcp.insert("args".to_string(), Value::Array(Vec::new()));
     mcp.insert("env".to_string(), Value::Table(env));
     let mut servers = toml::map::Map::new();
-    servers.insert("hn-core".to_string(), Value::Table(mcp));
+    servers.insert("excubia-core".to_string(), Value::Table(mcp));
 
     let mut root = toml::map::Map::new();
     root.insert("profiles".to_string(), Value::Table(profiles));

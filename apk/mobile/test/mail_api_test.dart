@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/mail_api.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/connection_text.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/mail_api.dart';
 
 /// Answers each call in order and records what was asked. An answer that is a
 /// [HostError] is thrown, the way the real client refuses.

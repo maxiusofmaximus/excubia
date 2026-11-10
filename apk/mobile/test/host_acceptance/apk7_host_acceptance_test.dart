@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/pairing_api.dart';
-import 'package:herdr_notify/core/api/plan_runner.dart';
-import 'package:herdr_notify/core/state/approvals_controller.dart';
-import 'package:herdr_notify/src/rust/api/approvals/error.dart';
-import 'package:herdr_notify/src/rust/api/chat/plan.dart';
-import 'package:herdr_notify/src/rust/api/signing.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/pairing_api.dart';
+import 'package:excubia/core/api/plan_runner.dart';
+import 'package:excubia/core/state/approvals_controller.dart';
+import 'package:excubia/src/rust/api/approvals/error.dart';
+import 'package:excubia/src/rust/api/chat/plan.dart';
+import 'package:excubia/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 /// Acceptance against a real host (`fake-host` with `fake-cli` seats). It runs
 /// only when the environment names the host, so the normal suite skips it:

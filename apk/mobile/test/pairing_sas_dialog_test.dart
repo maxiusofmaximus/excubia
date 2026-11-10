@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/ui/theme.dart';
-import 'package:herdr_notify/ui/widgets/pairing_sas_dialog.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/pairing_sas_dialog.dart';
 
 void main() {
   Widget host() => MaterialApp(

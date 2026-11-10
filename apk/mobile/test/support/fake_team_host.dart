@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/host_client.dart';
 
 /// A stateful host of the team, as `errors.md` and `api.md` describe it: hires
 /// are registered, renamed, given a character and dismissed, and the list

@@ -1,5 +1,5 @@
 [package]
-name = "hn-core-persist"
+name = "excubia-core-persist"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -15,4 +15,4 @@ thiserror.workspace = true
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Credentials"] }
 
 [dev-dependencies]
-hn-core-test-dir = { path = "../test-dir" }
+excubia-core-test-dir = { path = "../test-dir" }

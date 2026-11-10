@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/state/future_lru.dart';
+import 'package:excubia/core/state/future_lru.dart';
 
 void main() {
   test('una clave cargada no vuelve a pedirse mientras esté en la caché', () async {

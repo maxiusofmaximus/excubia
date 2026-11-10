@@ -41,7 +41,7 @@ val alertsFgsPermission = when (alertsFgsType) {
 val alertsFgsExtraPermission = if (alertsFgsType == "connectedDevice") "CHANGE_WIFI_STATE" else "ACCESS_NETWORK_STATE"
 
 android {
-    namespace = "dev.herdrnotify.herdr_notify"
+    namespace = "dev.excubia.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

@@ -233,11 +233,11 @@ mod tests {
     #[test]
     fn cloud_needs_https_and_names_its_key_without_holding_it() {
         let config = parse(
-            "backend = \"cloud\"\nendpoint = \"https://api.example.test/v1\"\napi_key_env = \"HN_SCORER_KEY\"",
+            "backend = \"cloud\"\nendpoint = \"https://api.example.test/v1\"\napi_key_env = \"EXCUBIA_SCORER_KEY\"",
         )
         .expect("config");
         assert!(
-            matches!(config.backend, Backend::Cloud { ref api_key_env, .. } if api_key_env == "HN_SCORER_KEY")
+            matches!(config.backend, Backend::Cloud { ref api_key_env, .. } if api_key_env == "EXCUBIA_SCORER_KEY")
         );
         assert!(
             parse("backend = \"cloud\"\nendpoint = \"http://x.test\"\napi_key_env = \"K\"")

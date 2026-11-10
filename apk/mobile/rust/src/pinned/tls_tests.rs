@@ -11,7 +11,7 @@ use crate::api::pinned::{
     pinned_request, pinned_request_bytes, HeaderField, PinnedBytesReply, PinnedBytesResponse,
     PinnedEndpoint, PinnedFailureKind, PinnedReply, PinnedResponse,
 };
-use hn_core_pin::{server_config, unix_now, Identity, DEFAULT_VALIDITY_SECONDS};
+use excubia_core_pin::{server_config, unix_now, Identity, DEFAULT_VALIDITY_SECONDS};
 use rustls::crypto::ring::default_provider;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::version::TLS12;
@@ -333,11 +333,11 @@ fn a_malformed_pin_or_address_is_a_typed_failure() {
 
 /// The live check: a real `host` started with `--tls-bind` (see
 /// `core/docs/core/evidence/core11-lan-tls.md`). The link comes from
-/// `HN_LIVE_LINK`, so the one-time code never touches the repository.
+/// `EXCUBIA_LIVE_LINK`, so the one-time code never touches the repository.
 #[test]
-#[ignore = "needs a running host; set HN_LIVE_LINK to its pairing link"]
+#[ignore = "needs a running host; set EXCUBIA_LIVE_LINK to its pairing link"]
 fn the_live_host_answers_over_its_link_pin() {
-    let link = std::env::var("HN_LIVE_LINK").expect("HN_LIVE_LINK");
+    let link = std::env::var("EXCUBIA_LIVE_LINK").expect("EXCUBIA_LIVE_LINK");
     let info = crate::api::pinned::parse_pairing_link(link)
         .link
         .expect("the live link parses");

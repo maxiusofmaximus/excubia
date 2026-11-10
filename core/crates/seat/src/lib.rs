@@ -7,10 +7,11 @@
 //! - [`http`]: the loopback HTTP client the seat's own processes share.
 //! - [`preflight`]: the UAC canary that proves a blocking adapter works.
 //!
-//! The API talks to this crate only through `hn_core_chat::ChatSeat`.
+//! The API talks to this crate only through `excubia_core_chat::ChatSeat`.
 
 mod approvals;
 mod canary_provider;
+pub mod env;
 pub mod hook_action;
 pub mod http;
 mod launch;

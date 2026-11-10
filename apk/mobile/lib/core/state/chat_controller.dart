@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:herdr_notify/src/rust/api/chat/attach_model.dart'
+import 'package:excubia/src/rust/api/chat/attach_model.dart'
     show ChatAttachment;
-import 'package:herdr_notify/src/rust/api/chat/attach_plan.dart'
+import 'package:excubia/src/rust/api/chat/attach_plan.dart'
     show planAttachmentContent, planChatSendWithAttachments;
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/src/rust/api/chat/plan.dart';
-import 'package:herdr_notify/src/rust/api/chat/reducer.dart';
-import 'package:herdr_notify/src/rust/api/error/chat.dart';
-import 'package:herdr_notify/src/rust/api/error.dart'
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/chat/plan.dart';
+import 'package:excubia/src/rust/api/chat/reducer.dart';
+import 'package:excubia/src/rust/api/error/chat.dart';
+import 'package:excubia/src/rust/api/error.dart'
     show FailureKind, WriteAction;
-import 'package:herdr_notify/src/rust/api/state.dart' show AgentEntry;
-import 'package:herdr_notify/src/rust/api/write.dart' show HttpCall;
+import 'package:excubia/src/rust/api/state.dart' show AgentEntry;
+import 'package:excubia/src/rust/api/write.dart' show HttpCall;
 
 import '../api/chat_document_files.dart';
 import '../api/chat_document_previews.dart';

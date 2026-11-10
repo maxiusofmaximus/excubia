@@ -1,7 +1,7 @@
 //! Errors of the chat store. The API maps them to `docs/contracts/errors.md`;
 //! nothing here knows about HTTP.
 
-use hn_core_persist::RandomError;
+use excubia_core_persist::RandomError;
 use thiserror::Error;
 
 use crate::model_attachment::{CHUNK_MAX_BYTES, FILE_MAX_BYTES, MAX_ATTACHMENTS_PER_MESSAGE};

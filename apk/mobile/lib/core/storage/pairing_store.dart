@@ -75,6 +75,7 @@ class SecureKeyValueStore implements KeyValueStore {
 class PairingStore {
   PairingStore(this._store);
 
+  // legacy: persisted key from before the rename, kept so paired devices survive
   static const String baseUrlKey = 'hn_base_url';
   static const String deviceIdKey = 'hn_device_id';
   static const String privateKeyKey = 'hn_private_key';

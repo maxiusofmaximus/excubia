@@ -8,7 +8,7 @@ use conversation_delete_support::{
     conversation_folder, counts, new_conversation, populate, populate_other, second_connection,
     start, DEVICE,
 };
-use hn_core_chat::{ChatError, ChatStore, ConversationFilter};
+use excubia_core_chat::{ChatError, ChatStore, ConversationFilter};
 
 #[test]
 fn a_delete_leaves_no_row_of_the_conversation_and_keeps_the_notes() {

@@ -14,6 +14,7 @@ enum VoiceMicMode { hold, toggle }
 class VoiceSendSettings extends ChangeNotifier {
   VoiceSendSettings([this._store]);
 
+  // legacy: persisted key from before the rename, kept as stored
   static const String key = 'hn_voice_send_mode';
   static const String micKey = 'hn_voice_mic_mode';
 

@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/schedules_api.dart';
-import 'package:herdr_notify/core/state/schedules_controller.dart';
-import 'package:herdr_notify/ui/schedules/schedules_section.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/schedules_api.dart';
+import 'package:excubia/core/state/schedules_controller.dart';
+import 'package:excubia/ui/schedules/schedules_section.dart';
+import 'package:excubia/ui/theme.dart';
 
 import '../support/scripted_transport.dart';
 

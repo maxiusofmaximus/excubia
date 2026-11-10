@@ -1,7 +1,7 @@
 mod support;
 
-use hn_core_mail::{Account, AccountStore, FileKey, MailError, Secret, Tenant, Tokens};
-use hn_core_test_dir::TestDir;
+use excubia_core_mail::{Account, AccountStore, FileKey, MailError, Secret, Tenant, Tokens};
+use excubia_core_test_dir::TestDir;
 
 const ACCESS: &str = "access-token-en-claro-que-no-debe-tocar-el-disco";
 const REFRESH: &str = "refresh-token-en-claro-que-no-debe-tocar-el-disco";

@@ -9,9 +9,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use harness::mail_send_support::{ACCOUNT, DRAFT};
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_host::mail_tools::LEDGER_FILE;
-use hn_core_mail::{FailCode, Ledger, Retry, SendFailure, SendRow, SendState};
+use excubia_core_auth::Permission;
+use excubia_core_host::mail_tools::LEDGER_FILE;
+use excubia_core_mail::{FailCode, Ledger, Retry, SendFailure, SendRow, SendState};
 use serde_json::Value;
 
 /// Writes one send the way the host does: created in `Sending`, then either sent or

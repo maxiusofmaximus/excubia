@@ -8,7 +8,7 @@ use axum::{Extension, Json};
 
 use serde_json::json;
 
-use hn_core_chat::{is_well_formed, ApprovalKind, HookScope, NewApproval, Risk, MAX_TTL_SECONDS};
+use excubia_core_chat::{is_well_formed, ApprovalKind, HookScope, NewApproval, Risk, MAX_TTL_SECONDS};
 
 use crate::error::ApiError;
 use crate::middleware::HookAuth;
@@ -72,7 +72,7 @@ pub async fn create(
         .into_response();
     }
     let ttl_seconds = match payload.ttl_seconds {
-        None => hn_core_chat::DEFAULT_TTL_SECONDS,
+        None => excubia_core_chat::DEFAULT_TTL_SECONDS,
         Some(seconds) if (1..=MAX_TTL_SECONDS as u64).contains(&seconds) => seconds as u32,
         Some(_) => {
             return ApiError::invalid_field(

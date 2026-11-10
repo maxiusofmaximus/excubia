@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/team_summary_api.dart';
-import 'package:herdr_notify/core/state/team_summary_controller.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/team_summary_api.dart';
+import 'package:excubia/core/state/team_summary_controller.dart';
 
 /// Answers each read with the next scripted answer: a `(name, status)` pair is
 /// one member, a [HostError] is thrown. A read waits on [gate] when one is set,

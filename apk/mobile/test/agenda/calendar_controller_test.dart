@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/calendar_controller.dart';
-import 'package:herdr_notify/core/state/calendar_time.dart';
+import 'package:excubia/core/api/agenda_api.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/calendar_controller.dart';
+import 'package:excubia/core/state/calendar_time.dart';
 
 import '../support/recording_transport.dart';
 

@@ -7,14 +7,17 @@ use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_chat::{ToolError, ToolErrorKind, ToolRequest};
+use excubia_core_chat::{ToolError, ToolErrorKind, ToolRequest};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::routes::parse_body;
 use crate::ApiContext;
 
-pub const TOOL_TOKEN_HEADER: &str = "x-hn-tool-token";
+pub const TOOL_TOKEN_HEADER: &str = "x-excubia-tool-token";
+/// legacy: the name the MCP shim sent before the rename; read when the current
+/// one is absent, never emitted.
+const LEGACY_TOOL_TOKEN_HEADER: &str = "x-hn-tool-token";
 
 #[derive(Deserialize)]
 struct ToolBody {
@@ -23,11 +26,7 @@ struct ToolBody {
 }
 
 pub async fn call(State(ctx): State<ApiContext>, headers: HeaderMap, body: Bytes) -> Response {
-    let token = match headers
-        .get(TOOL_TOKEN_HEADER)
-        .and_then(|value| value.to_str().ok())
-        .filter(|token| !token.is_empty())
-    {
+    let token = match presented_tool_token(&headers) {
         Some(token) => token.to_string(),
         None => return tool_error(ToolError::unauthorized("missing tool token")),
     };
@@ -58,4 +57,28 @@ fn tool_error(error: ToolError) -> Response {
         detail["field"] = json!(field);
     }
     (status, Json(json!({ "detail": detail }))).into_response()
+}
+
+/// The per-run token the MCP shim presents. The pre-rename header is read only when the current one is absent.
+fn presented_tool_token(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get(TOOL_TOKEN_HEADER)
+        .or_else(|| headers.get(LEGACY_TOOL_TOKEN_HEADER))
+        .and_then(|value| value.to_str().ok())
+        .filter(|token| !token.is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::HeaderValue;
+
+    #[test]
+    fn the_legacy_tool_header_is_read_and_the_current_one_wins() {
+        let mut headers = HeaderMap::new();
+        headers.insert(LEGACY_TOOL_TOKEN_HEADER, HeaderValue::from_static("old"));
+        assert_eq!(presented_tool_token(&headers), Some("old"));
+        headers.insert(TOOL_TOKEN_HEADER, HeaderValue::from_static("new"));
+        assert_eq!(presented_tool_token(&headers), Some("new"));
+    }
 }

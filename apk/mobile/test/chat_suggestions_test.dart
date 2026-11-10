@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
-import 'package:herdr_notify/ui/chat/chat_suggestions.dart';
+import 'package:excubia/src/rust/api/onboarding/model.dart';
+import 'package:excubia/ui/chat/chat_suggestions.dart';
 
 const allAreas = [
   'programacion',

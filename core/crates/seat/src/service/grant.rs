@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use hn_core_chat::{ChatStore, SeatActor, Turn};
+use excubia_core_chat::{ChatStore, SeatActor, Turn};
 use tokio::sync::Notify;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

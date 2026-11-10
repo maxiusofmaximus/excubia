@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/pinned_client.dart';
-import 'package:herdr_notify/src/rust/api/signing.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/pinned_client.dart';
+import 'package:excubia/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/fake_pinned_client.dart';
 import 'support/pairing_fixtures.dart';
@@ -38,7 +38,7 @@ void main() {
     expect(fake.targets, ['/v1/voice/transcribe']);
     expect(fake.bodies.single, [1, 2, 3]);
     expect(fake.headers.single[HttpHeaders.contentTypeHeader], 'audio/ogg');
-    expect(fake.headers.single.keys, contains('X-HN-Signature'));
+    expect(fake.headers.single.keys, contains('X-Excubia-Signature'));
   });
 
   test('una llamada normal no añade Content-Type', () async {

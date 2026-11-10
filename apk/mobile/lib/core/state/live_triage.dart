@@ -3,16 +3,17 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart' show ChatEvent;
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/src/rust/api/catalog.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/src/rust/api/stream.dart';
-import 'package:herdr_notify/src/rust/api/workspace.dart';
-import 'package:herdr_notify/src/rust/api/write.dart';
+import 'package:excubia/src/rust/api/chat/model.dart' show ChatEvent;
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/catalog.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/stream.dart';
+import 'package:excubia/src/rust/api/workspace.dart';
+import 'package:excubia/src/rust/api/write.dart';
 
 import '../api/connection_failure.dart';
 import '../api/host_client.dart';
+import '../api/plan_runner.dart';
 import '../model/connection_state.dart';
 import 'reconciler.dart';
 
@@ -226,7 +227,7 @@ class LiveTriage extends ChangeNotifier {
       );
     }
     try {
-      await _client.call(call.method, call.target, call.body);
+      await runCall(_client, call);
       unawaited(refreshNow());
       return null;
     } on HostError catch (e) {
@@ -301,7 +302,7 @@ class LiveTriage extends ChangeNotifier {
       );
     }
     try {
-      final body = await _client.call(call.method, call.target, call.body);
+      final body = await runCall(_client, call);
       final created = parseCreated(json: body);
       if (created == null) {
         return (
@@ -341,7 +342,7 @@ class LiveTriage extends ChangeNotifier {
       );
     }
     try {
-      await _client.call(call.method, call.target, call.body);
+      await runCall(_client, call);
       return null;
     } on HostError catch (e) {
       return explainHttpError(
@@ -368,7 +369,7 @@ class LiveTriage extends ChangeNotifier {
       );
     }
     try {
-      await _client.call(call.method, call.target, call.body);
+      await runCall(_client, call);
       return null;
     } on HostError catch (e) {
       return explainHttpError(
@@ -401,7 +402,7 @@ class LiveTriage extends ChangeNotifier {
       );
     }
     try {
-      await _client.call(call.method, call.target, call.body);
+      await runCall(_client, call);
       unawaited(refreshNow());
       return (stopped: true, gone: false, error: null);
     } on HostError catch (e) {

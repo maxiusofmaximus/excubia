@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/api/chat/reducer.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/chat/chat_bubbles.dart';
-import 'package:herdr_notify/ui/chat/chat_progress.dart';
-import 'package:herdr_notify/ui/chat/chat_screen.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/chat/reducer.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/chat/chat_bubbles.dart';
+import 'package:excubia/ui/chat/chat_progress.dart';
+import 'package:excubia/ui/chat/chat_screen.dart';
 
 void main() {
   setUpAll(() async {

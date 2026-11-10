@@ -5,11 +5,11 @@
 
 use std::path::PathBuf;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     Approval, ApprovalStatus, ChatError, ChatStore, Decision, Delegation, NewConversation,
     NewDelegation, NewProject, NewSeat, SeatActor,
 };
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 
 /// A project with its lead, one specialist and a conversation inside it.
 pub struct Team {

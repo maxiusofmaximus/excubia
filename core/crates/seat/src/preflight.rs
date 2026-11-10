@@ -29,14 +29,14 @@ pub const LOAD_FAILURE_MARKER: &str = "failed to load plugin";
 pub const BLOCKED_MARKER: &str = "[UAC]";
 /// The file the canary command writes when it runs. The name is relative to the
 /// canary's work directory; the command gets the absolute path.
-pub const CANARY_MARKER: &str = "hn-uac-canary.txt";
+pub const CANARY_MARKER: &str = "excubia-uac-canary.txt";
 
 /// The canary command the plugin must block. It leaves `marker` behind when it
 /// runs, so the proof is not only a log line. The path must be absolute: the CLI
 /// runs shell commands in its own project directory, not in the spawn's, so a
 /// relative marker lands elsewhere and a "no marker" verdict proves nothing.
 pub fn canary_command(marker: &Path) -> String {
-    format!("echo hn-uac-canary > \"{}\"", marker.to_string_lossy())
+    format!("echo excubia-uac-canary > \"{}\"", marker.to_string_lossy())
 }
 
 /// The verdict of the preflight.
@@ -115,8 +115,8 @@ pub async fn run_canary(plan: &CanaryPlan, limit: Duration) -> CanaryOutcome {
     // Without a host the plugin denies at its first risky call: the canary
     // proves the block, it never needs an operator.
     command
-        .env_remove("HN_HOOK_URL")
-        .env_remove("HN_HOOK_TOKEN");
+        .env_remove("EXCUBIA_HOOK_URL")
+        .env_remove("EXCUBIA_HOOK_TOKEN");
     let output = match timeout(limit, command.output()).await {
         Ok(Ok(output)) => output,
         Ok(Err(error)) => {
@@ -297,7 +297,7 @@ fn path(value: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
 
     #[test]
     fn a_plugin_that_did_not_load_is_unsafe() {
@@ -370,7 +370,7 @@ mod tests {
             serde_json::json!({ "bash": "allow", "edit": "deny", "webfetch": "deny" })
         );
         assert!(canary.get("mcp").is_none(), "the canary has no MCP server");
-        assert_eq!(seat["mcp"]["hn-core"]["type"], "local");
+        assert_eq!(seat["mcp"]["excubia-core"]["type"], "local");
         assert_eq!(seat["agent"]["alfred"]["prompt"], "role");
     }
 }

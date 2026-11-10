@@ -3,11 +3,11 @@
 
 use std::path::PathBuf;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     ChatStore, ConversationFilter, ConversationUpdate, NewConversation, RunState, SearchMode,
     SectionChange,
 };
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 
 fn temp_dir(name: &str) -> TestDir {
     TestDir::new(&format!("core-chat-tests-{name}"))
@@ -45,7 +45,7 @@ fn seed_agent_messages(store: &ChatStore, id: &str, texts: &[&str]) {
     }
 }
 
-fn all(store: &ChatStore) -> Vec<hn_core_chat::Conversation> {
+fn all(store: &ChatStore) -> Vec<excubia_core_chat::Conversation> {
     store
         .list_conversations(ConversationFilter {
             q: None,

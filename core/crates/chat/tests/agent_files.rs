@@ -2,11 +2,11 @@
 //! message, `chat.reply` links the ones it names, and a turn that names none still
 //! leaves its files in a short message of Alfred.
 
-use hn_core_chat::{
+use excubia_core_chat::{
     new_ulid, AcceptedMessage, AttachmentError, AttachmentFiles, ChatError, ChatStore,
     NewConversation, ReadyFile, TimelineEntry,
 };
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 
 fn store(name: &str) -> (ChatStore, TestDir) {
     let dir = TestDir::new(&format!("core-chat-agent-files-{name}"));

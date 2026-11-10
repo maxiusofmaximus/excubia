@@ -1,4 +1,4 @@
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
 
 /// Why the PC could not be reached. A [HostError] carries it only when the
 /// request failed before an answer; an HTTP status is classified from its code.

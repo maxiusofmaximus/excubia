@@ -6,8 +6,8 @@ mod mail_send_support;
 
 use std::time::Duration;
 
-use hn_core_chat::SeatActor;
-use hn_core_seat::{BodyFormat, DraftFields, DraftUpdate, MailCall};
+use excubia_core_chat::SeatActor;
+use excubia_core_seat::{BodyFormat, DraftFields, DraftUpdate, MailCall};
 use mail_send_support::{approved_and_sent, Host, ACCOUNT, BODY, DRAFT, TO};
 
 const SUBJECT: &str = "Presupuesto de abril";

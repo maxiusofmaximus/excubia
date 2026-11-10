@@ -20,10 +20,10 @@ pub struct TestDir {
 }
 
 impl TestDir {
-    /// A new empty directory named `hn-<label>-<pid>-<n>` in the temp dir.
+    /// A new empty directory named `excubia-<label>-<pid>-<n>` in the temp dir.
     pub fn new(label: &str) -> Self {
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!("hn-{label}-{}-{n}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("excubia-{label}-{}-{n}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).expect("test directory");
         Self { path }

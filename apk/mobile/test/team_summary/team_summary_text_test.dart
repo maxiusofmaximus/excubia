@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/team_summary_models.dart';
-import 'package:herdr_notify/ui/team/team_summary_text.dart';
+import 'package:excubia/core/api/team_summary_models.dart';
+import 'package:excubia/ui/team/team_summary_text.dart';
 
 void main() {
   test('each state has the words the desktop uses', () {

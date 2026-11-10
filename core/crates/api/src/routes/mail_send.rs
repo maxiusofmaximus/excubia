@@ -11,7 +11,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
-use hn_core_auth::VerifiedDevice;
+use excubia_core_auth::VerifiedDevice;
 use serde::Deserialize;
 use serde_json::{json, Value};
 

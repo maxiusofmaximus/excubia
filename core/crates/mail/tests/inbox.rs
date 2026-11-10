@@ -3,9 +3,9 @@
 
 mod support;
 
-use hn_core_mail::inbox::inbox_url;
-use hn_core_mail::received::{AuthSummary, MAX_BODY_CHARS};
-use hn_core_mail::{GraphClient, MailError};
+use excubia_core_mail::inbox::inbox_url;
+use excubia_core_mail::received::{AuthSummary, MAX_BODY_CHARS};
+use excubia_core_mail::{GraphClient, MailError};
 use serde_json::json;
 use support::mock::{MockResponse, MockTransport};
 use support::{in_memory_ledger, ACCESS_TOKEN, ACCOUNT};

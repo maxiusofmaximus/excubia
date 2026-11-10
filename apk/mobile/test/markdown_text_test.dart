@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/ui/chat/markdown_text.dart';
+import 'package:excubia/ui/chat/markdown_text.dart';
 
 List<(MdLine, String, String)> _lines(String source) => [
   for (final line in parseMarkdownLines(source))

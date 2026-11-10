@@ -1,7 +1,7 @@
 mod support;
 
-use hn_core_crafting::{CraftError, Kind, Workspace};
-use hn_core_test_dir::TestDir;
+use excubia_core_crafting::{CraftError, Kind, Workspace};
+use excubia_core_test_dir::TestDir;
 use std::fs;
 use support::{document, ooxml_zip, CSV, XLSX};
 

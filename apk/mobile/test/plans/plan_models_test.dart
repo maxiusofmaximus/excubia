@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/plan_models.dart';
-import 'package:herdr_notify/ui/plans/plan_text.dart';
+import 'package:excubia/core/api/plan_models.dart';
+import 'package:excubia/ui/plans/plan_text.dart';
 
 Map<String, Object?> _plan({
   String id = 'plan_1',

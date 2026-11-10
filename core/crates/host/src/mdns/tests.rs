@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use hn_core_api::{PakeSlot, PAKE_CODE_TTL, PAKE_PENDING_TTL};
-use hn_core_pake::Code;
+use excubia_core_api::{PakeSlot, PAKE_CODE_TTL, PAKE_PENDING_TTL};
+use excubia_core_pake::Code;
 
 use super::*;
 
@@ -117,8 +117,8 @@ fn the_pending_session_keeps_the_announcement_until_it_ends() {
     assert_eq!(calls(&log), ["withdraw"]);
 }
 
-fn a_key(code: &Code) -> hn_core_pake::SessionKey {
-    use hn_core_pake::{Role, Session};
+fn a_key(code: &Code) -> excubia_core_pake::SessionKey {
+    use excubia_core_pake::{Role, Session};
     let (host, host_message) = Session::start(Role::Host, code, "host", b"dev").expect("host");
     let (device, device_message) = Session::start(Role::Device, code, "host", b"dev").expect("dev");
     drop(device.finish(&host_message));

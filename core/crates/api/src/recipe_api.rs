@@ -2,7 +2,7 @@
 //! The guard runs in the store (`admit`), so nothing here decides what may be
 //! kept; this module only checks the shape of what arrives.
 
-use hn_core_chat::{Recipe, RecipeText};
+use excubia_core_chat::{Recipe, RecipeText};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

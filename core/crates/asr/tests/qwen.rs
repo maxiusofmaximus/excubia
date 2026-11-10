@@ -1,14 +1,14 @@
 //! Needs CUDA and the Qwen3-ASR-1.7B snapshot (qwen-asr); the venv needs qwen-asr 0.0.6, transformers
 //! 4.57.6 and torch 2.11 with CUDA (`research/voz-spike/venv-qwen-cu128`). Run once with:
 //! `EXCUBIA_ASR_PYTHON=<venv python> EXCUBIA_ASR_MODEL=<snapshot dir> EXCUBIA_ASR_AUDIO=<16 kHz mono wav>`
-//! `cargo test -p hn-core-asr --test qwen -- --ignored --nocapture`
+//! `cargo test -p excubia-core-asr --test qwen -- --ignored --nocapture`
 
 mod common;
 
 use std::path::PathBuf;
 
 use common::{env_path, read_wav_16k_mono};
-use hn_core_asr::{AsrConfig, AsrEngine};
+use excubia_core_asr::{AsrConfig, AsrEngine};
 
 fn qwen_config() -> AsrConfig {
     let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

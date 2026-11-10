@@ -10,11 +10,11 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, new_ulid, ApprovalKind, NewApproval, Reader, SeatActor, ToolError, ToolReply,
     DEFAULT_TTL_SECONDS,
 };
-use hn_core_seat::{
+use excubia_core_seat::{
     approval_for, approval_result, canary_plan, run_canary, ApprovalAsk, ApprovalDecide,
     ApprovalRequest, CliProfile, UacState,
 };
@@ -34,7 +34,7 @@ impl TeamService {
     /// in the bootstrap and it is never launched.
     pub(super) async fn verify_uac(
         &self,
-        seat: &hn_core_chat::Seat,
+        seat: &excubia_core_chat::Seat,
         profile: &CliProfile,
     ) -> Result<(), ToolError> {
         let outcome = self
@@ -55,16 +55,16 @@ impl TeamService {
         &self,
         profile: &CliProfile,
         work_dir: &Path,
-    ) -> hn_core_seat::CanaryOutcome {
+    ) -> excubia_core_seat::CanaryOutcome {
         let Some(plugin_dir) = self.uac_plugin_dir.clone() else {
-            return hn_core_seat::CanaryOutcome {
+            return excubia_core_seat::CanaryOutcome {
                 state: UacState::Unchecked,
                 reason: "no UAC plugin is configured".to_string(),
             };
         };
         let Some(plan) = canary_plan(profile, &plugin_dir, work_dir, &self.canary_cache()).await
         else {
-            return hn_core_seat::CanaryOutcome {
+            return excubia_core_seat::CanaryOutcome {
                 state: UacState::Unchecked,
                 reason: format!(
                     "{} has no blocking UAC adapter to verify",

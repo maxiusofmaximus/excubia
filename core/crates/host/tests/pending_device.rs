@@ -4,7 +4,7 @@
 mod harness;
 
 use harness::TestHost;
-use hn_core_auth::Permission;
+use excubia_core_auth::Permission;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_new_device_is_refused_until_the_host_grants_read_state() {

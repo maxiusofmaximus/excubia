@@ -11,13 +11,13 @@ pub(super) fn uac_canary(plugin_dir: &str) -> Result<(), String> {
         Ok(source) => source,
         Err(_) => {
             eprintln!("failed to load plugin: {}", index.display());
-            println!("hn-uac-canary: the command ran");
+            println!("excubia-uac-canary: the command ran");
             return Ok(());
         }
     };
     if !source.contains("tool.hook") && !source.contains("server(") {
         eprintln!("failed to load plugin: {} has no hook", index.display());
-        println!("hn-uac-canary: the command ran");
+        println!("excubia-uac-canary: the command ran");
         return Ok(());
     }
     eprintln!("[UAC] aprobación denegada por el operador. Acción denegada (fail closed).");
@@ -65,7 +65,7 @@ pub(super) fn uac_ttl(text: &str) -> &str {
 
 /// The hook binary: the environment names it, or it sits beside this one.
 pub(super) fn hook_path() -> Result<PathBuf, String> {
-    if let Ok(path) = std::env::var("HN_UAC_HOOK") {
+    if let Ok(path) = std::env::var("EXCUBIA_UAC_HOOK") {
         if !path.trim().is_empty() {
             return Ok(PathBuf::from(path));
         }

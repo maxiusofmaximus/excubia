@@ -15,8 +15,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
-use hn_core_persist::{write_atomic, write_secret_atomic};
-use hn_core_pin::{CertificateInfo, Fingerprint, Identity, PinSet};
+use excubia_core_persist::{write_atomic, write_secret_atomic};
+use excubia_core_pin::{CertificateInfo, Fingerprint, Identity, PinSet};
 
 use crate::paths;
 
@@ -35,10 +35,17 @@ impl TlsSlots {
         }
     }
 
-    /// The identity the LAN listener serves. The first call creates it.
+    /// The identity the LAN listener serves. The first call creates it. A host
+    /// minted before the rename gets a certificate under the current name, with
+    /// the same key, so the pin its devices hold stays valid.
     pub fn active(&self) -> Result<Identity> {
         if let Some(identity) = self.load(ACTIVE)? {
-            return Ok(identity);
+            if identity.carries_current_name()? {
+                return Ok(identity);
+            }
+            let reissued = identity.reissued()?;
+            write_atomic(&cert_path(&self.dir, ACTIVE), reissued.cert_der())?;
+            return Ok(reissued);
         }
         let identity = Identity::generate()?;
         self.store(ACTIVE, &identity)?;
@@ -147,7 +154,7 @@ fn read_optional(path: &Path) -> Result<Option<Vec<u8>>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
 
     #[test]
     fn a_rotation_publishes_both_pins_and_then_keeps_the_old_one_as_backup() {
@@ -188,5 +195,25 @@ mod tests {
         slots.active().expect("create");
         fs::remove_file(key_path(&paths::tls_dir(dir.path()), ACTIVE)).expect("remove key");
         assert!(slots.active().is_err());
+    }
+
+    #[test]
+    fn a_legacy_certificate_is_reissued_under_the_current_name_with_the_same_key() {
+        let dir = TestDir::new("tls-slots-legacy-name");
+        let slots = TlsSlots::open(dir.path());
+        let legacy =
+            Identity::generate_named("herdr-notify", 1_000, 2_000_000_000).expect("legacy");
+        slots.store(ACTIVE, &legacy).expect("store");
+
+        let active = slots.active().expect("active");
+        assert!(active.carries_current_name().expect("name"));
+        assert_eq!(active.key_der(), legacy.key_der());
+        assert_eq!(
+            active.fingerprint().expect("pin"),
+            legacy.fingerprint().expect("pin")
+        );
+        assert_ne!(active.cert_der(), legacy.cert_der());
+        let again = slots.active().expect("again");
+        assert_eq!(again.cert_der(), active.cert_der(), "reissued once");
     }
 }

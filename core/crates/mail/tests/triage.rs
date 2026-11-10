@@ -1,8 +1,8 @@
 //! The verdict rules of `mail.triage` (F0), one row per mail: the level and the signals
 //! each set of checks gets, the signals always in the order of the enum.
 
-use hn_core_mail::received::{AuthSummary, Checks};
-use hn_core_mail::triage::{verdict, Level::*, Signal::*, Verdict};
+use excubia_core_mail::received::{AuthSummary, Checks};
+use excubia_core_mail::triage::{verdict, Level::*, Signal::*, Verdict};
 
 const PASS: [&str; 3] = ["pass", "pass", "pass"];
 const FAIL: [&str; 3] = ["fail", "fail", "fail"];

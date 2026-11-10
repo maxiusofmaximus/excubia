@@ -2,7 +2,7 @@
 //! the ones of its project, Alfred the ones of the company. It takes no
 //! arguments, so a caller cannot widen its own scope, and it decides nothing.
 
-use hn_core_chat::{ToolError, ToolRequest};
+use excubia_core_chat::{ToolError, ToolRequest};
 
 use super::{no_arguments, ToolCall};
 

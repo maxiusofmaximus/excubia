@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/state/approvals_controller.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/chat/approval_inbox.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/state/approvals_controller.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/chat/approval_inbox.dart';
+import 'package:excubia/ui/theme.dart';
 
 import 'support/approval_fixtures.dart';
 import 'support/scripted_transport.dart';

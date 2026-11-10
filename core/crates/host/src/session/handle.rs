@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use hn_core_detect::DetectedState;
-use hn_core_pty::PtySession;
+use excubia_core_detect::DetectedState;
+use excubia_core_pty::PtySession;
 use tokio::sync::Notify;
 
 use super::detect::{last_lines, recent_text};

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
 
 import 'pake_pairing.dart';
 import 'pinned_client.dart';
@@ -189,7 +189,7 @@ class PairingApi {
   static HttpClient _defaultClient() => HttpClient()
     ..connectionTimeout = const Duration(seconds: 10)
     ..idleTimeout = const Duration(minutes: 5)
-    ..userAgent = 'herdr-notify-flutter/0.1';
+    ..userAgent = 'excubia-flutter/0.1';
 }
 
 String _jsonString(String value) {

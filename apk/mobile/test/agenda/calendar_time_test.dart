@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/state/calendar_time.dart';
+import 'package:excubia/core/state/calendar_time.dart';
 
 void main() {
   final madrid = zoneNamed('Europe/Madrid')!;

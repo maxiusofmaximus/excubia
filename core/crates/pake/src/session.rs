@@ -159,7 +159,7 @@ impl Session {
     /// A session cannot be finished twice (the second use does not compile):
     ///
     /// ```compile_fail,E0382
-    /// use hn_core_pake::{Code, Role, Session};
+    /// use excubia_core_pake::{Code, Role, Session};
     /// let code = Code::generate().unwrap();
     /// let (session, message) = Session::start(Role::Host, &code, "host", b"key").unwrap();
     /// let _ = session.finish(&message);

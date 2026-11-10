@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api.dart' show coreVersion;
-import 'package:herdr_notify/src/rust/api/signing.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/src/rust/api/stream.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/src/rust/api.dart' show coreVersion;
+import 'package:excubia/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/stream.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 /// Proves the bridge itself works: the Dart VM loads the Rust library and the
 /// contract logic (not a Dart copy) answers.

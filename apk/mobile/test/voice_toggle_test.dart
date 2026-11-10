@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/state/chat_attachment_tray.dart';
-import 'package:herdr_notify/core/state/voice_notes.dart';
-import 'package:herdr_notify/core/state/voice_send_settings.dart';
-import 'package:herdr_notify/ui/chat/chat_composer.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/state/chat_attachment_tray.dart';
+import 'package:excubia/core/state/voice_notes.dart';
+import 'package:excubia/core/state/voice_send_settings.dart';
+import 'package:excubia/ui/chat/chat_composer.dart';
+import 'package:excubia/ui/theme.dart';
 
 import 'support/fake_chat_transport.dart';
 import 'support/fake_voice_host.dart';

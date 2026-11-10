@@ -6,12 +6,12 @@ abstract interface class SecureScreen {
   Future<void> setSecure(bool secure);
 }
 
-/// FLAG_SECURE through `dev.herdrnotify/secure_screen` (MainActivity.kt).
+/// FLAG_SECURE through `dev.excubia/secure_screen` (MainActivity.kt).
 class MethodChannelSecureScreen implements SecureScreen {
   const MethodChannelSecureScreen();
 
   static const MethodChannel _channel = MethodChannel(
-    'dev.herdrnotify/secure_screen',
+    'dev.excubia/secure_screen',
   );
 
   /// A phone that cannot set the flag still scans: the failure is swallowed.

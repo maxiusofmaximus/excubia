@@ -21,17 +21,22 @@ function integer(value, fallback, min, max) {
   return Math.min(max, Math.max(min, parsed));
 }
 
+/** legacy: HN_* names of runs started before the rename; read only when the EXCUBIA_* one is unset. */
+function envValue(env, name) {
+  return env[name] ?? env[name.replace(/^EXCUBIA_/, "HN_")];
+}
+
 function hostUrl(env) {
-  const raw = String(env.HN_HOOK_URL ?? "").trim().replace(/\/+$/, "");
+  const raw = String(envValue(env, "EXCUBIA_HOOK_URL") ?? "").trim().replace(/\/+$/, "");
   if (!raw) return undefined;
   let url;
   try {
     url = new URL(raw);
   } catch {
-    throw new UacDenied("HN_HOOK_URL no es una URL válida; se deniega por seguridad", "uac_unconfigured");
+    throw new UacDenied("EXCUBIA_HOOK_URL no es una URL válida; se deniega por seguridad", "uac_unconfigured");
   }
   if (!LOOPBACK_HOSTS.has(url.hostname) || url.username || url.password) {
-    throw new UacDenied("HN_HOOK_URL debe ser loopback; se deniega por seguridad", "uac_not_loopback");
+    throw new UacDenied("EXCUBIA_HOOK_URL debe ser loopback; se deniega por seguridad", "uac_not_loopback");
   }
   return url;
 }
@@ -39,15 +44,15 @@ function hostUrl(env) {
 /** Configuración efectiva. Devuelve null si falta algo: el llamador debe denegar. */
 export function hostConfig(env = process.env) {
   const url = hostUrl(env);
-  const token = String(env.HN_HOOK_TOKEN ?? "").trim();
+  const token = String(envValue(env, "EXCUBIA_HOOK_TOKEN") ?? "").trim();
   if (!url || !token) return null;
   return {
     base: url.href.replace(/\/+$/, ""),
     token,
-    ttlSeconds: integer(env.HN_UAC_TTL_SECONDS, DEFAULT_TTL_SECONDS, 1, MAX_TTL_SECONDS),
-    pollMs: integer(env.HN_UAC_POLL_MS, DEFAULT_POLL_MS, 50, 5000),
-    paneId: String(env.HN_PANE_ID ?? "").trim(),
-    runId: String(env.HN_RUN_ID ?? "").trim(),
+    ttlSeconds: integer(envValue(env, "EXCUBIA_UAC_TTL_SECONDS"), DEFAULT_TTL_SECONDS, 1, MAX_TTL_SECONDS),
+    pollMs: integer(envValue(env, "EXCUBIA_UAC_POLL_MS"), DEFAULT_POLL_MS, 50, 5000),
+    paneId: String(envValue(env, "EXCUBIA_PANE_ID") ?? "").trim(),
+    runId: String(envValue(env, "EXCUBIA_RUN_ID") ?? "").trim(),
   };
 }
 
@@ -116,12 +121,12 @@ export async function requestApproval({
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 }) {
   const config = hostConfig(env);
-  if (!config) throw new UacDenied("UAC no configurada (HN_HOOK_URL/HN_HOOK_TOKEN); se deniega", "uac_unconfigured");
+  if (!config) throw new UacDenied("UAC no configurada (EXCUBIA_HOOK_URL/EXCUBIA_HOOK_TOKEN); se deniega", "uac_unconfigured");
 
   const headers = {
     "content-type": "application/json",
     accept: "application/json",
-    "x-hn-hook-token": config.token,
+    "x-excubia-hook-token": config.token,
   };
   const deadline = now() + config.ttlSeconds * 1000;
   const created = await callJson(
@@ -145,7 +150,7 @@ export async function requestApproval({
     const state = await callJson(
       fetchImpl,
       `${config.base}/v1/chat/approvals/${encodeURIComponent(approvalId)}`,
-      { method: "GET", headers: { accept: "application/json", "x-hn-hook-token": config.token } },
+      { method: "GET", headers: { accept: "application/json", "x-excubia-hook-token": config.token } },
       effectiveDeadline,
       now,
       [200],

@@ -3,7 +3,7 @@
 
 mod support;
 
-use hn_core_mail::{DraftBody, DraftInput, GraphClient, SendAttachment, SendView};
+use excubia_core_mail::{DraftBody, DraftInput, GraphClient, SendAttachment, SendView};
 use serde_json::json;
 use support::mock::{MockResponse, MockTransport};
 use support::{attachments_body, draft_input, in_memory_ledger, sha256_hex, ACCESS_TOKEN};

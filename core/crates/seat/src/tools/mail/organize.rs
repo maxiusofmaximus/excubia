@@ -6,7 +6,7 @@
 
 use std::collections::HashSet;
 
-use hn_core_chat::{ToolError, ToolRequest};
+use excubia_core_chat::{ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::{arguments, bounded, invalid, MailCall, MAX_ID_CHARS};
@@ -228,7 +228,7 @@ fn reason(raw: &str) -> Result<String, ToolError> {
 
 #[cfg(test)]
 mod tests {
-    use hn_core_chat::{ToolError, ToolRequest};
+    use excubia_core_chat::{ToolError, ToolRequest};
     use serde_json::{json, Value};
 
     use super::{

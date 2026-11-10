@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/error.dart';
 
 import '../theme.dart';
 

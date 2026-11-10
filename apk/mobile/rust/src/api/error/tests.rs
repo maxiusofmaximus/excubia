@@ -24,6 +24,7 @@ fn a_403_names_the_missing_grant_and_the_correct_host_command() {
     assert!(read.message.contains("READ_STATE"));
     let command = read.action.unwrap();
     assert!(command.contains("host devices grant <device_id> --permission read_state"));
+    // legacy: the retired CLI command must never be suggested again
     assert!(!command.contains("herdr-notify devices"));
 
     let respond = explain_error(403, None, "forbidden".to_string(), WriteAction::Respond);

@@ -3,7 +3,7 @@
 //! approval; `path` names a file on this PC, which the policy may send to the chat for
 //! the operator's answer. Exactly one of them is given.
 
-use hn_core_chat::{ToolError, ToolRequest};
+use excubia_core_chat::{ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::{arguments, bounded, invalid, MailCall, MAX_ID_CHARS, MAX_PATH_CHARS};

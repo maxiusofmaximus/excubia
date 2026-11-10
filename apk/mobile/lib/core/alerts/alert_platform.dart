@@ -36,9 +36,9 @@ abstract interface class AlertPlatform {
   void onNetworkUp(void Function() handler);
 }
 
-/// `dev.herdrnotify/alerts` (HerdrAlertsPlugin.kt).
+/// `dev.excubia/alerts` (HerdrAlertsPlugin.kt).
 class MethodChannelAlertPlatform implements AlertPlatform {
-  static const MethodChannel _channel = MethodChannel('dev.herdrnotify/alerts');
+  static const MethodChannel _channel = MethodChannel('dev.excubia/alerts');
 
   const MethodChannelAlertPlatform();
 

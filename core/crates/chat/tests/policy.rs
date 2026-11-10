@@ -5,11 +5,11 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, Approval, ApprovalStatus, ChatStore, HookScope, NewApproval, NewConversation,
     Risk, DEFAULT_TTL_SECONDS,
 };
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 use serde_json::json;
 
 /// A store with the seeded Alfred seat, optionally linked to a project whose
@@ -82,7 +82,7 @@ impl Desk {
             agent_label: Some("alfred".to_string()),
             run_id: None,
             pane_id: None,
-            kind: hn_core_chat::ApprovalKind::Command,
+            kind: excubia_core_chat::ApprovalKind::Command,
             tool: "bash".to_string(),
             summary: format!("Ejecutar comando: {command}"),
             cwd: Some(cwd.clone()),
@@ -104,7 +104,7 @@ impl Desk {
 fn an_allowed_test_is_approved_at_once_and_audited_as_the_policy() {
     let desk = desk("allowed");
     link_project(&desk);
-    let approval = desk.in_project("cargo test -p hn-core-chat");
+    let approval = desk.in_project("cargo test -p excubia-core-chat");
 
     assert_eq!(approval.status, ApprovalStatus::Approved);
     assert_eq!(approval.level.as_deref(), Some("policy"));
@@ -225,7 +225,7 @@ cwd_under = "project"
     )
     .expect("write rules");
 
-    let test_run = desk.in_project("cargo test -p hn-core-chat");
+    let test_run = desk.in_project("cargo test -p excubia-core-chat");
     assert_eq!(
         test_run.status,
         ApprovalStatus::Pending,

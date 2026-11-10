@@ -9,10 +9,10 @@ use harness::mail_send_support::{
     ACCOUNT, BODY, DRAFT, LOGIN_REFRESH, SEND_ACCESS, SEND_REFRESH, TO,
 };
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_chat::Decision;
-use hn_core_host::mail_tools::LEDGER_FILE;
-use hn_core_mail::{Ledger, SendRow, SendState};
+use excubia_core_auth::Permission;
+use excubia_core_chat::Decision;
+use excubia_core_host::mail_tools::LEDGER_FILE;
+use excubia_core_mail::{Ledger, SendRow, SendState};
 use serde_json::{json, Value};
 
 const START: &str = "/v1/mail/login/start";

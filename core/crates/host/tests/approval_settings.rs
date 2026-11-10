@@ -5,8 +5,8 @@
 mod harness;
 
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_chat::{
+use excubia_core_auth::Permission;
+use excubia_core_chat::{
     action_digest, ApprovalKind, NewApproval, NewConversation, DEFAULT_TTL_SECONDS,
 };
 use serde_json::{json, Value};
@@ -22,7 +22,7 @@ fn body(client_id: &str, mode: &str) -> Option<Vec<u8>> {
 }
 
 /// One command the host has no rule for, opened without a conversation.
-fn ask(host: &TestHost, conversation_id: Option<&str>, command: &str) -> hn_core_chat::Approval {
+fn ask(host: &TestHost, conversation_id: Option<&str>, command: &str) -> excubia_core_chat::Approval {
     let args = json!({ "command": command });
     host.chat
         .create_approval(NewApproval {

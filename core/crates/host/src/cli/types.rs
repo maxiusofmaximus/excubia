@@ -4,7 +4,7 @@ use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
 use std::time::Duration;
 
-use hn_core_asr::AsrConfig;
+use excubia_core_asr::AsrConfig;
 
 use crate::mail_sidecar::SidecarEndpoint;
 

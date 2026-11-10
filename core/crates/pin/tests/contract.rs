@@ -4,7 +4,7 @@
 use std::io;
 use std::sync::Arc;
 
-use hn_core_pin::{
+use excubia_core_pin::{
     client_config, server_config, unix_now, CertificateInfo, Fingerprint, Identity, PinError,
     PinSet, PinVerifier,
 };

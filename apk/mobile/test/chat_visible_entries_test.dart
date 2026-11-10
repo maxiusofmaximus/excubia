@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/ui/chat/chat_conversation_view.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/ui/chat/chat_conversation_view.dart';
 
 ChatEntry _message(int seq) => ChatEntry(
   seq: seq,

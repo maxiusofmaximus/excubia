@@ -1,5 +1,5 @@
 [package]
-name = "hn-core-host"
+name = "excubia-core-host"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,18 +11,18 @@ async-trait = "0.1"
 axum.workspace = true
 chrono = { workspace = true, features = ["clock"] }
 hex.workspace = true
-hn-core-api = { path = "../api" }
-hn-core-asr = { path = "../asr" }
-hn-core-auth = { path = "../auth" }
-hn-core-chat = { path = "../chat" }
-hn-core-crafting = { path = "../crafting" }
-hn-core-detect = { path = "../detect" }
-hn-core-mail = { path = "../mail" }
-hn-core-persist = { path = "../persist" }
-hn-core-pin = { path = "../pin" }
-hn-core-pty = { path = "../pty" }
-hn-core-seat = { path = "../seat" }
-hn-core-state = { path = "../state" }
+excubia-core-api = { path = "../api" }
+excubia-core-asr = { path = "../asr" }
+excubia-core-auth = { path = "../auth" }
+excubia-core-chat = { path = "../chat" }
+excubia-core-crafting = { path = "../crafting" }
+excubia-core-detect = { path = "../detect" }
+excubia-core-mail = { path = "../mail" }
+excubia-core-persist = { path = "../persist" }
+excubia-core-pin = { path = "../pin" }
+excubia-core-pty = { path = "../pty" }
+excubia-core-seat = { path = "../seat" }
+excubia-core-state = { path = "../state" }
 mdns-sd = { version = "=0.21.6", default-features = false }
 rand_core.workspace = true
 serde.workspace = true
@@ -37,16 +37,16 @@ windows-sys = { version = "0.61", features = ["Win32_System_SystemInformation"] 
 
 [dev-dependencies]
 base64.workspace = true
-hn-core-pake = { path = "../pake" }
-hn-core-test-dir = { path = "../test-dir" }
-hn-core-test-support = { path = "../test-support" }
+excubia-core-pake = { path = "../pake" }
+excubia-core-test-dir = { path = "../test-dir" }
+excubia-core-test-support = { path = "../test-support" }
 image = { workspace = true, features = ["png"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rusqlite.workspace = true
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
 
 [[bin]]
-name = "host"
+name = "excubia-host"
 path = "src/bin/host/main.rs"
 
 [[bin]]

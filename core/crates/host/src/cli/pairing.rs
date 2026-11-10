@@ -7,7 +7,7 @@ use super::parse::resolve_data_dir;
 use super::types::{Command, TlsCommand, DEFAULT_PORT};
 
 pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut ttl_seconds = hn_core_auth::ENROLLMENT_TTL_SECONDS;
+    let mut ttl_seconds = excubia_core_auth::ENROLLMENT_TTL_SECONDS;
     let mut ttl_given = false;
     let mut data_dir = None;
     let mut lan = Vec::new();

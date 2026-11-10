@@ -1,7 +1,7 @@
 //! `mail.folders` (F2A): the top-level folders of one account. It takes the account
 //! and nothing else; it is a read, and the folder ids it returns are never destinations.
 
-use hn_core_chat::{ToolError, ToolRequest};
+use excubia_core_chat::{ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::{arguments, bounded, MailCall, MAX_ID_CHARS};

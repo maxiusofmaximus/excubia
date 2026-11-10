@@ -8,7 +8,7 @@ mod harness;
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_chat::{
+use excubia_core_chat::{
     Approval, ApprovalFilter, ApprovalStatus, ChatError, ChatStore, ContactFields, Decision,
     NewConversation, NewProject, SeatActor,
 };
@@ -34,7 +34,7 @@ async fn start(name: &str) -> TestHost {
 async fn call(host: &TestHost, token: &str, tool: &str, arguments: Value) -> (u16, Value) {
     let response = reqwest::Client::new()
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", token)
+        .header("X-Excubia-Tool-Token", token)
         .json(&json!({ "tool": tool, "arguments": arguments }))
         .send()
         .await

@@ -10,8 +10,8 @@ param(
     # 0 = dos intervalos: así hay 1-2 pendientes a la vez sin denegar nada.
     [ValidateRange(0, 3600)][int]$TtlSeconds = 0,
     [string]$Url = 'http://127.0.0.1:47821',
-    [string]$DataDir = 'C:\Users\Max\AppData\Local\Temp\claude\D--Documentos-Projects-excubia\3b08cc96-b207-4697-860e-355b01845680\scratchpad\hn-data-r8',
-    [string]$HostExe = (Join-Path $PSScriptRoot '..\target\debug\host.exe'),
+    [string]$DataDir = 'C:\Users\Max\AppData\Local\Temp\claude\D--Documentos-Projects-excubia\3b08cc96-b207-4697-860e-355b01845680\scratchpad\excubia-data-r8',
+    [string]$HostExe = (Join-Path $PSScriptRoot '..\target\debug\excubia-host.exe'),
     [string]$CsvPath = (Join-Path $PSScriptRoot 'emit-alerts.csv'),
     [switch]$Cleanup
 )
@@ -34,7 +34,7 @@ function Invoke-Host {
     $request = @{
         Method      = $Method
         Uri         = "$Url$Path"
-        Headers     = @{ 'X-HN-Hook-Token' = $script:Token }
+        Headers     = @{ 'X-Excubia-Hook-Token' = $script:Token }
         ContentType = 'application/json'
         TimeoutSec  = 10
     }

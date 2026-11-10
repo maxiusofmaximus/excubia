@@ -7,7 +7,7 @@ mod harness;
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_chat::{ChatStore, NewConversation, SeatActor};
+use excubia_core_chat::{ChatStore, NewConversation, SeatActor};
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);
@@ -30,7 +30,7 @@ async fn start(name: &str) -> TestHost {
 async fn call(host: &TestHost, token: &str, tool: &str, arguments: Value) -> (u16, Value) {
     let response = reqwest::Client::new()
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", token)
+        .header("X-Excubia-Tool-Token", token)
         .json(&json!({ "tool": tool, "arguments": arguments }))
         .send()
         .await
@@ -141,7 +141,7 @@ async fn a_lead_cannot_touch_the_alert_rules() {
     let chat = &host.chat;
     let conversation_id = conversation(chat);
     let project = chat
-        .create_project(hn_core_chat::NewProject {
+        .create_project(excubia_core_chat::NewProject {
             name: "Demo".to_string(),
             root_path: host.data_dir.join("demo"),
         })
@@ -149,8 +149,8 @@ async fn a_lead_cannot_touch_the_alert_rules() {
     let lead = project.lead.as_ref().expect("lead").agent_id.clone();
     grant(&host, "tok-lead", "lead", &lead, &conversation_id);
     chat.create_alert_rule(
-        hn_core_chat::AlertWriter::Device("dev_harness"),
-        hn_core_chat::NewAlertRule::new("calendar_reminder", None, None, "notify").expect("rule"),
+        excubia_core_chat::AlertWriter::Device("dev_harness"),
+        excubia_core_chat::NewAlertRule::new("calendar_reminder", None, None, "notify").expect("rule"),
     )
     .expect("a rule the lead must not see");
 

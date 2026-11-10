@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/state.dart';
 
 import 'theme.dart';
 import 'widgets/agent_avatar.dart';

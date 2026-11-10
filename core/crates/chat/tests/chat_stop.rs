@@ -3,8 +3,8 @@
 
 use std::path::PathBuf;
 
-use hn_core_chat::{ChatError, ChatStore, NewConversation, RunState};
-use hn_core_test_dir::TestDir;
+use excubia_core_chat::{ChatError, ChatStore, NewConversation, RunState};
+use excubia_core_test_dir::TestDir;
 
 fn store(name: &str) -> (ChatStore, PathBuf, TestDir) {
     let dir = TestDir::new(&format!("core-chat-stop-{name}"));

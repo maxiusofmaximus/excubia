@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:herdr_notify/core/api/chat_transport.dart';
+import 'package:excubia/core/api/chat_transport.dart';
 
 /// A 1×1 PNG, so the screen can decode what the tests show.
 final List<int> kPreviewPng = base64Decode(

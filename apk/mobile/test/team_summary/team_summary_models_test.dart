@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/team_summary_models.dart';
+import 'package:excubia/core/api/team_summary_models.dart';
 
 Map<String, Object?> member({
   String id = 'hire_1',

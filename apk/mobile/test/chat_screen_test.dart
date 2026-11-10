@@ -2,21 +2,23 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/chat_controller.dart';
-import 'package:herdr_notify/core/state/hires_controller.dart';
-import 'package:herdr_notify/src/rust/api/error.dart' show FailureKind;
-import 'package:herdr_notify/src/rust/api/error/chat.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/chat/chat_bubbles.dart';
-import 'package:herdr_notify/ui/chat/chat_conversation_view.dart';
-import 'package:herdr_notify/ui/chat/chat_screen.dart';
-import 'package:herdr_notify/ui/chat/history_drawer.dart';
-import 'package:herdr_notify/ui/theme.dart';
-import 'package:herdr_notify/ui/widgets/surface_card.dart';
+import 'package:excubia/core/api/chat_attachment_source.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/chat_controller.dart';
+import 'package:excubia/core/state/hires_controller.dart';
+import 'package:excubia/src/rust/api/error.dart' show FailureKind;
+import 'package:excubia/src/rust/api/error/chat.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/chat/chat_bubbles.dart';
+import 'package:excubia/ui/chat/chat_conversation_view.dart';
+import 'package:excubia/ui/chat/chat_screen.dart';
+import 'package:excubia/ui/chat/history_drawer.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/surface_card.dart';
 
 import 'support/chat_fixtures.dart';
 import 'support/fake_chat_transport.dart';
+import 'support/fake_attachments.dart' show UploadTransport, chatRoutes, png;
 import 'support/fake_team_host.dart';
 import 'support/history_chips.dart';
 
@@ -110,6 +112,7 @@ Future<ChatController> pumpChat(
   required Map<String, String> routes,
   FakeChatTransport? transport,
   HiresController? hires,
+  Future<List<ChatAttachmentSource>> Function()? pickDocuments,
 }) async {
   final chatTransport = transport ?? FakeChatTransport(routes);
   final controller = ChatController(chatTransport, dummyTriage());
@@ -123,6 +126,7 @@ Future<ChatController> pumpChat(
         hires: hires ?? HiresController(transport: chatTransport),
         onOpenTeam: () {},
         onUnpaired: () async {},
+        pickDocuments: pickDocuments ?? () async => const [],
       ),
     ),
   );
@@ -647,5 +651,23 @@ void main() {
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.enabled, isTrue);
     expect(field.controller?.text, 'Un cambio más');
+  });
+
+  testWidgets('files picked together all reach the composer', (tester) async {
+    final controller = await pumpChat(
+      tester,
+      routes: conversationRoutes(),
+      transport: UploadTransport({...conversationRoutes(), ...chatRoutes()}),
+      pickDocuments: () async => [png('a.txt'), png('b.txt')],
+    );
+
+    await tester.tap(find.byIcon(Icons.attach_file));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Archivo'));
+    // An upload's progress bar never settles, so the frames are counted instead.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(controller.attachments.items.length, 2);
   });
 }

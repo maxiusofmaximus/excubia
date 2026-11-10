@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/mail_api.dart';
-import 'package:herdr_notify/core/state/approvals_controller.dart';
-import 'package:herdr_notify/core/state/mail_draft_controller.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/mail/mail_draft_screen.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/mail_api.dart';
+import 'package:excubia/core/state/approvals_controller.dart';
+import 'package:excubia/core/state/mail_draft_controller.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/mail/mail_draft_screen.dart';
 
 import 'support/approval_fixtures.dart';
 import 'support/widget_mount.dart';

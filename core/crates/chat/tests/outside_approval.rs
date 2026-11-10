@@ -5,7 +5,7 @@
 mod common;
 
 use common::{assert_for_the_operator_alone, assert_no_agent_decides, team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, ApprovalKind, ApprovalStatus, Decision, NewApproval, DEFAULT_TTL_SECONDS,
 };
 use serde_json::json;

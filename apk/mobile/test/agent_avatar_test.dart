@@ -3,9 +3,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/ui/theme.dart';
-import 'package:herdr_notify/ui/widgets/agent_avatar.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/agent_avatar.dart';
 
 import 'support/contrast.dart';
 

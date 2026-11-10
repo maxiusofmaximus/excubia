@@ -8,11 +8,11 @@ mod harness;
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_chat::{
+use excubia_core_chat::{
     Approval, ApprovalFilter, ApprovalStatus, ChatError, ChatStore, Decision, NewConversation,
     NewProject, SeatActor,
 };
-use hn_core_host::paths;
+use excubia_core_host::paths;
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);
@@ -35,7 +35,7 @@ async fn start(name: &str) -> TestHost {
 async fn call(host: &TestHost, token: &str, tool: &str, arguments: Value) -> (u16, Value) {
     let response = reqwest::Client::new()
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", token)
+        .header("X-Excubia-Tool-Token", token)
         .json(&json!({ "tool": tool, "arguments": arguments }))
         .send()
         .await
@@ -76,7 +76,7 @@ fn conversation(chat: &ChatStore) -> String {
     .id
 }
 
-fn pending(chat: &ChatStore) -> Vec<hn_core_chat::Approval> {
+fn pending(chat: &ChatStore) -> Vec<excubia_core_chat::Approval> {
     chat.approvals(&ApprovalFilter {
         status: Some(ApprovalStatus::Pending),
         conversation_id: None,

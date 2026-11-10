@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/ui/chat/approval_format.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/ui/chat/approval_format.dart';
 
 const _lead = ChatSeat(agentId: 'seat_bob', name: 'Bob', status: 'working');
 

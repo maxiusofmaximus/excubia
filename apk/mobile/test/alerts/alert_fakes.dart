@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:herdr_notify/core/alerts/alert_platform.dart';
-import 'package:herdr_notify/core/alerts/alert_policy.dart';
-import 'package:herdr_notify/core/alerts/alert_source.dart';
-import 'package:herdr_notify/core/alerts/alert_status.dart';
+import 'package:excubia/core/alerts/alert_platform.dart';
+import 'package:excubia/core/alerts/alert_policy.dart';
+import 'package:excubia/core/alerts/alert_source.dart';
+import 'package:excubia/core/alerts/alert_status.dart';
 
 /// Records what the alerts ask of the phone. Tests set the status it reports.
 class FakeAlertPlatform implements AlertPlatform {

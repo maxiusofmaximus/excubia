@@ -6,7 +6,7 @@
 //! demo can speak the same signed protocol without depending on another
 //! worktree's live code. It is a dev-dependency (`publish = false`) and is
 //! never part of a shipped artifact; the canonical signing string itself is
-//! reused from `hn-core-auth`, so server and client share one implementation.
+//! reused from `excubia-core-auth`, so server and client share one implementation.
 
 mod approval_client;
 pub mod client;

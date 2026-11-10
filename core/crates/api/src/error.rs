@@ -9,8 +9,8 @@ use serde_json::json;
 /// How long a client waits before it sends a turn the seat refused as busy.
 const AGENT_BUSY_RETRY_AFTER_SECONDS: u64 = 5;
 
-use hn_core_auth::{AuthzReason, Permission};
-use hn_core_chat::HireError;
+use excubia_core_auth::{AuthzReason, Permission};
+use excubia_core_chat::HireError;
 
 /// An API failure, already shaped for the wire.
 #[derive(Debug)]

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/state.dart';
 
 /// One palette's tokens. Every screen reads the active one through
 /// `context.colors`; `test/theme_contrast_test.dart` checks all six.

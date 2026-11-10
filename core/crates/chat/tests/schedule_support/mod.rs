@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::common::Team;
 use chrono::{NaiveDate, NaiveTime};
 use chrono_tz::Europe::Madrid;
-use hn_core_chat::{
+use excubia_core_chat::{
     cadence_of, Claim, Content, ManualClock, NewHire, NewPlan, NewSchedule, PlanDecision, PlanStep,
     Timing, Touch,
 };
@@ -86,7 +86,7 @@ pub fn plan(t: &Team, steps: usize) -> String {
     proposed.id
 }
 
-pub fn launched(claim: Claim) -> hn_core_chat::Launch {
+pub fn launched(claim: Claim) -> excubia_core_chat::Launch {
     match claim {
         Claim::Launch(launch) => launch,
         other => panic!("expected a launch, got {other:?}"),

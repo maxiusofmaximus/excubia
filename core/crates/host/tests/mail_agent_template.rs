@@ -7,10 +7,10 @@ mod mail_send_support;
 
 use std::time::Duration;
 
-use hn_core_api::DraftEdit;
-use hn_core_chat::SeatActor;
-use hn_core_host::mail_send::MailSends;
-use hn_core_seat::{BodyFormat, DraftFields, MailCall};
+use excubia_core_api::DraftEdit;
+use excubia_core_chat::SeatActor;
+use excubia_core_host::mail_send::MailSends;
+use excubia_core_seat::{BodyFormat, DraftFields, MailCall};
 use mail_send_support::{approved_and_sent, Host, ACCOUNT, DRAFT, TO};
 
 const SUBJECT: &str = "Resumen de la reunión";

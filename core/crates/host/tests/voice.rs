@@ -11,10 +11,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use harness::TestHost;
-use hn_core_api::voice::{Engine, EngineStarter, MAX_VOICE_BODY_BYTES};
-use hn_core_asr::AsrError;
-use hn_core_auth::{canonical_string, Permission};
-use hn_core_test_support::DemoIdentity;
+use excubia_core_api::voice::{Engine, EngineStarter, MAX_VOICE_BODY_BYTES};
+use excubia_core_asr::AsrError;
+use excubia_core_auth::{canonical_string, Permission};
+use excubia_core_test_support::DemoIdentity;
 use serde_json::Value;
 
 const FIXTURE: &[u8] = include_bytes!("../../asr/tests/fixtures/tones_2s5.opus");
@@ -76,10 +76,10 @@ async fn voice(
     let canonical = canonical_string("POST", PATH, &body, timestamp, &nonce).expect("canonical");
     let mut request = reqwest::Client::new()
         .post(format!("{base}{PATH}"))
-        .header("X-HN-Device", identity.device_id())
-        .header("X-HN-Timestamp", timestamp.to_string())
-        .header("X-HN-Nonce", nonce)
-        .header("X-HN-Signature", identity.sign(&canonical))
+        .header("X-Excubia-Device", identity.device_id())
+        .header("X-Excubia-Timestamp", timestamp.to_string())
+        .header("X-Excubia-Nonce", nonce)
+        .header("X-Excubia-Signature", identity.sign(&canonical))
         .body(body);
     if let Some(content_type) = content_type {
         request = request.header("Content-Type", content_type);

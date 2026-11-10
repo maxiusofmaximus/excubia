@@ -4,7 +4,7 @@ use super::render::CLAUDE_HOOK_TIMEOUT_SECONDS;
 use super::*;
 use crate::hook_action::CLAUDE_HOOK_MATCHER;
 use crate::profile::{test_profile, McpDeclaration};
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 use std::path::PathBuf;
 
 fn input<'a>(
@@ -55,7 +55,7 @@ fn test_plan_has_config_and_no_token() {
     assert!(!plan
         .files
         .iter()
-        .any(|(_, bytes)| String::from_utf8_lossy(bytes).contains("HN_TOOL_TOKEN")));
+        .any(|(_, bytes)| String::from_utf8_lossy(bytes).contains("EXCUBIA_TOOL_TOKEN")));
 }
 
 /// A stand-in hook binary: the Claude launch refuses a hook it cannot find.
@@ -85,7 +85,7 @@ fn claude_plan_isolates_settings_and_mcp() {
     let mcp: serde_json::Value =
         serde_json::from_str(&file_text(&plan, "claude-mcp.json")).expect("json");
     assert_eq!(
-        mcp["mcpServers"]["hn-core"]["command"],
+        mcp["mcpServers"]["excubia-core"]["command"],
         "C:\\bin\\excubia-mcp.exe"
     );
 }
@@ -159,7 +159,7 @@ fn claude_allows_each_tool_the_seat_serves() {
     for tool in served["tools"].as_array().expect("tools") {
         let name = tool["name"].as_str().expect("name");
         // Without this rule `claude -p` refuses the call and the turn ends silently.
-        let rule = format!("mcp__hn-core__{}", name.replace('.', "_"));
+        let rule = format!("mcp__excubia-core__{}", name.replace('.', "_"));
         assert!(allowed.contains(&rule), "{rule} must be allowed");
     }
 }
@@ -192,7 +192,7 @@ fn codex_plan_uses_an_isolated_home() {
     assert!(plan.env.iter().any(|(key, _)| key == "CODEX_HOME"));
     let config: toml::Value = toml::from_str(&file_text(&plan, "config.toml")).expect("toml");
     assert_eq!(
-        config["mcp_servers"]["hn-core"]["command"].as_str(),
+        config["mcp_servers"]["excubia-core"]["command"].as_str(),
         Some("C:\\bin\\excubia-mcp.exe")
     );
     assert_eq!(
@@ -218,7 +218,7 @@ fn opencode_plan_sets_agent_prompt_and_session() {
     assert_eq!(config["agent"]["alfred"]["prompt"], "role");
     assert_eq!(config["model"], "opencode/crouton-alpha-free");
     assert_eq!(
-        config["mcp"]["hn-core"]["environment"]["HN_TOOL_URL"],
+        config["mcp"]["excubia-core"]["environment"]["EXCUBIA_TOOL_URL"],
         "http://127.0.0.1:9/internal/chat/tools"
     );
     // Native shell and edit are refused. No plugin directory means no plugin key.

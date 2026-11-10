@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/mail_api.dart';
-import 'package:herdr_notify/ui/mail/mail_settings_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/mail_api.dart';
+import 'package:excubia/ui/mail/mail_settings_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 /// A host that answers by exact route ("METHOD target"). Anything it was not
 /// told about is a 404, so a stray call shows up as a failure.

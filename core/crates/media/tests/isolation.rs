@@ -2,7 +2,7 @@ mod support;
 
 use std::time::Duration;
 
-use hn_core_media::{process_image, process_image_isolated, Limits, MediaError};
+use excubia_core_media::{process_image, process_image_isolated, Limits, MediaError};
 use image::ImageFormat;
 use support::{encode, gradient};
 

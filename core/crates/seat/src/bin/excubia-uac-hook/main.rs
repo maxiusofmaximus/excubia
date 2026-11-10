@@ -12,7 +12,7 @@
 //!   Fail closed: no answer is no permission, and a CLI must never read the
 //!   hook as "broken" and run the action.
 //!
-//! The credentials come from the environment (`HN_HOOK_URL`, `HN_HOOK_TOKEN`),
+//! The credentials come from the environment (`EXCUBIA_HOOK_URL`, `EXCUBIA_HOOK_TOKEN`),
 //! never from the arguments. The token is the one minted for this run.
 
 mod approval;

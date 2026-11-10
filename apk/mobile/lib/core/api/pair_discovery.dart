@@ -24,12 +24,12 @@ abstract interface class PairDiscovery {
   });
 }
 
-/// mDNS through `dev.herdrnotify/discovery` (HerdrDiscoveryPlugin.kt).
+/// mDNS through `dev.excubia/discovery` (HerdrDiscoveryPlugin.kt).
 class MethodChannelPairDiscovery implements PairDiscovery {
   const MethodChannelPairDiscovery();
 
   static const MethodChannel _channel = MethodChannel(
-    'dev.herdrnotify/discovery',
+    'dev.excubia/discovery',
   );
 
   @override

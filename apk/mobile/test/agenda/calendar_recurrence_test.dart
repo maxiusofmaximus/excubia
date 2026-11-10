@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/ui/agenda/calendar_recurrence.dart';
+import 'package:excubia/ui/agenda/calendar_recurrence.dart';
 
 final DateTime _start = DateTime.utc(2026, 10, 29);
 

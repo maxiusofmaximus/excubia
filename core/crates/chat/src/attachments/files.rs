@@ -7,7 +7,7 @@ use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use hn_core_persist::write_atomic;
+use excubia_core_persist::write_atomic;
 
 use crate::error::AttachmentError;
 use crate::model_attachment::{CHUNK_MAX_BYTES, FILE_MAX_BYTES};

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/pairing_address.dart';
+import 'package:excubia/core/api/pairing_address.dart';
 
 void main() {
   // input, expected. A bare host follows the scheme rule; a typed scheme wins.

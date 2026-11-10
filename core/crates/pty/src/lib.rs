@@ -213,7 +213,7 @@ impl PtySession {
 
 fn spawn_reader(mut reader: Box<dyn Read + Send>, output_tx: mpsc::UnboundedSender<Vec<u8>>) {
     let spawned = thread::Builder::new()
-        .name("hn-pty-reader".to_string())
+        .name("excubia-pty-reader".to_string())
         .spawn(move || {
             let mut buf = [0u8; 8192];
             loop {
@@ -235,7 +235,7 @@ fn spawn_reader(mut reader: Box<dyn Read + Send>, output_tx: mpsc::UnboundedSend
 
 fn spawn_waiter(mut child: Box<dyn Child + Send + Sync>, exit_tx: mpsc::UnboundedSender<ExitInfo>) {
     let spawned = thread::Builder::new()
-        .name("hn-pty-exit".to_string())
+        .name("excubia-pty-exit".to_string())
         .spawn(move || {
             let info = match child.wait() {
                 Ok(status) => ExitInfo {
@@ -345,15 +345,15 @@ mod tests {
             let mut spec = CommandSpec::new("cmd.exe");
             spec.args.push("/d".into());
             spec.args.push("/c".into());
-            spec.args.push("echo valor=%HN_PTY_TEST%".into());
+            spec.args.push("echo valor=%EXCUBIA_PTY_TEST%".into());
             spec
         } else {
             let mut spec = CommandSpec::new("sh");
             spec.args.push("-c".into());
-            spec.args.push("echo valor=$HN_PTY_TEST".into());
+            spec.args.push("echo valor=$EXCUBIA_PTY_TEST".into());
             spec
         };
-        spec = spec.env("HN_PTY_TEST", "llego-al-hijo");
+        spec = spec.env("EXCUBIA_PTY_TEST", "llego-al-hijo");
         let text = run_until_marker(spec, "valor=llego").await;
         assert!(text.contains("valor=llego-al-hijo"), "output was: {text:?}");
     }

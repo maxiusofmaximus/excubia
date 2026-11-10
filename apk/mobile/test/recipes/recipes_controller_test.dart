@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/recipes_api.dart';
-import 'package:herdr_notify/core/state/recipes_controller.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/recipes_api.dart';
+import 'package:excubia/core/state/recipes_controller.dart';
 
 import '../support/scripted_transport.dart';
 

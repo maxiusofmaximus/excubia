@@ -1,7 +1,7 @@
 //! The audio containers `POST /v1/voice/transcribe` takes, and how each one becomes the PCM the
 //! engine reads.
 
-use hn_core_asr::{decode_ogg_opus, decode_wav_pcm16, AsrError};
+use excubia_core_asr::{decode_ogg_opus, decode_wav_pcm16, AsrError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AudioFormat {

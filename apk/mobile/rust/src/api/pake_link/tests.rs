@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use hn_core_pin::{Fingerprint, PakeLink};
+use excubia_core_pin::{Fingerprint, PakeLink};
 
 use super::*;
 use crate::api::pinned::parse_pairing_link;
@@ -67,6 +67,7 @@ fn a_bad_code_or_pin_is_a_typed_failure() {
     let pin = host().to_string();
     let bad = uri().replace(&pin, "short");
     assert_eq!(refusal(&bad).kind, PinnedFailureKind::MalformedPin);
+    // legacy: the old scheme must stay refused
     assert_eq!(
         refusal("herdr-notify://pair?v=2").kind,
         PinnedFailureKind::MalformedLink

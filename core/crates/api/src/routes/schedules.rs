@@ -1,5 +1,5 @@
 //! `/v1/schedules` (F4-CORE): the scheduled work a person sets for an oficio. The matrix that
-//! guards them is `hn-core-auth`'s `authz/schedules.rs`; the store runs the rules. The audit
+//! guards them is `excubia-core-auth`'s `authz/schedules.rs`; the store runs the rules. The audit
 //! names ids and outcomes only: a schedule's text never reaches the log.
 
 use axum::body::Bytes;
@@ -7,8 +7,8 @@ use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::VerifiedDevice;
-use hn_core_chat::{launch_schedule, Claim};
+use excubia_core_auth::VerifiedDevice;
+use excubia_core_chat::{launch_schedule, Claim};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

@@ -1,4 +1,4 @@
-import 'package:herdr_notify/core/api/phone_contacts.dart';
+import 'package:excubia/core/api/phone_contacts.dart';
 
 /// A phone with the answer and the rows the test sets. It counts the calls, so a
 /// test can show that a denial never reads the contacts.

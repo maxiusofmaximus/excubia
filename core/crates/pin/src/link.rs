@@ -22,7 +22,7 @@ pub const LINK_PREFIX: &str = "excubia://pair?";
 pub const LINK_VERSION: u32 = 1;
 const MAX_CODE_CHARS: usize = 64;
 pub const PAKE_LINK_VERSION: u32 = 2;
-/// Characters of a PAKE code and the symbols they come from: a copy of `hn_core_pake::Code`, which this crate
+/// Characters of a PAKE code and the symbols they come from: a copy of `excubia_core_pake::Code`, which this crate
 /// cannot depend on; a test compares both.
 const PAKE_CODE_CHARS: usize = 8;
 const PAKE_CODE_ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -139,9 +139,13 @@ fn malformed(reason: &str) -> PinError {
     PinError::MalformedLink(reason.to_string())
 }
 
-/// The query of a pairing link; any other scheme, the retired `herdr-notify://` included, is refused.
+/// legacy: the scheme links carried before the rename; read, never written.
+const LEGACY_LINK_PREFIX: &str = "herdr-notify://pair?";
+
+/// The query of a pairing link. Only the excubia scheme and its legacy twin are read; any other is refused.
 fn query_of(uri: &str) -> Result<&str, PinError> {
     uri.strip_prefix(LINK_PREFIX)
+        .or_else(|| uri.strip_prefix(LEGACY_LINK_PREFIX))
         .ok_or_else(|| malformed("not an excubia pairing link"))
 }
 
@@ -274,7 +278,6 @@ mod tests {
         let uri = link.to_uri();
         assert!(uri.starts_with("excubia://pair?v=1&"), "{uri}");
         for scheme in [
-            "herdr-notify://pair?",
             "herdr://pair?",
             "excubia-x://pair?",
             "EXCUBIA://pair?",
@@ -285,6 +288,14 @@ mod tests {
                 "{scheme}"
             );
         }
+    }
+
+    #[test]
+    fn a_link_under_the_legacy_scheme_is_read() {
+        let link = sample();
+        let uri = link.to_uri();
+        let legacy = uri.replacen(LINK_PREFIX, LEGACY_LINK_PREFIX, 1);
+        assert_eq!(PairingLink::parse(&legacy).expect("legacy link").to_uri(), uri);
     }
 
     #[test]

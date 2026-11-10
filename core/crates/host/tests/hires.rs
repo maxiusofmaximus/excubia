@@ -5,8 +5,8 @@
 mod harness;
 
 use harness::{raw_exchange, TestHost};
-use hn_core_auth::Permission;
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 
 /// One signed request, answered as the status and the parsed body.

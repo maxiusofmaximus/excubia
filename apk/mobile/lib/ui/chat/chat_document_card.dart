@@ -7,6 +7,7 @@ import '../mail/mail_facts.dart';
 import '../theme.dart';
 import 'chat_document_actions.dart';
 import 'document_preview_screen.dart';
+import 'text_document_screen.dart';
 
 IconData documentIcon(ChatDocKind kind) => switch (kind) {
   ChatDocKind.sheet => Icons.table_chart_outlined,
@@ -17,7 +18,8 @@ IconData documentIcon(ChatDocKind kind) => switch (kind) {
 };
 
 /// A document in a message: its icon, name and size. A tap on an xlsx, docx or
-/// pdf opens its pages; any other document goes to the system app.
+/// pdf opens its pages; a txt, md, json or csv opens as text; any other
+/// document goes to the system app.
 class ChatDocumentCard extends StatefulWidget {
   const ChatDocumentCard({
     super.key,
@@ -36,19 +38,21 @@ class _ChatDocumentCardState extends State<ChatDocumentCard> {
   bool _opening = false;
 
   void _tap() {
-    if (isPreviewableDocument(widget.file.name)) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => DocumentPreviewScreen(
-            file: widget.file,
-            documents: widget.documents,
-          ),
-        ),
+    final name = widget.file.name;
+    if (isPreviewableDocument(name)) {
+      _push(
+        DocumentPreviewScreen(file: widget.file, documents: widget.documents),
       );
+    } else if (isTextDocument(name)) {
+      _push(TextDocumentScreen(file: widget.file, documents: widget.documents));
     } else {
       _open();
     }
   }
+
+  void _push(Widget screen) =>
+      Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => screen));
 
   void _open() {
     if (_opening) return;
@@ -97,7 +101,9 @@ class _ChatDocumentCardState extends State<ChatDocumentCard> {
                         ),
                         Text(
                           sizeLabel(widget.file.size.toInt()),
-                          style: context.text.label.copyWith(color: c.textMuted),
+                          style: context.text.label.copyWith(
+                            color: c.textMuted,
+                          ),
                         ),
                       ],
                     ),

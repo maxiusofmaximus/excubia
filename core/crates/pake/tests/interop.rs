@@ -1,10 +1,10 @@
 //! Rust <-> python-spake2 in both directions, with fresh randomness on both sides.
 //! Ignored by default because it needs a Python with `spake2`: run
-//! `HN_PAKE_PYTHON=<venv python> cargo test -p hn-core-pake --test interop -- --ignored`.
+//! `EXCUBIA_PAKE_PYTHON=<venv python> cargo test -p excubia-core-pake --test interop -- --ignored`.
 
 use std::process::Command;
 
-use hn_core_pake::{Code, Role, Session};
+use excubia_core_pake::{Code, Role, Session};
 
 const HOST_ID: &str = "excubia-host-1";
 const DEVICE_PUBKEY: [u8; 65] = [4; 65];
@@ -24,7 +24,7 @@ fn unhex(text: &str) -> Vec<u8> {
 /// Python plays `python_role` against the Rust side, which plays `rust_role`.
 fn interoperate(python_role: &str, rust_role: Role) {
     let python =
-        std::env::var("HN_PAKE_PYTHON").expect("HN_PAKE_PYTHON must point to a python with spake2");
+        std::env::var("EXCUBIA_PAKE_PYTHON").expect("EXCUBIA_PAKE_PYTHON must point to a python with spake2");
     let script = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/interop/interop.py");
     let code = Code::generate().expect("code");
     let (session, message) =
@@ -71,13 +71,13 @@ fn interoperate(python_role: &str, rust_role: Role) {
 }
 
 #[test]
-#[ignore = "needs HN_PAKE_PYTHON (a python with spake2 installed)"]
+#[ignore = "needs EXCUBIA_PAKE_PYTHON (a python with spake2 installed)"]
 fn rust_host_with_python_device() {
     interoperate("device", Role::Host);
 }
 
 #[test]
-#[ignore = "needs HN_PAKE_PYTHON (a python with spake2 installed)"]
+#[ignore = "needs EXCUBIA_PAKE_PYTHON (a python with spake2 installed)"]
 fn rust_device_with_python_host() {
     interoperate("host", Role::Device);
 }

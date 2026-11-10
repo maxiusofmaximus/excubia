@@ -7,7 +7,7 @@ mod harness;
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_auth::Permission;
+use excubia_core_auth::Permission;
 use serde_json::Value;
 
 const TTL: Duration = Duration::from_secs(45);

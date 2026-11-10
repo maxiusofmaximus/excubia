@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use hn_core_auth::canonical_string;
+use excubia_core_auth::canonical_string;
 use rand_core::{OsRng, RngCore};
 use serde_json::Value;
 
@@ -121,10 +121,10 @@ impl SignedClient {
                 reqwest::Method::from_bytes(method.as_bytes()).expect("method"),
                 format!("{}{path}", self.base_url),
             )
-            .header("X-HN-Device", self.identity.device_id())
-            .header("X-HN-Timestamp", timestamp.to_string())
-            .header("X-HN-Nonce", nonce)
-            .header("X-HN-Signature", signature);
+            .header("X-Excubia-Device", self.identity.device_id())
+            .header("X-Excubia-Timestamp", timestamp.to_string())
+            .header("X-Excubia-Nonce", nonce)
+            .header("X-Excubia-Signature", signature);
         if !body.is_empty() {
             request = request.header("Content-Type", content_type).body(body);
         }

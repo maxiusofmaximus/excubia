@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/host_client.dart';
 
 /// The host of the first-run team, as tests need it: one canned answer per
 /// route (`METHOD /path`), a `HostError` where the host refuses, and a record

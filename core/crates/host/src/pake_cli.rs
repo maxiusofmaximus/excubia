@@ -54,7 +54,7 @@ pub async fn arm_code(addr: SocketAddr, token: &str) -> Result<ArmedCode> {
             format!("the daemon is not running at {addr}: start it first, then ask for the code")
         })?;
     let request = format!(
-        "POST {ADMIN_PATH} HTTP/1.1\r\nHost: {addr}\r\nX-HN-Hook-Token: {token}\r\n\
+        "POST {ADMIN_PATH} HTTP/1.1\r\nHost: {addr}\r\nX-Excubia-Hook-Token: {token}\r\n\
          Content-Length: 0\r\nConnection: close\r\n\r\n"
     );
     stream

@@ -8,15 +8,15 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use hn_core_chat::{ChatStore, ContactFields, Decision, SeatActor};
-use hn_core_host::mail_send::{MailSends, SendPolicy, SendStep};
-use hn_core_host::mail_tools::MailTools;
-use hn_core_mail::auth::{Tenant, Tokens};
-use hn_core_mail::{
+use excubia_core_chat::{ChatStore, ContactFields, Decision, SeatActor};
+use excubia_core_host::mail_send::{MailSends, SendPolicy, SendStep};
+use excubia_core_host::mail_tools::MailTools;
+use excubia_core_mail::auth::{Tenant, Tokens};
+use excubia_core_mail::{
     Account, AccountStore, DraftBody, DraftInput, FileKey, GraphClient, HttpResponse,
     HttpTransport, Ledger, MailError, Redacted, Secret,
 };
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 use serde_json::{json, Value};
 
 pub const ACCOUNT: &str = "trabajo";

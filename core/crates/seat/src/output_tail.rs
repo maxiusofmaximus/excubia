@@ -11,7 +11,7 @@ pub const TAIL_BYTES: usize = 4096;
 pub const EXCERPT_CHARS: usize = 512;
 
 const REDACTED: &str = "[redactado]";
-/// Keys whose value is never shown, e.g. `HN_TOOL_TOKEN=...` or `"password": ...`.
+/// Keys whose value is never shown, e.g. `EXCUBIA_TOOL_TOKEN=...` or `"password": ...`.
 const SENSITIVE_KEYS: [&str; 7] = [
     "token",
     "secret",
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn sensitive_key_values_are_redacted_by_shape() {
-        let text = "HN_TOOL_TOKEN=abc Authorization: Bearer zzz \"password\": \"pw\" hora 12:30";
+        let text = "EXCUBIA_TOOL_TOKEN=abc Authorization: Bearer zzz \"password\": \"pw\" hora 12:30";
         let clean = redact(text, &[]);
         for leaked in ["abc", "zzz", "\"pw\""] {
             assert!(!clean.contains(leaked), "leaked {leaked}: {clean}");

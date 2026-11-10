@@ -1,6 +1,6 @@
 mod support;
 
-use hn_core_media::{process_image, Limits, MediaError};
+use excubia_core_media::{process_image, Limits, MediaError};
 use image::ImageFormat;
 use support::{encode, flat, png_declaring, MIB};
 

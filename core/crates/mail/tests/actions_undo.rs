@@ -4,8 +4,8 @@
 
 mod support;
 
-use hn_core_mail::{ActionLog, GraphClient, MailActionRecord, MailError, MoveDest, Moved};
-use hn_core_test_dir::TestDir;
+use excubia_core_mail::{ActionLog, GraphClient, MailActionRecord, MailError, MoveDest, Moved};
+use excubia_core_test_dir::TestDir;
 use serde_json::Value;
 use support::mock::{MockResponse, MockTransport};
 use support::{in_memory_ledger, ACCESS_TOKEN, ACCOUNT};

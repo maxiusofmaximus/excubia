@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/onboarding_controller.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/onboarding_controller.dart';
+import 'package:excubia/src/rust/api/onboarding/model.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/fake_onboarding_host.dart';
 

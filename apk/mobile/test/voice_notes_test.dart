@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/voice_errors.dart';
-import 'package:herdr_notify/core/state/voice_notes.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/voice_errors.dart';
+import 'package:excubia/core/state/voice_notes.dart';
 
 import 'support/fake_chat_transport.dart';
 import 'support/fake_voice_host.dart';

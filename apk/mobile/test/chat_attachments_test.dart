@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_attachment_source.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/chat_attachment_errors.dart';
-import 'package:herdr_notify/core/state/chat_attachment_images.dart';
-import 'package:herdr_notify/core/state/chat_attachment_tray.dart';
-import 'package:herdr_notify/core/state/chat_controller.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/chat_attachment_source.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/chat_attachment_errors.dart';
+import 'package:excubia/core/state/chat_attachment_images.dart';
+import 'package:excubia/core/state/chat_attachment_tray.dart';
+import 'package:excubia/core/state/chat_controller.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/fake_attachments.dart';
 

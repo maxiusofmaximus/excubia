@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/chat/attach_model.dart';
+import 'package:excubia/src/rust/api/chat/attach_model.dart';
 
 import '../../core/api/chat_documents.dart';
 import '../../core/state/chat_attachment_images.dart';

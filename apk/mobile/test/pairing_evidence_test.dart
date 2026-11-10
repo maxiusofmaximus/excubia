@@ -5,23 +5,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/pairing_api.dart';
-import 'package:herdr_notify/core/api/pinned_client.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/pairing_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/pairing_api.dart';
+import 'package:excubia/core/api/pinned_client.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/pairing_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 import 'support/fake_pinned_client.dart';
 import 'support/memory_store.dart';
 import 'support/pairing_fixtures.dart';
 
-/// Writes the CORE11B pairing screenshots. It runs only when HN_EVIDENCE_DIR
-/// names a folder; HN_EVIDENCE_FONT may name a .ttf so the text is legible
+/// Writes the CORE11B pairing screenshots. It runs only when EXCUBIA_EVIDENCE_DIR
+/// names a folder; EXCUBIA_EVIDENCE_FONT may name a .ttf so the text is legible
 /// (the test binding otherwise draws with Ahem, which is blocks).
 void main() {
-  final evidenceDir = Platform.environment['HN_EVIDENCE_DIR'];
+  final evidenceDir = Platform.environment['EXCUBIA_EVIDENCE_DIR'];
   final skip = evidenceDir == null;
   final shotKey = GlobalKey();
 
@@ -30,7 +30,7 @@ void main() {
   });
 
   Future<void> loadFont(WidgetTester tester) async {
-    final fontPath = Platform.environment['HN_EVIDENCE_FONT'];
+    final fontPath = Platform.environment['EXCUBIA_EVIDENCE_FONT'];
     if (fontPath == null) return;
     final bytes = File(fontPath).readAsBytesSync();
     final loader = FontLoader('Roboto')

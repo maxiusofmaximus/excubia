@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/pair_discovery.dart';
-import 'package:herdr_notify/core/api/pairing_api.dart';
-import 'package:herdr_notify/core/api/pake_pairing.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/pairing_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/pair_discovery.dart';
+import 'package:excubia/core/api/pairing_api.dart';
+import 'package:excubia/core/api/pake_pairing.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/pairing_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 import 'support/fake_pair_discovery.dart';
 import 'support/fake_pinned_client.dart';

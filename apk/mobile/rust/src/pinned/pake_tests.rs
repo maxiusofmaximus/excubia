@@ -5,7 +5,7 @@ use std::net::TcpListener;
 use std::thread;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use hn_core_pin::Identity;
+use excubia_core_pin::Identity;
 use serde_json::Value;
 
 use super::pake_fake::{serve, Fake, Quirk, HOST_CODE};

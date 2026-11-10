@@ -1,7 +1,7 @@
 //! CORE7 team surface: projects, seat panels, delegations, cards and the
 //! single coalesced Alfred synthesis.
 //!
-//! The API talks to this module only through `hn_core_chat::ChatSeat`; the
+//! The API talks to this module only through `excubia_core_chat::ChatSeat`; the
 //! CLI processes, PTYs and pane events live here and in [`crate::AgentHost`].
 //! Real resident CLIs are `[NV]`; the simulated CLI exercises the same launch
 //! materialisation, per-seat token and MCP transport.
@@ -11,11 +11,11 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     ChatSeat, ChatStore, Delegation, Launch, RecipeRun, SeatActor, SeatError, ToolError,
     ToolReply, ToolRequest, Turn,
 };
-use hn_core_seat::{parse_tool, SeatService};
+use excubia_core_seat::{parse_tool, SeatService};
 use serde_json::json;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;

@@ -1,5 +1,5 @@
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/state.dart';
 
 import '../api/connection_failure.dart';
 

@@ -6,9 +6,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use hn_core_detect::{DetectedState, Detector, TitleTracker};
-use hn_core_pty::{ExitInfo, WriteHandle};
-use hn_core_state::StateStore;
+use excubia_core_detect::{DetectedState, Detector, TitleTracker};
+use excubia_core_pty::{ExitInfo, WriteHandle};
+use excubia_core_state::StateStore;
 use tokio::sync::{mpsc, Notify};
 
 use super::detect::{recent_text, status_of, QueryResponder};

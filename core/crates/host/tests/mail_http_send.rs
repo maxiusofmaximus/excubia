@@ -7,8 +7,8 @@ mod harness;
 
 use harness::mail_send_support::{ACCOUNT, BODY, LOGIN_REFRESH, SEND_ACCESS, SEND_REFRESH, TO};
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_chat::Decision;
+use excubia_core_auth::Permission;
+use excubia_core_chat::Decision;
 use serde_json::{json, Value};
 
 const ACCOUNTS: &str = "/v1/mail/accounts";

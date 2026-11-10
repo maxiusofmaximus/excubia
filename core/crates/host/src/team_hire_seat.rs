@@ -2,7 +2,7 @@
 //! it: then it gets one in the conversation's project, with a live panel, and
 //! keeps that seat from then on.
 
-use hn_core_chat::ToolError;
+use excubia_core_chat::ToolError;
 
 use super::team::TeamService;
 use super::team_errors::tool_chat_error;

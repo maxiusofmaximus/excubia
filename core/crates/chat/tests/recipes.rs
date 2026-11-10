@@ -6,7 +6,7 @@
 mod common;
 
 use common::{team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     draft_text, ChatError, ChatStore, Delegation, DelegationState, HireFilter, NewDelegation,
     NewHire, Recipe, RecipeText, MAX_RECIPES_PER_ROLE, RECIPE_BODY_CHARS, RECIPE_TITLE_CHARS,
 };

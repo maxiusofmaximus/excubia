@@ -2,8 +2,8 @@
 //! reviews, refreshing the send token and the one POST that sends. It lives apart
 //! from `mail_send` only to keep each file under the size rule; the state is there.
 
-use hn_core_mail::auth::{refresh, refresh_send};
-use hn_core_mail::{
+use excubia_core_mail::auth::{refresh, refresh_send};
+use excubia_core_mail::{
     agent_text, Account, DraftReview, GraphClient, MailError, Redacted, SendFailure, SendRow,
     SendView,
 };

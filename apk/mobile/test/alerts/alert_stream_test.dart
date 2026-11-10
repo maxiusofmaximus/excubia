@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/alerts/alert_stream.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:excubia/core/alerts/alert_stream.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/host_client.dart';
 
 import 'alert_fakes.dart';
 

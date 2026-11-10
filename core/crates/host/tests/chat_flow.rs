@@ -7,9 +7,9 @@ mod harness;
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_auth::Permission;
-use hn_core_chat::RunState;
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_chat::RunState;
+use excubia_core_test_support::SignedClient;
 use serde_json::Value;
 use tokio::time::{sleep, Instant};
 

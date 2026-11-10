@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
 use chrono::{DateTime, Local, Utc};
-use hn_core_api::{AuditEvent, AuditSink};
+use excubia_core_api::{AuditEvent, AuditSink};
 use serde_json::Value;
 
 pub const AUDIT_FILE: &str = "audit.jsonl";
@@ -124,7 +124,7 @@ fn readable(line: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
     use std::collections::BTreeMap;
 
     fn event(n: usize) -> AuditEvent {

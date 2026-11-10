@@ -56,7 +56,8 @@ function inside(root, candidate) {
 
 export function extraTools(env = process.env) {
   return new Set(
-    String(env.HN_UAC_EXTRA_TOOLS ?? "")
+    // legacy: HN_UAC_EXTRA_TOOLS, read only when the EXCUBIA_* one is unset.
+    String(env.EXCUBIA_UAC_EXTRA_TOOLS ?? env.HN_UAC_EXTRA_TOOLS ?? "")
       .split(",")
       .map((item) => item.trim().toLowerCase())
       .filter(Boolean),

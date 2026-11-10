@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/recipes_api.dart';
-import 'package:herdr_notify/core/state/chat_controller.dart';
-import 'package:herdr_notify/core/state/hires_controller.dart';
-import 'package:herdr_notify/core/state/recipes_controller.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/chat/chat_screen.dart';
-import 'package:herdr_notify/ui/team/hires_section.dart';
-import 'package:herdr_notify/ui/theme.dart';
-import 'package:herdr_notify/ui/widgets/agent_row.dart';
-import 'package:herdr_notify/ui/widgets/empty_state.dart';
+import 'package:excubia/core/api/recipes_api.dart';
+import 'package:excubia/core/state/chat_controller.dart';
+import 'package:excubia/core/state/hires_controller.dart';
+import 'package:excubia/core/state/recipes_controller.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/chat/chat_screen.dart';
+import 'package:excubia/ui/team/hires_section.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/agent_row.dart';
+import 'package:excubia/ui/widgets/empty_state.dart';
 
 import 'support/agent_fixtures.dart';
 import 'support/captures.dart';

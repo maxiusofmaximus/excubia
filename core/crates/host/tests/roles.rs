@@ -85,7 +85,7 @@ async fn the_role_catalogue_refuses_the_unauthenticated_and_the_readerless() {
 
     // A device without read_state fails closed (403).
     let (readerless, paired) = host.pair("no read state").await;
-    let path = hn_core_host::paths::devices_path(&host.data_dir);
+    let path = excubia_core_host::paths::devices_path(&host.data_dir);
     let mut file = read_json(&path);
     for device in file["devices"].as_array_mut().expect("devices") {
         if device["device_id"] == paired.device_id.as_str() {

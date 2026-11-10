@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/model/connection_state.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
-import 'package:herdr_notify/src/rust/api/signing.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/model/connection_state.dart';
+import 'package:excubia/core/state/live_triage.dart';
+import 'package:excubia/src/rust/api/signing.dart';
 
 /// A client for a loopback port with nothing listening on it: the socket is refused.
 Future<HostClient> refusedClient() async {

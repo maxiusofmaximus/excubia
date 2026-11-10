@@ -1,4 +1,4 @@
-import 'package:herdr_notify/core/storage/pairing_store.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
 
 /// In-memory [KeyValueStore] so tests run without the platform keystore.
 class MemoryKeyValueStore implements KeyValueStore {

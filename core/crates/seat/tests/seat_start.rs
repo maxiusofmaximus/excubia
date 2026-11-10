@@ -6,9 +6,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use hn_core_chat::ChatStore;
-use hn_core_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
-use hn_core_test_dir::TestDir;
+use excubia_core_chat::ChatStore;
+use excubia_core_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
+use excubia_core_test_dir::TestDir;
 
 #[test]
 fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {
@@ -23,7 +23,7 @@ fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {
         hook_url: "http://127.0.0.1:9".to_string(),
         hook_command: hook.clone(),
         plugin_dir: None,
-        profiles: vec![test_profile("hn-no-such-cli-anywhere")],
+        profiles: vec![test_profile("excubia-no-such-cli-anywhere")],
         queue_capacity: 1,
         turn_timeout: Duration::from_secs(5),
         engines: Vec::new(),

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:herdr_notify/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/api/signing.dart';
 
 import '../storage/pairing_store.dart';
 import 'chat_transport.dart';
@@ -266,10 +266,10 @@ class HostClient implements ChatTransport {
 
   Map<String, String> _headers(SignedHeaders signed, {String? contentType}) => {
     HttpHeaders.acceptHeader: 'application/json; charset=utf-8',
-    'X-HN-Device': deviceId,
-    'X-HN-Timestamp': signed.timestamp.toString(),
-    'X-HN-Nonce': signed.nonce,
-    'X-HN-Signature': signed.signature,
+    'X-Excubia-Device': deviceId,
+    'X-Excubia-Timestamp': signed.timestamp.toString(),
+    'X-Excubia-Nonce': signed.nonce,
+    'X-Excubia-Signature': signed.signature,
     HttpHeaders.contentTypeHeader: ?contentType,
   };
 
@@ -294,7 +294,7 @@ class HostClient implements ChatTransport {
   static HttpClient _defaultClient() => HttpClient()
     ..connectionTimeout = const Duration(seconds: 10)
     ..idleTimeout = const Duration(minutes: 5)
-    ..userAgent = 'herdr-notify-flutter/0.1';
+    ..userAgent = 'excubia-flutter/0.1';
 }
 
 /// A refused request: [status] 0 means the transport failed before a response.

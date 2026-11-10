@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/phone_contact_import.dart';
-import 'package:herdr_notify/core/api/phone_contacts.dart';
+import 'package:excubia/core/api/phone_contact_import.dart';
+import 'package:excubia/core/api/phone_contacts.dart';
 
 PhoneEmailRow _row(String id, String? name, String address) =>
     PhoneEmailRow(contactId: id, name: name, address: address);

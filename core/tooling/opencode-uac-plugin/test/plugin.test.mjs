@@ -4,6 +4,20 @@ import http from "node:http";
 import path from "node:path";
 import plugin, { guard } from "../index.js";
 import { actionDigest, redact } from "../src/digest.js";
+import { hostConfig } from "../src/host.js";
+
+test("hostConfig lee EXCUBIA_ y acepta el nombre HN_ anterior al renombrado", () => {
+  const url = "http://127.0.0.1:4242";
+  const current = hostConfig({ EXCUBIA_HOOK_URL: url, EXCUBIA_HOOK_TOKEN: "new", EXCUBIA_PANE_ID: "p1" });
+  assert.equal(current.token, "new");
+  assert.equal(current.paneId, "p1");
+  const legacy = hostConfig({ HN_HOOK_URL: url, HN_HOOK_TOKEN: "old", HN_PANE_ID: "p2" });
+  assert.equal(legacy.base, "http://127.0.0.1:4242");
+  assert.equal(legacy.token, "old");
+  assert.equal(legacy.paneId, "p2");
+  const both = hostConfig({ EXCUBIA_HOOK_URL: url, EXCUBIA_HOOK_TOKEN: "new", HN_HOOK_TOKEN: "old" });
+  assert.equal(both.token, "new");
+});
 
 const cwd = path.resolve("D:\\proyectos\\demo");
 const event = { tool: "bash", input: { command: "echo hola" }, sessionID: "ses_test", agent: "build", id: "call_1" };
@@ -30,11 +44,11 @@ function close(server) {
 
 function envFor(base, extra = {}) {
   return {
-    HN_HOOK_URL: base,
-    HN_HOOK_TOKEN: "token-de-prueba",
-    HN_PANE_ID: "w1:p9",
-    HN_UAC_TTL_SECONDS: "1",
-    HN_UAC_POLL_MS: "25",
+    EXCUBIA_HOOK_URL: base,
+    EXCUBIA_HOOK_TOKEN: "token-de-prueba",
+    EXCUBIA_PANE_ID: "w1:p9",
+    EXCUBIA_UAC_TTL_SECONDS: "1",
+    EXCUBIA_UAC_POLL_MS: "25",
     ...extra,
   };
 }
@@ -148,8 +162,8 @@ test("sin configuración bloquea", async () => {
   await assert.rejects(() => guard(event, { cwd, env: {} }), /no configurada/);
 });
 
-test("HN_HOOK_URL no loopback bloquea", async () => {
-  const env = { HN_HOOK_URL: "http://example.com", HN_HOOK_TOKEN: "x" };
+test("EXCUBIA_HOOK_URL no loopback bloquea", async () => {
+  const env = { EXCUBIA_HOOK_URL: "http://example.com", EXCUBIA_HOOK_TOKEN: "x" };
   await assert.rejects(() => guard(event, { cwd, env }), /loopback/);
 });
 
@@ -219,7 +233,7 @@ test("V1 bloquea si el operador deniega", async () => {
 
 test("V1 sin configuración bloquea", async () => {
   const hook = await v1Hook();
-  await withEnv({ HN_HOOK_URL: "", HN_HOOK_TOKEN: "" }, () =>
+  await withEnv({ EXCUBIA_HOOK_URL: "", EXCUBIA_HOOK_TOKEN: "" }, () =>
     assert.rejects(
       () => hook({ tool: "bash", callID: "call_v1s" }, { args: { command: "echo hola" } }),
       /no configurada/,

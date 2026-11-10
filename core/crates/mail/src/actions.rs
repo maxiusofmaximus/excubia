@@ -12,7 +12,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use hn_core_persist::write_secret_atomic;
+use excubia_core_persist::write_secret_atomic;
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 

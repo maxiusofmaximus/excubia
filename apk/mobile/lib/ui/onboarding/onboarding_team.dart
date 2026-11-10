@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
+import 'package:excubia/src/rust/api/onboarding/model.dart';
 
 import '../../core/state/onboarding_controller.dart';
 import '../theme.dart';

@@ -6,7 +6,7 @@
 
 use std::num::NonZeroU16;
 
-use hn_core_pty::PtySize;
+use excubia_core_pty::PtySize;
 use thiserror::Error;
 
 /// A terminal size with at least one row and one column.

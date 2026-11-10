@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/alerts_api.dart';
-import 'package:herdr_notify/ui/alerts/alerts_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/alerts_api.dart';
+import 'package:excubia/ui/alerts/alerts_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 import '../alerts/alert_fakes.dart';
 import '../support/scripted_transport.dart';

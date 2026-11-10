@@ -6,7 +6,7 @@ mod support;
 use std::fs;
 use std::path::Path;
 
-use hn_core_mail::{
+use excubia_core_mail::{
     attach_file, Approval, AttachContext, AttachedFile, DraftInput, GraphClient, Ledger, MailError,
     RETENTION_SECONDS,
 };

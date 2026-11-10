@@ -3,8 +3,8 @@
 
 #![allow(dead_code)]
 
-use hn_core_chat::{ChatSeat, SeatError, ToolError, ToolReply, ToolRequest, Turn};
-use hn_core_host::paths;
+use excubia_core_chat::{ChatSeat, SeatError, ToolError, ToolReply, ToolRequest, Turn};
+use excubia_core_host::paths;
 
 use super::TOOL_TOKEN;
 
@@ -23,7 +23,7 @@ impl ChatSeat for ToolSeat {
         if token != TOOL_TOKEN {
             return Err(ToolError::unauthorized("unknown or expired tool token"));
         }
-        match hn_core_seat::parse_tool(&request) {
+        match excubia_core_seat::parse_tool(&request) {
             Ok(_) => Ok(ToolReply {
                 result: serde_json::json!({ "status": "accepted" }),
             }),
@@ -39,7 +39,7 @@ pub(super) fn write_catalog(data_dir: &std::path::Path) {
     let fake = env!("CARGO_BIN_EXE_fake-agent");
     let text = format!(
         "[agents.fake]\ncommand = '{fake}'\nargs = [\"--delay-ms\", \"150\"]\nlabel = \"Fake agent\"\n\
-         \n[agents.missing]\ncommand = 'hn-no-such-binary-anywhere'\n"
+         \n[agents.missing]\ncommand = 'excubia-no-such-binary-anywhere'\n"
     );
     std::fs::write(paths::agents_path(data_dir), text).expect("agents.toml");
 }

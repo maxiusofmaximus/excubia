@@ -28,7 +28,7 @@ pub fn migrate_to_20(connection: &mut Connection) -> Result<(), ChatError> {
 #[cfg(test)]
 mod tests {
     use crate::schema::{open, SCHEMA_VERSION};
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
     use rusqlite::{params, Connection};
 
     use super::add_ics_schema;

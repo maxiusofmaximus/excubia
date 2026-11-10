@@ -2,7 +2,7 @@
 //! kept (the steps, the plan, the text, the brakes); this module checks the shape of the body and
 //! turns the clock fields into a timing, so no bad time reaches the store.
 
-use hn_core_chat::{timing_of, ChatError, Content, NewSchedule};
+use excubia_core_chat::{timing_of, ChatError, Content, NewSchedule};
 use serde::Deserialize;
 
 /// A schedule a device keeps. Exactly one of `body` and `recipe_id` is given. `time` is the
@@ -76,12 +76,12 @@ mod tests {
         assert_eq!(new.content, Content::Body("Haz un resumen.".into()));
         assert!(matches!(
             new.timing.cadence,
-            hn_core_chat::Cadence::Repeat(_)
+            excubia_core_chat::Cadence::Repeat(_)
         ));
         assert_eq!(new.steps, 1);
 
         let once = body(r#","body":"Una vez.""#).new_schedule().expect("valid");
-        assert_eq!(once.timing.cadence, hn_core_chat::Cadence::Once);
+        assert_eq!(once.timing.cadence, excubia_core_chat::Cadence::Once);
     }
 
     #[test]

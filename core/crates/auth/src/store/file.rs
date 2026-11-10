@@ -148,13 +148,13 @@ pub fn read(path: &Path) -> Result<TrustFile, StoreError> {
 
 /// Write a store atomically: a half-written file must never be believed.
 pub fn write(path: &Path, file: &TrustFile) -> Result<(), StoreError> {
-    hn_core_persist::write_json_atomic(path, file)?;
+    excubia_core_persist::write_json_atomic(path, file)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
 
     use super::*;
 

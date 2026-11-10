@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/catalog.dart';
-import 'package:herdr_notify/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/catalog.dart';
+import 'package:excubia/src/rust/api/error.dart';
 
 import '../core/state/live_triage.dart';
 import 'theme.dart';

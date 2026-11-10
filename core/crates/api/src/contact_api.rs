@@ -3,8 +3,8 @@
 //! parser checks every field; an import entry that is refused is reported by its code
 //! and its position, never by the address it carried.
 
-use hn_core_chat::{ChatError, ChatStore, Contact, ImportOutcome};
-use hn_core_seat::{ContactCall, ToolCall};
+use excubia_core_chat::{ChatError, ChatStore, Contact, ImportOutcome};
+use excubia_core_seat::{ContactCall, ToolCall};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

@@ -23,45 +23,45 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use hn_core_api::voice::{EngineStarter, VoiceService};
-use hn_core_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext};
-use hn_core_auth::{DeviceStore, Permission};
-use hn_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
-use hn_core_crafting::App;
-use hn_core_host::alfred_switch::{Engine, Switch};
-use hn_core_host::audit::AuditLog;
-use hn_core_host::doc_tools::DocTools;
-use hn_core_host::mail_api::MailLogins;
-use hn_core_host::mail_cli::ACCOUNTS_DIR;
-use hn_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
-use hn_core_host::mail_tools::{MailTools, LEDGER_FILE};
-use hn_core_host::pairing_notice::PairingNotice;
-use hn_core_host::strata::State;
-use hn_core_host::team::{TeamConfig, TeamService};
-use hn_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
-use hn_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
-use hn_core_pty::PtySize;
-use hn_core_seat::{shipped, test_profile, CliId, CliProfile, SeatConfig, SeatService, TurnEnv};
-use hn_core_state::StateStore;
-use hn_core_test_dir::TestDir;
-use hn_core_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
+use excubia_core_api::voice::{EngineStarter, VoiceService};
+use excubia_core_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext};
+use excubia_core_auth::{DeviceStore, Permission};
+use excubia_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
+use excubia_core_crafting::App;
+use excubia_core_host::alfred_switch::{Engine, Switch};
+use excubia_core_host::audit::AuditLog;
+use excubia_core_host::doc_tools::DocTools;
+use excubia_core_host::mail_api::MailLogins;
+use excubia_core_host::mail_cli::ACCOUNTS_DIR;
+use excubia_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
+use excubia_core_host::mail_tools::{MailTools, LEDGER_FILE};
+use excubia_core_host::pairing_notice::PairingNotice;
+use excubia_core_host::strata::State;
+use excubia_core_host::team::{TeamConfig, TeamService};
+use excubia_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
+use excubia_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
+use excubia_core_pty::PtySize;
+use excubia_core_seat::{shipped, test_profile, CliId, CliProfile, SeatConfig, SeatService, TurnEnv};
+use excubia_core_state::StateStore;
+use excubia_core_test_dir::TestDir;
+use excubia_core_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
 
-/// The approval hook binary. It belongs to `hn-core-seat`, which this crate does
+/// The approval hook binary. It belongs to `excubia-core-seat`, which this crate does
 /// not depend on, so it is found next to a binary of this crate: the seat
 /// refuses to start when it is not there.
 /// The test seat's turn environment: the `alfred-local` marker of its data directory.
 fn alfred_turn_env(data_dir: &Path) -> Arc<dyn Fn() -> TurnEnv + Send + Sync> {
     let data_dir = data_dir.to_path_buf();
-    Arc::new(move || hn_core_host::alfred_backend::turn_env(&data_dir))
+    Arc::new(move || excubia_core_host::alfred_backend::turn_env(&data_dir))
 }
 
-/// The real OpenCode of the test: `HN_OPENCODE_BIN` names it, the shipped command otherwise.
+/// The real OpenCode of the test: `EXCUBIA_OPENCODE_BIN` names it, the shipped command otherwise.
 pub fn real_opencode() -> CliProfile {
     let mut profile = shipped()
         .into_iter()
         .find(|profile| profile.id == CliId::OpenCode)
         .expect("the shipped OpenCode profile");
-    if let Ok(binary) = std::env::var("HN_OPENCODE_BIN") {
+    if let Ok(binary) = std::env::var("EXCUBIA_OPENCODE_BIN") {
         if !binary.trim().is_empty() {
             profile.command = binary;
         }
@@ -79,17 +79,17 @@ fn opencode_turn_env(
     let data_dir = data_dir.to_path_buf();
     let provider_url = provider_url.to_string();
     Arc::new(move || {
-        let mut env = hn_core_host::alfred_backend::turn_env(&data_dir);
+        let mut env = excubia_core_host::alfred_backend::turn_env(&data_dir);
         env.set.push((
             "OPENCODE_CONFIG_CONTENT".to_string(),
             opencode_provider(&provider_url),
         ));
         env.set.push((
-            "HN_UAC_TTL_SECONDS".to_string(),
+            "EXCUBIA_UAC_TTL_SECONDS".to_string(),
             ttl_seconds.to_string(),
         ));
         env.set
-            .push(("HN_UAC_POLL_MS".to_string(), "250".to_string()));
+            .push(("EXCUBIA_UAC_POLL_MS".to_string(), "250".to_string()));
         env
     })
 }
@@ -148,20 +148,20 @@ impl Engine for FakeEngine {
 
     fn start(&self, data_dir: &Path) -> anyhow::Result<()> {
         self.starts.fetch_add(1, Ordering::SeqCst);
-        hn_core_host::local_mode::set(data_dir)?;
+        excubia_core_host::local_mode::set(data_dir)?;
         self.entered.store(true, Ordering::SeqCst);
         let outcome = self.launch();
         if outcome.is_err() {
-            hn_core_host::alfred_backend::clear(data_dir)?;
-            hn_core_host::local_mode::clear(data_dir)?;
+            excubia_core_host::alfred_backend::clear(data_dir)?;
+            excubia_core_host::local_mode::clear(data_dir)?;
         }
         outcome
     }
 
     fn stop(&self, data_dir: &Path) -> anyhow::Result<()> {
         self.ready.store(false, Ordering::SeqCst);
-        hn_core_host::alfred_backend::clear(data_dir)?;
-        hn_core_host::local_mode::clear(data_dir)?;
+        excubia_core_host::alfred_backend::clear(data_dir)?;
+        excubia_core_host::local_mode::clear(data_dir)?;
         Ok(())
     }
 }
@@ -304,9 +304,9 @@ pub struct TestHost {
     pub data_dir: PathBuf,
     pub hook_token: String,
     /// The host's certificate pin, the input of each pending device's SAS.
-    pub host_pin: hn_core_pin::Fingerprint,
+    pub host_pin: excubia_core_pin::Fingerprint,
     /// The host's in-memory PAKE pairing code slot (the context's own).
-    pub pake_slot: Arc<hn_core_api::PakeSlot>,
+    pub pake_slot: Arc<excubia_core_api::PakeSlot>,
     /// The alfred switch of the host, over [`Self::alfred_engine`] (a double).
     pub alfred: Arc<Switch>,
     pub alfred_engine: Arc<FakeEngine>,
@@ -460,10 +460,10 @@ impl TestHost {
         apps: &[App],
     ) -> Self {
         let devices = Arc::new(DeviceStore::open(Some(paths::devices_path(&data_dir))));
-        let host_pin = hn_core_pin::Fingerprint::of_spki(b"harness host certificate");
+        let host_pin = excubia_core_pin::Fingerprint::of_spki(b"harness host certificate");
         let store = StateStore::open("test", Some(paths::counters_path(&data_dir)));
-        let catalog = Arc::new(hn_core_host::load_agents(&data_dir).expect("catalog"));
-        let hook_token = hn_core_host::load_hook_token(&data_dir).expect("hook token");
+        let catalog = Arc::new(excubia_core_host::load_agents(&data_dir).expect("catalog"));
+        let hook_token = excubia_core_host::load_hook_token(&data_dir).expect("hook token");
         let chat =
             Arc::new(ChatStore::open(&paths::chat_db_path(&data_dir)).expect("chat database"));
         chat.set_attachments_root(&paths::attachments_dir(&data_dir));
@@ -532,7 +532,7 @@ impl TestHost {
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),
                     plugin_dir: None,
-                    profiles: vec![test_profile("hn-no-such-cli-anywhere")],
+                    profiles: vec![test_profile("excubia-no-such-cli-anywhere")],
                     queue_capacity: 1,
                     turn_timeout: Duration::from_secs(5),
                     turn_env: alfred_turn_env(&data_dir),
@@ -574,7 +574,7 @@ impl TestHost {
         // opens its approvals there.
         options.hook_url = format!("http://{addr}");
         let host = AgentHost::new(Arc::clone(&store), options).await;
-        hn_core_host::spawn_alerts(Arc::clone(&store), Arc::clone(&chat));
+        excubia_core_host::spawn_alerts(Arc::clone(&store), Arc::clone(&chat));
 
         // One mail surface for the host: the team's `mail.*` tools share its sends,
         // so a draft changed through a tool settles the owner's open question.
@@ -610,7 +610,7 @@ impl TestHost {
                     docs: Arc::new(DocTools::new(
                         Arc::clone(&craft),
                         Arc::clone(&chat),
-                        hn_core_mail::AuditLog::new(&data_dir.join(ACCOUNTS_DIR)),
+                        excubia_core_mail::AuditLog::new(&data_dir.join(ACCOUNTS_DIR)),
                     )),
                     mail: Arc::new(test_mail_tools(
                         &data_dir,
@@ -646,7 +646,7 @@ impl TestHost {
             alfred: Arc::clone(&alfred) as Arc<dyn AlfredBackend>,
             pairing_audit: notices,
             audit: Arc::new(AuditLog::new(&data_dir)),
-            docs: craft as Arc<dyn hn_core_api::DocumentPages>,
+            docs: craft as Arc<dyn excubia_core_api::DocumentPages>,
         })
         .with_host_pin(Some(host_pin));
         let pake_slot = Arc::clone(&context.pake_slot);
@@ -685,7 +685,7 @@ impl TestHost {
     /// Mint a single-use pairing code, exactly like `host pair-code` does.
     pub fn pair_code(&self) -> String {
         self.devices
-            .issue_enrollment_code(hn_core_auth::ENROLLMENT_TTL_SECONDS)
+            .issue_enrollment_code(excubia_core_auth::ENROLLMENT_TTL_SECONDS)
             .expect("issue code")
     }
 
@@ -699,7 +699,7 @@ impl TestHost {
     /// Pair a fresh device through the real `POST /v1/pair` and return the
     /// signed client bound to it.
     pub async fn pair(&self, name: &str) -> (SignedClient, PairResponse) {
-        let mut identity = hn_core_test_support::DemoIdentity::generate("", name);
+        let mut identity = excubia_core_test_support::DemoIdentity::generate("", name);
         let code = self.pair_code();
         let response = pair_device(
             &self.base_url(),
@@ -744,7 +744,7 @@ impl TestHost {
         let body = serde_json::json!({"pane_id": pane_id, "state": state}).to_string();
         let request = format!(
             "POST /v1/hooks/report HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\
-             X-HN-Hook-Token: {token}\r\nContent-Type: application/json\r\n\
+             X-Excubia-Hook-Token: {token}\r\nContent-Type: application/json\r\n\
              Content-Length: {}\r\n\r\n{body}",
             body.len()
         );
@@ -786,7 +786,7 @@ impl TestHost {
         let body = body.unwrap_or_default();
         let request = format!(
             "{method} {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\
-             X-HN-Hook-Token: {token}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+             X-Excubia-Hook-Token: {token}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
             body.len()
         );
         let mut raw = request.into_bytes();

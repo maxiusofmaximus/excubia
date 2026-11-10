@@ -2,16 +2,16 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/pinned_client.dart';
-import 'package:herdr_notify/core/model/connection_state.dart';
-import 'package:herdr_notify/core/state/chat_controller.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
-import 'package:herdr_notify/src/rust/api/signing.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/connection_text.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/pinned_client.dart';
+import 'package:excubia/core/model/connection_state.dart';
+import 'package:excubia/core/state/chat_controller.dart';
+import 'package:excubia/core/state/live_triage.dart';
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/connection_fixtures.dart';
 import 'support/fake_pinned_client.dart';

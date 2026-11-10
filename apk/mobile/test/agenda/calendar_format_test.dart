@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/state/calendar_time.dart';
-import 'package:herdr_notify/ui/agenda/calendar_format.dart';
+import 'package:excubia/core/api/agenda_api.dart';
+import 'package:excubia/core/state/calendar_time.dart';
+import 'package:excubia/ui/agenda/calendar_format.dart';
 
 CalendarEvent _event(
   String id,

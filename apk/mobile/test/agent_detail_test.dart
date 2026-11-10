@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/restore_api.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/ui/agent_detail_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/restore_api.dart';
+import 'package:excubia/core/state/live_triage.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/ui/agent_detail_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 AgentEntry agent({
   required AgentStatus status,
@@ -14,7 +14,7 @@ AgentEntry agent({
 }) => AgentEntry(
   paneId: 'w1:p1',
   workspaceId: 'w1',
-  project: 'herdr-notify',
+  project: 'excubia',
   agent: 'opencode',
   status: status,
   attention: 3,

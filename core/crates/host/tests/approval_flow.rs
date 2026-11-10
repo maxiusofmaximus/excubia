@@ -7,8 +7,8 @@ mod harness;
 use std::time::Duration;
 
 use harness::{approval_body as open_body, detail, SeatKind, TestHost};
-use hn_core_auth::Permission;
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 use tokio::time::sleep;
 
@@ -412,7 +412,7 @@ async fn a_hook_without_the_token_is_refused() {
     let (host, _client, _device) = approver_host("uac-token").await;
     let request = format!(
         "POST /v1/chat/approvals HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\
-         X-HN-Hook-Token: wrong\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+         X-Excubia-Hook-Token: wrong\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
         open_body("cargo test").len()
     );
     let mut raw = request.into_bytes();

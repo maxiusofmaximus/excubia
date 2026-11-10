@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/app_info.dart';
+import 'package:excubia/core/app_info.dart';
 
 void main() {
   // The About line must show the version the build actually carries.

@@ -18,8 +18,9 @@ class ChatAttachmentTrayView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A tile with its progress bar and «Quitar» is 147 px; the tile's padding takes 18 more.
     return SizedBox(
-      height: 132,
+      height: 165,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: tray.items.length,

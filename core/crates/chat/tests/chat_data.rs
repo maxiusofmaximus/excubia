@@ -3,11 +3,11 @@
 
 use std::path::PathBuf;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     ChatError, ChatStore, Conversation, ConversationFilter, NewConversation, RunState,
     TimelineEntry,
 };
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 use serde_json::json;
 
 fn store(name: &str) -> (ChatStore, PathBuf, TestDir) {

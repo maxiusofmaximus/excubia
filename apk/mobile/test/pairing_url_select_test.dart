@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/ui/theme.dart';
-import 'package:herdr_notify/ui/widgets/advanced_pairing.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/advanced_pairing.dart';
 
 void main() {
   testWidgets('tapping the stored host URL selects all of it', (tester) async {

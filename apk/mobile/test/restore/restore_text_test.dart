@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/restore_models.dart';
-import 'package:herdr_notify/ui/restore/restore_text.dart';
+import 'package:excubia/core/api/restore_models.dart';
+import 'package:excubia/ui/restore/restore_text.dart';
 
 const int _minute = 60000;
 const int _hour = 60 * _minute;

@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use common::{team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, Approval, ApprovalKind, ApprovalStatus, ChatError, ChatStore, Decision,
     HookScope, ManualClock, NewApproval, SeatActor, DEFAULT_TTL_SECONDS,
 };

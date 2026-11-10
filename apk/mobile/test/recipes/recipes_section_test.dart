@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/recipes_api.dart';
-import 'package:herdr_notify/core/state/recipes_controller.dart';
-import 'package:herdr_notify/ui/team/hire_recipes.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/recipes_api.dart';
+import 'package:excubia/core/state/recipes_controller.dart';
+import 'package:excubia/ui/team/hire_recipes.dart';
+import 'package:excubia/ui/theme.dart';
 
 import '../support/scripted_transport.dart';
 

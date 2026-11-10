@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/restore_models.dart';
+import 'package:excubia/core/api/restore_models.dart';
 
 Map<String, Object?> _point({
   String id = '01A',

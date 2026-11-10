@@ -1,7 +1,7 @@
 //! `mail.triage` (F0): one folder, the inbox or the junk folder, and at most ten
 //! messages, since each one costs a read. It takes the inbox arguments but no `from`.
 
-use hn_core_chat::{ToolError, ToolRequest};
+use excubia_core_chat::{ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::{arguments, bounded, invalid, limit_up_to, InboxFolder, MailCall, MAX_ID_CHARS};

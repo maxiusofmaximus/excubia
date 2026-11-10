@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:herdr_notify/src/rust/api/approvals/error.dart';
-import 'package:herdr_notify/src/rust/api/approvals/model.dart';
-import 'package:herdr_notify/src/rust/api/approvals/plan.dart';
-import 'package:herdr_notify/src/rust/api/approvals/reducer.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/api/chat/plan.dart' show newChatClientId;
+import 'package:excubia/src/rust/api/approvals/error.dart';
+import 'package:excubia/src/rust/api/approvals/model.dart';
+import 'package:excubia/src/rust/api/approvals/plan.dart';
+import 'package:excubia/src/rust/api/approvals/reducer.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/chat/plan.dart' show newChatClientId;
 
 import '../api/approval_find.dart';
 import '../api/chat_transport.dart';

@@ -5,7 +5,7 @@
 mod common;
 
 use common::{team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     ChatError, Delegation, NewDelegation, NewPlan, NewSeat, PlanDecision, PlanStatus, PlanStep,
     Touch,
 };
@@ -23,7 +23,7 @@ fn steps(count: usize, touches: &[Touch]) -> Vec<PlanStep> {
         .collect()
 }
 
-fn propose(t: &Team, steps: Vec<PlanStep>) -> hn_core_chat::Plan {
+fn propose(t: &Team, steps: Vec<PlanStep>) -> excubia_core_chat::Plan {
     t.store
         .propose_plan(NewPlan {
             conversation_id: t.conversation.clone(),

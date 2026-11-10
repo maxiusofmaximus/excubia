@@ -1,5 +1,5 @@
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/live_triage.dart';
 
 import 'fake_chat_transport.dart';
 

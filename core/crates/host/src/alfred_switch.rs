@@ -11,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Result};
 use async_trait::async_trait;
-use hn_core_api::{AlfredBackend, BackendStatus, EngineListing, Requested};
+use excubia_core_api::{AlfredBackend, BackendStatus, EngineListing, Requested};
 use tokio::sync::Mutex as AsyncMutex;
 
 use crate::pairing_notice::PairingNotice;

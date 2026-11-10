@@ -1,4 +1,4 @@
-import 'package:herdr_notify/src/rust/api/stream.dart';
+import 'package:excubia/src/rust/api/stream.dart';
 
 import '../api/host_client.dart';
 import '../storage/pairing_store.dart';

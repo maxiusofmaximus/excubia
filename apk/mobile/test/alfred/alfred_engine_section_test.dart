@@ -2,15 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/alfred_backend_api.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/src/rust/api/catalog.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/ui/alfred/alfred_engine_section.dart';
-import 'package:herdr_notify/ui/new_conversation_screen.dart'
+import 'package:excubia/core/api/alfred_backend_api.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/src/rust/api/catalog.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/ui/alfred/alfred_engine_section.dart';
+import 'package:excubia/ui/new_conversation_screen.dart'
     show CatalogLoader;
 
 import '../support/widget_mount.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/alerts/alert_policy.dart';
-import 'package:herdr_notify/core/alerts/manufacturer_guide.dart';
+import 'package:excubia/core/alerts/alert_policy.dart';
+import 'package:excubia/core/alerts/manufacturer_guide.dart';
 
 void main() {
   group('alertBackoff', () {

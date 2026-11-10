@@ -6,9 +6,9 @@
 mod mail_move_support;
 mod mail_support;
 
-use hn_core_chat::{ApprovalKind, ChatStore, Decision, NewApproval};
-use hn_core_seat::MoveFolder;
-use hn_core_test_dir::TestDir;
+use excubia_core_chat::{ApprovalKind, ChatStore, Decision, NewApproval};
+use excubia_core_seat::MoveFolder;
+use excubia_core_test_dir::TestDir;
 use mail_move_support::*;
 use mail_support::token_answer;
 use serde_json::json;

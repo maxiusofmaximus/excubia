@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/alerts/alert_status.dart';
-import 'package:herdr_notify/core/api/alerts_api.dart';
-import 'package:herdr_notify/ui/alerts/alert_rules_screen.dart';
-import 'package:herdr_notify/ui/alerts/alerts_setup_section.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/alerts/alert_status.dart';
+import 'package:excubia/core/api/alerts_api.dart';
+import 'package:excubia/ui/alerts/alert_rules_screen.dart';
+import 'package:excubia/ui/alerts/alerts_setup_section.dart';
+import 'package:excubia/ui/theme.dart';
 
 import '../support/scripted_transport.dart';
 import '../support/widget_mount.dart';

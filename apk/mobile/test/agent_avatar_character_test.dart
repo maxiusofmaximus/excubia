@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/ui/widgets/agent_avatar.dart';
+import 'package:excubia/ui/widgets/agent_avatar.dart';
 
 void main() {
   test('an id finds its character whatever the visible name says', () {

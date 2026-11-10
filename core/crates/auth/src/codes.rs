@@ -5,7 +5,7 @@
 //! so a code retyped from a screen still matches.
 
 use data_encoding::BASE32;
-use hn_core_persist::{fill_random, RandomError};
+use excubia_core_persist::{fill_random, RandomError};
 use sha2::{Digest, Sha256};
 
 /// 32 bits of entropy for a single-use code that lives three minutes.

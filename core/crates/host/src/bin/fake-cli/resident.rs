@@ -9,7 +9,7 @@ use super::uac::{run_uac_hook, uac_ttl};
 
 /// A resident project seat: read a task, answer it, read the next one.
 pub(super) fn resident(config_path: &str) -> Result<(), String> {
-    let role = std::env::var("HN_SEAT_ROLE").unwrap_or_else(|_| "specialist".to_string());
+    let role = std::env::var("EXCUBIA_SEAT_ROLE").unwrap_or_else(|_| "specialist".to_string());
     let mut mcp = Mcp::start(config_path)?;
     let stdin = std::io::stdin();
     for line in BufReader::new(stdin.lock()).lines() {

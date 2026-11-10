@@ -1,6 +1,6 @@
 # Arnés vivo de aprobaciones (TASK-CORE10).
 #
-# Arranca el host REAL (host.exe) con un directorio de datos aislado y el
+# Arranca el host REAL (excubia-host.exe) con un directorio de datos aislado y el
 # puerto fijo 18878, empareja dos dispositivos de prueba y lanza un agente
 # Claude REAL (claude-haiku-5-5) cuyo hook de Bash es el `excubia-uac-hook.exe`
 # real, apuntando al host. Cada Bash pide una aprobación al operador.
@@ -18,7 +18,7 @@
 # de Alfred se lanza con `--restricted` (sin Bash, CORE6B). Los paneles
 # residentes de CLIs reales siguen sin implementarse ([NV]). Ver CORE10-RESULT.md.
 #
-# Todo vive en %TEMP%\hn-approvals-live. Nunca toca %APPDATA% ni el estado
+# Todo vive en %TEMP%\excubia-approvals-live. Nunca toca %APPDATA% ni el estado
 # real del host, y nunca detiene procesos ajenos (8787, 8772, fake-agent):
 # solo los descendientes de su propio host y los que citan su directorio.
 #
@@ -36,7 +36,7 @@ $ErrorActionPreference = 'Stop'
 $Port = 18878
 $Url = "http://127.0.0.1:$Port"
 $Model = 'claude-haiku-5-5'
-$Root = Join-Path $env:TEMP 'hn-approvals-live'
+$Root = Join-Path $env:TEMP 'excubia-approvals-live'
 $Data = Join-Path $Root 'data'
 $Work = Join-Path $Root 'work'
 $StateFile = Join-Path $Root 'state.json'
@@ -44,7 +44,7 @@ $SettingsFile = Join-Path $Root 'claude-settings.json'
 $SeatTokenFile = Join-Path $Root 'seat-token.txt'
 $Marker = Join-Path $Data 'marker.txt'
 $Bin = Join-Path $PSScriptRoot '..\target\debug'
-$HostExe = Join-Path $Bin 'host.exe'
+$HostExe = Join-Path $Bin 'excubia-host.exe'
 $DemoExe = Join-Path $Bin 'demo-client.exe'
 $HookExe = Join-Path $Bin 'excubia-uac-hook.exe'
 $Operator = Join-Path $Root 'operator.json'
@@ -193,8 +193,8 @@ switch ($Command) {
         $text = "Ejecuta exactamente un comando con la herramienta Bash: echo x >> $markerPath # run-$stamp " +
             '. No uses ninguna otra herramienta. Después responde solo: listo.'
         # El hook recibe el token de asiento y el host real por el entorno.
-        $env:HN_HOOK_URL = $Url
-        $env:HN_HOOK_TOKEN = (Get-Content $SeatTokenFile -Raw).Trim()
+        $env:EXCUBIA_HOOK_URL = $Url
+        $env:EXCUBIA_HOOK_TOKEN = (Get-Content $SeatTokenFile -Raw).Trim()
         # El prompt entra por stdin desde un fichero: Start-Process no citaba bien
         # el argumento y Claude recibía solo «Ejecuta».
         $promptFile = Join-Path $Root "prompt-$stamp.txt"
@@ -214,7 +214,7 @@ switch ($Command) {
             -RedirectStandardInput $promptFile `
             -RedirectStandardOutput (Join-Path $Root "claude-$stamp.out") `
             -RedirectStandardError (Join-Path $Root "claude-$stamp.err")
-        Remove-Item Env:HN_HOOK_TOKEN
+        Remove-Item Env:EXCUBIA_HOOK_TOKEN
         Write-Host "claude en marcha (pid $($claude.Id)); la salida va a claude-$stamp.out"
         # Criterio C: la aprobación tiene que verla el operador (bandeja de un
         # cliente emparejado con approve) en 10 s como mucho.
@@ -236,7 +236,7 @@ switch ($Command) {
             Where-Object { $_.CommandLine -and $_.CommandLine.Contains($Root) } |
             ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
         if (Test-Path $Root) {
-            if ((Split-Path $Root -Leaf) -ne 'hn-approvals-live') { throw "ruta inesperada: $Root" }
+            if ((Split-Path $Root -Leaf) -ne 'excubia-approvals-live') { throw "ruta inesperada: $Root" }
             Remove-Item -Recurse -Force $Root
         }
         Write-Host 'arnés detenido y limpio'

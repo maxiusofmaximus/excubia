@@ -5,8 +5,8 @@
 mod harness;
 
 use harness::{TestHost, TOOL_TOKEN};
-use hn_core_auth::Permission;
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 
 const WINDOW: &str = "/v1/calendar/events?from=2026-11-01&to=2026-11-08";
@@ -201,7 +201,7 @@ async fn an_app_moves_and_deletes_its_events_and_a_seat_token_gets_401() {
 
     let refused = reqwest::Client::new()
         .get(format!("{}{WINDOW}", host.base_url()))
-        .header("X-HN-Tool-Token", TOOL_TOKEN)
+        .header("X-Excubia-Tool-Token", TOOL_TOKEN)
         .send()
         .await
         .expect("read");

@@ -1,14 +1,14 @@
 //! `/v1/calendar/import` and `/v1/calendar/export.ics` (CALENDARIO-F4c): the calendar as an
-//! iCalendar file. The reading and the writing are `hn-core-chat`'s; a handler here shapes the
-//! request and the reply. The permissions are in `hn-core-auth`'s `authz/agenda.rs`.
+//! iCalendar file. The reading and the writing are `excubia-core-chat`'s; a handler here shapes the
+//! request and the reply. The permissions are in `excubia-core-auth`'s `authz/agenda.rs`.
 
 use axum::body::Bytes;
 use axum::extract::{Extension, Query, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::VerifiedDevice;
-use hn_core_chat::{export_calendar, read_calendar, EventTime, IcsError};
+use excubia_core_auth::VerifiedDevice;
+use excubia_core_chat::{export_calendar, read_calendar, EventTime, IcsError};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

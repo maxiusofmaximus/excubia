@@ -4,7 +4,7 @@
 mod common;
 
 use common::{team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, Approval, ApprovalKind, ApprovalMode, ChatStore, ConversationFilter,
     ConversationUpdate, NewApproval, NewConversation, SectionChange, DEFAULT_TTL_SECONDS,
 };
@@ -108,7 +108,7 @@ fn inbox(store: &ChatStore) -> [String; 5] {
 
 #[test]
 fn working_follows_the_turn_until_it_completes() {
-    let dir = hn_core_test_dir::TestDir::new("core-conversation-filters-working");
+    let dir = excubia_core_test_dir::TestDir::new("core-conversation-filters-working");
     let store = ChatStore::open(&dir.join("chat.db")).expect("open store");
     let busy = conversation(&store, "Ocupado");
     conversation(&store, "Quieto");
@@ -167,7 +167,7 @@ fn attention_is_an_unread_reply_or_an_approval_at_the_operator() {
 
 #[test]
 fn filters_combine_with_archives_and_paging() {
-    let dir = hn_core_test_dir::TestDir::new("core-conversation-filters-combine");
+    let dir = excubia_core_test_dir::TestDir::new("core-conversation-filters-combine");
     let store = ChatStore::open(&dir.join("chat.db")).expect("open store");
     let [first, second, archived, fourth, fifth] = inbox(&store);
 
@@ -213,7 +213,7 @@ fn filters_combine_with_archives_and_paging() {
 
 #[test]
 fn counts_agree_with_the_listings() {
-    let dir = hn_core_test_dir::TestDir::new("core-conversation-filters-counts");
+    let dir = excubia_core_test_dir::TestDir::new("core-conversation-filters-counts");
     let store = ChatStore::open(&dir.join("chat.db")).expect("open store");
     let _ = inbox(&store);
 

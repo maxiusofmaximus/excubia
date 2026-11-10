@@ -3,7 +3,7 @@
 //! This crate owns `chat.db`: the single company, seats, conversations,
 //! messages, sections and the durable `chat_event` journal. It has no HTTP and
 //! no agent-launch code; the API crate maps its errors to the contract and
-//! `hn-core-seat` implements the seat port.
+//! `excubia-core-seat` implements the seat port.
 
 mod attachments;
 mod clock;

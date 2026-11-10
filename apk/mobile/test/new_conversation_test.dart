@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
-import 'package:herdr_notify/src/rust/api/catalog.dart';
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/ui/new_conversation_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/live_triage.dart';
+import 'package:excubia/src/rust/api/catalog.dart';
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/ui/new_conversation_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 LiveTriage dummyTriage() => LiveTriage(
   HostClient(

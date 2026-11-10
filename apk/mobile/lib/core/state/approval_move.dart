@@ -1,4 +1,4 @@
-import 'package:herdr_notify/src/rust/api/approvals/model.dart';
+import 'package:excubia/src/rust/api/approvals/model.dart';
 
 /// Whether the approval moves mail: its batch has one checkbox per mail.
 bool isMailMove(ChatApproval entry) => entry.tool == 'mail.move';

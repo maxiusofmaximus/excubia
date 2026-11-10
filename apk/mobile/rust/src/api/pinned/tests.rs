@@ -1,6 +1,6 @@
 //! Unit tests of the pairing link and the SAS entry points.
 
-use hn_core_pin::{Fingerprint, PairingLink, PinSet};
+use excubia_core_pin::{Fingerprint, PairingLink, PinSet};
 
 use super::*;
 
@@ -88,6 +88,7 @@ fn a_malformed_pin_is_a_typed_failure() {
 
 #[test]
 fn a_link_without_a_pin_or_with_junk_is_a_malformed_link() {
+    // legacy: the old scheme must stay refused
     assert_eq!(
         failure_kind("herdr-notify://pair?v=1&c=AB&e=9999999999999"),
         PinnedFailureKind::MalformedLink

@@ -7,10 +7,11 @@
 
 use std::time::Duration;
 
-use hn_core_chat::{ToolError, ToolErrorKind, ToolReply, ToolRequest};
+use excubia_core_chat::{ToolError, ToolErrorKind, ToolReply, ToolRequest};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
+use crate::env;
 use crate::http::{self, LoopbackUrl};
 use crate::tools;
 
@@ -21,13 +22,14 @@ const PROTOCOL_VERSION: &str = "2024-11-05";
 const CALL_TIMEOUT: Duration = Duration::from_secs(75);
 
 pub async fn run_stdio() -> Result<(), String> {
-    let url = std::env::var("HN_TOOL_URL")
-        .map_err(|_| "HN_TOOL_URL is not set; excubia-mcp only runs under the seat".to_string())?;
-    let token = std::env::var("HN_TOOL_TOKEN").map_err(|_| {
-        "HN_TOOL_TOKEN is not set; excubia-mcp only runs under the seat".to_string()
+    let url = env::var_or_legacy("EXCUBIA_TOOL_URL", "HN_TOOL_URL").ok_or_else(|| {
+        "EXCUBIA_TOOL_URL is not set; excubia-mcp only runs under the seat".to_string()
+    })?;
+    let token = env::var_or_legacy("EXCUBIA_TOOL_TOKEN", "HN_TOOL_TOKEN").ok_or_else(|| {
+        "EXCUBIA_TOOL_TOKEN is not set; excubia-mcp only runs under the seat".to_string()
     })?;
     if token.contains(['\r', '\n']) {
-        return Err("HN_TOOL_TOKEN contains a newline".to_string());
+        return Err("EXCUBIA_TOOL_TOKEN contains a newline".to_string());
     }
 
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
@@ -60,7 +62,7 @@ pub async fn run_stdio() -> Result<(), String> {
                         "protocolVersion": PROTOCOL_VERSION,
                         "capabilities": { "tools": { "listChanged": false } },
                         "serverInfo": {
-                            "name": "hn-core-chat",
+                            "name": "excubia-core-chat",
                             "version": env!("CARGO_PKG_VERSION")
                         }
                     }),
@@ -160,7 +162,7 @@ async fn post_tool(url: &str, token: &str, request: &ToolRequest) -> Result<Tool
         "POST",
         &[
             ("Content-Type", "application/json"),
-            ("X-HN-Tool-Token", token),
+            ("X-Excubia-Tool-Token", token),
         ],
         &body,
         CALL_TIMEOUT,

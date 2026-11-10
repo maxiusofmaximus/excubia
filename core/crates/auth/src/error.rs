@@ -1,8 +1,8 @@
-//! Typed failures. The public HTTP shapes live in `hn-core-api`; these are the
+//! Typed failures. The public HTTP shapes live in `excubia-core-api`; these are the
 //! library-level reasons, kept separate so the caller can log the specific one
 //! while answering uniformly.
 
-use hn_core_persist::RandomError;
+use excubia_core_persist::RandomError;
 use thiserror::Error;
 
 use crate::store::Permission;

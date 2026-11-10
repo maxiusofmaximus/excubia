@@ -1,12 +1,12 @@
 //! `/v1/contacts` (AGENDA-REST): the address book the app keeps, and the phone-book
-//! import. The matrix that guards them is `hn-core-auth`'s `authz/agenda.rs`.
+//! import. The matrix that guards them is `excubia-core-auth`'s `authz/agenda.rs`.
 
 use axum::body::Bytes;
 use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::VerifiedDevice;
+use excubia_core_auth::VerifiedDevice;
 use serde::Deserialize;
 use serde_json::{json, Value};
 

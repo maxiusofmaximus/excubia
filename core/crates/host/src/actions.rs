@@ -4,9 +4,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use async_trait::async_trait;
-use hn_core_api::{AgentActions, AgentSpec, HookState, RestoreRefusal, StartedAgent};
-use hn_core_detect::DetectedState;
-use hn_core_state::EVENT_CLOSED;
+use excubia_core_api::{AgentActions, AgentSpec, HookState, RestoreRefusal, StartedAgent};
+use excubia_core_detect::DetectedState;
+use excubia_core_state::EVENT_CLOSED;
 use serde_json::{json, Value};
 
 use crate::restore_points::{Point, RestoreError};
@@ -133,7 +133,7 @@ impl AgentActions for AgentHost {
             .ok_or("the pane has no running agent")?;
         let store = Arc::clone(&self.restore);
         let agent = pane_id.to_string();
-        let turn = hn_core_chat::new_ulid();
+        let turn = excubia_core_chat::new_ulid();
         blocking(move || store.create_point(&agent, &turn, &dir))
             .await
             .map(|point| point.id)
@@ -182,7 +182,7 @@ impl AgentActions for AgentHost {
 }
 
 impl AgentHost {
-    async fn store_row(&self, pane_id: &str) -> Result<hn_core_state::TriageRow, String> {
+    async fn store_row(&self, pane_id: &str) -> Result<excubia_core_state::TriageRow, String> {
         self.store
             .row_of(pane_id)
             .await
@@ -236,7 +236,7 @@ fn detected_state_of(state: HookState) -> DetectedState {
     }
 }
 
-/// Key encoding for `POST /keys` (the allowlist lives in `hn-core-api`).
+/// Key encoding for `POST /keys` (the allowlist lives in `excubia-core-api`).
 fn encode_key(key: &str) -> Option<&'static [u8]> {
     Some(match key {
         "enter" => b"\r",

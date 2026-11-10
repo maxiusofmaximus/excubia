@@ -2,11 +2,11 @@
 //! time with no offset is read in the company's zone, and a delete waits for the user's
 //! approval, as a note's and a contact's do. An event's text is data for the model.
 
-use hn_core_chat::{
+use excubia_core_chat::{
     CalendarError, CalendarEvent, ChatError, EventOrigin, Listed, SeatActor, ToolError, ToolReply,
     CALENDAR_DELETE_TOOL,
 };
-use hn_core_seat::CalendarCall;
+use excubia_core_seat::CalendarCall;
 use serde_json::{json, Value};
 
 use super::team::TeamService;

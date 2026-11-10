@@ -10,14 +10,14 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use harness::{FakeEngine, TestHost};
-use hn_core_api::{AlfredBackend, EngineListing, Requested};
-use hn_core_auth::Permission;
-use hn_core_chat::{ChatStore, ConversationFilter};
-use hn_core_host::alfred_backend;
-use hn_core_host::alfred_switch::{Engine, Switch};
-use hn_core_host::local_mode;
-use hn_core_host::pairing_notice::{PairingNotice, NOTICE_TITLE};
-use hn_core_test_support::client::SignedClient;
+use excubia_core_api::{AlfredBackend, EngineListing, Requested};
+use excubia_core_auth::Permission;
+use excubia_core_chat::{ChatStore, ConversationFilter};
+use excubia_core_host::alfred_backend;
+use excubia_core_host::alfred_switch::{Engine, Switch};
+use excubia_core_host::local_mode;
+use excubia_core_host::pairing_notice::{PairingNotice, NOTICE_TITLE};
+use excubia_core_test_support::client::SignedClient;
 use serde_json::Value;
 
 const PATH: &str = "/v1/alfred/backend";

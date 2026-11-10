@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_document_previews.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/src/rust/api/chat/attach_model.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/chat_document_previews.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/src/rust/api/chat/attach_model.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/fake_preview_transport.dart';
 

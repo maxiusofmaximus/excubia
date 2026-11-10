@@ -6,8 +6,8 @@ mod harness;
 use std::time::Duration;
 
 use harness::TestHost;
-use hn_core_auth::{canonical_string, Permission};
-use hn_core_test_support::{pair_device, DemoIdentity, HttpError};
+use excubia_core_auth::{canonical_string, Permission};
+use excubia_core_test_support::{pair_device, DemoIdentity, HttpError};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn pairing_failures_follow_the_contract() {
@@ -300,8 +300,8 @@ async fn signed_raw(
     let signature = identity.sign(&message);
     let mut request = format!(
         "{method} {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\
-         X-HN-Device: {}\r\nX-HN-Timestamp: {timestamp}\r\nX-HN-Nonce: {nonce}\r\n\
-         X-HN-Signature: {signature}\r\n",
+         X-Excubia-Device: {}\r\nX-Excubia-Timestamp: {timestamp}\r\nX-Excubia-Nonce: {nonce}\r\n\
+         X-Excubia-Signature: {signature}\r\n",
         identity.device_id()
     );
     if !body.is_empty() {

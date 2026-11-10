@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/error.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
+import 'package:excubia/src/rust/api/error.dart';
+import 'package:excubia/src/rust/api/onboarding/model.dart';
 
 import '../../core/state/hires_controller.dart';
 import '../../core/state/recipes_controller.dart';

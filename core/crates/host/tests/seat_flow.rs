@@ -9,9 +9,9 @@ mod harness;
 use std::time::{Duration, Instant};
 
 use harness::{SeatKind, TestHost};
-use hn_core_auth::Permission;
-use hn_core_chat::RunState;
-use hn_core_test_support::client::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_chat::RunState;
+use excubia_core_test_support::client::SignedClient;
 use serde_json::Value;
 
 const TTL: Duration = Duration::from_secs(45);
@@ -422,7 +422,7 @@ async fn the_internal_tool_endpoint_rejects_missing_and_wrong_tokens() {
 
     let wrong = http
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", "not-a-real-token")
+        .header("X-Excubia-Tool-Token", "not-a-real-token")
         .json(&body)
         .send()
         .await

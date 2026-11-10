@@ -2,7 +2,7 @@
 //! its first step and reads the operator's answer. The steps are checked by the
 //! chat store; here only the shape is read, and unknown fields are refused.
 
-use hn_core_chat::{PlanStep, ToolError, ToolRequest};
+use excubia_core_chat::{PlanStep, ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::call::PlanPropose;
@@ -34,7 +34,7 @@ pub(super) fn status(request: &ToolRequest) -> Result<ToolCall, ToolError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_chat::Touch;
+    use excubia_core_chat::Touch;
     use serde_json::{json, Value};
 
     fn request(tool: &str, arguments: Value) -> ToolRequest {

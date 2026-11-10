@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/state/approval_move.dart';
-import 'package:herdr_notify/src/rust/api/approvals/model.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/state/approval_move.dart';
+import 'package:excubia/src/rust/api/approvals/model.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/approval_fixtures.dart';
 

@@ -32,7 +32,7 @@ pub fn migrate_to_21(connection: &mut Connection) -> Result<(), ChatError> {
 
 #[cfg(test)]
 mod tests {
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
     use rusqlite::Connection;
 
     use super::ALERT_SCHEMA;

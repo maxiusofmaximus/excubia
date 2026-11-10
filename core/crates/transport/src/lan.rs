@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use hn_core_pin::{client_config, PinError, PinSet};
+use excubia_core_pin::{client_config, PinError, PinSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_rustls::rustls::pki_types::ServerName;
@@ -12,7 +12,7 @@ use tokio_rustls::TlsConnector;
 use crate::{Hint, Incoming, PeerRef, Route, RouteState, Transport, TransportError, TransportKind};
 
 /// The verifier trusts the pin alone, so the name only has to be valid.
-const SERVER_NAME: &str = "herdr-notify.lan";
+const SERVER_NAME: &str = "excubia.lan";
 
 /// The LAN listener's TLS 1.3 client with the host's pin. The host's routes
 /// are not reached by this type yet: `connect` only checks that the host is up.
@@ -146,19 +146,19 @@ fn status_code(response: &[u8]) -> Option<u16> {
 mod tests {
     use std::net::SocketAddr;
 
-    use hn_core_pin::{Fingerprint, Identity};
+    use excubia_core_pin::{Fingerprint, Identity};
     use tokio::net::TcpListener;
     use tokio_rustls::TlsAcceptor;
 
     use super::*;
 
     /// Answers every TLS connection with `status`, as the host would. It uses
-    /// the same server config as the host (`hn_core_pin::server_config`).
+    /// the same server config as the host (`excubia_core_pin::server_config`).
     async fn serve(identity: &Identity, status: &'static str) -> SocketAddr {
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
         let addr = listener.local_addr().expect("address");
         let acceptor = TlsAcceptor::from(Arc::new(
-            hn_core_pin::server_config(identity).expect("server config"),
+            excubia_core_pin::server_config(identity).expect("server config"),
         ));
         tokio::spawn(async move {
             loop {

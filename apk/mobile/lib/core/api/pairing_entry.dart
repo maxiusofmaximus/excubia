@@ -1,5 +1,5 @@
-import 'package:herdr_notify/src/rust/api/pake_link.dart' as rust;
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/pake_link.dart' as rust;
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
 
 import '../app_info.dart';
 

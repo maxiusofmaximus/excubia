@@ -12,7 +12,7 @@ mod common;
 mod scorer_support;
 
 use common::team;
-use hn_core_chat::{action_digest, ApprovalKind, ApprovalStatus, NewApproval, DEFAULT_TTL_SECONDS};
+use excubia_core_chat::{action_digest, ApprovalKind, ApprovalStatus, NewApproval, DEFAULT_TTL_SECONDS};
 use scorer_support::{Behaviour, Scorer};
 use serde_json::json;
 
@@ -29,7 +29,7 @@ const CASES: &[(&str, bool)] = &[
     ("git log --oneline -5", true),
     ("cargo test", true),
     ("cargo test --workspace", true),
-    ("cargo test -p hn-core-chat", true),
+    ("cargo test -p excubia-core-chat", true),
     ("cargo check", true),
     ("cargo clippy -- -D warnings", true),
     ("cargo fmt --check", true),

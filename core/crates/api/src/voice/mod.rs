@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Instant;
 
 use axum::body::Bytes;
-use hn_core_asr::{audio_levels, AsrConfig, AsrEngine, AsrError, AudioLevels};
+use excubia_core_asr::{audio_levels, AsrConfig, AsrEngine, AsrError, AudioLevels};
 
 pub use format::AudioFormat;
 use tokio::sync::Semaphore;

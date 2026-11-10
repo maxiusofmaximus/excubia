@@ -1,4 +1,4 @@
-//! The worker side of the isolation: `hn-media-worker` runs `serve` on its stdin and stdout.
+//! The worker side of the isolation: `excubia-media-worker` runs `serve` on its stdin and stdout.
 
 use std::io::{self, Read, Write};
 

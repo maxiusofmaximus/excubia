@@ -2,7 +2,7 @@ mod support;
 
 use std::path::Path;
 
-use hn_core_mail::{
+use excubia_core_mail::{
     attach_file, Approval, AttachContext, AttachedFile, GraphClient, Ledger, MailError,
     DEFAULT_UPLOAD_CHUNK_BYTES, MAX_UPLOAD_CHUNK_BYTES, UPLOAD_GRANULE_BYTES,
 };

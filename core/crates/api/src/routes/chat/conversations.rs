@@ -9,8 +9,8 @@ use axum::Extension;
 use serde::Deserialize;
 use serde_json::json;
 
-use hn_core_auth::VerifiedDevice;
-use hn_core_chat::{ConversationFilter, ConversationUpdate, NewConversation, SectionChange};
+use excubia_core_auth::VerifiedDevice;
+use excubia_core_chat::{ConversationFilter, ConversationUpdate, NewConversation, SectionChange};
 
 use crate::error::ApiError;
 use crate::routes::parse_body;

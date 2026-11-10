@@ -4,9 +4,9 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use hn_core_chat::{ApprovalFilter, ApprovalStatus, ChatStore, Decision};
-use hn_core_host::mail_approval::ChatApprovalGate;
-use hn_core_mail::{Approval, ApprovalGate, CheckedFile, PathApproval};
+use excubia_core_chat::{ApprovalFilter, ApprovalStatus, ChatStore, Decision};
+use excubia_core_host::mail_approval::ChatApprovalGate;
+use excubia_core_mail::{Approval, ApprovalGate, CheckedFile, PathApproval};
 
 const OUTSIDE: &str = "C:/fuera/informe.xlsx";
 
@@ -22,7 +22,7 @@ fn request() -> PathApproval {
 }
 
 /// Waits until the gate has filed its question, then returns it.
-async fn next_pending(chat: &ChatStore) -> hn_core_chat::Approval {
+async fn next_pending(chat: &ChatStore) -> excubia_core_chat::Approval {
     for _ in 0..500 {
         let pending = chat
             .approvals(&ApprovalFilter {

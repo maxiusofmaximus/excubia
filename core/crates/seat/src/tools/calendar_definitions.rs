@@ -1,7 +1,7 @@
 //! The schemas of Alfred's calendar tools (CALENDARIO-F4). Alfred only; the host enforces
 //! who may call them.
 
-use hn_core_chat::{
+use excubia_core_chat::{
     EVENT_LIST_MAX, EVENT_LOCATION_MAX_CHARS, EVENT_NOTES_MAX_BYTES, EVENT_TITLE_MAX_CHARS,
     REMINDER_MAX_MINUTES,
 };

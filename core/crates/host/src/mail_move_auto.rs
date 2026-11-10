@@ -5,8 +5,8 @@
 
 use std::sync::Arc;
 
-use hn_core_chat::{Approval, ApprovalStatus};
-use hn_core_mail::{MailError, MoveDest};
+use excubia_core_chat::{Approval, ApprovalStatus};
+use excubia_core_mail::{MailError, MoveDest};
 use serde_json::Value;
 
 use crate::mail_move::ACTION;

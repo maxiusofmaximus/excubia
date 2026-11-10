@@ -3,25 +3,25 @@
 //!
 //! The evidence test is `#[ignore]`d: it needs the OpenCode V1 build the `e2e/`
 //! harness of the plugin installs under `target/opencode-v1`, and it is run by
-//! hand (`cargo test -p hn-core-seat --test uac_canary -- --ignored`).
+//! hand (`cargo test -p excubia-core-seat --test uac_canary -- --ignored`).
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use hn_core_seat::http::{self, LoopbackUrl};
-use hn_core_seat::{
+use excubia_core_seat::http::{self, LoopbackUrl};
+use excubia_core_seat::{
     canary_command, canary_plan, run_canary, shipped, CanaryProvider, CliId, CliProfile, UacState,
     CANARY_MARKER,
 };
-use hn_core_test_dir::TestDir;
+use excubia_core_test_dir::TestDir;
 
-/// The real OpenCode of the harness, or whatever `HN_OPENCODE_BIN` names.
+/// The real OpenCode of the harness, or whatever `EXCUBIA_OPENCODE_BIN` names.
 fn opencode() -> CliProfile {
     let mut profile = shipped()
         .into_iter()
         .find(|profile| profile.id == CliId::OpenCode)
         .expect("the shipped OpenCode profile");
-    if let Ok(binary) = std::env::var("HN_OPENCODE_BIN") {
+    if let Ok(binary) = std::env::var("EXCUBIA_OPENCODE_BIN") {
         if !binary.trim().is_empty() {
             profile.command = binary;
         }
@@ -117,7 +117,7 @@ async fn the_real_opencode_canary_is_safe_without_quota() {
     let binary = PathBuf::from(&profile.command);
     assert!(
         binary.is_file(),
-        "no OpenCode binary: set HN_OPENCODE_BIN or install the e2e harness at {}",
+        "no OpenCode binary: set EXCUBIA_OPENCODE_BIN or install the e2e harness at {}",
         harness_binary().display()
     );
     let work = TestDir::new("canary-evidence");
@@ -145,7 +145,7 @@ async fn the_real_opencode_canary_refuses_a_plugin_without_a_hook() {
     }
     assert!(
         Path::new(&profile.command).is_file(),
-        "no OpenCode binary: set HN_OPENCODE_BIN or install the e2e harness at {}",
+        "no OpenCode binary: set EXCUBIA_OPENCODE_BIN or install the e2e harness at {}",
         harness_binary().display()
     );
     let work = TestDir::new("canary-evidence-unprotected");

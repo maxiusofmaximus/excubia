@@ -2,7 +2,7 @@ mod support;
 
 use std::time::Duration;
 
-use hn_core_mail::{
+use excubia_core_mail::{
     assert_scopes_safe, assert_send_scopes_safe, poll_device_login, refresh, refresh_send,
     start_device_login, start_send_consent, MailError, Tenant, SCOPES, SEND_SCOPES,
 };

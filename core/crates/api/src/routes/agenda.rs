@@ -1,5 +1,5 @@
 //! The agenda's routes (AGENDA-REST): notes and contacts, merged into the protected
-//! router. Each path's permission is in `hn-core-auth`'s `authz/agenda.rs`.
+//! router. Each path's permission is in `excubia-core-auth`'s `authz/agenda.rs`.
 
 use axum::routing::{get, post};
 use axum::Router;

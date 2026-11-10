@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
-import 'package:herdr_notify/ui/app.dart';
-import 'package:herdr_notify/ui/palette/palette_prefs.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
+import 'package:excubia/ui/app.dart';
+import 'package:excubia/ui/palette/palette_prefs.dart';
 
 import 'support/memory_store.dart';
 
@@ -11,7 +11,7 @@ void main() {
   ) async {
     final values = MemoryKeyValueStore();
     await tester.pumpWidget(
-      HerdrNotifyApp(
+      ExcubiaApp(
         store: PairingStore(values),
         palettePrefs: PalettePrefs(values),
       ),

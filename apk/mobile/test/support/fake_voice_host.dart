@@ -1,4 +1,4 @@
-import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:excubia/core/api/host_client.dart';
 
 import 'fake_chat_transport.dart';
 

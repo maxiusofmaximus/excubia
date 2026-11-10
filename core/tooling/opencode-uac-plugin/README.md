@@ -11,7 +11,7 @@ riesgo y **deniegue por defecto** si no hay decisión. No usa dependencias: solo
 - Edición/escritura (`edit`, `write`, `apply_patch`, …): pide UAC si la ruta
   queda fuera del `cwd`; `apply_patch`/`patch` siempre, porque la ruta puede
   estar enterrada en el parche.
-- `HN_UAC_EXTRA_TOOLS`: lista separada por comas para sumar herramientas MCP u
+- `EXCUBIA_UAC_EXTRA_TOOLS`: lista separada por comas para sumar herramientas MCP u
   otras que el operador quiera aprobar.
 
 El host debe implementar la interfaz de `INTERFACE.md`
@@ -63,15 +63,15 @@ configuración.
 
 | Variable | Obligatoria | Uso |
 |---|---|---|
-| `HN_HOOK_URL` | sí | Base loopback del host, p. ej. `http://127.0.0.1:8787` |
-| `HN_HOOK_TOKEN` | sí | Token por run; se envía en `X-HN-Hook-Token` |
-| `HN_PANE_ID` | recomendada | Panel que se marca `blocked` |
-| `HN_RUN_ID` | opcional | Run de la delegación |
-| `HN_UAC_TTL_SECONDS` | no | TTL, por defecto 120 s (máx. 300) |
-| `HN_UAC_POLL_MS` | no | Sondeo, por defecto 750 ms |
-| `HN_UAC_EXTRA_TOOLS` | no | Herramientas extra separadas por comas |
+| `EXCUBIA_HOOK_URL` | sí | Base loopback del host, p. ej. `http://127.0.0.1:8787` |
+| `EXCUBIA_HOOK_TOKEN` | sí | Token por run; se envía en `X-Excubia-Hook-Token` |
+| `EXCUBIA_PANE_ID` | recomendada | Panel que se marca `blocked` |
+| `EXCUBIA_RUN_ID` | opcional | Run de la delegación |
+| `EXCUBIA_UAC_TTL_SECONDS` | no | TTL, por defecto 120 s (máx. 300) |
+| `EXCUBIA_UAC_POLL_MS` | no | Sondeo, por defecto 750 ms |
+| `EXCUBIA_UAC_EXTRA_TOOLS` | no | Herramientas extra separadas por comas |
 
-Sin `HN_HOOK_URL` o `HN_HOOK_TOKEN`, toda acción de riesgo se deniega. No hay
+Sin `EXCUBIA_HOOK_URL` o `EXCUBIA_HOOK_TOKEN`, toda acción de riesgo se deniega. No hay
 modo fail-open.
 
 ## Garantías y límites

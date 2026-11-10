@@ -11,9 +11,9 @@ mod harness;
 use std::time::{Duration, Instant};
 
 use harness::{SeatKind, TestHost};
-use hn_core_auth::Permission;
-use hn_core_chat::DelegationState;
-use hn_core_test_support::client::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_chat::DelegationState;
+use excubia_core_test_support::client::SignedClient;
 use serde_json::Value;
 
 const TTL: Duration = Duration::from_secs(45);
@@ -309,7 +309,7 @@ async fn six_live_panels_stop_the_seventh() {
     let deadline = Instant::now() + CLI_TIMEOUT;
     loop {
         let state = host.chat.run_state(&run_id).expect("run state");
-        if state.is_some_and(|state| state == hn_core_chat::RunState::Failed) {
+        if state.is_some_and(|state| state == excubia_core_chat::RunState::Failed) {
             break;
         }
         assert!(
@@ -372,7 +372,7 @@ async fn an_invalid_mcp_call_is_a_422_with_its_code_and_field() {
     });
     let response = http
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", harness::TOOL_TOKEN)
+        .header("X-Excubia-Tool-Token", harness::TOOL_TOKEN)
         .json(&body)
         .send()
         .await
@@ -389,7 +389,7 @@ async fn an_invalid_mcp_call_is_a_422_with_its_code_and_field() {
     });
     let response = http
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", harness::TOOL_TOKEN)
+        .header("X-Excubia-Tool-Token", harness::TOOL_TOKEN)
         .json(&body)
         .send()
         .await
@@ -402,7 +402,7 @@ async fn an_invalid_mcp_call_is_a_422_with_its_code_and_field() {
     let body = serde_json::json!({ "tool": "chat.reply", "arguments": { "text": "hola" } });
     let response = http
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", "not-a-real-token")
+        .header("X-Excubia-Tool-Token", "not-a-real-token")
         .json(&body)
         .send()
         .await

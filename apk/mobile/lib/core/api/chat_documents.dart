@@ -39,9 +39,15 @@ extension ChatDocKindLabel on ChatDocKind {
 const _previewExtensions = {'xlsx', 'docx', 'pdf'};
 
 /// True for a document the host renders page by page (`previewable` in the
-/// contract). The others open with the system app.
+/// contract). The others are text or open with the system app.
 bool isPreviewableDocument(String name) =>
     _previewExtensions.contains(extensionOf(name));
+
+const _textExtensions = {'txt', 'md', 'json', 'csv'};
+
+/// True for a document the app reads as plain text, from its own bytes. The
+/// host gives these no preview, so the app does not ask it for one.
+bool isTextDocument(String name) => _textExtensions.contains(extensionOf(name));
 
 /// True for a sent file that is a document, not a picture. The host does not
 /// name the kind on the file yet, so the extension it kept decides.

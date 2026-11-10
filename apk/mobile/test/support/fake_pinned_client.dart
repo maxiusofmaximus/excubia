@@ -1,5 +1,5 @@
-import 'package:herdr_notify/core/api/pake_pairing.dart';
-import 'package:herdr_notify/core/api/pinned_client.dart';
+import 'package:excubia/core/api/pake_pairing.dart';
+import 'package:excubia/core/api/pinned_client.dart';
 
 /// Stands in for the Rust transport: it records what would have gone out and
 /// answers with a canned reply or failure, so no socket is opened.

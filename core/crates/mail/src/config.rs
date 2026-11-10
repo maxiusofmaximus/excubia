@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use hn_core_persist::migrate::{adopt_dir, chosen_dir};
+use excubia_core_persist::migrate::{adopt_dir, chosen_dir};
 use serde::Deserialize;
 
 use crate::auth::assert_scopes_safe;
@@ -104,6 +104,7 @@ fn default_accounts_dir() -> PathBuf {
     if let Some(dir) = std::env::var_os("EXCUBIA_DATA_DIR") {
         return PathBuf::from(dir).join("mail").join("accounts");
     }
+    // legacy: `.herdr-notify` is the pre-rename fallback, used only without a platform folder.
     let (new, old) = mail_dirs().unwrap_or_else(|| {
         (
             PathBuf::from(".excubia").join("mail"),
@@ -134,6 +135,7 @@ fn mail_dirs() -> Option<(PathBuf, PathBuf)> {
 }
 
 fn mail_dirs_under(base: PathBuf) -> (PathBuf, PathBuf) {
+    // legacy: the second folder is the pre-rename one, read until it is moved.
     (
         base.join("excubia").join("mail"),
         base.join("herdr-notify").join("mail"),

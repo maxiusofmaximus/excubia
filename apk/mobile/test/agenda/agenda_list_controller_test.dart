@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/agenda_list_controller.dart';
+import 'package:excubia/core/api/agenda_api.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/agenda_list_controller.dart';
 
 void main() {
   test('a search shows its first page and says whether more follow', () async {

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/alerts_models.dart';
+import 'package:excubia/core/api/alerts_models.dart';
 
 void main() {
   group('frases de una regla', () {

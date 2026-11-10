@@ -2,7 +2,7 @@
 //! chat, `doc.create` makes a new one. The parser bounds the fields; the host finds the
 //! files and writes them, and nothing here touches either.
 
-use hn_core_chat::{ToolError, ToolRequest};
+use excubia_core_chat::{ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::parse::{arguments, name_field};

@@ -1,9 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/agenda_api.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/phone_contacts.dart';
-import 'package:herdr_notify/core/state/contacts_import_controller.dart';
+import 'package:excubia/core/api/agenda_api.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/phone_contacts.dart';
+import 'package:excubia/core/state/contacts_import_controller.dart';
 
 import '../support/fake_phone_contacts.dart';
 import '../support/recording_transport.dart';

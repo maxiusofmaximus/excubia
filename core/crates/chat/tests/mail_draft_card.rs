@@ -8,7 +8,7 @@ mod common;
 use std::sync::Arc;
 
 use common::{team, Team};
-use hn_core_chat::{
+use excubia_core_chat::{
     action_digest, ApprovalKind, ApprovalStatus, ChatError, Decision, MailDraftCard, ManualClock,
     NewApproval, TimelineEntry, DEFAULT_TTL_SECONDS,
 };

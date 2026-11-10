@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/model.dart';
-import 'package:herdr_notify/src/rust/api/onboarding/plan.dart';
+import 'package:excubia/src/rust/api/onboarding/model.dart';
+import 'package:excubia/src/rust/api/onboarding/plan.dart';
 
 import '../../core/state/hires_controller.dart';
 import '../../core/state/recipes_controller.dart';

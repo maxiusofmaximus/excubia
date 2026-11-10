@@ -7,9 +7,9 @@ use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::{Permission, VerifiedDevice};
-use hn_core_chat::{summarize, Clock, HireFilter, HireOutcome, SystemClock};
-use hn_core_state::Status;
+use excubia_core_auth::{Permission, VerifiedDevice};
+use excubia_core_chat::{summarize, Clock, HireFilter, HireOutcome, SystemClock};
+use excubia_core_state::Status;
 use serde::{Deserialize, Deserializer};
 use serde_json::{json, Value};
 

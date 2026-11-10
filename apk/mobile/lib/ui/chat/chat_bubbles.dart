@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:herdr_notify/src/rust/api/chat/attach_model.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
-import 'package:herdr_notify/src/rust/api/error/chat.dart';
+import 'package:excubia/src/rust/api/chat/attach_model.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/error/chat.dart';
 
 import '../../core/state/approvals_controller.dart';
 import '../../core/state/chat_attachment_images.dart';

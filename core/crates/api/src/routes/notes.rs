@@ -1,12 +1,12 @@
 //! `/v1/notes` (AGENDA-REST): the notes the app keeps. The matrix that guards them is
-//! `hn-core-auth`'s `authz/agenda.rs`; a handler here only shapes the request and reply.
+//! `excubia-core-auth`'s `authz/agenda.rs`; a handler here only shapes the request and reply.
 
 use axum::body::Bytes;
 use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::VerifiedDevice;
+use excubia_core_auth::VerifiedDevice;
 use serde::Deserialize;
 use serde_json::{json, Value};
 

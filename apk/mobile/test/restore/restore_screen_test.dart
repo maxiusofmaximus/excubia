@@ -2,14 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/connection_failure.dart';
-import 'package:herdr_notify/core/api/connection_text.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/restore_api.dart';
-import 'package:herdr_notify/ui/restore/restore_screen.dart';
-import 'package:herdr_notify/ui/restore/restore_text.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/connection_failure.dart';
+import 'package:excubia/core/api/connection_text.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/restore_api.dart';
+import 'package:excubia/ui/restore/restore_screen.dart';
+import 'package:excubia/ui/restore/restore_text.dart';
+import 'package:excubia/ui/theme.dart';
 
 const String _agent = 'w1:p1';
 const String _pointsRoute = 'GET /v1/restore/points?agent=w1%3Ap1';

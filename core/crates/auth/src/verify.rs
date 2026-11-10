@@ -23,10 +23,20 @@ const NONCE_CACHE_TTL_SECONDS: f64 = 3600.0;
 const NONCE_CACHE_MAX_PER_DEVICE: usize = 512;
 const NONCE_CACHE_MAX_DEVICES: usize = 64;
 
-pub const HEADER_DEVICE: &str = "X-HN-Device";
-pub const HEADER_TIMESTAMP: &str = "X-HN-Timestamp";
-pub const HEADER_NONCE: &str = "X-HN-Nonce";
-pub const HEADER_SIGNATURE: &str = "X-HN-Signature";
+pub const HEADER_DEVICE: &str = "X-Excubia-Device";
+pub const HEADER_TIMESTAMP: &str = "X-Excubia-Timestamp";
+pub const HEADER_NONCE: &str = "X-Excubia-Nonce";
+pub const HEADER_SIGNATURE: &str = "X-Excubia-Signature";
+// legacy: the X-HN-* names the paired APK already sends. Read when the current
+// name is absent; never emitted.
+const LEGACY_HEADER_DEVICE: &str = "X-HN-Device";
+const LEGACY_HEADER_TIMESTAMP: &str = "X-HN-Timestamp";
+const LEGACY_HEADER_NONCE: &str = "X-HN-Nonce";
+const LEGACY_HEADER_SIGNATURE: &str = "X-HN-Signature";
+
+fn header_or_legacy<'a>(headers: &'a dyn HeaderSource, current: &str, legacy: &str) -> Option<&'a str> {
+    headers.header(current).or_else(|| headers.header(legacy))
+}
 
 /// Why a signed request was refused. Logged; never sent verbatim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -187,10 +197,10 @@ impl RequestVerifier {
     }
 
     pub fn verify(&self, request: &SignedRequest<'_>) -> Result<VerifiedDevice, Unauthorized> {
-        let device_id = request.headers.header(HEADER_DEVICE);
-        let timestamp_raw = request.headers.header(HEADER_TIMESTAMP);
-        let nonce = request.headers.header(HEADER_NONCE);
-        let signature_raw = request.headers.header(HEADER_SIGNATURE);
+        let device_id = header_or_legacy(request.headers, HEADER_DEVICE, LEGACY_HEADER_DEVICE);
+        let timestamp_raw = header_or_legacy(request.headers, HEADER_TIMESTAMP, LEGACY_HEADER_TIMESTAMP);
+        let nonce = header_or_legacy(request.headers, HEADER_NONCE, LEGACY_HEADER_NONCE);
+        let signature_raw = header_or_legacy(request.headers, HEADER_SIGNATURE, LEGACY_HEADER_SIGNATURE);
         let (Some(device_id), Some(timestamp_raw), Some(nonce), Some(signature_raw)) =
             (device_id, timestamp_raw, nonce, signature_raw)
         else {
@@ -315,6 +325,38 @@ mod tests {
         // The same nonce again is a replay.
         let replay = verifier.verify(&request).unwrap_err();
         assert_eq!(replay.reason, Rejection::BadNonce);
+    }
+
+    #[test]
+    fn a_request_signed_under_the_legacy_header_names_still_verifies() {
+        use p256::ecdsa::{signature::Signer, SigningKey};
+        use p256::elliptic_curve::Generate;
+        let key = SigningKey::generate();
+        let public = STANDARD.encode(key.verifying_key().to_sec1_point(false).as_bytes());
+        let store = store_with_device(Curve::P256, &public);
+        let verifier = RequestVerifier::new(Arc::clone(&store));
+        let device_id = store.list()[0].device_id.clone();
+        let timestamp = unix_seconds() as i64;
+        let nonce = "bm9uY2U=";
+        let message =
+            canonical_string("GET", "/v1/state", b"", timestamp, nonce).expect("canonical");
+        let signature: p256::ecdsa::Signature = key.sign(message.as_bytes());
+        let signature = STANDARD.encode(signature.to_der().as_bytes());
+        // legacy: the names the APK installed before the rename sends.
+        let legacy = Headers(
+            signed(&device_id, &timestamp.to_string(), nonce, &signature)
+                .0
+                .into_iter()
+                .map(|(name, value)| (name.replace("X-Excubia-", "X-HN-"), value))
+                .collect(),
+        );
+        let request = SignedRequest {
+            method: "GET",
+            target: "/v1/state",
+            body: b"",
+            headers: &legacy,
+        };
+        assert!(verifier.verify(&request).is_ok());
     }
 
     #[test]

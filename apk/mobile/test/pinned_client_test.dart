@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/api/pairing_api.dart';
-import 'package:herdr_notify/core/api/pinned_client.dart';
-import 'package:herdr_notify/core/api/transport_note.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
-import 'package:herdr_notify/src/rust/api/pinned.dart' as rust;
-import 'package:herdr_notify/src/rust/api/signing.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/api/pairing_api.dart';
+import 'package:excubia/core/api/pinned_client.dart';
+import 'package:excubia/core/api/transport_note.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
+import 'package:excubia/src/rust/api/pinned.dart' as rust;
+import 'package:excubia/src/rust/api/signing.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/fake_pinned_client.dart';
 import 'support/memory_store.dart';
@@ -155,7 +155,7 @@ void main() {
         expect(await client.state(), '{"ok":true}');
         expect(fake.targets, ['/v1/state']);
         expect(fake.addresses, ['127.0.0.1:8443']);
-        expect(fake.headers.single.keys, contains('X-HN-Signature'));
+        expect(fake.headers.single.keys, contains('X-Excubia-Signature'));
       },
     );
 

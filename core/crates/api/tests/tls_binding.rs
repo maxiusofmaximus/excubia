@@ -9,8 +9,8 @@ use axum::extract::ConnectInfo;
 use axum::routing::get;
 use axum::serve::Listener;
 use axum::Router;
-use hn_core_api::{PeerAddr, TlsListener};
-use hn_core_pin::{client_config, server_config, Identity, PinSet};
+use excubia_core_api::{PeerAddr, TlsListener};
+use excubia_core_pin::{client_config, server_config, Identity, PinSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::rustls::pki_types::ServerName;
@@ -55,7 +55,7 @@ async fn tls_server() -> (SocketAddr, PinSet) {
 async fn exchange(addr: SocketAddr, pins: &PinSet) -> (String, String) {
     let config = client_config(*pins).expect("client config");
     let tcp = TcpStream::connect(addr).await.expect("connect");
-    let name = ServerName::try_from("herdr-notify.lan")
+    let name = ServerName::try_from("excubia.lan")
         .expect("name")
         .to_owned();
     let mut tls = TlsConnector::from(Arc::new(config))

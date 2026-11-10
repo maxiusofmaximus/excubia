@@ -1,5 +1,5 @@
 [package]
-name = "hn-core-chat"
+name = "excubia-core-chat"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ async-trait = "0.1"
 chrono.workspace = true
 chrono-tz.workspace = true
 hex.workspace = true
-hn-core-persist = { path = "../persist" }
+excubia-core-persist = { path = "../persist" }
 regex.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
@@ -23,4 +23,4 @@ ulid.workspace = true
 unicode-normalization = "0.1"
 
 [dev-dependencies]
-hn-core-test-dir = { path = "../test-dir" }
+excubia-core-test-dir = { path = "../test-dir" }

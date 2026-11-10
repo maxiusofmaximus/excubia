@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/pairing_address.dart';
-import 'package:herdr_notify/core/api/pairing_api.dart';
+import 'package:excubia/core/api/pairing_address.dart';
+import 'package:excubia/core/api/pairing_api.dart';
 
 void main() {
   group('PairRequest JSON', () {

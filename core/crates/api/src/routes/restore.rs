@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use hn_core_auth::VerifiedDevice;
+use excubia_core_auth::VerifiedDevice;
 
 use crate::audit::AuditEvent;
 use crate::error::ApiError;

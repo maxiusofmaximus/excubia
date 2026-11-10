@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/chat/attach_model.dart';
-import 'package:herdr_notify/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/chat/attach_model.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
 
 import '../../core/api/alerts_api.dart';
 import '../../core/api/chat_attachment_source.dart';
@@ -58,7 +58,7 @@ class ChatScreen extends StatefulWidget {
     required this.onOpenTeam,
     required this.onUnpaired,
     this.pickImage = pickChatImage,
-    this.pickDocument = pickChatDocument,
+    this.pickDocuments = pickChatDocuments,
   });
 
   final ChatController controller;
@@ -69,8 +69,8 @@ class ChatScreen extends StatefulWidget {
   /// Opens the gallery for one image; tests pass a fake.
   final Future<ChatAttachmentSource?> Function() pickImage;
 
-  /// Opens the file manager for one document; tests pass a fake.
-  final Future<ChatAttachmentSource?> Function() pickDocument;
+  /// Opens the file manager for documents; tests pass a fake.
+  final Future<List<ChatAttachmentSource>> Function() pickDocuments;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -227,17 +227,17 @@ class _ChatScreenState extends State<ChatScreen> {
     return sent;
   }
 
-  /// Adds one picked file to the composer. A conversation is opened first:
+  /// Adds the picked files to the composer. A conversation is opened first:
   /// a file belongs to the one it was uploaded into.
   Future<void> _attach(ChatAttachKind kind) async {
-    final source = switch (kind) {
-      ChatAttachKind.image => await widget.pickImage(),
-      ChatAttachKind.file => await widget.pickDocument(),
+    final sources = switch (kind) {
+      ChatAttachKind.image => [?await widget.pickImage()],
+      ChatAttachKind.file => await widget.pickDocuments(),
     };
-    if (source == null || !mounted) return;
+    if (sources.isEmpty || !mounted) return;
     final id = _chat.current?.id ?? await _chat.createConversation();
     if (id == null) return;
-    await _chat.attachments.add(id, [source]);
+    await _chat.attachments.add(id, sources);
   }
 
   Future<void> _newChat() async {

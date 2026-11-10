@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/alerts/alert_notice.dart';
+import 'package:excubia/core/alerts/alert_notice.dart';
 
 String _state({int userApprovals = 0, int blocked = 0}) => jsonEncode({
   'counts': {'blocked': blocked, 'working': 1, 'idle': 0},

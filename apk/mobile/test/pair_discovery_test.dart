@@ -1,10 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/pair_discovery.dart';
+import 'package:excubia/core/api/pair_discovery.dart';
 
 import 'support/fake_pair_discovery.dart';
 
-const _channel = MethodChannel('dev.herdrnotify/discovery');
+const _channel = MethodChannel('dev.excubia/discovery');
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

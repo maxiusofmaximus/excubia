@@ -17,8 +17,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hn_core_chat::new_ulid;
-use hn_core_persist::write_atomic;
+use excubia_core_chat::new_ulid;
+use excubia_core_persist::write_atomic;
 use serde::{Deserialize, Serialize};
 
 /// Points kept per agent; the oldest go first.

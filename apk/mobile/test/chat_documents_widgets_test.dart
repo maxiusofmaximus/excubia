@@ -3,16 +3,16 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_document_files.dart';
-import 'package:herdr_notify/core/api/chat_document_previews.dart';
-import 'package:herdr_notify/core/state/chat_attachment_errors.dart';
-import 'package:herdr_notify/core/state/chat_attachment_images.dart';
-import 'package:herdr_notify/core/state/chat_document_opener.dart';
-import 'package:herdr_notify/src/rust/api/chat/attach_model.dart';
-import 'package:herdr_notify/src/rust/frb_generated.dart';
-import 'package:herdr_notify/ui/chat/chat_attachments_view.dart';
-import 'package:herdr_notify/ui/chat/document_preview_screen.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/core/api/chat_document_files.dart';
+import 'package:excubia/core/api/chat_document_previews.dart';
+import 'package:excubia/core/state/chat_attachment_errors.dart';
+import 'package:excubia/core/state/chat_attachment_images.dart';
+import 'package:excubia/core/state/chat_document_opener.dart';
+import 'package:excubia/src/rust/api/chat/attach_model.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/chat/chat_attachments_view.dart';
+import 'package:excubia/ui/chat/document_preview_screen.dart';
+import 'package:excubia/ui/theme.dart';
 
 import 'support/fake_documents.dart';
 import 'support/fake_preview_transport.dart';
@@ -26,11 +26,12 @@ ChatAttachment _doc() => ChatAttachment(
   h: 0,
 );
 
-/// A sheet the preview does not take: it opens with the system app.
-ChatAttachment _csv() => ChatAttachment(
-  id: 'att_csv',
-  name: 'Informe final trimestral.csv',
-  mime: 'text/csv',
+/// A presentation the preview does not take and the app does not read as text:
+/// it opens with the system app.
+ChatAttachment _slides() => ChatAttachment(
+  id: 'att_slides',
+  name: 'Informe final trimestral.pptx',
+  mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   size: BigInt.from(3565158),
   w: 0,
   h: 0,
@@ -101,34 +102,45 @@ void main() {
         ),
       );
 
-  testWidgets('una tarjeta de documento muestra icono, nombre y tamaño, sin miniatura', (
+  testWidgets(
+    'una tarjeta de documento muestra icono, nombre y tamaño, sin miniatura',
+    (tester) async {
+      await pumpStrip(tester);
+
+      expect(find.text('Informe final trimestral.xlsx'), findsOneWidget);
+      expect(find.text('3,4 MB'), findsOneWidget);
+      expect(find.byIcon(Icons.table_chart_outlined), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+      expect(
+        fetches,
+        0,
+        reason: 'un documento no pide su contenido como imagen',
+      );
+    },
+  );
+
+  testWidgets(
+    'tocar una presentación abre el archivo con la app del sistema, sin vista previa',
+    (tester) async {
+      await pumpStrip(tester, file: _slides());
+
+      await tester.tap(find.text('Informe final trimestral.pptx'));
+      await tester.pumpAndSettle();
+
+      expect(opener.opens, 1);
+      expect(files.openedPath, endsWith('/Informe final trimestral.pptx'));
+      expect(
+        files.openedMime,
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      );
+      expect(find.byType(DocumentPreviewScreen), findsNothing);
+      expect(transport.calls, isEmpty);
+    },
+  );
+
+  testWidgets('tocar un xlsx abre su vista previa en vez de abrirlo', (
     tester,
   ) async {
-    await pumpStrip(tester);
-
-    expect(find.text('Informe final trimestral.xlsx'), findsOneWidget);
-    expect(find.text('3,4 MB'), findsOneWidget);
-    expect(find.byIcon(Icons.table_chart_outlined), findsOneWidget);
-    expect(find.byType(Image), findsNothing);
-    expect(fetches, 0, reason: 'un documento no pide su contenido como imagen');
-  });
-
-  testWidgets('tocar un csv abre el archivo con la app del sistema, sin vista previa', (
-    tester,
-  ) async {
-    await pumpStrip(tester, file: _csv());
-
-    await tester.tap(find.text('Informe final trimestral.csv'));
-    await tester.pumpAndSettle();
-
-    expect(opener.opens, 1);
-    expect(files.openedPath, endsWith('/Informe final trimestral.csv'));
-    expect(files.openedMime, 'text/csv');
-    expect(find.byType(DocumentPreviewScreen), findsNothing);
-    expect(transport.calls, isEmpty);
-  });
-
-  testWidgets('tocar un xlsx abre su vista previa en vez de abrirlo', (tester) async {
     await pumpStrip(tester);
 
     await tester.tap(find.text('Informe final trimestral.xlsx'));
@@ -141,9 +153,9 @@ void main() {
 
   testWidgets('mientras se descarga muestra progreso', (tester) async {
     opener.downloading = Completer<void>();
-    await pumpStrip(tester, file: _csv());
+    await pumpStrip(tester, file: _slides());
 
-    await tester.tap(find.text('Informe final trimestral.csv'));
+    await tester.tap(find.text('Informe final trimestral.pptx'));
     await tester.pump();
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
@@ -156,15 +168,15 @@ void main() {
     tester,
   ) async {
     files.outcome = OpenOutcome.noApp;
-    await pumpStrip(tester, file: _csv());
+    await pumpStrip(tester, file: _slides());
 
-    await tester.tap(find.text('Informe final trimestral.csv'));
+    await tester.tap(find.text('Informe final trimestral.pptx'));
     await tester.pumpAndSettle();
     expect(find.text(attachmentNoAppText), findsOneWidget);
 
     await tester.tap(find.text(attachmentSaveLabel));
     await tester.pumpAndSettle();
-    expect(files.saves.single.name, 'Informe final trimestral.csv');
+    expect(files.saves.single.name, 'Informe final trimestral.pptx');
     expect(files.saves.single.bytes, [1, 2, 3]);
   });
 
@@ -172,9 +184,9 @@ void main() {
     tester,
   ) async {
     opener.failDownload = true;
-    await pumpStrip(tester, file: _csv());
+    await pumpStrip(tester, file: _slides());
 
-    await tester.tap(find.text('Informe final trimestral.csv'));
+    await tester.tap(find.text('Informe final trimestral.pptx'));
     await tester.pumpAndSettle();
     expect(find.text(attachmentOpenFailedText), findsOneWidget);
   });

@@ -7,7 +7,7 @@ use std::future::Future;
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use hn_core_pin::Fingerprint;
+use excubia_core_pin::Fingerprint;
 use thiserror::Error;
 
 pub use lan::LanTransport;

@@ -82,7 +82,7 @@ async fn loopback_refuses_pake_and_leaves_the_code_alone() {
 async fn pake_has_its_own_per_ip_budget() {
     let rig = Rig::new("pake-budget").await;
     let mut conn = rig.connect().await;
-    // `WRITE_PER_MINUTE` of `hn_core_auth::ratelimit`, the size of the `pair:<ip>` bucket too.
+    // `WRITE_PER_MINUTE` of `excubia_core_auth::ratelimit`, the size of the `pair:<ip>` bucket too.
     let limit = 30;
 
     for attempt in 0..limit {
@@ -126,7 +126,7 @@ async fn only_the_host_token_on_loopback_arms_a_code() {
     // The LAN listener does not have the route at all, token or not.
     let mut conn = rig.connect().await;
     let request = format!(
-        "POST {ADMIN} HTTP/1.1\r\nHost: lan\r\nX-HN-Hook-Token: {}\r\nContent-Length: 0\r\n\r\n",
+        "POST {ADMIN} HTTP/1.1\r\nHost: lan\r\nX-Excubia-Hook-Token: {}\r\nContent-Length: 0\r\n\r\n",
         rig.host.hook_token
     );
     let (status, _) = conn.raw(&request).await;
@@ -188,14 +188,14 @@ async fn arming_again_drops_the_session_of_the_earlier_code() {
 #[tokio::test(flavor = "multi_thread")]
 async fn the_cli_helper_reads_the_token_and_asks_the_daemon_for_a_code() {
     let rig = Rig::new("pake-cli").await;
-    let token = hn_core_host::pake_cli::read_hook_token(&rig.host.data_dir).expect("token");
+    let token = excubia_core_host::pake_cli::read_hook_token(&rig.host.data_dir).expect("token");
     assert_eq!(token, rig.host.hook_token);
 
-    let armed = hn_core_host::pake_cli::arm_code(rig.plain, &token)
+    let armed = excubia_core_host::pake_cli::arm_code(rig.plain, &token)
         .await
         .expect("armed");
     assert_eq!((armed.code.len(), armed.expires_in), (8, 180));
-    let link = hn_core_pin::PakeLink::parse(armed.uri.as_deref().expect("uri")).expect("link");
+    let link = excubia_core_pin::PakeLink::parse(armed.uri.as_deref().expect("uri")).expect("link");
     assert_eq!(
         (link.code.as_str(), link.host),
         (armed.code.as_str(), rig.pins.primary())
@@ -207,7 +207,7 @@ async fn the_cli_helper_reads_the_token_and_asks_the_daemon_for_a_code() {
         .expect("the daemon's slot holds the code");
     assert_eq!(taken.reveal(), armed.code);
 
-    let refused = hn_core_host::pake_cli::arm_code(rig.plain, "wrong")
+    let refused = excubia_core_host::pake_cli::arm_code(rig.plain, "wrong")
         .await
         .err()
         .expect("a wrong token is refused")
@@ -219,7 +219,7 @@ async fn the_cli_helper_reads_the_token_and_asks_the_daemon_for_a_code() {
     let closed = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
     let closed_addr = closed.local_addr().expect("addr");
     drop(closed);
-    let error = hn_core_host::pake_cli::arm_code(closed_addr, &token)
+    let error = excubia_core_host::pake_cli::arm_code(closed_addr, &token)
         .await
         .err()
         .expect("no daemon")
@@ -240,7 +240,7 @@ fn files_under(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn the_admin_answer_carries_a_link_for_this_host_and_leaves_no_trace() {
-    use hn_core_pin::{unix_now, PakeLink};
+    use excubia_core_pin::{unix_now, PakeLink};
 
     let rig = Rig::new("pake-link").await;
     let run = rig.host.run_hook("pake-link");
@@ -266,7 +266,7 @@ async fn the_admin_answer_carries_a_link_for_this_host_and_leaves_no_trace() {
     let started = start(
         &mut conn,
         &device,
-        &hn_core_pake::Code::parse(&code).expect("code"),
+        &excubia_core_pake::Code::parse(&code).expect("code"),
     )
     .await;
     assert_eq!(started.status, 200, "{}", started.answer);

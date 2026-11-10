@@ -5,14 +5,14 @@
 //!
 //! ```text
 //! set CRAFT_PROBE_DIR=<scratchpad>\craft-probe
-//! cargo test -p hn-core-crafting --test probe_real -- --ignored --nocapture
+//! cargo test -p excubia-core-crafting --test probe_real -- --ignored --nocapture
 //! ```
 //!
 //! The probe folder must hold `grid/`, `wordcraft/`, `pdfcraft/` (each with the
 //! unzipped portable build), `v.pdf` (two pages) and `b6.xlsx`.
 
-use hn_core_crafting::{App, Driver, ProcessRunner, ReadOpts, Tools, CONFIG_FILE};
-use hn_core_test_dir::TestDir;
+use excubia_core_crafting::{App, Driver, ProcessRunner, ReadOpts, Tools, CONFIG_FILE};
+use excubia_core_test_dir::TestDir;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -126,10 +126,10 @@ fn support_document(
     name: &str,
     from: &Path,
     mime: &str,
-) -> hn_core_crafting::Document {
+) -> excubia_core_crafting::Document {
     let path = root.join(format!("chat-{name}"));
     fs::copy(from, &path).unwrap();
-    hn_core_crafting::Document {
+    excubia_core_crafting::Document {
         path,
         name: name.to_string(),
         mime: mime.to_string(),

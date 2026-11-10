@@ -9,7 +9,7 @@ use axum::extract::{Extension, Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::VerifiedDevice;
+use excubia_core_auth::VerifiedDevice;
 use serde::Deserialize;
 use serde_json::{json, Value};
 

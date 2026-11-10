@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/ui/app.dart';
-import 'package:herdr_notify/ui/theme.dart';
+import 'package:excubia/ui/app.dart';
+import 'package:excubia/ui/theme.dart';
 
 void main() {
   testWidgets('the last row of a list ends above the bar of buttons', (tester) async {

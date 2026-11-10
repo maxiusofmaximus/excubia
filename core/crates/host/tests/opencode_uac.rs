@@ -3,9 +3,9 @@
 //! provider asks it for one shell command, and the operator's answer decides
 //! whether that command runs.
 //!
-//! The tests are `#[ignore]`d: they need the OpenCode binary (`HN_OPENCODE_BIN`,
+//! The tests are `#[ignore]`d: they need the OpenCode binary (`EXCUBIA_OPENCODE_BIN`,
 //! or the shipped command on the PATH) and the plugin under `tooling/`. Run with
-//! `cargo test -p hn-core-host --test opencode_uac -- --ignored`.
+//! `cargo test -p excubia-core-host --test opencode_uac -- --ignored`.
 
 mod harness;
 
@@ -13,11 +13,11 @@ use std::path::{absolute, Path, PathBuf};
 use std::time::Duration;
 
 use harness::{SeatKind, TestHost};
-use hn_core_auth::Permission;
-use hn_core_chat::RunState;
-use hn_core_seat::{canary_command, CanaryProvider};
-use hn_core_test_dir::TestDir;
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_chat::RunState;
+use excubia_core_seat::{canary_command, CanaryProvider};
+use excubia_core_test_dir::TestDir;
+use excubia_core_test_support::SignedClient;
 use serde_json::Value;
 use tokio::time::{sleep, Instant};
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/schedule_models.dart';
+import 'package:excubia/core/api/schedule_models.dart';
 
 Map<String, Object?> _schedule({
   String id = 'sch_1',

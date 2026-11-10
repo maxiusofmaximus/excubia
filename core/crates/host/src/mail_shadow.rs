@@ -9,9 +9,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use hn_core_mail::inbox::ReceivedMessage;
-use hn_core_mail::received::Checks;
-use hn_core_mail::triage::{verdict, Level, Signal, Verdict};
+use excubia_core_mail::inbox::ReceivedMessage;
+use excubia_core_mail::received::Checks;
+use excubia_core_mail::triage::{verdict, Level, Signal, Verdict};
 use serde::Serialize;
 
 use crate::mail_sidecar::{Sidecar, SidecarAnswer, SidecarEndpoint, SidecarError};

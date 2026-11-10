@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:herdr_notify/src/rust/api/chat/model_team.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
 
 import '../core/api/agenda_api.dart';
 import '../core/api/alfred_backend_api.dart';

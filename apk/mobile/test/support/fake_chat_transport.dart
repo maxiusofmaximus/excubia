@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:herdr_notify/core/api/chat_transport.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
+import 'package:excubia/core/api/chat_transport.dart';
+import 'package:excubia/core/api/host_client.dart';
 
 /// Routes canned chat responses by path, ignoring the query. Tests assert the
 /// routes the controller asks for without a socket or a signed key.

@@ -12,11 +12,11 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use subtle::ConstantTimeEq;
 
-use hn_core_auth::{
+use excubia_core_auth::{
     authorize, classify, Budget, Class, HeaderSource, SignedRequest, VerifiedDevice,
     MAX_SIGNED_BODY_BYTES,
 };
-use hn_core_chat::{HookScope, HookTokenUse};
+use excubia_core_chat::{HookScope, HookTokenUse};
 
 use crate::error::ApiError;
 use crate::routes::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
@@ -24,7 +24,10 @@ use crate::voice::{self, MAX_VOICE_BODY_BYTES};
 use crate::{ApiContext, PeerAddr};
 
 /// The header a hook presents its host token in.
-pub const HEADER_HOOK_TOKEN: &str = "X-HN-Hook-Token";
+pub const HEADER_HOOK_TOKEN: &str = "X-Excubia-Hook-Token";
+/// legacy: the name hooks installed before the rename send; read when the
+/// current one is absent, never emitted.
+const LEGACY_HEADER_HOOK_TOKEN: &str = "X-HN-Hook-Token";
 
 /// What a hook request proved, and what it may touch.
 #[derive(Clone, Debug)]
@@ -130,17 +133,13 @@ pub async fn hook_guard(
 ) -> Response {
     if !addr.ip().is_loopback() {
         return ApiError::forbidden(
-            hn_core_auth::AuthzReason::NotPermitted,
+            excubia_core_auth::AuthzReason::NotPermitted,
             None,
             "hook (non-loopback)",
         )
         .into_response();
     }
-    let provided = request
-        .headers()
-        .get(HEADER_HOOK_TOKEN)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default();
+    let provided = presented_hook_token(request.headers());
     let auth = match ctx.chat.hook_token_use(provided) {
         Ok(HookTokenUse::Live(scope)) => HookAuth::Scoped(scope),
         Ok(HookTokenUse::Revoked) => {
@@ -156,4 +155,28 @@ pub async fn hook_guard(
     };
     request.extensions_mut().insert(auth);
     next.run(request).await
+}
+
+/// The token a hook presents. The pre-rename header is read only when the current one is absent.
+fn presented_hook_token(headers: &HeaderMap) -> &str {
+    headers
+        .get(HEADER_HOOK_TOKEN)
+        .or_else(|| headers.get(LEGACY_HEADER_HOOK_TOKEN))
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::HeaderValue;
+
+    #[test]
+    fn a_hook_presenting_the_legacy_header_is_read_and_the_current_one_wins() {
+        let mut headers = HeaderMap::new();
+        headers.insert(LEGACY_HEADER_HOOK_TOKEN, HeaderValue::from_static("old"));
+        assert_eq!(presented_hook_token(&headers), "old");
+        headers.insert(HEADER_HOOK_TOKEN, HeaderValue::from_static("new"));
+        assert_eq!(presented_hook_token(&headers), "new");
+    }
 }

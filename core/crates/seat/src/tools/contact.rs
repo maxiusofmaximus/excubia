@@ -2,7 +2,7 @@
 //! draft's recipients come from. The parser bounds every field; the host decides who
 //! may call a tool, and a delete waits for the user's approval.
 
-use hn_core_chat::{
+use excubia_core_chat::{
     message_text, ContactFields, ToolError, ToolRequest, ADDRESS_MAX_CHARS, CONTACT_NAME_MAX_CHARS,
     MAX_ADDRESSES_PER_CONTACT, MAX_ALIASES_PER_CONTACT,
 };

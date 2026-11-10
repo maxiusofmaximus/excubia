@@ -449,7 +449,7 @@ fn candidates(path: &Path, pathext: &Option<OsString>) -> Vec<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_test_dir::TestDir;
+    use excubia_core_test_dir::TestDir;
 
     fn temp_dir(name: &str) -> TestDir {
         TestDir::new(&format!("catalog-tests-{name}"))
@@ -554,7 +554,7 @@ env = { ANTHROPIC_BASE_URL = "http://127.0.0.1:8080", ANTHROPIC_AUTH_TOKEN = "st
         };
         assert!(spec.available());
         let spec = AgentSpec {
-            command: "hn-no-such-binary-anywhere".to_string(),
+            command: "excubia-no-such-binary-anywhere".to_string(),
             args: Vec::new(),
             label: None,
             env: BTreeMap::new(),
@@ -656,7 +656,7 @@ env = { ANTHROPIC_BASE_URL = "http://127.0.0.1:8080", ANTHROPIC_AUTH_TOKEN = "st
         let present = dir.join("present.bin");
         std::fs::write(&present, b"stub").expect("write");
         let text = format!(
-            "[agents.here]\ncommand = '{}'\n\n[agents.gone]\ncommand = 'hn-no-such-binary-anywhere'\n",
+            "[agents.here]\ncommand = '{}'\n\n[agents.gone]\ncommand = 'excubia-no-such-binary-anywhere'\n",
             present.display()
         );
         std::fs::write(&path, &text).expect("write");

@@ -7,7 +7,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-use hn_core_persist::{read_json, write_atomic, write_json_atomic};
+use excubia_core_persist::{read_json, write_atomic, write_json_atomic};
 use sha2::{Digest, Sha256};
 
 use super::{Point, RestoreError, POINT_LIMIT, POINT_MAX_AGE_MS};

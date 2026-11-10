@@ -3,16 +3,16 @@
 //! `unknown` with the error's code, and the rest go on. No body and no link leaves
 //! the host, and each message read is audited by its id, never by its subject.
 
-use hn_core_mail::inbox::{InboxItem, ReceivedMessage};
-use hn_core_mail::received::Checks;
-use hn_core_mail::triage::{verdict, Level, Signal};
-use hn_core_mail::{MailError, ReadRecord};
-use hn_core_seat::TriageQuery;
+use excubia_core_mail::inbox::{InboxItem, ReceivedMessage};
+use excubia_core_mail::received::Checks;
+use excubia_core_mail::triage::{verdict, Level, Signal};
+use excubia_core_mail::{MailError, ReadRecord};
+use excubia_core_seat::TriageQuery;
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
-use hn_core_chat::SenderHistory;
+use excubia_core_chat::SenderHistory;
 
 use crate::mail_read::NOTICE;
 use crate::mail_shadow::Batch;

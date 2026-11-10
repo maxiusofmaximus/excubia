@@ -1,5 +1,5 @@
 [package]
-name = "hn-core-pty"
+name = "excubia-core-pty"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

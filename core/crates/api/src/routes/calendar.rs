@@ -1,5 +1,5 @@
 //! `/v1/calendar` and `/v1/company/timezone` (CALENDARIO-F4): the events the app keeps and
-//! the zone the company keeps them in. The matrix that guards them is `hn-core-auth`'s
+//! the zone the company keeps them in. The matrix that guards them is `excubia-core-auth`'s
 //! `authz/agenda.rs`; a handler here only shapes the request and the reply. A body goes
 //! through the tool parser, so its limits and codes are Alfred's.
 
@@ -8,9 +8,9 @@ use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use hn_core_auth::VerifiedDevice;
-use hn_core_chat::{CalendarError, ChatError, EventOrigin};
-use hn_core_seat::{CalendarCall, ToolCall};
+use excubia_core_auth::VerifiedDevice;
+use excubia_core_chat::{CalendarError, ChatError, EventOrigin};
+use excubia_core_seat::{CalendarCall, ToolCall};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 

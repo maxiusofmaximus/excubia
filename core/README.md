@@ -15,28 +15,28 @@ Hitos y verificaciones: [`docs/roadmap.md`](docs/roadmap.md).
 
 | Crate | Qué hace |
 |-------|----------|
-| `hn-core-host` (bin `host`) | Hospeda agentes CLI: un pty por agente, detector y API local |
-| `hn-core-api` | API local HTTP + SSE con peticiones firmadas (contratos en `docs/contracts/`) |
-| `hn-core-auth` | Emparejamiento, verificación de firmas P-256 / Ed25519 y autorización |
-| `hn-core-state` | Estado autoritativo de los agentes |
-| `hn-core-detect` | Estado de cada agente a partir de manifiestos |
-| `hn-core-pty` | Pseudoterminal por agente |
-| `hn-core-pin` | Identidad TLS del host y la regla de pin que verifican los dispositivos |
-| `hn-core-chat`, `hn-core-mail`, `hn-core-asr`, `hn-core-seat`, `hn-core-media`, `hn-core-persist` | Chat persistente, borradores de Microsoft 365, voz a texto local, adaptador de CLIs reales, validación de imágenes, escritura atómica y secretos del Administrador de credenciales |
+| `excubia-core-host` (bin `host`) | Hospeda agentes CLI: un pty por agente, detector y API local |
+| `excubia-core-api` | API local HTTP + SSE con peticiones firmadas (contratos en `docs/contracts/`) |
+| `excubia-core-auth` | Emparejamiento, verificación de firmas P-256 / Ed25519 y autorización |
+| `excubia-core-state` | Estado autoritativo de los agentes |
+| `excubia-core-detect` | Estado de cada agente a partir de manifiestos |
+| `excubia-core-pty` | Pseudoterminal por agente |
+| `excubia-core-pin` | Identidad TLS del host y la regla de pin que verifican los dispositivos |
+| `excubia-core-chat`, `excubia-core-mail`, `excubia-core-asr`, `excubia-core-seat`, `excubia-core-media`, `excubia-core-persist` | Chat persistente, borradores de Microsoft 365, voz a texto local, adaptador de CLIs reales, validación de imágenes, escritura atómica y secretos del Administrador de credenciales |
 
 ## Architecture
 
 ```
-agentes CLI ──pty──▶ hn-core-host ──detect──▶ hn-core-state
+agentes CLI ──pty──▶ excubia-core-host ──detect──▶ excubia-core-state
                           │
           ┌───────────────┴────────────────┐
-     hn-core-api
+     excubia-core-api
   HTTP + SSE firmado
           │
      clientes (app móvil y escritorio)
 ```
 
-La identidad TLS del host y su pin viven en `hn-core-pin`; el rechazo de
+La identidad TLS del host y su pin viven en `excubia-core-pin`; el rechazo de
 direcciones comodín en `--bind` está en `crates/host/src/cli/run.rs`.
 
 ## Layout
@@ -51,7 +51,7 @@ docs/        contratos (docs/contracts/), RFC, roadmap, notas del núcleo
 
 ```bash
 cargo build --workspace
-cargo run -p hn-core-host --bin host -- --help   # imprime el uso
+cargo run -p excubia-core-host --bin host -- --help   # imprime el uso
 ```
 
 ## Testing
@@ -63,7 +63,7 @@ cargo test --workspace
 ```
 
 Los vectores dorados de firma viven en `docs/contracts/vectors/signing_vectors.json`
-y los comprueba `hn-core-test-support`.
+y los comprueba `excubia-core-test-support`.
 
 JavaScript del worktree: pnpm o vp; no npm.
 

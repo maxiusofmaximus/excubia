@@ -3,11 +3,11 @@
 
 use std::path::PathBuf;
 
-use hn_core_chat::{
+use excubia_core_chat::{
     new_ulid, ChatSeat, HookScope, NewProject, NewSeat, Seat, SeatActor, ToolError, ToolReply,
     ToolRequest,
 };
-use hn_core_seat::{prepare_resident, ResidentInput, ToolCall};
+use excubia_core_seat::{prepare_resident, ResidentInput, ToolCall};
 use serde_json::json;
 
 use crate::SpawnSpec;
@@ -171,7 +171,7 @@ impl TeamService {
     pub(super) async fn create_project(
         &self,
         actor: &SeatActor,
-        create: hn_core_seat::ProjectCreate,
+        create: excubia_core_seat::ProjectCreate,
     ) -> Result<ToolReply, ToolError> {
         if actor.role_id != "alfred" {
             return Err(ToolError::invalid(
@@ -219,7 +219,7 @@ impl TeamService {
     pub(super) async fn spawn_agent(
         &self,
         actor: &SeatActor,
-        spawn: hn_core_seat::AgentSpawn,
+        spawn: excubia_core_seat::AgentSpawn,
     ) -> Result<ToolReply, ToolError> {
         let project_id = match actor.role_id.as_str() {
             "lead" => actor.project_id.clone().ok_or_else(|| {
@@ -337,13 +337,13 @@ impl TeamService {
             )),
             env: plan.env,
         };
-        spec.env.push(("HN_TOOL_TOKEN".to_string(), token.clone()));
+        spec.env.push(("EXCUBIA_TOOL_TOKEN".to_string(), token.clone()));
         // The panel's own hook credential: it covers the seat, not one turn.
-        spec.env.push(("HN_HOOK_TOKEN".to_string(), hook_token));
+        spec.env.push(("EXCUBIA_HOOK_TOKEN".to_string(), hook_token));
         spec.env
-            .push(("HN_CHAT_AGENT_ID".to_string(), seat.agent_id.clone()));
+            .push(("EXCUBIA_CHAT_AGENT_ID".to_string(), seat.agent_id.clone()));
         spec.env
-            .push(("HN_SEAT_ROLE".to_string(), seat.role_id.clone()));
+            .push(("EXCUBIA_SEAT_ROLE".to_string(), seat.role_id.clone()));
         let pane_id = self
             .host
             .start(spec)

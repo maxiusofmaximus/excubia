@@ -3,14 +3,14 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use hn_core_persist::migrate::{adopt_dir, chosen_dir};
+use excubia_core_persist::migrate::{adopt_dir, chosen_dir};
 
-/// The folder name before the Excubia rename, read until it is moved.
+/// legacy: the folder name before the Excubia rename, read until it is moved.
 const LEGACY_DIR: &str = "herdr-notify";
 const DIR: &str = "excubia";
 
-/// `EXCUBIA_DATA_DIR` overrides the platform default (`HERDR_NOTIFY_DATA_DIR`
-/// is read as a fallback); otherwise `%APPDATA%\excubia` on Windows, or
+/// `EXCUBIA_DATA_DIR` overrides the platform default (legacy
+/// `HERDR_NOTIFY_DATA_DIR` is read as a fallback); otherwise `%APPDATA%\excubia` on Windows, or
 /// `$XDG_CONFIG_HOME/excubia` / `~/.config/excubia` elsewhere.
 pub fn default_data_dir() -> Result<PathBuf, String> {
     resolve(|key| std::env::var_os(key))
@@ -43,6 +43,7 @@ fn resolve(env: impl Fn(&str) -> Option<OsString>) -> Result<PathBuf, String> {
 
 fn explicit_dir(env: &impl Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
     env("EXCUBIA_DATA_DIR")
+        // legacy: HERDR_NOTIFY_DATA_DIR, read only when EXCUBIA_DATA_DIR is unset.
         .or_else(|| env("HERDR_NOTIFY_DATA_DIR"))
         .map(PathBuf::from)
 }
@@ -128,8 +129,8 @@ pub fn ensure_data_dir(data_dir: &Path) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hn_core_persist::migrate::MOVED_NOTE;
-    use hn_core_test_dir::TestDir;
+    use excubia_core_persist::migrate::MOVED_NOTE;
+    use excubia_core_test_dir::TestDir;
     use std::fs;
 
     #[test]

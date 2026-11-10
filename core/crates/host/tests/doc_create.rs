@@ -7,11 +7,11 @@ mod harness;
 
 use harness::docs::ooxml_zip;
 use harness::{docs::send, TestHost};
-use hn_core_auth::Permission;
-use hn_core_chat::{AttachmentState, SeatActor};
-use hn_core_crafting::App;
-use hn_core_mail::AuditLog;
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_chat::{AttachmentState, SeatActor};
+use excubia_core_crafting::App;
+use excubia_core_mail::AuditLog;
+use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 
 const READ: &[Permission] = &[Permission::Respond];
@@ -22,7 +22,7 @@ const TEN_MIB: u64 = 10 * 1024 * 1024;
 async fn call(host: &TestHost, token: &str, tool: &str, arguments: Value) -> (u16, Value) {
     let response = reqwest::Client::new()
         .post(&host.tool_url)
-        .header("X-HN-Tool-Token", token)
+        .header("X-Excubia-Tool-Token", token)
         .json(&json!({ "tool": tool, "arguments": arguments }))
         .send()
         .await

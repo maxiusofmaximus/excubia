@@ -5,8 +5,8 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hn_core_chat::{AlertDecision, AlertStatus, ChatStore};
-use hn_core_state::{StateStore, Status, EVENT_STATUS};
+use excubia_core_chat::{AlertDecision, AlertStatus, ChatStore};
+use excubia_core_state::{StateStore, Status, EVENT_STATUS};
 use serde_json::json;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::task::JoinHandle;

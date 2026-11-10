@@ -7,9 +7,9 @@ mod harness;
 use std::time::Duration;
 
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_state::{NewAgent, SharedFrame, Status};
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_state::{NewAgent, SharedFrame, Status};
+use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 use tokio::sync::broadcast::{error::TryRecvError, Receiver};
 

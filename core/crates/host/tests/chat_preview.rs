@@ -10,10 +10,10 @@ use std::path::{Path, PathBuf};
 
 use harness::docs::{upload, PNG};
 use harness::TestHost;
-use hn_core_auth::Permission;
-use hn_core_crafting::App;
-use hn_core_host::paths;
-use hn_core_test_support::SignedClient;
+use excubia_core_auth::Permission;
+use excubia_core_crafting::App;
+use excubia_core_host::paths;
+use excubia_core_test_support::SignedClient;
 use reqwest::header::HeaderMap;
 use serde_json::Value;
 

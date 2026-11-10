@@ -5,7 +5,7 @@
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
-use hn_core_host::mdns::{Announcer, MdnsBackend, SERVICE_TYPE};
+use excubia_core_host::mdns::{Announcer, MdnsBackend, SERVICE_TYPE};
 use mdns_sd::{IfKind, Receiver, ResolvedService, ServiceDaemon, ServiceEvent};
 
 const WAIT: Duration = Duration::from_secs(10);

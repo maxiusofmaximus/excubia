@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:herdr_notify/core/api/chat_attachment_source.dart';
-import 'package:herdr_notify/core/api/host_client.dart';
-import 'package:herdr_notify/core/state/chat_attachment_tray.dart';
-import 'package:herdr_notify/core/state/live_triage.dart';
+import 'package:excubia/core/api/chat_attachment_source.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/chat_attachment_tray.dart';
+import 'package:excubia/core/state/live_triage.dart';
 
 import 'fake_chat_transport.dart';
 

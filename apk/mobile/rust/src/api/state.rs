@@ -106,7 +106,7 @@ mod tests {
                 "focused": {"workspace_id": "w1", "pane_id": "w1:p1"},
                 "counts": {"blocked": 1, "working": 2, "unrecognised": 9},
                 "agents": [
-                    {"pane_id": "w1:p1", "workspace_id": "w1", "project": "herdr-notify",
+                    {"pane_id": "w1:p1", "workspace_id": "w1", "project": "excubia",
                      "agent": "opencode", "status": "blocked", "attention": 3,
                      "title": "Add the pairing screen", "cwd": "/repo",
                      "can_resume": true, "future_field": "ignored"}

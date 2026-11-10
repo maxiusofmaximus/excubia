@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/state/voice_send_settings.dart';
+import 'package:excubia/core/state/voice_send_settings.dart';
 
 import 'support/memory_store.dart';
 

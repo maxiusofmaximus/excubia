@@ -5,7 +5,7 @@
 mod harness;
 
 use harness::TestHost;
-use hn_core_auth::Permission;
+use excubia_core_auth::Permission;
 use serde_json::Value;
 
 #[tokio::test(flavor = "multi_thread")]

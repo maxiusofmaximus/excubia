@@ -1,6 +1,6 @@
 mod support;
 
-use hn_core_media::{process_image, Limits};
+use excubia_core_media::{process_image, Limits};
 use support::jpeg_with_gps_exif;
 
 #[test]

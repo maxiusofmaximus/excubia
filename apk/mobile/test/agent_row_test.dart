@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/src/rust/api/state.dart';
-import 'package:herdr_notify/ui/theme.dart';
-import 'package:herdr_notify/ui/widgets/agent_row.dart';
+import 'package:excubia/src/rust/api/state.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/agent_row.dart';
 
 import 'support/agent_fixtures.dart';
 
@@ -26,7 +26,7 @@ void main() {
       ),
     );
 
-    expect(find.text('herdr-notify'), findsOneWidget);
+    expect(find.text('excubia'), findsOneWidget);
     expect(find.text('bloqueado · Add the pairing screen'), findsOneWidget);
     final row = tester.getSize(find.byType(AgentRow));
     expect(row.height, greaterThanOrEqualTo(64));

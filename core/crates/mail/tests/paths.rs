@@ -3,7 +3,7 @@ mod support;
 use std::fs;
 use std::path::Path;
 
-use hn_core_mail::{
+use excubia_core_mail::{
     CheckedFile, MailError, PathApproval, PathDecision, PathPolicy, DEFAULT_MAX_ATTACHMENT_BYTES,
     HARD_MAX_ATTACHMENT_BYTES,
 };

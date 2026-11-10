@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/storage/pairing_store.dart';
-import 'package:herdr_notify/ui/palette/palette.dart';
-import 'package:herdr_notify/ui/palette/palette_controller.dart';
-import 'package:herdr_notify/ui/palette/palette_prefs.dart';
+import 'package:excubia/core/storage/pairing_store.dart';
+import 'package:excubia/ui/palette/palette.dart';
+import 'package:excubia/ui/palette/palette_controller.dart';
+import 'package:excubia/ui/palette/palette_prefs.dart';
 
 import 'support/memory_store.dart';
 

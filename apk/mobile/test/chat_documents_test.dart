@@ -2,14 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdr_notify/core/api/chat_attachment_source.dart';
-import 'package:herdr_notify/core/api/chat_document_files.dart';
-import 'package:herdr_notify/core/api/chat_document_previews.dart';
-import 'package:herdr_notify/core/api/chat_documents.dart';
-import 'package:herdr_notify/core/state/chat_attachment_errors.dart';
-import 'package:herdr_notify/core/state/chat_document_opener.dart';
-import 'package:herdr_notify/src/rust/api/chat/attach_model.dart';
-import 'package:herdr_notify/ui/mail/mail_facts.dart' show sizeLabel;
+import 'package:excubia/core/api/chat_attachment_source.dart';
+import 'package:excubia/core/api/chat_document_files.dart';
+import 'package:excubia/core/api/chat_document_previews.dart';
+import 'package:excubia/core/api/chat_documents.dart';
+import 'package:excubia/core/state/chat_attachment_errors.dart';
+import 'package:excubia/core/state/chat_document_opener.dart';
+import 'package:excubia/src/rust/api/chat/attach_model.dart';
+import 'package:excubia/ui/mail/mail_facts.dart' show sizeLabel;
 
 import 'support/fake_attachments.dart';
 import 'support/fake_documents.dart';
