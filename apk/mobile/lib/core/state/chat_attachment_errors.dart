@@ -16,7 +16,7 @@ String attachmentErrorText(String code) => switch (code) {
   'timeout' ||
   'worker_failed' => 'No se pudo procesar el archivo. Prueba con otro',
   'unknown_attachment' => 'Vuelve a adjuntar el archivo',
-  'too_many_attachments' => 'Solo puedes adjuntar hasta 4 archivos',
+  'too_many_attachments' => 'Solo puedes adjuntar hasta 10 archivos',
   'unreadable' => 'No se pudo leer el archivo',
   _ => 'No se pudo subir el archivo. Vuelve a intentarlo',
 };

@@ -6,9 +6,11 @@ import 'package:excubia/core/api/host_client.dart';
 /// Routes canned chat responses by path, ignoring the query. Tests assert the
 /// routes the controller asks for without a socket or a signed key.
 class FakeChatTransport implements ChatTransport {
+  /// A JSON POST goes through [call], so the routes and the recorded calls
+  /// see it the way they see every other request.
   @override
   Future<String> postBytes(String target, List<int> body, String contentType) =>
-      throw UnimplementedError();
+      call('POST', target, body);
 
   @override
   Future<List<int>> callBytes(String method, String target) =>

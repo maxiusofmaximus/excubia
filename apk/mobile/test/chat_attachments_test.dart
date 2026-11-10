@@ -20,17 +20,18 @@ void main() {
   });
 
   group('the tray', () {
-    test('holds four files at most', () async {
+    test('holds ten files at most', () async {
       final tray = ChatAttachmentTray(
         UploadTransport(chatRoutes()),
         pause: noPause,
       );
       addTearDown(tray.dispose);
 
-      await tray.add('cnv_1', [for (var i = 0; i < 5; i++) png('$i.png')]);
+      await tray.add('cnv_1', [for (var i = 0; i < 11; i++) png('$i.png')]);
       await settle(tray);
 
-      expect(tray.items, hasLength(4));
+      expect(tray.items, hasLength(maxChatAttachments));
+      expect(maxChatAttachments, 10);
       expect(tray.canAdd, isFalse);
     });
 

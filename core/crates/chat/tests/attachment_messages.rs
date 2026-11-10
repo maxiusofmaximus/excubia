@@ -4,7 +4,7 @@
 
 use excubia_core_chat::{
     new_ulid, AcceptedMessage, AttachmentError, AttachmentFiles, ChatError, ChatStore,
-    NewConversation, ReadyFile, TimelineEntry,
+    NewConversation, ReadyFile, TimelineEntry, MAX_ATTACHMENTS_PER_MESSAGE,
 };
 use excubia_core_test_dir::TestDir;
 
@@ -125,17 +125,36 @@ fn a_message_without_files_keeps_the_timeline_shape() {
 }
 
 #[test]
-fn five_files_refuse_the_message_and_leave_nothing() {
-    let (store, _dir) = store("five");
+fn one_more_than_the_limit_refuses_the_message_and_leaves_nothing() {
+    let (store, _dir) = store("over");
     let conversation_id = conversation(&store);
-    let five: Vec<String> = (0..5).map(|_| ready(&store, &conversation_id)).collect();
-    let refs: Vec<&str> = five.iter().map(String::as_str).collect();
+    let over: Vec<String> = (0..=MAX_ATTACHMENTS_PER_MESSAGE)
+        .map(|_| ready(&store, &conversation_id))
+        .collect();
+    let refs: Vec<&str> = over.iter().map(String::as_str).collect();
 
-    let error = refusal(send(&store, &conversation_id, "c-5", &refs));
+    let error = refusal(send(&store, &conversation_id, "c-over", &refs));
 
     assert!(matches!(error, AttachmentError::TooManyAttachments));
     assert_eq!(message_count(&store, &conversation_id), 0);
-    assert_eq!(store.attachment(&five[0]).expect("row").message_id, None);
+    assert_eq!(store.attachment(&over[0]).expect("row").message_id, None);
+}
+
+#[test]
+fn seven_files_fit_in_one_message() {
+    let (store, _dir) = store("seven");
+    let conversation_id = conversation(&store);
+    let seven: Vec<String> = (0..7).map(|_| ready(&store, &conversation_id)).collect();
+    let refs: Vec<&str> = seven.iter().map(String::as_str).collect();
+
+    let accepted = send(&store, &conversation_id, "c-seven", &refs).expect("seven files");
+
+    let entries = timeline(&store, &conversation_id);
+    let entry = entries
+        .iter()
+        .find(|entry| entry.message_id.as_deref() == Some(accepted.message.id.as_str()))
+        .expect("message in the timeline");
+    assert_eq!(entry.attachments.len(), 7);
 }
 
 #[test]

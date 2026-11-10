@@ -24,7 +24,7 @@ struct SendBody {
     client_id: String,
     text: String,
     reply_to: Option<ReplyTo>,
-    /// Ready attachments of this conversation, 0 to 4. Absent for a client that predates them.
+    /// Ready attachments of this conversation, 0 to 10. Absent for a client that predates them.
     #[serde(default)]
     attachments: Vec<String>,
 }

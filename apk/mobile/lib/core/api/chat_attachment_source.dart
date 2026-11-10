@@ -4,7 +4,7 @@ import '../../src/rust/api/chat/attach_upload.dart';
 import 'chat_documents.dart';
 
 /// Most files one message may carry.
-const maxChatAttachments = 4;
+const maxChatAttachments = 10;
 
 /// Largest file the host accepts, in bytes (10 MiB).
 const maxAttachmentBytes = 10 * 1024 * 1024;

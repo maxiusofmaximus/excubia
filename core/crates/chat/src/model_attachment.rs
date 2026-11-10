@@ -8,7 +8,7 @@ use serde::Serialize;
 use crate::error::AttachmentError;
 
 /// Files a single message can carry.
-pub const MAX_ATTACHMENTS_PER_MESSAGE: usize = 4;
+pub const MAX_ATTACHMENTS_PER_MESSAGE: usize = 10;
 /// Bytes of one uploaded chunk, before base64.
 pub const CHUNK_MAX_BYTES: usize = 128 * 1024;
 /// Bytes of one stored file.
