@@ -6,8 +6,10 @@ use std::net::SocketAddr;
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
+use excubia_core_api::{AuditEvent, AuditSink};
 use excubia_core_auth::{DeviceStore, Permission};
 use excubia_core_chat::{ChatStore, HookScope};
+use excubia_core_host::audit::AuditLog;
 use excubia_core_host::cli::{DevicesCommand, TlsCommand};
 use excubia_core_host::mail_cli::{self, MailInvocation};
 use excubia_core_host::pake_cli;
@@ -176,6 +178,11 @@ pub(super) fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {
         }
         DevicesCommand::Revoke { device_id } => {
             if store.revoke(&device_id)? {
+                // Same record as the API's revoke, marked as local (`by` = `cli`).
+                AuditLog::new(data_dir).record(
+                    &AuditEvent::new("devices.revoke", Some(device_id.as_str()), "revoked")
+                        .with("by", "cli"),
+                );
                 println!("revoked {device_id}");
                 Ok(())
             } else {
@@ -189,6 +196,11 @@ pub(super) fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {
             let permission = Permission::from_label(&permission)
                 .with_context(|| format!("unknown permission: {permission}"))?;
             if store.grant(&device_id, permission)? {
+                AuditLog::new(data_dir).record(
+                    &AuditEvent::new("devices.grant", Some(device_id.as_str()), "granted")
+                        .with("by", "cli")
+                        .with("permissions", permission.label()),
+                );
                 println!("granted {} to {device_id}", permission.label());
                 Ok(())
             } else {
