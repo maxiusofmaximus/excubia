@@ -40,7 +40,7 @@ class AttachmentDraft {
   }
 }
 
-/// The files the composer is holding: up to four, uploaded one after another.
+/// The files the composer is holding: up to ten, uploaded one after another.
 /// A message may be sent only when every file is ready.
 class ChatAttachmentTray extends ChangeNotifier {
   ChatAttachmentTray(this._transport, {Future<void> Function(Duration)? pause})

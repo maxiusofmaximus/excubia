@@ -79,7 +79,7 @@ ChatPlan planAttachmentPreview({
   page: page,
 );
 
-/// The send plan of a message with up to four ready attachments. The text may
+/// The send plan of a message with up to ten ready attachments. The text may
 /// be empty only when at least one attachment is named.
 ChatPlan planChatSendWithAttachments({
   required String conversationId,

@@ -11,7 +11,7 @@ use crate::api::validate::{self, TextProblem};
 use super::attach_upload::{CHUNK_BYTES, MAX_ATTACHMENT_BYTES};
 use super::plan::{self, bodiless, get, post, ChatPlan};
 
-const MAX_ATTACHMENTS_PER_MESSAGE: usize = 4;
+const MAX_ATTACHMENTS_PER_MESSAGE: usize = 10;
 const MAX_NAME_CHARS: usize = 120;
 
 /// `POST …/attachments`: starts an upload. The size is the input's, in bytes.
@@ -113,7 +113,7 @@ pub fn plan_attachment_preview(
     }
 }
 
-/// The send plan of a message with up to four ready attachments. The text may
+/// The send plan of a message with up to ten ready attachments. The text may
 /// be empty only when at least one attachment is named.
 #[flutter_rust_bridge::frb(sync)]
 pub fn plan_chat_send_with_attachments(
@@ -203,8 +203,8 @@ fn problem(code: &str) -> ChatPlan {
     };
     let info = match code {
         "too_many_attachments" => hint(
-            "Un mensaje admite hasta 4 imágenes.",
-            "Quita alguna y vuelve a enviarlo.",
+            "Un mensaje admite hasta 10 archivos.",
+            "Quita alguno y vuelve a enviarlo.",
         ),
         "file_too_large" => hint("La imagen supera los 10 MiB.", "Elige una más pequeña."),
         "invalid_name" => hint(
@@ -387,8 +387,8 @@ mod tests {
     }
 
     #[test]
-    fn a_message_names_one_to_four_attachments() {
-        for count in 1..=4 {
+    fn a_message_names_one_to_ten_attachments() {
+        for count in 1..=10 {
             let ids: Vec<String> = (0..count).map(|index| format!("att_{index}")).collect();
             let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
             let plan = send("mira", &refs);
@@ -398,12 +398,13 @@ mod tests {
     }
 
     #[test]
-    fn five_attachments_are_refused_locally() {
-        let plan = send("mira", &["a", "b", "c", "d", "e"]);
+    fn eleven_attachments_are_refused_locally() {
+        let ids = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"];
+        let plan = send("mira", &ids);
         assert!(plan.request.is_none());
         assert_eq!(
             plan.problem.expect("problem").message,
-            "Un mensaje admite hasta 4 imágenes."
+            "Un mensaje admite hasta 10 archivos."
         );
     }
 
