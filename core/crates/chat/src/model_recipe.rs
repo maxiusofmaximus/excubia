@@ -23,7 +23,7 @@ pub struct Recipe {
     pub updated_at: String,
 }
 
-/// The text of a recipe as the person wrote it. [`check_text`] trims it and
+/// The text of a recipe as the person wrote it. `check_text` trims it and
 /// refuses what the text rules forbid.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RecipeText {

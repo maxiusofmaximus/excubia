@@ -24,7 +24,7 @@ const WELL_KNOWN: [&str; 6] = [
     "archive",
 ];
 
-/// One top-level folder. `well_known_name` is set only for the names in [`WELL_KNOWN`].
+/// One top-level folder. `well_known_name` is set only for the names in `WELL_KNOWN`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Folder {
     pub id: String,

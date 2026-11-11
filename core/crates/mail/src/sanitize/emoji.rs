@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 
 use unicode_general_category::{get_general_category, GeneralCategory};
 
-/// The Unicode version [`EXTENDED_PICTOGRAPHIC`] was copied from.
+/// The Unicode version `EXTENDED_PICTOGRAPHIC` was copied from.
 pub const UNICODE_VERSION: &str = "16.0";
 
 const ZWJ: char = '\u{200D}';

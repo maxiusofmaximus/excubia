@@ -49,7 +49,7 @@ impl super::ChatStore {
         self.insert_delegation(new, Requester::User)
     }
 
-    /// The delegation a due schedule starts. Its plan is not gated here: see [`Requester::Schedule`].
+    /// The delegation a due schedule starts. Its plan is not gated here: see `Requester::Schedule`.
     pub fn create_schedule_delegation(&self, new: NewDelegation) -> Result<Delegation, ChatError> {
         self.insert_delegation(new, Requester::Schedule)
     }

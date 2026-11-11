@@ -47,7 +47,7 @@ impl MailSends {
     }
 
     /// Runs the sweep for as long as the host lives: at once, after every chat
-    /// change, and at least every [`SWEEP_EVERY`]. The task ends when the chat
+    /// change, and at least every `SWEEP_EVERY`. The task ends when the chat
     /// closes. Needs a Tokio runtime.
     pub fn watch(&self) {
         let sends = self.clone();

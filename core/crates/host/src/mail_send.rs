@@ -9,7 +9,7 @@
 //! and the recipient domains, never with the content.
 //!
 //! The owner's questions after they are asked, and their audit lines, live in
-//! [`sweep`].
+//! `sweep`.
 
 use std::path::Path;
 use std::sync::Arc;

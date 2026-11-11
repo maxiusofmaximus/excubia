@@ -83,7 +83,7 @@ pub struct SendStatus {
 /// What the mail routes can do. Implemented by the host.
 #[async_trait]
 pub trait MailActions: Send + Sync + 'static {
-    /// Start a device login for `account` under `tenant` (one of [`TENANTS`]).
+    /// Start a device login for `account` under `tenant` (one of `TENANTS`).
     /// With a `conversation_id`, the sign-in card shows there until the login
     /// ends.
     async fn login_start(

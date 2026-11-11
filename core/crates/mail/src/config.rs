@@ -1,6 +1,6 @@
 //! The `[mail]` section: the public client id, where accounts live and the
 //! attachment ceiling. The permission list is not configurable here: it is
-//! [`SCOPES`], checked by [`assert_scopes_safe`] on every configuration load.
+//! `SCOPES`, checked by [`assert_scopes_safe`] on every configuration load.
 
 use std::path::{Path, PathBuf};
 

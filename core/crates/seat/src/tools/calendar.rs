@@ -20,7 +20,7 @@ pub enum CalendarCall {
     Timezone,
     List(ListCall),
     Create(NewEvent),
-    /// A field that is `None` keeps its value; see [`update`] for how an empty one clears.
+    /// A field that is `None` keeps its value; see `update` for how an empty one clears.
     Update {
         id: String,
         patch: EventPatch,
