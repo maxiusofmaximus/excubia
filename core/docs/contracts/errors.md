@@ -35,7 +35,7 @@ told which code or which check failed, the same oracle reasoning as the uniform
 `401`/`403`. When **no code** was supplied there is only the tailnet-owner check
 to fail, and the caller already knows it sent no code, so the refusal is a
 `{code, message}` object whose message names the working path
-(`herdr-notify enroll`) and, for a loopback source, the local-proxy cause. It
+(`host pair-code`, as `crates/api/src/routes/pair.rs` prints it) and, for a loopback source, the local-proxy cause. It
 never reports whose account owns an address.
 
 ## PAKE pairing (F2b, alpha)

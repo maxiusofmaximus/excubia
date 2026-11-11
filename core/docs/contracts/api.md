@@ -163,7 +163,7 @@ Body: `{ "mime": "image/png", "data": "<base64>" }`.
 - The bytes must actually be the declared container (PNG magic, JPEG `FF D8 FF`,
   or a `RIFF….WEBP` header). A renamed file is refused, not stored.
 - The host writes the file under its data dir (`--images`, default
-  `~/.config/herdr-notify/images`) and submits the **absolute path** to the agent
+  `~/.config/excubia/images`) and submits the **absolute path** to the agent
   as a prompt (`Imagen adjunta: <path>`), so the agent opens it with its own
   tools. The file is removed again if herdr refuses the prompt.
 
@@ -171,7 +171,7 @@ Response:
 
 ```json
 { "ok": true, "pane_id": "w1:p3",
-  "path": "/home/me/.config/herdr-notify/images/w1_p3-1a2b3c4d5e6f7890.png",
+  "path": "/home/me/.config/excubia/images/w1_p3-1a2b3c4d5e6f7890.png",
   "result": { "pane_id": "w1:p3", "agent": "opencode", "agent_status": "idle" } }
 ```
 
@@ -451,7 +451,7 @@ A pane restored from a previous run has no process to stop and answers `409`
 
 Agent hooks — the agent's own plugins, running as local processes — report
 `{ "pane_id": "w1:p4", "state": "blocked", "message": "…" }` with a hook token
-in `X-HN-Hook-Token`: the host token (`host hook-token`) or the per-run token
+in `X-Excubia-Hook-Token`: the host token (`host hook-token`) or the per-run token
 the host handed to the agent. Only loopback is accepted, and this is not part
 of the signed device surface: a device signature is never accepted here, and
 the hook token is never accepted on the device routes. A fresh report wins
@@ -492,7 +492,7 @@ Failures: `400 invalid_body` / `pake_invalid_message`, `403 pake_requires_tls` /
 ### `POST /v1/admin/pake-code` (host-local; not a device route)
 
 Arms the one PAKE code and answers `{"code": "ABCDEFGH", "expires_in": 180}`. Only the loopback router mounts it (`404` on
-the LAN listener), only the host hook token in `X-HN-Hook-Token` opens it (`401` without or with a wrong one, `403
+the LAN listener), only the host hook token in `X-Excubia-Hook-Token` opens it (`401` without or with a wrong one, `403
 host_token_required` for a per-run token), `409 pake_unavailable` when the host has no TLS identity. `host pair-code --pake`
 is its client. The response is the only place the code appears; it is never logged or written.
 
@@ -933,7 +933,7 @@ Coded refusals keep the `detail.code` and `detail.message` shape. The `404`s and
 
 - The type is the one of the file's real header (PNG, JPEG or WebP signature),
   never the name or a MIME type the client sent.
-- Decoding runs in an isolated worker process (`hn-media-worker`) with a 5 s
+- Decoding runs in an isolated worker process (`excubia-media-worker`) with a 5 s
   timeout and fixed input, side and pixel limits. The output is re-encoded from
   the decoded pixels, so no metadata of the input survives.
 - The agent receives the files as untrusted data. Its prompt holds one line per
@@ -1165,7 +1165,7 @@ a message, another agent or the agent itself never approves anything.
 
 Two surfaces share the domain and never mix their credentials:
 
-- **hook** (`X-HN-Hook-Token`, loopback only): `POST /v1/chat/approvals`,
+- **hook** (`X-Excubia-Hook-Token`, loopback only): `POST /v1/chat/approvals`,
   `GET /v1/chat/approvals/{id}` and `POST /v1/chat/approvals/{id}/consume`.
   These are not device routes: a device signature is never accepted there and
   the hook token is never accepted on the device routes.
@@ -1173,7 +1173,7 @@ Two surfaces share the domain and never mix their credentials:
   `POST /v1/chat/approvals/{id}/decision`.
 
 The hook token is **per run** (`orchestrator-chat.md` §5.2): the host mints one
-when it launches the run, hands it to the CLI in `HN_HOOK_TOKEN`, and revokes it
+when it launches the run, hands it to the CLI in `EXCUBIA_HOOK_TOKEN`, and revokes it
 when the run closes. A resident panel has one for its seat instead, because it
 serves many turns. The host, not the body, decides which run an approval
 belongs to:
@@ -1572,7 +1572,7 @@ nunca su contenido. Solo Alfred la tiene: un seat de proyecto recibe `scope_deni
   creación es un adjunto nuevo: nunca sobrescribe ni cambia un archivo existente.
 - `chat.reply` acepta `attachment_ids` (hasta 4, sin repetir) con los archivos que Alfred
   creó en esta conversación y que ningún mensaje lleva. Si el turno termina sin nombrar sus
-  archivos, el host publica un mensaje de Alfred («Te dejo el archivo <nombre>») con ellos
+  archivos, el host publica un mensaje de Alfred («Te dejo el archivo `<nombre>`») con ellos
   enlazados; son más de 4, va en mensajes de hasta 4.
 - Solo Alfred la tiene: un seat de proyecto recibe `scope_denied`. La auditoría guarda la
   herramienta y el id del adjunto, nunca el contenido.

@@ -49,7 +49,7 @@ host never ranked. That divergence is fixed and pinned by a test.
 {
   "pane_id": "w1:p1",
   "workspace_id": "w1",
-  "project": "herdr-notify",
+  "project": "excubia",
   "agent": "opencode",
   "status": "blocked",
   "attention": 3,

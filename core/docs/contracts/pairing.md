@@ -55,19 +55,19 @@ An **empty pairing code is the exception, not the normal path.** It works only
 when the caller's source IP belongs to the host's own tailnet owner; any other
 address (a different account, a tagged node, an unavailable daemon, or a request
 that arrived through a proxy) is refused with `403 pairing_rejected`. The normal
-path is a **code from `herdr-notify enroll`**, which the operator reads off the
+path is a **code from `host pair-code`**, which the operator reads off the
 host and enters once on the phone.
 
 - **Pairing code**: `DeviceStore.issue_enrollment_code` — 4 random bytes, base32,
-  180 s TTL (the host default; `host pair-code --ttl` overrides it), **single use**. `herdr-notify enroll` prints it. The store validates
+  180 s TTL (the host default; `host pair-code --ttl` overrides it), **single use**. `host pair-code` prints it. The store validates
   the payload **before** spending the code, so a malformed request cannot deny
   the legitimate phone its pairing. The code is **persisted to the trust store**
-  (as a SHA-256 digest, never in the clear), because `enroll` and the running
+  (as a SHA-256 digest, never in the clear), because `pair-code` and the running
   `serve` daemon (`host`) are separate processes: the host notices the changed file
   (`reload_if_changed`) and accepts the code. A spent or expired code is dropped
   from the file, so single use survives a restart.
 - **Recovery code**: minted at pairing and returned exactly once; stored only as
-  a SHA-256 hash. `herdr-notify devices --recovery <id>` mints a new one
+  a SHA-256 hash. `host devices recovery <id>` mints a new one
   (rotating the old). It re-keys the device without manual approval and cannot
   be used for a revoked device.
   The host CLI mints one the same way: `host devices recovery <device_id>
@@ -78,10 +78,10 @@ host and enters once on the phone.
   account, a tagged node, or an unavailable daemon never auto-approves. A
   **local `tailscale serve` proxy** makes the request arrive from a loopback
   address, which has no tailnet owner, so it can never auto-approve: run
-  `herdr-notify enroll` and use the code.
+  `host pair-code` and use the code.
 - A **supplied code** that fails answers the uniform
   `403 {"detail":"pairing_rejected"}` (updated: an empty code now answers a
-  slightly clearer `403 {code, message}` naming `herdr-notify enroll`, since the
+  slightly clearer `403 {code, message}` naming `host pair-code`, since the
   caller already knows it sent no code and only the owner check could have
   failed; it still reveals no owner). The endpoint is rate-limited per source IP.
 
@@ -130,7 +130,7 @@ sas = six digits of ( u32_big_endian( SHA-256( "excubia-sas-v1" ‖ 0x00 ‖ hos
 - `device_public_key`: the bytes the device sent in `POST /v1/pair`, after base64 decoding: the SEC1 point, 65 bytes for P-256.
 - Six digits with leading zeros kept, so the output is always 6 characters.
 
-Implementation: `hn_core_pin::sas` (crate `pin`, which has no host dependencies, so the
+Implementation: `excubia_core_pin::sas` (crate `pin`, which has no host dependencies, so the
 APK depends on it by path). Where it is shown:
 
 - the notice of a `paired` decision (above);
@@ -254,7 +254,7 @@ mounted on this listener, so a LAN device cannot reach them.
 ```
 excubia://pair?v=1&c=<code>&h=<pin>[&b=<backup pin>]&a=<ip:port>...&e=<unix seconds>
 ```
-Lo anterior al cambio de nombre, `herdr-notify://`, se rechaza como cualquier esquema ajeno; la carpeta vieja `~/.config/herdr-notify` se mueve sola a `~/.config/excubia` al arrancar.
+Los enlaces `herdr-notify://` anteriores al cambio de nombre se leen solo para migrar y nunca se emiten; la carpeta vieja `~/.config/herdr-notify` se mueve sola a `~/.config/excubia` al arrancar.
 
 | Field | Meaning |
 |-------|---------|
@@ -295,8 +295,8 @@ traffic is unencrypted outside loopback.
 ## Revocation — IMPLEMENTED
 
 ```
-herdr-notify devices                 # list, with REVOKED markers
-herdr-notify devices --revoke <id>   # revoke one device
+host devices list                    # list, with REVOKED markers
+host devices revoke <id>             # revoke one device
 ```
 
 Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
@@ -312,7 +312,7 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
 
 ## F2a — PAKE core (library) — IMPLEMENTED
 
-Crate `crates/pake` (`hn-core-pake`): the cryptographic core of the short-code pairing in
+Crate `crates/pake` (`excubia-core-pake`): the cryptographic core of the short-code pairing in
 `docs/rfc/pairing-security.md` §5. It exists and is tested. The host endpoints of *F2b* below now call
 it; **the app does not** (no client, no mDNS). Pairing by link/code and the SAS flow above (F0/F1) are
 unchanged.
@@ -397,15 +397,15 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
   linger up to ~75 min on other devices; the Master accepted this. The TTL setters are not public in this version.
 - **Failure**: if `mdns-sd` cannot start or register, the host logs one line without secrets and pairing by IP and PAKE goes on.
   Errors the daemon reports later from its own thread are not logged.
-- **Windows firewall** asks per program path: allow `host.exe` from the path that is launched (UDP 5353 inbound), or the
+- **Windows firewall** asks per program path: allow `excubia-host.exe` from the path that is launched (UDP 5353 inbound), or the
   queries of the app may not reach it. Not verified on a real LAN.
 
 ## F3a — v2 link, the QR without an address — IMPLEMENTED in the host; no client yet (F3b-F3d)
 
 - **Format**: `excubia://pair?v=2&c=<8 chars>&h=<host pin, base64url 43>&e=<unix expiry>`. `c` is the PAKE code (alphabet of
-  `hn-core-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
+  `excubia-core-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
   About 90 bytes. No `a`, no `b`: the device finds the host by mDNS (F2c) and must see `h` before it sends anything.
-- **Parser**: `hn_core_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
+- **Parser**: `excubia_core_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
   `PinError`, `a`/`b`, unknown or repeated fields, a code that is not 8 characters of the alphabet, a bad `h` and a non-numeric `e`.
   It does not check the expiry: the caller does, with its own clock. `PairingLink::parse` (v1) is unchanged and refuses `v=2`.
 - **Source**: `POST /v1/admin/pake-code` (loopback, host token only, `Cache-Control: no-store`) now answers

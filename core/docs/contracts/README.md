@@ -38,7 +38,7 @@ purpose so no reader mistakes a defined shape for a working path.
 | FCM token lifecycle (park → register → store); `push.md` retirado 2026-10-30 | IMPLEMENTED (unit-verified, 2026-10-04) | [`pairing.md`](pairing.md) |
 | FCM end-to-end (`token → host → FCM → phone`, physical device) | **NOT IMPLEMENTED** (M3 open) | [`pairing.md`](pairing.md) |
 | `ERROR` triage state | **DROPPED** (D2: herdr never reports it) | [`state.md`](state.md) |
-| `X-HN-Key-Id` header | **RESERVED** — no effect in v1 | [`auth.md`](auth.md) |
+| `X-Excubia-Key-Id` header | **RESERVED** — no effect in v1 | [`auth.md`](auth.md) |
 
 ## Rules
 
