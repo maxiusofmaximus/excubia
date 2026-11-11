@@ -136,7 +136,9 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         Some(dir) => println!("host: UAC plugin proven from {}", dir.display()),
         None => println!("host: warning: OpenCode seats keep shell denied ({gate_reason})"),
     }
-    let engines = ready_engines(&profiles, proven_plugin.is_some());
+    // Only the OpenCode plugin gate is proven today; each new CLI adds its own canary here.
+    let proven: Vec<CliId> = proven_plugin.iter().map(|_| CliId::OpenCode).collect();
+    let engines = ready_engines(&profiles, &proven);
     match engines.first() {
         Some(engine) => println!(
             "host: engine listed: {} {}",

@@ -9,7 +9,7 @@ use std::path::Path;
 use anyhow::{anyhow, Context, Result};
 use excubia_core_api::{AgentCatalog, EngineListing};
 use excubia_core_detect::AgentKind;
-use excubia_core_seat::{probe, shipped, CliId, CliProfile, SelectedProfile};
+use excubia_core_seat::{probe, shipped, CliId, CliProfile, HookSupport, SelectedProfile};
 
 /// Agents the nucleus's default catalogue offers. The default file also
 /// carries a display label per entry.
@@ -78,25 +78,24 @@ pub fn configured_profiles(catalog: &AgentCatalog) -> Vec<CliProfile> {
     profiles
 }
 
-/// The CLI engines `Ready` on this PC: OpenCode, when its gate is proven and it runs at least its
-/// minimum version. Read at start-up; each turn probes its engine again.
-pub fn ready_engines(profiles: &[CliProfile], gate_proven: bool) -> Vec<SelectedProfile> {
-    if !gate_proven {
-        return Vec::new();
-    }
-    let Some(profile) = profiles
+/// The CLI engines `Ready` on this PC. A CLI is one when its gate is proven (`proven`: the CLIs
+/// whose canary ran `Safe` at start-up), its hook is blocking and it runs at least its minimum
+/// version. Claude is the seat and has its own option, so it is never listed. Read at start-up;
+/// each turn probes its engine again.
+pub fn ready_engines(profiles: &[CliProfile], proven: &[CliId]) -> Vec<SelectedProfile> {
+    profiles
         .iter()
-        .find(|profile| matches!(profile.id, CliId::OpenCode))
-    else {
-        return Vec::new();
-    };
-    match probe(profile) {
-        Some(version) if version >= profile.min_version => vec![SelectedProfile {
-            profile: profile.clone(),
-            version,
-        }],
-        _ => Vec::new(),
-    }
+        .filter(|profile| !matches!(profile.id, CliId::Claude))
+        .filter(|profile| profile.hook == HookSupport::Blocking)
+        .filter(|profile| proven.contains(&profile.id))
+        .filter_map(|profile| match probe(profile) {
+            Some(version) if version >= profile.min_version => Some(SelectedProfile {
+                profile: profile.clone(),
+                version,
+            }),
+            _ => None,
+        })
+        .collect()
 }
 
 /// The engines the API lists and Alfred may choose.
@@ -193,7 +192,28 @@ mod tests {
     #[test]
     fn no_engine_is_listed_without_a_proven_gate() {
         let profiles = shipped();
-        assert!(ready_engines(&profiles, false).is_empty());
+        assert!(ready_engines(&profiles, &[]).is_empty());
         assert!(engine_listing(&[]).is_empty());
+    }
+
+    #[test]
+    fn claude_is_the_seat_and_never_an_engine() {
+        // Filtered before any probe: no CLI runs in this test.
+        assert!(ready_engines(&shipped(), &[CliId::Claude]).is_empty());
+    }
+
+    #[test]
+    fn a_cli_without_a_blocking_hook_is_never_an_engine() {
+        let profile = excubia_core_seat::test_profile("no-such-cli-for-test");
+        assert!(ready_engines(&[profile], &[CliId::Fake]).is_empty());
+    }
+
+    #[test]
+    fn a_proven_cli_that_does_not_start_is_not_listed() {
+        // The gate says yes, the binary says no: no engine without both.
+        let mut profile = excubia_core_seat::test_profile("no-such-cli-for-test");
+        profile.id = CliId::Codex;
+        profile.hook = HookSupport::Blocking;
+        assert!(ready_engines(&[profile], &[CliId::Codex]).is_empty());
     }
 }
