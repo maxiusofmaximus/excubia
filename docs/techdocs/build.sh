@@ -14,15 +14,11 @@ cp "$root/docs/techdocs/pages/"*.md "$src/"
 cp "$root/core/docs/contracts/"*.md "$src/contracts/"
 cp "$root/core/docs/rfc/"*.md "$src/rfc/"
 cp "$root/core/docs/security-review.md" "$src/"
-cp "$root/apk/docs/migration-from-kotlin.md" "$src/apk/"
 
 # Enlaces a ficheros que no se publican: se quita el enlace y queda el texto.
 # core/docs/core/HOOKS.md no existe en el árbol, y roadmap.md no se publica.
 sed -i -E 's#\[([^]]*)\]\(\.\./core/HOOKS\.md\)#\1#g; s#\[([^]]*)\]\(\.\./roadmap\.md\)#\1#g' \
   "$src"/*.md "$src"/*/*.md
-
-# Un texto entre <> sin cerrar hace que mdBook avise: en la copia se escapa como texto.
-sed -i 's#<computer>#\&lt;computer\&gt;#g' "$src/apk/migration-from-kotlin.md"
 
 if grep -rn -E '\]\((\.\./)?(core/HOOKS|roadmap)\.md' "$src"; then
   echo "build.sh: quedan enlaces a ficheros no publicados" >&2

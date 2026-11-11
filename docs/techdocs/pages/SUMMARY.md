@@ -10,7 +10,6 @@
 - [API HTTP](contracts/api.md)
 - [Estado](contracts/state.md)
 - [Emparejamiento](contracts/pairing.md)
-- [Notificaciones push](contracts/push.md)
 - [Errores](contracts/errors.md)
 - [Scorer](contracts/scorer.md)
 
@@ -23,4 +22,3 @@
 # Seguridad y migración
 
 - [Revisión de seguridad](security-review.md)
-- [Migración desde la app Kotlin](apk/migration-from-kotlin.md)
