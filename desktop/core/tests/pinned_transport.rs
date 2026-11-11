@@ -8,7 +8,7 @@ use herdr_desktop_core::client::{pair_device, PairResponse};
 use herdr_desktop_core::pair_link::{pair_through_link, PairLink};
 use herdr_desktop_core::transport::pinned_base_url;
 use herdr_desktop_core::{CoreError, Transport};
-use hn_core_pin::{unix_now, Identity, PinSet};
+use excubia_core_pin::{unix_now, Identity, PinSet};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::version::TLS12;
 use rustls::ServerConfig;
@@ -22,7 +22,7 @@ const BODY: &str = r#"{"device_id":"dev-tls","label":"Escritorio","permissions":
 /// A host that presents `identity` over TLS 1.3 and answers every request
 /// with the same pairing response.
 async fn spawn_host(identity: &Identity) -> SocketAddr {
-    spawn_with(hn_core_pin::server_config(identity).unwrap()).await
+    spawn_with(excubia_core_pin::server_config(identity).unwrap()).await
 }
 
 async fn spawn_with(config: ServerConfig) -> SocketAddr {

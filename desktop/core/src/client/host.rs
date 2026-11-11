@@ -325,7 +325,7 @@ pub fn normalize_endpoint(raw: &str, transport: &Transport) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use hn_core_pin::PinSet;
+    use excubia_core_pin::PinSet;
 
     use super::*;
 

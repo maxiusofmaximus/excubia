@@ -1167,7 +1167,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "herdr-desktop-core",
- "hn-core-pin",
+ "excubia-core-pin",
  "qrcode",
  "serde",
  "serde_json",
@@ -1704,7 +1704,7 @@ dependencies = [
  "base64 0.22.1",
  "futures-util",
  "hex",
- "hn-core-pin",
+ "excubia-core-pin",
  "keyring",
  "p256",
  "rand_core 0.6.4",
@@ -1741,7 +1741,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "hn-core-pin"
+name = "excubia-core-pin"
 version = "0.1.0"
 dependencies = [
  "data-encoding",

@@ -2,7 +2,7 @@
 //! automatic pairing, a response, and the supervisor restarting a killed child.
 //!
 //! Skips (without failing) when the binaries are not built: run
-//! `scripts/build-host.ps1` and build `hn-core-test-support` first.
+//! `scripts/build-host.ps1` and build `excubia-core-test-support` first.
 
 mod common;
 

@@ -30,7 +30,7 @@ $env:CARGO_BUILD_JOBS = "4"
 Write-Output "compilando excubia-host + excubia-mcp ($Profile) desde $CoreDir"
 $buildArgs = @()
 if ($Profile -eq "release") { $buildArgs += "--release" }
-& cargo build @buildArgs -p hn-core-host -p hn-core-seat --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
+& cargo build @buildArgs -p excubia-core-host -p excubia-core-seat --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
 if ($LASTEXITCODE -ne 0) { throw "cargo build falló con $LASTEXITCODE" }
 
 $built = Join-Path $targetDir "$Profile\host.exe"

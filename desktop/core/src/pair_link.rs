@@ -4,7 +4,7 @@
 
 use std::net::SocketAddr;
 
-use hn_core_pin::{unix_now, PairingLink, PinError, PinSet};
+use excubia_core_pin::{unix_now, PairingLink, PinError, PinSet};
 
 use crate::client::{pair_device, PairResponse};
 use crate::error::{CoreError, Result};

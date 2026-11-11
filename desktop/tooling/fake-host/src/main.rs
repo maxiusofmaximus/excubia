@@ -14,17 +14,17 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
-use hn_core_api::{serve, serve_client, serve_internal, AgentActions, ApiConfig, ApiContext, TlsListener};
-use hn_core_auth::{DeviceStore, Permission};
-use hn_core_chat::{ChatSeat, ChatStore};
-use hn_core_host::cli::{self, Command, DevicesCommand, RunOptions};
-use hn_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
-use hn_core_host::tls_slots::TlsSlots;
-use hn_core_host::{load_agents, load_hook_token, paths, AgentHost, HostOptions, SpawnSpec};
-use hn_core_pin::{unix_now, PairingLink};
-use hn_core_pty::PtySize;
-use hn_core_seat::{test_profile, SeatConfig, SeatService};
-use hn_core_state::StateStore;
+use excubia_core_api::{serve, serve_client, serve_internal, AgentActions, ApiConfig, ApiContext, TlsListener};
+use excubia_core_auth::{DeviceStore, Permission};
+use excubia_core_chat::{ChatSeat, ChatStore};
+use excubia_core_host::cli::{self, Command, DevicesCommand, RunOptions};
+use excubia_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
+use excubia_core_host::tls_slots::TlsSlots;
+use excubia_core_host::{load_agents, load_hook_token, paths, AgentHost, HostOptions, SpawnSpec};
+use excubia_core_pin::{unix_now, PairingLink};
+use excubia_core_pty::PtySize;
+use excubia_core_seat::{test_profile, SeatConfig, SeatService};
+use excubia_core_state::StateStore;
 use tokio::task::JoinHandle;
 
 const SEAT_QUEUE: usize = 8;
@@ -168,7 +168,7 @@ async fn run(options: RunOptions) -> Result<()> {
     let lan_listener = match options.tls_bind {
         Some(address) => {
             let identity = TlsSlots::open(&options.data_dir).active()?;
-            let config = Arc::new(hn_core_pin::server_config(&identity)?);
+            let config = Arc::new(excubia_core_pin::server_config(&identity)?);
             let bound = TlsListener::bind(address, config)
                 .await
                 .with_context(|| format!("bind {address}"))?;
