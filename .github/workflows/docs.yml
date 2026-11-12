@@ -9,7 +9,7 @@
 #                      copian desde core/docs y apk/docs con docs/techdocs/build.sh.
 #   /api/              índice de la API (docs/site/api)
 #   /api/rust/core/    rustdoc de core/ (workspace)
-#   /api/rust/desktop/ rustdoc de desktop/core (herdr-desktop-core)
+#   /api/rust/desktop/ rustdoc de desktop/core (excubia-desktop-core)
 #   /api/rust/apk/     rustdoc de apk/mobile/rust (apk_core)
 #   /api/dart/         dartdoc de apk/mobile
 #   /manual/           redirección a /guide/
@@ -76,7 +76,7 @@ jobs:
         run: cargo doc --locked --no-deps --workspace --manifest-path core/Cargo.toml --target-dir target-docs/core
 
       - name: rustdoc de desktop/core
-        run: cargo doc --locked --no-deps -p herdr-desktop-core --manifest-path desktop/Cargo.toml --target-dir target-docs/desktop
+        run: cargo doc --locked --no-deps -p excubia-desktop-core --manifest-path desktop/Cargo.toml --target-dir target-docs/desktop
 
       - name: rustdoc de apk/mobile/rust
         run: cargo doc --locked --no-deps --manifest-path apk/mobile/rust/Cargo.toml --target-dir target-docs/apk
@@ -102,7 +102,7 @@ jobs:
           cp -r target-docs/desktop/doc _site/api/rust/desktop
           cp -r target-docs/apk/doc _site/api/rust/apk
           # rustdoc no crea index.html en la raíz de cada árbol: se redirige a su crate principal.
-          for par in core:excubia_core_host desktop:herdr_desktop_core apk:apk_core; do
+          for par in core:excubia_core_host desktop:excubia_desktop_core apk:apk_core; do
             dir="${par%%:*}"
             main="${par##*:}"
             cat > "_site/api/rust/$dir/index.html" <<EOF
