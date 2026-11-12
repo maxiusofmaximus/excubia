@@ -52,7 +52,7 @@ class _Engine implements ChatTransport {
 
   @override
   Future<String> postBytes(String target, List<int> body, String contentType) =>
-      throw UnimplementedError();
+      call('POST', target, body);
 
   @override
   Future<List<int>> callBytes(String method, String target) =>
