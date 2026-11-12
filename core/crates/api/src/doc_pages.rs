@@ -35,10 +35,25 @@ pub struct RenderedPage {
     pub pages: Option<u32>,
 }
 
-/// Renders one page of a stored document as PNG. It runs processes, so the API
-/// calls it off the async runtime.
+/// One document CLI the host found at start, as the app names it.
+#[derive(Debug, PartialEq, Eq)]
+pub struct DocTool {
+    /// The stable identifier the app uses: `gridcraft`, `wordcraft`, `pdfcraft`.
+    pub app: &'static str,
+    /// The name the user reads.
+    pub name: &'static str,
+    pub available: bool,
+    /// The version these apps were tested with, whether present or not.
+    pub tested_version: &'static str,
+}
+
+/// The host's document CLIs: rendering a page, and the tools it found at start.
+/// Rendering runs processes, so the API calls it off the async runtime.
 pub trait DocumentPages: Send + Sync {
     fn render_page(&self, source: &PageSource, page: u32) -> Result<RenderedPage, PageError>;
+
+    /// Every document app, in `App::ALL` order, from the discovery done at start.
+    fn tools(&self) -> [DocTool; 3];
 }
 
 /// One lock per attachment: while a page of it renders, the same request waits

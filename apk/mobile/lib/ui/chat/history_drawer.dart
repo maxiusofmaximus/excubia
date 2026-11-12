@@ -108,6 +108,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                           alertRules: widget.controller.alertRules,
                           alfred: widget.controller.alfredBackend,
                           catalog: widget.controller.triage.loadCatalog,
+                          docTools: widget.controller.triage.loadDocTools,
                           setDefaultAgent:
                               widget.controller.triage.setDefaultAgent,
                           onUnpaired: widget.onUnpaired,

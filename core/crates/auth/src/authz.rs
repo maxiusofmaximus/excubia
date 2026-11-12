@@ -112,6 +112,7 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         ("GET", "/v1/state") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/events") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/catalog") => Ok(rule(Permission::ReadState, Budget::Read)),
+        ("GET", "/v1/doc-tools") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/roles") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/devices") => Ok(rule(Permission::Admin, Budget::Read)),
         // The mail logins create accounts on the host: an admin surface, and

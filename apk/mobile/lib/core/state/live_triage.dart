@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -282,6 +283,46 @@ class LiveTriage extends ChangeNotifier {
     }
   }
 
+  /// The document tools the PC lists (`GET /v1/doc-tools`). A host that
+  /// predates the route answers 404 and the settings page hides the section.
+  Future<({List<DocTool>? tools, ErrorInfo? error, bool unsupported})>
+  loadDocTools() async {
+    try {
+      final body = await _client.call('GET', '/v1/doc-tools');
+      final tools = parseDocTools(json: body);
+      if (tools == null) {
+        return (
+          tools: null,
+          error: const ErrorInfo(
+            message: 'Respuesta inesperada del equipo.',
+            kind: FailureKind.retry,
+          ),
+          unsupported: false,
+        );
+      }
+      return (tools: tools, error: null, unsupported: false);
+    } on HostError catch (e) {
+      if (e.status == 404) {
+        return (tools: null, error: null, unsupported: true);
+      }
+      return (
+        tools: null,
+        error: explainHttpError(
+          status: e.status,
+          body: e.body,
+          action: WriteAction.read,
+        ),
+        unsupported: false,
+      );
+    } on Exception catch (e) {
+      return (
+        tools: null,
+        error: ErrorInfo(message: e.toString(), kind: FailureKind.retry),
+        unsupported: false,
+      );
+    }
+  }
+
   /// Start one agent on the host. The route and body are planned in Rust.
   Future<({CreatedWorkspace? created, ErrorInfo? error})> createConversation({
     required String agent,
@@ -452,4 +493,41 @@ class LiveTriage extends ChangeNotifier {
     unawaited(_chatSignals.close());
     super.dispose();
   }
+}
+
+/// One tool the host lists in `GET /v1/doc-tools`.
+class DocTool {
+  const DocTool({
+    required this.app,
+    required this.name,
+    required this.available,
+  });
+
+  final String app;
+  final String name;
+  final bool available;
+}
+
+/// Decode the host's `{"ok": true, "tools": [...]}` body; null when it is not
+/// that shape.
+List<DocTool>? parseDocTools({required String json}) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(json);
+  } on FormatException {
+    return null;
+  }
+  if (decoded is! Map<String, Object?> || decoded['ok'] != true) return null;
+  final tools = decoded['tools'];
+  if (tools is! List) return null;
+  final parsed = <DocTool>[];
+  for (final tool in tools) {
+    if (tool is! Map<String, Object?>) return null;
+    final app = tool['app'];
+    final name = tool['name'];
+    final available = tool['available'];
+    if (app is! String || name is! String || available is! bool) return null;
+    parsed.add(DocTool(app: app, name: name, available: available));
+  }
+  return parsed;
 }

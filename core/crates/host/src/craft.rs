@@ -6,9 +6,10 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use excubia_core_api::{DocumentPages, PageError, PageSource, RenderedPage};
+use excubia_core_api::{DocTool, DocumentPages, PageError, PageSource, RenderedPage};
 use excubia_core_crafting::{
-    CraftError, Document, Driver, Kind, Preview, ProcessRunner, ReadOpts, ReadOut, Runner, Tools,
+    App, CraftError, Document, Driver, Kind, Preview, ProcessRunner, ReadOpts, ReadOut, Runner,
+    Tools,
 };
 
 /// Where the CLIs write their work files: a folder under the data directory.
@@ -77,6 +78,15 @@ impl DocumentPages for Craft {
         Ok(RenderedPage {
             png: preview.png,
             pages: preview.pages,
+        })
+    }
+
+    fn tools(&self) -> [DocTool; 3] {
+        App::ALL.map(|app| DocTool {
+            app: app.id(),
+            name: app.name(),
+            available: self.tools.available(app),
+            tested_version: app.tested_version(),
         })
     }
 }

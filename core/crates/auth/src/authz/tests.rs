@@ -57,6 +57,14 @@ fn the_matrix_classifies_every_route() {
         classify("GET", "/v1/catalog").unwrap().permission,
         Some(Permission::ReadState)
     );
+    assert_eq!(
+        classify("GET", "/v1/doc-tools").unwrap().permission,
+        Some(Permission::ReadState)
+    );
+    assert_eq!(
+        classify("GET", "/v1/doc-tools").unwrap().budget,
+        Budget::Read
+    );
     // Repointing an agent is the owner's decision: APPROVE, never an agent's RESPOND.
     assert_eq!(
         classify("POST", "/v1/catalog/codex/fix")

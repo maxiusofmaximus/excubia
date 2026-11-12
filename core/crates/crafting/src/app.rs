@@ -18,6 +18,15 @@ impl App {
         }
     }
 
+    /// The stable identifier the app uses for the tool.
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::GridCraft => "gridcraft",
+            Self::WordCraft => "wordcraft",
+            Self::PdfCraft => "pdfcraft",
+        }
+    }
+
     /// The executable's base name; `.exe` is added on Windows.
     pub fn cli(self) -> &'static str {
         match self {
@@ -29,11 +38,7 @@ impl App {
 
     /// The folder under `<datos>/tools/` where the portable build is unzipped.
     pub fn dir(self) -> &'static str {
-        match self {
-            Self::GridCraft => "gridcraft",
-            Self::WordCraft => "wordcraft",
-            Self::PdfCraft => "pdfcraft",
-        }
+        self.id()
     }
 
     /// The key in `crafting.json` that holds the executable's path.

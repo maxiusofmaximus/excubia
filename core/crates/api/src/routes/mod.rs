@@ -11,6 +11,7 @@ mod catalog;
 mod chat;
 mod contacts;
 mod devices;
+mod doc_tools;
 mod events;
 mod hires;
 mod hooks;
@@ -53,6 +54,7 @@ pub use chat::{
     upsert as chat_upsert_section,
 };
 pub use devices::{device_sas, grant_device, list_devices, revoke_device};
+pub use doc_tools::list as doc_tools;
 pub use events::events;
 pub use hires::{
     create as create_hire, dismiss as dismiss_hire, list as list_hires, team_summary,

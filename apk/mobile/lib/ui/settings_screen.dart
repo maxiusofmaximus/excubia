@@ -14,6 +14,7 @@ import 'alfred/alfred_engine_section.dart';
 import 'alerts/alerts_screen.dart';
 import 'chat/approval_entry.dart';
 import 'chat/voice_settings_screen.dart';
+import 'doc_tools/doc_tools_section.dart';
 import 'mail/mail_settings_screen.dart';
 import 'new_conversation_screen.dart' show CatalogLoader;
 import 'palette/palette_screen.dart';
@@ -38,6 +39,7 @@ class SettingsScreen extends StatelessWidget {
     this.alfredSeat,
     this.catalog,
     this.setDefaultAgent,
+    this.docTools,
   });
 
   final MailApi mail;
@@ -59,6 +61,9 @@ class SettingsScreen extends StatelessWidget {
 
   /// Makes an installed agent the PC's default; the Alfred section offers it.
   final DefaultAgentSetter? setDefaultAgent;
+
+  /// The document tools the PC lists; without it the section is hidden.
+  final DocToolsLoader? docTools;
 
   Future<void> _confirmRepair(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -122,6 +127,7 @@ class SettingsScreen extends StatelessWidget {
             catalog: catalog,
             setDefault: setDefaultAgent,
           ),
+          if (docTools != null) DocToolsSection(load: docTools!),
           const SizedBox(height: Spacing.xl),
           if (approvals != null) ...[
             _SettingsSection(

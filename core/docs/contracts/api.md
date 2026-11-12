@@ -36,6 +36,7 @@ request to the port is refused at the handshake.
 | `GET` | `/v1/catalog` | signed | `READ_STATE` | read | The agents this host can start, by name, and this PC's default |
 | `POST` | `/v1/catalog/default` | signed | `APPROVE` | write | Name the agent new conversations on this PC start with |
 | `POST` | `/v1/catalog/{name}/fix` | signed | `APPROVE` | write | Point an agent Windows cannot start at its `.CMD` shim |
+| `GET` | `/v1/doc-tools` | signed | `READ_STATE` | read | The document CLIs this PC has: names, availability and tested version |
 | `GET` | `/v1/roles` | signed | `READ_STATE` | read | The role catalogue: areas, roles and levels (not the CLIs of `/v1/catalog`) |
 | `GET` | `/v1/hires` | signed | `READ_STATE` | read | The professionals contracted (`?include_removed=true` adds the dismissed) |
 | `POST` | `/v1/hires` | signed | `APPROVE` | write | Contract one role: `201` when new, `200` when already hired |
@@ -254,6 +255,24 @@ can be added, removed or edited without restarting the host; creation
 reported in an additive `warning` string on this response, while the last good
 catalogue keeps being served (creation keeps working with it). The warning
 disappears once the file parses again.
+
+### `GET /v1/doc-tools`
+
+The document CLIs this PC has (GridCraft, WordCraft, PdfCraft), discovered when
+the host starts. Always the three, in `App::ALL` order; `tested_version` is
+shown even when the app is missing. Read-only: it never downloads or installs
+anything, and it **never** returns a path.
+
+Response:
+
+```json
+{ "ok": true, "tools": [
+  { "app": "gridcraft", "name": "GridCraft", "available": true, "tested_version": "0.16.1" },
+  { "app": "wordcraft", "name": "WordCraft", "available": false, "tested_version": "0.15.2" },
+  { "app": "pdfcraft", "name": "PdfCraft", "available": true, "tested_version": "0.18.2" } ] }
+```
+
+Permission: `READ_STATE`.
 
 ### `GET /v1/roles`
 

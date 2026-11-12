@@ -31,7 +31,7 @@ pub mod voice;
 pub use alfred::{AlfredBackend, BackendStatus, EngineListing, Requested};
 pub use audit::{AuditEvent, AuditSink};
 pub use catalog::{AgentCatalog, AgentSpec};
-pub use doc_pages::{DocumentPages, PageError, PageSource, PreviewLocks, RenderedPage};
+pub use doc_pages::{DocTool, DocumentPages, PageError, PageSource, PreviewLocks, RenderedPage};
 pub use error::ApiError;
 pub use mail::{
     DraftEdit, MailAccount, MailActions, MailDraft, MailDraftAttachment, MailFailure,
@@ -239,6 +239,7 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route("/v1/catalog", get(routes::catalog))
         .route("/v1/catalog/default", post(routes::catalog_set_default))
         .route("/v1/catalog/{name}/fix", post(routes::catalog_fix))
+        .route("/v1/doc-tools", get(routes::doc_tools))
         .route("/v1/roles", get(routes::role_catalog))
         .route(
             "/v1/hires",
