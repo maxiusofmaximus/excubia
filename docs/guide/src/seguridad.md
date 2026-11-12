@@ -1,6 +1,6 @@
 # Seguridad en lenguaje llano
 
-herdr notify da acceso al estado de tus agentes y a sus permisos. Estas son las reglas que
+Excubia da acceso al estado de tus agentes y a sus permisos. Estas son las reglas que
 conviene conocer.
 
 ## El certificado del host tiene una huella

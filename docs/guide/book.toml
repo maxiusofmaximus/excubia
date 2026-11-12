@@ -1,7 +1,7 @@
 [book]
-title = "herdr notify: guía de usuario"
-description = "Cómo instalar, emparejar y usar la app Android y el host de escritorio de herdr notify."
-authors = ["herdr notify"]
+title = "Excubia: guía de usuario"
+description = "Cómo instalar, emparejar y usar la app Android y el host de escritorio de Excubia."
+authors = ["Excubia"]
 language = "es"
 src = "src"
 
@@ -10,6 +10,6 @@ build-dir = "book"
 create-missing = false
 
 [output.html]
-site-url = "/herdr-notify/guide/"
+site-url = "/excubia/guide/"
 theme = "../shared/theme"
-git-repository-url = "https://github.com/maxiusofmaximus/herdr-notify"
+git-repository-url = "https://github.com/maxiusofmaximus/excubia"

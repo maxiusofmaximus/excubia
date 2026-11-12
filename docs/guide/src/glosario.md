@@ -10,7 +10,7 @@ agentes y se delegan tareas.
 **Permitir una vez** o **Denegar**.
 
 **Código de emparejamiento.** Código de un solo uso que el host crea con `host pair-code`. Va
-dentro del enlace `herdr-notify://pair?…` o del código QR, y caduca a los 600 segundos por
+dentro del enlace `excubia://pair?…` o del código QR, y caduca a los 600 segundos por
 defecto.
 
 **Código de recuperación.** Código que permite volver a unir un dispositivo al host sin crear una

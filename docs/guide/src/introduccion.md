@@ -1,9 +1,9 @@
-# Qué es herdr notify
+# Qué es Excubia
 
-herdr notify te permite ver desde el móvil lo que hacen tus agentes de programación
+Excubia te permite ver desde el móvil lo que hacen tus agentes de programación
 que corren en tu PC, y responder a sus peticiones sin estar delante. Tiene tres piezas:
 
-- **La app Android** (`dev.herdrnotify.app`). Muestra tus agentes, las peticiones que
+- **La app Android** (`dev.excubia.app`). Muestra tus agentes, las peticiones que
   esperan tu decisión y el chat con Alfred. Puedes aprobar o denegar desde ella.
 - **El host**. Es un proceso que corre en tu PC. Es el único que habla con los agentes,
   guarda su estado y decide qué puede hacer cada dispositivo.
@@ -23,8 +23,6 @@ después de [emparejarse](emparejar.md) con él.
 
 - **Avisos con la app cerrada.** Las notificaciones push (FCM) todavía no están
   implementadas. Mientras la app está abierta, los cambios llegan en tiempo real.
-- **Instalador del escritorio.** Todavía no hay un instalador publicado. Hoy el host y el
-  escritorio se compilan desde el código.
 
 ## Cómo leer esta guía
 

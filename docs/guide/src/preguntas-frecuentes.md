@@ -46,5 +46,5 @@ issue público con los detalles de la vulnerabilidad.
 
 ## ¿Dónde está el código?
 
-En [GitHub](https://github.com/maxiusofmaximus/herdr-notify). La documentación técnica de los
+En [GitHub](https://github.com/maxiusofmaximus/excubia). La documentación técnica de los
 contratos y las RFC está en [documentación técnica](../docs/index.html).

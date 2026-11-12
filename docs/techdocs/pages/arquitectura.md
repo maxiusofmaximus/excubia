@@ -1,12 +1,12 @@
 # Arquitectura
 
-herdr notify tiene tres componentes que se compilan por separado. Cada uno tiene su propio
+Excubia tiene tres componentes que se compilan por separado. Cada uno tiene su propio
 README y su propio sistema de compilación.
 
 | Componente | Carpeta | Qué es |
 |---|---|---|
 | Host | `core/` | Proceso en Rust que gestiona las sesiones de los agentes, la API cliente (HTTPS y SSE), el emparejamiento de dispositivos y las aprobaciones. |
-| App Android | `apk/` | Interfaz en Flutter (`apk/mobile`) con un núcleo cliente en Rust (crate `apk_core`). Paquete `dev.herdrnotify.app`. |
+| App Android | `apk/` | Interfaz en Flutter (`apk/mobile`) con un núcleo cliente en Rust (crate `apk_core`). Paquete `dev.excubia.app`. |
 | Escritorio | `desktop/` | Aplicación Tauri 2 que aloja el núcleo del host como proceso auxiliar (sidecar). |
 
 ## Crates del núcleo
@@ -16,7 +16,7 @@ README y su propio sistema de compilación.
 - `chat`: conversaciones con Alfred, delegaciones y aprobaciones.
 - `detect`: detección de qué agente corre y de en qué estado está (`idle`, `working`,
   `blocked`, `unknown`).
-- `host`: los binarios `host` y `hn-mcp`.
+- `host`: los binarios `host` y `excubia-mcp`.
 - `persist`: persistencia del estado.
 - `pin`: identidad TLS del host y la regla de huella con la que los dispositivos la verifican.
 - `pty`: sesiones de terminal propias del host.

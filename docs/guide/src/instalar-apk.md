@@ -1,7 +1,7 @@
 # Instalar la app Android
 
 La app se publica como un archivo APK en la página de
-[Releases de GitHub](https://github.com/maxiusofmaximus/herdr-notify/releases).
+[Releases de GitHub](https://github.com/maxiusofmaximus/excubia/releases).
 
 ## Pasos
 

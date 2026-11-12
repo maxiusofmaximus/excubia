@@ -26,7 +26,7 @@ El enlace de emparejamiento tiene tres datos importantes:
    host pair-code --lan <IP-del-PC>:8443
    ```
 
-2. Copia el enlace que imprime. Empieza por `herdr-notify://pair?`.
+2. Copia el enlace que imprime. Empieza por `excubia://pair?`.
 3. En la app, pulsa **Pegar enlace** y pega el enlace.
 
 Si la app no llega al PC, añade la dirección en **Avanzado** o usa el QR. Si cambia la IP

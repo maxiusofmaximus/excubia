@@ -1,6 +1,6 @@
 # Resumen
 
-[Qué es herdr notify](introduccion.md)
+[Qué es Excubia](introduccion.md)
 [Inicio rápido](inicio-rapido.md)
 
 - [Instalar la app Android](instalar-apk.md)

@@ -3,19 +3,19 @@
      haya ficheros extra que copiar. Los selectores html.<tema> ganan a los de mdBook. */
   html.light,
   html.rust {
-    --links: #0f6b6b;
-    --sidebar-active: #0f6b6b;
+    --links: #1f3f8f;
+    --sidebar-active: #1f3f8f;
   }
   html.navy,
   html.coal,
   html.ayu {
-    --links: #7fd6cc;
-    --sidebar-active: #7fd6cc;
+    --links: #f2a93b;
+    --sidebar-active: #f2a93b;
   }
   /* mdBook da al .page un margen superior de -50px para la barra de menú. Como esta
      fila es su primer hijo, ese margen la subiría fuera de la pantalla; el margen
      propio de 50px lo compensa y deja la fila en la parte superior. */
-  .herdr-nav {
+  .site-nav {
     margin-top: 50px;
     display: flex;
     flex-wrap: wrap;
@@ -25,12 +25,12 @@
     font-size: 1.4rem;
     border-bottom: 1px solid rgba(127, 127, 127, 0.35);
   }
-  .herdr-nav a {
+  .site-nav a {
     color: var(--links);
     font-weight: 600;
     text-decoration: none;
   }
-  .herdr-nav a:hover {
+  .site-nav a:hover {
     text-decoration: underline;
   }
 </style>

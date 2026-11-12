@@ -1,7 +1,7 @@
 [book]
-title = "herdr notify: documentación técnica"
-description = "Contratos, RFC, revisión de seguridad y arquitectura de herdr notify."
-authors = ["herdr notify"]
+title = "Excubia: documentación técnica"
+description = "Contratos, RFC, revisión de seguridad y arquitectura de Excubia."
+authors = ["Excubia"]
 language = "es"
 src = "src"
 
@@ -10,6 +10,6 @@ build-dir = "book"
 create-missing = false
 
 [output.html]
-site-url = "/herdr-notify/docs/"
+site-url = "/excubia/docs/"
 theme = "../shared/theme"
-git-repository-url = "https://github.com/maxiusofmaximus/herdr-notify"
+git-repository-url = "https://github.com/maxiusofmaximus/excubia"

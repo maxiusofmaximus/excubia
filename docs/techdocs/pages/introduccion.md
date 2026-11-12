@@ -1,6 +1,6 @@
 # Documentación técnica
 
-Esta sección describe cómo funciona herdr notify por dentro: los contratos entre componentes,
+Esta sección describe cómo funciona Excubia por dentro: los contratos entre componentes,
 las propuestas de diseño (RFC), la revisión de seguridad.
 
 Los contratos y las RFC están en inglés. La portada, la arquitectura y la navegación están en

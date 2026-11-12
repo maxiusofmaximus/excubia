@@ -1,10 +1,27 @@
 # Instalar el host y el escritorio
 
 El **host** es el proceso que corre en tu PC. El **escritorio** es la app de Windows que
-lo arranca. Todavía no hay un instalador publicado para el escritorio, así que hoy se
-compila desde el código.
+lo arranca. Al instalar el escritorio ya tienes el host: no hay que instalarlo aparte.
 
-## Compilar
+## Instalar
+
+Abre PowerShell y pega esta línea:
+
+```powershell
+irm https://raw.githubusercontent.com/maxiusofmaximus/excubia/main/desktop/scripts/install.ps1 | iex
+```
+
+El script descarga el instalador de la última versión de escritorio publicada, comprueba su
+huella SHA-256 con la que registra GitHub y lo instala para tu usuario. Después abre
+**Excubia** desde el menú Inicio.
+
+Si prefieres hacerlo a mano, descarga el archivo `-setup.exe` de la última versión
+`desktop-v…` en las [Releases de GitHub](https://github.com/maxiusofmaximus/excubia/releases)
+y ejecútalo.
+
+## Compilar desde el código
+
+Solo hace falta si quieres modificar Excubia.
 
 Desde la carpeta `desktop` del repositorio:
 
@@ -15,32 +32,36 @@ Desde la carpeta `desktop` del repositorio:
    ```
 
    El script espera que el código del núcleo esté en una carpeta llamada `core` junto a
-   `desktop`. Si está en otro sitio, pasa la ruta con `-CoreDir`. Copia el host y `hn-mcp`
-   a `src-tauri\binaries`. Sin la herramienta `hn-mcp`, cada mensaje a Alfred falla con
+   `desktop`. Si está en otro sitio, pasa la ruta con `-CoreDir`. Copia el host y `excubia-mcp`
+   a `src-tauri\binaries`. Sin la herramienta `excubia-mcp`, cada mensaje a Alfred falla con
    `409 seat_unavailable`.
 
 2. Compila la app de escritorio. Para desarrollo:
 
    ```powershell
-   cargo build -p herdr-notify-desktop
+   cargo build -p excubia-desktop
    ```
 
    Para generar la app completa, el repositorio indica
    `pnpm dlx @tauri-apps/cli@latest build`. Necesitas las herramientas de Tauri instaladas.
 
-En esta guía, `host` significa el ejecutable `host.exe` que genera la compilación.
+En esta guía, `host` significa el ejecutable `excubia-host.exe`.
 
 ## Dónde guarda sus datos
 
 | Qué | Dónde |
 |---|---|
-| Datos del escritorio y del host que arranca | `%APPDATA%\dev.herdrnotify.desktop\core` |
-| Registro del host (`host.log`) | `%LOCALAPPDATA%\dev.herdrnotify.desktop\logs\host.log` |
-| Host ejecutado sin el escritorio | `%APPDATA%\herdr-notify` |
+| Datos del escritorio y del host que arranca | `%APPDATA%\dev.excubia.desktop\core` |
+| Registro del host (`host.log`) | `%LOCALAPPDATA%\dev.excubia.desktop\logs\host.log` |
+| Host ejecutado sin el escritorio | `%APPDATA%\excubia` |
 
 La carpeta del host sin escritorio se puede cambiar con la variable de entorno
-`HERDR_NOTIFY_DATA_DIR` o con la opción `--data-dir`. La clave privada del escritorio se
+`EXCUBIA_DATA_DIR` o con la opción `--data-dir`. La clave privada del escritorio se
 guarda en el almacén de credenciales de Windows, no en esas carpetas.
+
+Si vienes de una versión anterior al cambio de nombre (cuando el producto se llamaba
+«herdr notify»), el host y el escritorio trasladan solos sus carpetas antiguas
+(`%APPDATA%\herdr-notify`, `dev.herdrnotify.desktop`) a las nuevas la primera vez que arrancan.
 
 ## Comandos del host
 

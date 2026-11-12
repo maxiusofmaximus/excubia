@@ -3,16 +3,16 @@
 Esta página resume el camino completo. Cada paso tiene su capítulo con más detalle.
 
 1. **Instala la app en el móvil.** Descarga el APK de la última versión desde las
-   [Releases de GitHub](https://github.com/maxiusofmaximus/herdr-notify/releases) e instálalo.
+   [Releases de GitHub](https://github.com/maxiusofmaximus/excubia/releases) e instálalo.
    Detalles en [instalar la app Android](instalar-apk.md).
 
-2. **Compila el host en el PC.** Desde la carpeta `desktop` del repositorio:
+2. **Instala el escritorio en el PC.** Abre PowerShell y pega:
 
    ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-host.ps1
+   irm https://raw.githubusercontent.com/maxiusofmaximus/excubia/main/desktop/scripts/install.ps1 | iex
    ```
 
-   Después arranca el host (`host`) y déjalo en marcha. Detalles en
+   Después abre Excubia desde el menú Inicio: el escritorio arranca el host. Detalles en
    [instalar el host y el escritorio](instalar-host.md).
 
 3. **Empareja el móvil.** En el escritorio, activa la red local y pulsa **Mostrar código QR**.
