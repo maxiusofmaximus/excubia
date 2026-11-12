@@ -26,6 +26,4 @@ flutter test
 cargo test --manifest-path rust/Cargo.toml
 ```
 
-Las versiones firmadas se publican en GitHub Releases. Los documentos de
-`docs/` que hablan de `gateway`, `add-device` o Tailscale describen la
-arquitectura anterior a la 2.0 y se conservan como registro histórico.
+Las versiones firmadas se publican en GitHub Releases.

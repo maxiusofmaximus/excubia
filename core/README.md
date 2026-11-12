@@ -15,7 +15,7 @@ Hitos y verificaciones: [`docs/roadmap.md`](docs/roadmap.md).
 
 | Crate | Qué hace |
 |-------|----------|
-| `excubia-core-host` (bin `host`) | Hospeda agentes CLI: un pty por agente, detector y API local |
+| `excubia-core-host` (bin `excubia-host`) | Hospeda agentes CLI: un pty por agente, detector y API local |
 | `excubia-core-api` | API local HTTP + SSE con peticiones firmadas (contratos en `docs/contracts/`) |
 | `excubia-core-auth` | Emparejamiento, verificación de firmas P-256 / Ed25519 y autorización |
 | `excubia-core-state` | Estado autoritativo de los agentes |
@@ -51,7 +51,7 @@ docs/        contratos (docs/contracts/), RFC, roadmap, notas del núcleo
 
 ```bash
 cargo build --workspace
-cargo run -p excubia-core-host --bin host -- --help   # imprime el uso
+cargo run -p excubia-core-host --bin excubia-host -- --help   # imprime el uso
 ```
 
 ## Testing
@@ -66,12 +66,6 @@ Los vectores dorados de firma viven en `docs/contracts/vectors/signing_vectors.j
 y los comprueba `excubia-core-test-support`.
 
 JavaScript del worktree: pnpm o vp; no npm.
-
-## Integración con herdr (retirada)
-
-Excubia ya no depende de herdr: el host hospeda los agentes él mismo.
-[`docs/herdr-integration.md`](docs/herdr-integration.md) se conserva solo como
-registro histórico del cliente que existió.
 
 ## Seguridad
 
@@ -92,6 +86,3 @@ El host supervisa los ptys de los agentes, así que es la parte sensible:
 - Los dispositivos verifican la identidad TLS del host por pin (`crates/pin`).
 - Secretos fuera de git: `service-account*.json` y `google-services.json`
   (`.gitignore`).
-
-Revisión de seguridad previa: [`docs/security-review.md`](docs/security-review.md)
-(su alcance original fue la implementación Python retirada).
