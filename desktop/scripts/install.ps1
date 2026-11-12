@@ -1,9 +1,9 @@
 # Installs the newest Excubia desktop release for the current user:
 #
-#   irm https://github.com/maxiusofmaximus/excubia/releases/download/desktop-v2.3.1/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/maxiusofmaximus/excubia/main/desktop/scripts/install.ps1 | iex
 #
-# It always fetches the newest `desktop-v*` release, whatever tag this copy came
-# from. The installer is checked against the SHA-256 GitHub records for the asset.
+# It always fetches the newest `desktop-v*` release and checks the installer
+# against the SHA-256 GitHub records for the asset.
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
