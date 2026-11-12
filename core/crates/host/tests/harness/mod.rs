@@ -284,6 +284,14 @@ pub enum SeatKind {
         /// How long the plugin waits for the operator, in seconds.
         approval_ttl_seconds: u64,
     },
+    /// The default seat is the simulated CLI; the `alfred-engine` marker names OpenCode, which
+    /// listed as ready. A turn that asks for an approval therefore ran through the marker.
+    OpenCodeEngine {
+        turn_timeout: Duration,
+        plugin_dir: PathBuf,
+        provider_url: String,
+        approval_ttl_seconds: u64,
+    },
     /// A seat with no chat turn, only an MCP endpoint.
     Tools,
 }
@@ -523,6 +531,37 @@ impl TestHost {
                 })
                 .expect("seat service"),
             ),
+            SeatKind::OpenCodeEngine {
+                turn_timeout,
+                plugin_dir,
+                provider_url,
+                approval_ttl_seconds,
+            } => {
+                let engines =
+                    excubia_core_host::ready_engines(&[real_opencode()], &[CliId::OpenCode]);
+                let marker_dir = data_dir.clone();
+                Some(
+                    SeatService::start(SeatConfig {
+                        data_dir: data_dir.clone(),
+                        chat: Arc::clone(&chat),
+                        mcp_command: PathBuf::from(env!("CARGO_BIN_EXE_excubia-mcp")),
+                        tool_url: tool_url.clone(),
+                        hook_url: format!("http://{addr}"),
+                        hook_command: hook_command(),
+                        plugin_dir: Some(plugin_dir),
+                        profiles: vec![test_profile(env!("CARGO_BIN_EXE_fake-cli"))],
+                        queue_capacity: 1,
+                        turn_timeout,
+                        turn_env: opencode_turn_env(&data_dir, &provider_url, approval_ttl_seconds),
+                        engines,
+                        turn_engine: Arc::new(move || {
+                            excubia_core_host::alfred_backend::engine(&marker_dir)
+                        }),
+                        on_quota_exhausted: quota_counter(),
+                    })
+                    .expect("seat service"),
+                )
+            }
             SeatKind::CliMissing => Some(
                 SeatService::start(SeatConfig {
                     data_dir: data_dir.clone(),
@@ -589,7 +628,10 @@ impl TestHost {
             SeatKind::Fake => Arc::new(FakeSeat::replying(Arc::clone(&chat))),
             SeatKind::Silent => Arc::new(FakeSeat::silent()),
             SeatKind::Tools => Arc::new(ToolSeat),
-            SeatKind::Cli { .. } | SeatKind::CliMissing | SeatKind::OpenCode { .. } => {
+            SeatKind::Cli { .. }
+            | SeatKind::CliMissing
+            | SeatKind::OpenCode { .. }
+            | SeatKind::OpenCodeEngine { .. } => {
                 let service = seat_service.expect("the CLI seat needs a service");
                 Arc::clone(&service) as Arc<dyn ChatSeat>
             }

@@ -149,6 +149,43 @@ async fn an_approved_command_runs_once_through_the_real_opencode() {
     assert_eq!(consumed_count(&client).await, 1);
 }
 
+/// Alfred's engine marker names OpenCode: the turn runs through it (the default seat is a
+/// simulated CLI that never asks for approvals), and the approval gate decides the command.
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "runs the real OpenCode binary with the UAC plugin"]
+async fn an_alfred_turn_on_the_engine_marker_runs_through_the_real_opencode() {
+    let work = TestDir::new("opencode-engine-marker");
+    let marker = marker_in(&work);
+    let provider = CanaryProvider::start(&canary_command(&marker))
+        .await
+        .expect("provider");
+    let seat = SeatKind::OpenCodeEngine {
+        turn_timeout: CLI_TIMEOUT,
+        plugin_dir: plugin_dir(),
+        provider_url: provider.base_url().to_string(),
+        approval_ttl_seconds: 45,
+    };
+    let host = TestHost::start_with_seat("opencode-engine-marker", TTL, seat).await;
+    let (client, paired) = host.pair("Desktop engine marker").await;
+    host.grant(&paired.device_id, Permission::ReadState);
+    host.grant(&paired.device_id, Permission::Respond);
+    host.grant(&paired.device_id, Permission::Approve);
+    excubia_core_host::alfred_backend::set_engine(&host.data_dir, "opencode").expect("marker");
+
+    let run_id = send(&client, "Motor por marcador").await;
+    let approval = wait_for_approval(&client, "pending", CLI_TIMEOUT).await;
+    assert_eq!(approval["kind"], "command");
+    let approval_id = approval["id"].as_str().expect("id").to_string();
+    let decided = client
+        .chat_decide_approval(&approval_id, "approve", &paired.device_id)
+        .await
+        .expect("decision");
+    assert_eq!(decided["approval"]["status"], "approved");
+
+    wait_for_run_end(&host, &run_id, CLI_TIMEOUT).await;
+    assert!(marker.exists(), "the approved command did not run");
+}
+
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "runs the real OpenCode binary with the UAC plugin"]
 async fn a_denied_command_does_not_run_through_the_real_opencode() {

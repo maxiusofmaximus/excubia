@@ -120,7 +120,7 @@ impl CliProfile {
                 PromptDelivery::AgentConfig,
                 McpDeclaration::OpenCodeJson,
                 Isolation::OpenCodeConfigDir,
-                TurnMode::Session
+                TurnMode::PtyStdin
             ) | (
                 PromptDelivery::TestStdin,
                 McpDeclaration::TestJson,
@@ -209,7 +209,8 @@ pub fn shipped() -> Vec<CliProfile> {
             // Proven on opencode 2.2.6 by `tests/opencode_uac.rs` (approve runs once,
             // deny and TTL do not run). The seat still launches only with a Safe canary.
             hook: HookSupport::Blocking,
-            mode: TurnMode::Session,
+            // One process per turn: a reused OpenCode session stopped answering on the free tier.
+            mode: TurnMode::PtyStdin,
         },
     ]
 }
@@ -327,7 +328,7 @@ mod tests {
         assert_eq!(opencode.mcp, McpDeclaration::OpenCodeJson);
         assert_eq!(opencode.isolation, Isolation::OpenCodeConfigDir);
         assert_eq!(opencode.hook, HookSupport::Blocking);
-        assert_eq!(opencode.mode, TurnMode::Session);
+        assert_eq!(opencode.mode, TurnMode::PtyStdin);
     }
 
     #[test]

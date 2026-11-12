@@ -330,10 +330,10 @@ Vistas previas (`GET …/attachments/{att}/preview`), con `{"detail":{"code","me
 - `422` `scope_denied` para un seat de proyecto.
 
 `chat.reply` con `attachment_ids` (DOC8): `422` `invalid_arguments` (campo `attachment_ids`)
-si hay más de 4, un id repetido o vacío, o un archivo que no existe en la conversación, no
+si hay más de 10, un id repetido o vacío, o un archivo que no existe en la conversación, no
 lo creó Alfred, ya está en otro mensaje o no está listo. Mensajes: «ese archivo no existe en
 esta conversación o no lo creó Alfred», «ese archivo ya está en otro mensaje», «ese archivo
-todavía no está listo», «un mensaje lleva como máximo 4 archivos».
+todavía no está listo», «un mensaje lleva como máximo 10 archivos».
 
 ## Approval delegation (CORE9-B)
 

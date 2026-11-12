@@ -295,11 +295,10 @@ impl AgentCatalog {
             .and_then(|agents| agents.get_mut(name))
             .and_then(|entry| entry.as_table_mut())
             .ok_or_else(|| FixError::Write(format!("agent {name:?} is not a table")))?;
-        let mut args = toml_edit::Array::new();
-        args.push("/c");
-        args.push(shim.to_string_lossy().into_owned());
-        entry["command"] = toml_edit::value("cmd.exe");
-        entry["args"] = toml_edit::value(args);
+        // The seat starts `command` with no prefix arguments, so the shim is the command itself.
+        // shortcut: a `.CMD` shim breaks on arguments with cmd metacharacters, the seat's arguments are plain, upgrade with an argument prefix in CliProfile when one needs them.
+        entry["command"] = toml_edit::value(shim.to_string_lossy().into_owned());
+        entry["args"] = toml_edit::value(toml_edit::Array::new());
         let new_text = doc.to_string();
         parse(&new_text).map_err(FixError::Write)?;
 
@@ -634,8 +633,9 @@ env = { ANTHROPIC_BASE_URL = "http://127.0.0.1:8080", ANTHROPIC_AUTH_TOKEN = "st
         if cfg!(windows) {
             assert_eq!(catalog.fix("tool").expect("fixed"), FixOutcome::Fixed);
             let spec = catalog.resolve("tool").expect("spec");
-            assert_eq!(spec.command, "cmd.exe");
-            assert_eq!(spec.args.first().map(String::as_str), Some("/c"));
+            assert_eq!(Path::new(&spec.command), dir.join("tool.CMD"));
+            assert!(spec.args.is_empty());
+            assert!(spec.runnable(), "the entry now starts as the seat runs it");
             assert_eq!(spec.label.as_deref(), Some("Tool"));
             let backups = std::fs::read_dir(&dir)
                 .expect("dir")
@@ -647,6 +647,29 @@ env = { ANTHROPIC_BASE_URL = "http://127.0.0.1:8080", ANTHROPIC_AUTH_TOKEN = "st
             assert!(matches!(catalog.fix("tool"), Err(FixError::NotFixable)));
             assert_eq!(std::fs::read_to_string(&path).expect("read"), text);
         }
+    }
+
+    /// The real Windows check: the pnpm `opencode` (an extensionless script beside a `.CMD`)
+    /// is fixed and then starts the way the seat's probe starts it. Ignored: needs OpenCode on PATH.
+    #[test]
+    #[cfg(windows)]
+    #[ignore = "needs the pnpm opencode on PATH"]
+    fn fixed_opencode_starts_with_the_seats_probe() {
+        let dir = temp_dir("fix-real");
+        let path = dir.join("agents.toml");
+        std::fs::write(
+            &path,
+            "[agents.opencode]\ncommand = \"opencode\"\nargs = []\n",
+        )
+        .expect("write");
+        let catalog = AgentCatalog::open(path).expect("open");
+        catalog.fix("opencode").expect("fix");
+        let spec = catalog.resolve("opencode").expect("spec");
+        let output = std::process::Command::new(&spec.command)
+            .arg("--version")
+            .output()
+            .expect("start");
+        assert!(output.status.success(), "the fixed command did not start");
     }
 
     #[test]

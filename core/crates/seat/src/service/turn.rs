@@ -67,7 +67,6 @@ pub(super) async fn run_turn(
         prompt: &prompt,
         tool_url: &worker.tool_url,
         mcp_command: &worker.mcp_command,
-        session_id: &worker.agent_id,
         hook_url: &worker.hook_url,
         hook_token: &hook_token,
         hook_command: &worker.hook_command,

@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use excubia_core_chat::{
     AttachmentError, ChatError, ChatSeat, ChatStore, SeatActor, SeatError, ToolError,
-    ToolErrorKind, ToolReply, ToolRequest, Turn,
+    ToolErrorKind, ToolReply, ToolRequest, Turn, MAX_ATTACHMENTS_PER_MESSAGE,
 };
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -254,16 +254,21 @@ impl Drop for SeatService {
 
 /// A file the reply named that cannot be shown: the agent reads the Spanish line and
 /// fixes its list. Any other attachment failure stays an unavailable chat.
-fn file_refusal(error: &AttachmentError) -> Option<&'static str> {
-    Some(match error {
+fn file_refusal(error: &AttachmentError) -> Option<String> {
+    let line = match error {
         AttachmentError::UnknownAttachment => {
             "ese archivo no existe en esta conversación o no lo creó Alfred"
         }
         AttachmentError::AlreadyLinked => "ese archivo ya está en otro mensaje",
         AttachmentError::NotReady => "ese archivo todavía no está listo",
-        AttachmentError::TooManyAttachments => "un mensaje lleva como máximo 4 archivos",
+        AttachmentError::TooManyAttachments => {
+            return Some(format!(
+                "un mensaje lleva como máximo {MAX_ATTACHMENTS_PER_MESSAGE} archivos"
+            ))
+        }
         _ => return None,
-    })
+    };
+    Some(line.to_string())
 }
 
 pub(crate) fn tool_chat_error(error: ChatError) -> ToolError {

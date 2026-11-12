@@ -23,7 +23,6 @@ fn input<'a>(
         prompt,
         tool_url: "http://127.0.0.1:9/internal/chat/tools",
         mcp_command: Path::new("C:\\bin\\excubia-mcp.exe"),
-        session_id: "alfred",
         hook_url: "http://127.0.0.1:9",
         hook_token: "test-hook-token",
         hook_command: Path::new("C:\\bin\\excubia-uac-hook.exe"),
@@ -202,17 +201,12 @@ fn codex_plan_uses_an_isolated_home() {
 }
 
 #[test]
-fn opencode_plan_sets_agent_prompt_and_session() {
+fn opencode_plan_sets_agent_prompt_without_a_session() {
     let profile = crate::profile::shipped().remove(2);
     let root = PathBuf::from("run-dir");
     let plan = prepare(&input(&profile, &root, "role", "prompt")).expect("plan");
-    // OpenCode takes only `ses`-prefixed session ids: the seat's id is the suffix.
-    let session = plan
-        .args
-        .iter()
-        .position(|arg| arg == "--session")
-        .expect("--session");
-    assert_eq!(plan.args[session + 1], "ses_alfred");
+    // Every turn is a fresh OpenCode session: no `--session` argument.
+    assert!(!plan.args.iter().any(|arg| arg == "--session"), "{:?}", plan.args);
     let config: serde_json::Value =
         serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
     assert_eq!(config["agent"]["alfred"]["prompt"], "role");
@@ -228,12 +222,12 @@ fn opencode_plan_sets_agent_prompt_and_session() {
 }
 
 #[test]
-fn opencode_turns_run_in_the_folder_that_outlives_them() {
-    // The session is bound to its first folder: every turn must run in the same one.
+fn opencode_turns_run_in_their_own_folder() {
+    // No session is kept, so nothing binds a turn to a folder that outlives it.
     let profile = crate::profile::shipped().remove(2);
     let root = PathBuf::from("seat").join("runs").join("turn-1");
     let plan = prepare(&input(&profile, &root, "role", "prompt")).expect("plan");
-    assert_eq!(plan.cwd, PathBuf::from("seat").join("runs"));
+    assert_eq!(plan.cwd, root);
 }
 
 #[test]

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use excubia_core_chat::{
     new_ulid, Attachment, AttachmentError, AttachmentFiles, AttachmentState, ChatError, ChatStore,
     NewConversation, ReadyFile, CHUNK_MAX_BYTES, CONVERSATION_QUOTA_BYTES, FILE_MAX_BYTES,
+    MAX_ATTACHMENTS_PER_MESSAGE,
 };
 use excubia_core_test_dir::TestDir;
 
@@ -193,12 +194,14 @@ fn links_are_all_or_nothing_and_stay_in_the_conversation() {
 }
 
 #[test]
-fn a_message_takes_at_most_four_ready_files() {
+fn a_message_takes_at_most_the_limit_of_ready_files() {
     let (store, _, _dir) = store("link-limits");
     let conversation_id = conversation(&store);
     let message_id = message(&store, &conversation_id);
-    let five: Vec<String> = (0..5).map(|_| ready(&store, &conversation_id, 1)).collect();
-    let refs: Vec<&str> = five.iter().map(String::as_str).collect();
+    let over: Vec<String> = (0..=MAX_ATTACHMENTS_PER_MESSAGE)
+        .map(|_| ready(&store, &conversation_id, 1))
+        .collect();
+    let refs: Vec<&str> = over.iter().map(String::as_str).collect();
     let too_many = store.link_to_message(&conversation_id, &message_id, &refs);
     assert!(matches!(too_many, Err(AttachmentError::TooManyAttachments)));
 

@@ -1,6 +1,9 @@
 //! Turns a tool request into a `ToolCall`, refusing anything malformed.
 
-use excubia_core_chat::{message_text, validate_suggestions, TextError, ToolError, ToolRequest};
+use excubia_core_chat::{
+    message_text, validate_suggestions, TextError, ToolError, ToolRequest,
+    MAX_ATTACHMENTS_PER_MESSAGE,
+};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
@@ -176,9 +179,9 @@ pub(super) fn progress_text(raw: &str) -> Result<String, ToolError> {
 }
 
 /// The most files one reply shows: the limit the host's message links keep.
-pub(super) const REPLY_MAX_FILES: usize = 4;
+pub(super) const REPLY_MAX_FILES: usize = MAX_ATTACHMENTS_PER_MESSAGE;
 
-/// The files a reply shows: at most four ids, each named once, none empty.
+/// The files a reply shows: at most the limit, each named once, none empty.
 fn reply_attachment_ids(raw: &[String]) -> Result<Vec<String>, ToolError> {
     if raw.len() > REPLY_MAX_FILES {
         return Err(ToolError::invalid(

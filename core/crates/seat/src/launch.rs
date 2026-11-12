@@ -9,7 +9,10 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
-use crate::profile::{CliProfile, PromptDelivery, TurnMode};
+use crate::profile::{CliProfile, PromptDelivery};
+
+/// The OpenCode model Alfred's engine turns run on (free tier, the Master's pick: DeepSeek V4.1 Flash is better than GLM 5.3 Flash).
+const OPENCODE_ENGINE_MODEL: &str = "opencode/deepseek-v4.1-flash-free";
 
 mod render;
 #[cfg(test)]
@@ -29,7 +32,6 @@ pub struct LaunchInput<'a> {
     pub prompt: &'a str,
     pub tool_url: &'a str,
     pub mcp_command: &'a Path,
-    pub session_id: &'a str,
     /// The hook surface of the host and the token of this run. The hook token
     /// is the only credential that reaches the approval routes.
     pub hook_url: &'a str,
@@ -202,21 +204,18 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
                     "1".to_string(),
                 ),
             ]);
+            // shortcut: a fixed free model, because the account default is paid and can run out of balance, upgrade with a per-device engine model setting.
             args.extend([
                 "run".to_string(),
                 "--standalone".to_string(),
+                "--model".to_string(),
+                OPENCODE_ENGINE_MODEL.to_string(),
                 "--agent".to_string(),
                 "alfred".to_string(),
             ]);
-            if input.profile.mode == TurnMode::Session {
-                // OpenCode only takes session ids that start with `ses` (it creates
-                // the session on first use). The seat's id is the suffix, so an
-                // agent keeps the same session across turns.
-                args.extend([
-                    "--session".to_string(),
-                    format!("ses_{}", input.session_id),
-                ]);
-            }
+            // No `--session`: every turn is a new OpenCode session. A reused session
+            // kept failing with `provider.free-limit` on the free tier, while fresh
+            // sessions with the same request passed. Alfred's context page carries the chat.
         }
         PromptDelivery::TestStdin => {
             let mcp = input.run_dir.join("mcp.json");
@@ -228,21 +227,11 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
         }
     }
 
-    // OpenCode binds its session to the folder it first ran in. The per-turn folder is
-    // removed after each turn, so the session would point at nothing; the folder that
-    // holds the turn folders outlives them.
-    let session_cwd = matches!(input.profile.prompt, PromptDelivery::AgentConfig)
-        && input.profile.mode == TurnMode::Session;
-    let cwd = match input.run_dir.parent() {
-        Some(seat_runs) if session_cwd => seat_runs.to_path_buf(),
-        _ => input.run_dir.to_path_buf(),
-    };
-
     Ok(LaunchPlan {
         program,
         args,
         env,
-        cwd,
+        cwd: input.run_dir.to_path_buf(),
         stdin: input.prompt.to_string(),
         files,
     })

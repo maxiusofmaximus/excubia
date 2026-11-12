@@ -121,7 +121,7 @@ pub(super) fn announce_message(
 
 impl super::ChatStore {
     /// Deliver the files of `run_id` that its reply did not name: short messages of
-    /// Alfred, four files at most each. Returns the journal lines they wrote.
+    /// Alfred, `MAX_ATTACHMENTS_PER_MESSAGE` files at most each. Returns the journal lines they wrote.
     pub(super) fn deliver_unnamed_files(
         &self,
         connection: &Connection,

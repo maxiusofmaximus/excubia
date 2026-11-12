@@ -757,7 +757,7 @@ backwards and never past the last message; response
 
 ### Attachments (ATT4/ATT5)
 
-A user can attach up to four files to a message: images, and documents from the
+A user can attach up to ten files to a message: images, and documents from the
 list under Complete. The host checks the bytes it receives. It decodes each image
 in an isolated worker and keeps only the result it re-encodes; it keeps a document
 as sent. The six routes are signed and scoped to their conversation: an id of
@@ -1570,10 +1570,10 @@ nunca su contenido. Solo Alfred la tiene: un seat de proyecto recibe `scope_deni
   debe ser válido). Como máximo 10 MiB.
 - El archivo queda como adjunto listo de la conversación, sin mensaje todavía. Cada
   creación es un adjunto nuevo: nunca sobrescribe ni cambia un archivo existente.
-- `chat.reply` acepta `attachment_ids` (hasta 4, sin repetir) con los archivos que Alfred
+- `chat.reply` acepta `attachment_ids` (hasta 10, sin repetir) con los archivos que Alfred
   creó en esta conversación y que ningún mensaje lleva. Si el turno termina sin nombrar sus
   archivos, el host publica un mensaje de Alfred («Te dejo el archivo `<nombre>`») con ellos
-  enlazados; son más de 4, va en mensajes de hasta 4.
+  enlazados; son más de 10, va en mensajes de hasta 10.
 - Solo Alfred la tiene: un seat de proyecto recibe `scope_denied`. La auditoría guarda la
   herramienta y el id del adjunto, nunca el contenido.
 - Errores: `invalid_arguments` (campo `format`, `name` o `content`), `bad_content` (campo

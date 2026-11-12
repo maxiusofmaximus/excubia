@@ -62,7 +62,7 @@ fn reply_carries_its_quick_replies_and_refuses_bad_ones() {
 }
 
 #[test]
-fn reply_names_its_files_and_refuses_more_than_four_or_repeats() {
+fn reply_names_its_files_and_refuses_more_than_the_limit_or_repeats() {
     let named = parse(&request(
         "chat.reply",
         json!({"text": "Aquí tienes", "attachment_ids": ["att_1", "att_2"]}),
@@ -73,12 +73,15 @@ fn reply_names_its_files_and_refuses_more_than_four_or_repeats() {
         ToolCall::Reply { ref attachment_ids, .. } if attachment_ids == &["att_1", "att_2"]
     ));
 
-    let five = parse(&request(
+    let over: Vec<String> = (0..=super::parse::REPLY_MAX_FILES)
+        .map(|n| format!("att_{n}"))
+        .collect();
+    let too_many = parse(&request(
         "chat.reply",
-        json!({"text": "ok", "attachment_ids": ["a", "b", "c", "d", "e"]}),
+        json!({"text": "ok", "attachment_ids": over}),
     ))
-    .expect_err("five files");
-    assert_eq!(five.field, Some("attachment_ids"));
+    .expect_err("one file over the limit");
+    assert_eq!(too_many.field, Some("attachment_ids"));
 
     let repeated = parse(&request(
         "chat.reply",
