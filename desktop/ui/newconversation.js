@@ -3,7 +3,7 @@ import { errorMessage } from "./format.js";
 import { openDetail } from "./detail.js";
 
 const NO_AGENTS =
-  "No encontré ningún agente instalado: instala uno de claude, codex, gemini u opencode y vuelve a intentarlo.";
+  "No encontré ningún agente instalado: instala uno de claude, codex, commandcode, gemini u opencode y vuelve a intentarlo.";
 
 let submitting = false;
 

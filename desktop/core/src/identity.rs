@@ -157,7 +157,7 @@ pub fn random_device_id() -> String {
     format!("dev-{}", hex::encode(bytes))
 }
 
-/// A sensible name for this machine: "Escritorio &lt;host&gt;", or "Escritorio" when
+/// A sensible name for this machine: "Escritorio <host>", or "Escritorio" when
 /// the host name is not available.
 pub fn default_device_label() -> String {
     let host = std::env::var("COMPUTERNAME")

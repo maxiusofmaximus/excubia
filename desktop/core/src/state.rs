@@ -186,11 +186,11 @@ mod tests {
         "focused": {"workspace_id": "w1", "tab_id": "t1", "pane_id": "w1:p1"},
         "counts": {"blocked": 1, "working": 1},
         "agents": [
-            {"pane_id": "w1:p1", "workspace_id": "w1", "project": "herdr-notify",
+            {"pane_id": "w1:p1", "workspace_id": "w1", "project": "excubia",
              "agent": "opencode", "status": "blocked", "attention": 3,
              "title": "Add the pairing screen", "cwd": "D:/repo", "focused": false,
              "can_resume": true},
-            {"pane_id": "w1:p2", "project": "herdr-notify", "agent": "claude",
+            {"pane_id": "w1:p2", "project": "excubia", "agent": "claude",
              "status": "WORKING", "attention": 1, "title": null},
             {"project": "sin pane", "status": "blocked", "attention": 3},
             {"pane_id": "w1:p3", "status": "exploded", "attention": 0,

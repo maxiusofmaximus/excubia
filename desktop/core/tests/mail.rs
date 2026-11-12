@@ -1,9 +1,9 @@
 mod common;
 
 use common::spawn_server;
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::mail::{LoginStatus, MailFailure, SendPhase, SendRequest};
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::mail::{LoginStatus, MailFailure, SendPhase, SendRequest};
+use excubia_desktop_core::HostClient;
 
 const ACCOUNTS: &str = r#"{"ok":true,"accounts":[{"label":"trabajo","tenant":"organizations","upn":"ana@ejemplo.invalid","send_enabled":true}]}"#;
 const DRAFT: &str = r#"{"ok":true,"draft":{"account":"trabajo","draft_id":"drf_1","from":"ana@ejemplo.invalid","to":["bea@ejemplo.invalid"],"cc":[],"subject":"Presupuesto","body":"Hola Bea","content_type":"text","attachments":[{"name":"presupuesto.pdf","size":12034,"sha256":"ab"}]}}"#;

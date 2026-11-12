@@ -1,11 +1,11 @@
 //! Chat writes: sending, marking as read, creating and editing conversations
 //! and their sections.
 
-use herdr_desktop_core::chat::{
+use excubia_desktop_core::chat::{
     ChatFailure, Conversation, ConversationPatch, Message, Section, SectionChange, SendAccepted,
     Turn,
 };
-use herdr_desktop_core::ChatSnapshot;
+use excubia_desktop_core::ChatSnapshot;
 use tauri::State;
 
 use super::{client, shared, snapshot, Shared};

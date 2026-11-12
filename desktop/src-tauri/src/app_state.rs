@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use herdr_desktop_core::identity::{DeviceIdentity, IdentityStore, KeyringIdentityStore};
-use herdr_desktop_core::state::StateStore;
-use herdr_desktop_core::stream::ConnectionStatus;
-use herdr_desktop_core::{ChatFeed, CoreError, HostClient, Transport};
+use excubia_desktop_core::identity::{DeviceIdentity, IdentityStore, KeyringIdentityStore};
+use excubia_desktop_core::state::StateStore;
+use excubia_desktop_core::stream::ConnectionStatus;
+use excubia_desktop_core::{ChatFeed, CoreError, HostClient, Transport};
 use tauri::AppHandle;
 use tokio_util::sync::CancellationToken;
 
@@ -22,7 +22,7 @@ pub use host::{host_data_dir, HostStatus};
 pub use pairing::pair_code_from;
 
 const KEYRING_SERVICE: &str = "dev.excubia.desktop";
-/// The service before the rename: its identity is adopted, never written again.
+/// legacy: the service before the rename: its identity is adopted, never written again.
 const LEGACY_KEYRING_SERVICE: &str = "dev.herdrnotify.desktop";
 const KEYRING_ACCOUNT: &str = "device-identity-v1";
 const PROFILE_ENV: &str = "EXCUBIA_DESKTOP_PROFILE";

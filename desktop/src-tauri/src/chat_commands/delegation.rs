@@ -1,7 +1,7 @@
 //! Delegated work: a delegation's detail, cancelling it, and stopping a
 //! conversation's running turn.
 
-use herdr_desktop_core::chat::{
+use excubia_desktop_core::chat::{
     delegation_text, CancelledConversation, ChatFailure, DelegationDetail, StopOutcome,
 };
 use tauri::State;

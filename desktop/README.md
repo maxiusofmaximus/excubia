@@ -92,6 +92,6 @@ defecto; con él activo, el host escucha en `IP-privada:8443` solo para las
 rutas de dispositivo. Capturas: `evidence/core11b/`.
 
 Agent hooks (Claude Code, opencode) report their own state to the host with
-`HN_PANE_ID` / `HN_HOOK_URL` / `HN_HOOK_TOKEN`. The token is printed by
+`EXCUBIA_PANE_ID` / `EXCUBIA_HOOK_URL` / `EXCUBIA_HOOK_TOKEN`. The token is printed by
 `host hook-token` and no secret is copied here. Full configuration and
 examples: [`core/docs/core/HOOKS.md`](../core/docs/core/HOOKS.md).

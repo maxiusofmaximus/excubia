@@ -1,10 +1,10 @@
-//! Moves the device identity from the keyring entry of the old name
+//! legacy: moves the device identity from the keyring entry of the old name
 //! (`dev.herdrnotify.desktop`) to the new one. Losing it would mean pairing
 //! every device again, so the old entry is forgotten only after the new one
 //! reads back the same key.
 
-use herdr_desktop_core::identity::{DeviceIdentity, IdentityStore};
-use herdr_desktop_core::CoreError;
+use excubia_desktop_core::identity::{DeviceIdentity, IdentityStore};
+use excubia_desktop_core::CoreError;
 
 /// Reads the current entry; when it is empty, adopts the legacy one. Any
 /// failed step keeps the legacy entry and uses it for this run.
@@ -190,7 +190,7 @@ mod tests {
     /// The same move against the real OS keyring, under throwaway service names.
     #[test]
     fn the_real_keyring_moves_the_identity_and_forgets_the_legacy_entry() {
-        use herdr_desktop_core::identity::KeyringIdentityStore;
+        use excubia_desktop_core::identity::KeyringIdentityStore;
 
         let pid = std::process::id();
         let current =

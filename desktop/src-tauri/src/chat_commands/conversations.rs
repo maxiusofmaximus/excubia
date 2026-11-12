@@ -1,10 +1,10 @@
 //! Reading the chat: the home lists, search, filters and the loaded feed.
 
-use herdr_desktop_core::chat::{
+use excubia_desktop_core::chat::{
     ChatBootstrap, ChatCounts, ChatFailure, Conversation, ConversationDetail, ConversationPage,
     ListFilter, Section, CHAT_PAGE_LIMIT,
 };
-use herdr_desktop_core::ChatSnapshot;
+use excubia_desktop_core::ChatSnapshot;
 use tauri::State;
 
 use super::{client, shared, snapshot, Shared};
@@ -21,7 +21,7 @@ pub struct ChatHome {
 #[derive(serde::Serialize)]
 pub struct ChatOpen {
     conversation: Conversation,
-    participants: Vec<herdr_desktop_core::chat::SeatSummary>,
+    participants: Vec<excubia_desktop_core::chat::SeatSummary>,
     feed: ChatSnapshot,
 }
 

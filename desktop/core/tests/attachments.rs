@@ -2,9 +2,9 @@ mod common;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use common::spawn_server;
-use herdr_desktop_core::chat::ChatFailure;
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::chat::ChatFailure;
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::HostClient;
 use serde_json::{json, Value};
 
 const CREATED: &str = r#"{"ok":true,"attachment":{"id":"att_01K","state":"uploading"}}"#;

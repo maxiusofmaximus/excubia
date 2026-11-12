@@ -10,13 +10,13 @@ use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio_util::sync::CancellationToken;
 
 pub fn host_binary() -> Option<PathBuf> {
-    if let Ok(path) = std::env::var("HN_CORE_HOST") {
+    if let Ok(path) = std::env::var("EXCUBIA_CORE_HOST") {
         let path = PathBuf::from(path);
         if path.is_file() {
             return Some(path);
         }
     }
-    let triple = env!("HN_TARGET_TRIPLE");
+    let triple = env!("EXCUBIA_TARGET_TRIPLE");
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     [
         manifest
@@ -33,7 +33,7 @@ pub fn host_binary() -> Option<PathBuf> {
 }
 
 pub fn fake_agent_binary() -> Option<PathBuf> {
-    if let Ok(path) = std::env::var("HN_FAKE_AGENT") {
+    if let Ok(path) = std::env::var("EXCUBIA_FAKE_AGENT") {
         let path = PathBuf::from(path);
         if path.is_file() {
             return Some(path);

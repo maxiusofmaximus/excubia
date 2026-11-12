@@ -1,8 +1,8 @@
 [package]
-name = "herdr-desktop-core"
+name = "excubia-desktop-core"
 version = "0.1.0"
 edition = "2021"
-description = "UI-free host client core for herdr notify desktop"
+description = "UI-free host client core for Excubia desktop"
 
 [dependencies]
 async-trait = "0.1"

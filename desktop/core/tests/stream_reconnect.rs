@@ -3,10 +3,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::state::{StateSnapshot, StateStore};
-use herdr_desktop_core::stream::{run_event_loop, ConnectionStatus, EventSink, StreamOptions};
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::state::{StateSnapshot, StateStore};
+use excubia_desktop_core::stream::{run_event_loop, ConnectionStatus, EventSink, StreamOptions};
+use excubia_desktop_core::HostClient;
 use serde_json::json;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -37,7 +37,7 @@ impl EventSink for RecordingSink {
         self.states.lock().unwrap().push(state.revision);
     }
 
-    async fn chat(&self, event: herdr_desktop_core::ChatEvent) {
+    async fn chat(&self, event: excubia_desktop_core::ChatEvent) {
         self.chats.lock().unwrap().push(format!(
             "{}:{}",
             event.event,

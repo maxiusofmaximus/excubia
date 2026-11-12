@@ -1,4 +1,4 @@
-//! UI-free client core for herdr notify.
+//! UI-free client core for Excubia.
 //!
 //! The crate knows the host contracts (pairing, signed reads, SSE) and
 //! nothing about Tauri. The desktop shell uses it directly; an Android shell

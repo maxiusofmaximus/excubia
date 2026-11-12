@@ -1,18 +1,18 @@
 //! Live check against a running core host with `--tls-bind`. Ignored by
 //! default: start the host, print a link with `host pair-code --lan`, and run
-//! `HN_LIVE_LINK=<link> cargo test --test live_core_host -- --ignored`.
+//! `EXCUBIA_LIVE_LINK=<link> cargo test --test live_core_host -- --ignored`.
 //! The wrong-pin probe goes first: a pin mismatch never reaches the host, so the
 //! code stays unspent for the real pairing that follows.
 
-use herdr_desktop_core::{pair_through_link, CoreError, DeviceIdentity, PairLink};
+use excubia_desktop_core::{pair_through_link, CoreError, DeviceIdentity, PairLink};
 
 /// A valid fingerprint that is not the live host's (taken from the link tests).
 const OTHER_PIN: &str = "h=-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI";
 
 #[tokio::test]
-#[ignore = "needs a running core host; set HN_LIVE_LINK"]
+#[ignore = "needs a running core host; set EXCUBIA_LIVE_LINK"]
 async fn a_live_host_refuses_a_stranger_then_pairs_through_its_link() {
-    let live = std::env::var("HN_LIVE_LINK").expect("set HN_LIVE_LINK to a fresh pairing link");
+    let live = std::env::var("EXCUBIA_LIVE_LINK").expect("set EXCUBIA_LIVE_LINK to a fresh pairing link");
     let identity = DeviceIdentity::generate("", "Escritorio en vivo");
     let key = identity.public_key_b64();
 

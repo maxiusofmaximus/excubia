@@ -3,11 +3,11 @@ mod common;
 use std::sync::Mutex;
 
 use common::{spawn_reply, Captured};
-use herdr_desktop_core::chat::{
+use excubia_desktop_core::chat::{
     AlertAction, AlertMode, AlertRuleDraft, AlertStatus, AlertTrigger, ChatFailure,
 };
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::HostClient;
 
 const JSON: &str = "Content-Type: application/json\r\n";
 const RULE: &str = r#"{"ok":true,"rule":{"id":"ar_01JABCD","trigger":"pane_status","agent":"Bob","status":"done","action":"notify","enabled":true,"created_by":"user","created_at":"2026-10-29T10:00:00Z"}}"#;
@@ -54,7 +54,7 @@ async fn a_rule_is_created_with_the_exact_body_and_signed() {
     let sent = seen(&captured);
     assert_eq!(sent.method, "POST");
     assert_eq!(sent.target, "/v1/alerts/rules");
-    assert!(sent.headers.contains("x-hn-signature:"), "{}", sent.headers);
+    assert!(sent.headers.contains("x-excubia-signature:"), "{}", sent.headers);
     assert_eq!(
         String::from_utf8(sent.body).unwrap(),
         r#"{"trigger":"pane_status","agent":"Bob","status":"done","action":"notify"}"#

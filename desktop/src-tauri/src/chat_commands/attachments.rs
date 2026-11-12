@@ -1,7 +1,7 @@
 //! Attachment commands. The webview names a staged file by its id and sends
 //! the bytes as base64; it never gets a disk path, and reads return bytes only.
 
-use herdr_desktop_core::chat::{Attachment, AttachmentContent, ChatFailure};
+use excubia_desktop_core::chat::{Attachment, AttachmentContent, ChatFailure};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 

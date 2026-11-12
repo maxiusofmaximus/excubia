@@ -162,6 +162,7 @@ fn info_text_joins_the_message_and_the_action() {
     let text = info.text();
     assert!(text.starts_with("Este equipo solo puede leer"));
     assert!(text.contains(GRANT_HINT), "{text}");
+    // legacy: the command name from before the rename must not come back in the hint.
     assert!(!text.contains("herdr-notify devices"), "{text}");
 }
 

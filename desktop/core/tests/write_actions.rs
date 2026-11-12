@@ -2,11 +2,11 @@ mod common;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use common::{spawn_server, Captured};
-use herdr_desktop_core::chat::ChatFailure;
-use herdr_desktop_core::error::{CoreError, WriteAction};
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::signing::canonical_string;
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::chat::ChatFailure;
+use excubia_desktop_core::error::{CoreError, WriteAction};
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::signing::canonical_string;
+use excubia_desktop_core::HostClient;
 use p256::ecdsa::{signature::Verifier, Signature};
 
 fn header<'a>(headers: &'a str, name: &str) -> &'a str {
@@ -21,13 +21,13 @@ fn header<'a>(headers: &'a str, name: &str) -> &'a str {
 
 fn verify_signature(identity: &DeviceIdentity, captured: &Captured) {
     assert_eq!(
-        header(&captured.headers, "x-hn-device"),
+        header(&captured.headers, "x-excubia-device"),
         identity.device_id()
     );
-    let timestamp: u64 = header(&captured.headers, "x-hn-timestamp")
+    let timestamp: u64 = header(&captured.headers, "x-excubia-timestamp")
         .parse()
         .expect("timestamp must be seconds");
-    let nonce = header(&captured.headers, "x-hn-nonce");
+    let nonce = header(&captured.headers, "x-excubia-nonce");
     let canonical = canonical_string(
         &captured.method,
         &captured.target,
@@ -36,7 +36,7 @@ fn verify_signature(identity: &DeviceIdentity, captured: &Captured) {
         nonce,
     );
     let der = STANDARD
-        .decode(header(&captured.headers, "x-hn-signature"))
+        .decode(header(&captured.headers, "x-excubia-signature"))
         .expect("signature must be base64");
     let signature = Signature::from_der(&der).expect("signature must be DER");
     identity

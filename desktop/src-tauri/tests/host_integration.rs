@@ -10,8 +10,8 @@ use std::time::Duration;
 
 use common::{fake_agent_binary, run_cli, start_host};
 use excubia_desktop::app_state::pair_code_from;
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::HostClient;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn the_real_host_pairs_answers_and_survives_a_kill() {
@@ -34,9 +34,9 @@ async fn the_real_host_pairs_answers_and_survives_a_kill() {
     // Automatic pairing: mint a code with the CLI and pair the real client.
     let identity = DeviceIdentity::generate("dev-integration", "integration");
     let code = pair_code_from(&run_cli(&host.binary, &host.data_dir, &["pair-code"])).unwrap();
-    let response = herdr_desktop_core::client::pair_device(
+    let response = excubia_desktop_core::client::pair_device(
         &host.url(),
-        &herdr_desktop_core::Transport::Plain,
+        &excubia_desktop_core::Transport::Plain,
         "p256",
         &identity.public_key_b64(),
         "integration",

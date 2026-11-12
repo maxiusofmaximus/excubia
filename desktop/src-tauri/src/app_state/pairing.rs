@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use herdr_desktop_core::client::pair_device;
-use herdr_desktop_core::{CoreError, HostClient, Transport, WriteAction};
+use excubia_desktop_core::client::pair_device;
+use excubia_desktop_core::{CoreError, HostClient, Transport, WriteAction};
 use tauri::{AppHandle, Emitter};
 
 use super::{lock, AppState};

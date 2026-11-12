@@ -1,9 +1,9 @@
 mod common;
 
 use common::spawn_server;
-use herdr_desktop_core::chat::{ChatFailure, HireChange};
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::chat::{ChatFailure, HireChange};
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::HostClient;
 
 const HIRE_REPLY: &str = r#"{"ok":true,"hire":{"id":"hire_01JAB3ZQ5V8K2M9X4T6R0WQ7YD","role":"bob","area":"programacion","name":"Bob","avatar":"bob","status":"hired","created_at":"2026-10-25T10:00:00.000Z"}}"#;
 const TEAM_REPLY: &str = r#"{"ok":true,"hires":[{"id":"hire_01JAB3ZQ5V8K2M9X4T6R0WQ7YD","role":"bob","area":"programacion","name":"Bob","avatar":"bob","status":"hired","created_at":"2026-10-25T10:00:00.000Z"}],"can_hire":true}"#;

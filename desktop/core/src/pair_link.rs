@@ -33,6 +33,12 @@ impl PairLink {
     }
 
     pub fn parse(uri: &str, now: i64) -> Result<Self> {
+        // legacy: the core reads herdr-notify:// only to migrate; the desktop refuses it, as 2.0 does.
+        if uri.trim().starts_with("herdr-notify://") {
+            return Err(CoreError::LinkInvalid(
+                "el enlace es de una versión anterior y ya no se admite".to_string(),
+            ));
+        }
         let link = PairingLink::parse(uri.trim()).map_err(invalid)?;
         if now >= link.expires_at {
             return Err(CoreError::LinkExpired);
@@ -112,7 +118,7 @@ mod tests {
 
     #[test]
     fn a_link_with_any_other_scheme_is_refused() {
-        // herdr-notify:// is retired in 2.0: refused like any foreign scheme.
+        // legacy: herdr-notify:// was retired in 2.0 and is refused like any foreign scheme.
         for scheme in ["herdr-notify://", "herdr://", "excubia-x://", "EXCUBIA://"] {
             let uri = LINK.replace("excubia://", scheme);
             assert!(

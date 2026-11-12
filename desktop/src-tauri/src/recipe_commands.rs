@@ -2,7 +2,7 @@
 //! Each one is a signed call to the host; a refusal comes back as a typed `ChatFailure` the
 //! screen words by its `code`. Saving always follows a review in the screen, never a command of its own.
 
-use herdr_desktop_core::chat::{ChatFailure, Recipe, RecipeDraft, RecipeRun};
+use excubia_desktop_core::chat::{ChatFailure, Recipe, RecipeDraft, RecipeRun};
 use tauri::State;
 
 use crate::chat_commands::{client, shared, Shared};

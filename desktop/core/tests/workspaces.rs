@@ -3,9 +3,9 @@ mod common;
 use std::sync::{Arc, Mutex};
 
 use common::read_request;
-use herdr_desktop_core::error::{CoreError, WriteAction};
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::error::{CoreError, WriteAction};
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::HostClient;
 use serde_json::Value;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;

@@ -2,7 +2,7 @@
 //! the host; a refusal comes back as a typed `ChatFailure` the screen words by
 //! its `code`.
 
-use herdr_desktop_core::chat::{
+use excubia_desktop_core::chat::{
     ChatFailure, Contact, ContactDraft, ContactPage, Note, NoteDraft, NotePage,
 };
 use tauri::State;

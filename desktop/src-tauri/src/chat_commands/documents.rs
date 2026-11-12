@@ -135,7 +135,7 @@ mod tests {
     use std::fs::{self, File};
     use std::time::{Duration, SystemTime};
 
-    use herdr_desktop_core::chat::validate_prefixed_id;
+    use excubia_desktop_core::chat::validate_prefixed_id;
 
     use super::{is_reserved, staged_name, sweep, KEEP_FOR};
 

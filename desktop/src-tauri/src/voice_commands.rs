@@ -1,7 +1,7 @@
 //! Dictation: the webview sends the WAV as a raw body and gets the transcript back.
 //! The bytes go straight to the host; nothing is written to disk or logged here.
 
-use herdr_desktop_core::{VoiceFailure, VoiceTranscript};
+use excubia_desktop_core::{VoiceFailure, VoiceTranscript};
 use tauri::ipc::{InvokeBody, Request};
 use tauri::State;
 

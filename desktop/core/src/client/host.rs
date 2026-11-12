@@ -47,8 +47,9 @@ pub struct CatalogAgent {
     pub problem: Option<String>,
     #[serde(default)]
     pub label: Option<String>,
-    /// The PC's default agent for new conversations; an older host never sends it.
-    #[serde(default)]
+    /// The PC's default agent for new conversations. The host names it once,
+    /// beside the list (`default`); `CatalogResponse::into_agents` marks it here.
+    #[serde(default, skip_deserializing)]
     pub is_default: bool,
 }
 
@@ -60,6 +61,18 @@ fn startable_by_default() -> bool {
 struct CatalogResponse {
     #[serde(default)]
     agents: Vec<CatalogAgent>,
+    /// The default agent's name; absent or null on an older host or with none set.
+    #[serde(default)]
+    default: Option<String>,
+}
+
+impl CatalogResponse {
+    fn into_agents(mut self) -> Vec<CatalogAgent> {
+        for agent in &mut self.agents {
+            agent.is_default = self.default.as_deref() == Some(agent.name.as_str());
+        }
+        self.agents
+    }
 }
 
 /// A signed client bound to one device identity.
@@ -121,7 +134,7 @@ impl HostClient {
         let url = self.url("/v1/catalog")?;
         let request = self.sign(Method::GET, &url, b"")?.timeout(READ_TIMEOUT);
         let response: CatalogResponse = expect_json(request.send().await?).await?;
-        Ok(response.agents)
+        Ok(response.into_agents())
     }
 
     /// Stops a live agent. A pane that is already gone answers `pane_gone`.
@@ -278,10 +291,10 @@ impl HostClient {
         Ok(self
             .http
             .request(method, url.clone())
-            .header("X-HN-Device", self.identity.device_id())
-            .header("X-HN-Timestamp", timestamp.to_string())
-            .header("X-HN-Nonce", nonce)
-            .header("X-HN-Signature", signature))
+            .header("X-Excubia-Device", self.identity.device_id())
+            .header("X-Excubia-Timestamp", timestamp.to_string())
+            .header("X-Excubia-Nonce", nonce)
+            .header("X-Excubia-Signature", signature))
     }
 }
 
@@ -369,12 +382,24 @@ mod tests {
 
     #[test]
     fn the_catalogue_marks_the_default_and_an_older_host_has_none() {
-        let body = r#"{"agents":[
-            {"name":"claude","available":true,"runnable":true,"is_default":true},
+        let agents = |body: &str| {
+            serde_json::from_str::<CatalogResponse>(body)
+                .unwrap()
+                .into_agents()
+        };
+        let list = r#""agents":[
+            {"name":"claude","available":true,"runnable":true},
             {"name":"codex","available":true,"runnable":true}
-        ]}"#;
-        let parsed: CatalogResponse = serde_json::from_str(body).unwrap();
-        assert!(parsed.agents[0].is_default);
-        assert!(!parsed.agents[1].is_default);
+        ]"#;
+        // The shape the host sends: the default named once, beside the list.
+        let marked = agents(&format!(r#"{{"ok":true,"default":"codex",{list}}}"#));
+        assert!(!marked[0].is_default);
+        assert!(marked[1].is_default);
+        for none in [
+            format!("{{{list}}}"),
+            format!(r#"{{"default":null,{list}}}"#),
+        ] {
+            assert!(agents(&none).iter().all(|agent| !agent.is_default));
+        }
     }
 }

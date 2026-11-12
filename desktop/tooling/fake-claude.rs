@@ -3,7 +3,7 @@
 //!
 //! It never talks to a provider. Build with:
 //!   rustc --edition 2021 -O tooling/fake-claude.rs -o <dir>/claude.exe
-//! and put `fake-cli.exe` beside it (or set `HN_FAKE_CLI`).
+//! and put `fake-cli.exe` beside it (or set `EXCUBIA_FAKE_CLI`).
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -50,7 +50,7 @@ fn forward(fake: &Path, args: &[String]) -> Result<i32, String> {
 }
 
 fn fake_cli() -> Result<PathBuf, String> {
-    if let Ok(path) = std::env::var("HN_FAKE_CLI") {
+    if let Ok(path) = std::env::var("EXCUBIA_FAKE_CLI") {
         let path = PathBuf::from(path);
         if path.is_file() {
             return Ok(path);
@@ -70,15 +70,15 @@ fn fake_cli() -> Result<PathBuf, String> {
     }
 }
 
-/// Find the `"hn-core"` server object in `mcpServers` and wrap it as `mcp`.
+/// Find the `"excubia-core"` server object in `mcpServers` and wrap it as `mcp`.
 /// The generated config is small and its strings carry no braces.
 fn translate(path: &str) -> Result<PathBuf, String> {
     let raw = std::fs::read_to_string(path).map_err(|error| format!("read MCP config: {error}"))?;
     let servers = raw.find("\"mcpServers\"").ok_or("MCP config has no mcpServers")?;
     let key = raw[servers..]
-        .find("\"hn-core\"")
+        .find("\"excubia-core\"")
         .map(|offset| servers + offset)
-        .ok_or("MCP config has no hn-core server")?;
+        .ok_or("MCP config has no excubia-core server")?;
     let open = raw[key..]
         .find('{')
         .map(|offset| key + offset)

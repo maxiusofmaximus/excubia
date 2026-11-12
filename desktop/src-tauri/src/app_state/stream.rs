@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use herdr_desktop_core::chat::ChatEvent;
-use herdr_desktop_core::state::StateSnapshot;
-use herdr_desktop_core::stream::{run_event_loop, ConnectionStatus, EventSink, StreamOptions};
-use herdr_desktop_core::TransitionTracker;
+use excubia_desktop_core::chat::ChatEvent;
+use excubia_desktop_core::state::StateSnapshot;
+use excubia_desktop_core::stream::{run_event_loop, ConnectionStatus, EventSink, StreamOptions};
+use excubia_desktop_core::TransitionTracker;
 use tauri::{AppHandle, Emitter};
 use tokio_util::sync::CancellationToken;
 

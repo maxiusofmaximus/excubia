@@ -3,8 +3,8 @@
 
 use std::sync::Arc;
 
-use herdr_desktop_core::validate_device_label;
-use herdr_desktop_core::{pair_through_link, PairLink};
+use excubia_desktop_core::validate_device_label;
+use excubia_desktop_core::{pair_through_link, PairLink};
 use serde::Serialize;
 use tauri::{AppHandle, State};
 

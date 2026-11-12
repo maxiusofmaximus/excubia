@@ -180,16 +180,16 @@ mod tests {
     /// leaves: method, path, body digest, timestamp and nonce.
     fn assert_signed(request: &Request, key: &VerifyingKey, body: &[u8]) {
         let header = |name: &str| request.headers()[name].to_str().unwrap().to_string();
-        assert_eq!(header("X-HN-Device"), "dev-desk");
+        assert_eq!(header("X-Excubia-Device"), "dev-desk");
         let canonical = signing::canonical_string(
             request.method().as_str(),
             request.url().path(),
             body,
-            header("X-HN-Timestamp").parse().unwrap(),
-            &header("X-HN-Nonce"),
+            header("X-Excubia-Timestamp").parse().unwrap(),
+            &header("X-Excubia-Nonce"),
         );
         let signature =
-            Signature::from_der(&STANDARD.decode(header("X-HN-Signature")).unwrap()).unwrap();
+            Signature::from_der(&STANDARD.decode(header("X-Excubia-Signature")).unwrap()).unwrap();
         key.verify(canonical.as_bytes(), &signature).unwrap();
     }
 

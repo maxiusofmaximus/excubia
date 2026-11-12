@@ -11,6 +11,7 @@ use std::sync::OnceLock;
 use tauri::{AppHandle, Manager};
 
 const IDENTIFIER: &str = "dev.excubia.desktop";
+/// legacy: the identifier before the rename; its folders are only read as the origin of a move.
 const LEGACY_IDENTIFIER: &str = "dev.herdrnotify.desktop";
 const MOVED_NOTE: &str = "MIGRADO-DESDE.txt";
 

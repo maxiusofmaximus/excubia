@@ -1,7 +1,7 @@
 //! «Plan propuesto»: the plans of the team, read and decided from the screen. Each command is
 //! a signed call to the host; a refusal comes back as a typed `ChatFailure` the screen words by its `code`.
 
-use herdr_desktop_core::chat::{ChatFailure, Plan};
+use excubia_desktop_core::chat::{ChatFailure, Plan};
 use tauri::State;
 
 use crate::chat_commands::{client, shared, Shared};

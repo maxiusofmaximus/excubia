@@ -2,8 +2,8 @@
 //! device. Each is a signed call that needs `ADMIN`; a refusal comes back as a
 //! typed `DeviceFailure` the screen words by its `kind`.
 
-use herdr_desktop_core::devices::{DeviceFailure, DeviceList};
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::devices::{DeviceFailure, DeviceList};
+use excubia_desktop_core::HostClient;
 use tauri::State;
 
 use crate::app_state::AppState;

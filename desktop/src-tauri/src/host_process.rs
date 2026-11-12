@@ -190,13 +190,15 @@ fn append_log(path: &Path, line: &str) {
 /// Where the sidecar lives: an env override for tests, the dev copy next to
 /// the app binary, the bundled plain name, or the build output.
 pub fn host_binary_path(exe_dir: &Path) -> Option<PathBuf> {
-    if let Ok(path) = std::env::var("HN_CORE_HOST") {
+    // legacy: HN_CORE_HOST was the override before the rename; still read for existing setups.
+    let override_path = std::env::var("EXCUBIA_CORE_HOST").or_else(|_| std::env::var("HN_CORE_HOST"));
+    if let Ok(path) = override_path {
         let path = PathBuf::from(path);
         if path.is_file() {
             return Some(path);
         }
     }
-    let triple = env!("HN_TARGET_TRIPLE");
+    let triple = env!("EXCUBIA_TARGET_TRIPLE");
     let candidates = [
         exe_dir.join(format!("excubia-host-{triple}.exe")),
         exe_dir.join("excubia-host.exe"),
@@ -408,18 +410,22 @@ mod tests {
 
     #[test]
     fn the_binary_path_prefers_the_env_override() {
-        let dir = std::env::temp_dir().join(format!("hn-host-bin-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("excubia-host-bin-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let fake = dir.join("host-falso.exe");
         std::fs::write(&fake, b"x").unwrap();
-        std::env::set_var("HN_CORE_HOST", &fake);
+        std::env::set_var("EXCUBIA_CORE_HOST", &fake);
         assert_eq!(host_binary_path(&dir), Some(fake.clone()));
-        std::env::remove_var("HN_CORE_HOST");
+        std::env::remove_var("EXCUBIA_CORE_HOST");
         assert_ne!(
             host_binary_path(&dir),
             Some(fake.clone()),
             "sin override no debe devolver el binario de prueba"
         );
+        // legacy: the override name from before the rename still works.
+        std::env::set_var("HN_CORE_HOST", &fake);
+        assert_eq!(host_binary_path(&dir), Some(fake.clone()));
+        std::env::remove_var("HN_CORE_HOST");
         let _ = std::fs::remove_file(&fake);
     }
 }

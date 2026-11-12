@@ -162,7 +162,9 @@ fn host_config_for(app: &AppHandle, lan_bind: Option<SocketAddr>) -> Result<Host
         args.push("--uac-plugin-dir".to_string());
         args.push(plugin.display().to_string());
     }
-    if let Ok(value) = std::env::var("HN_CORE_SPAWN") {
+    // legacy: HN_CORE_SPAWN was the spawn list before the rename; still read for existing setups.
+    let spawn_list = std::env::var("EXCUBIA_CORE_SPAWN").or_else(|_| std::env::var("HN_CORE_SPAWN"));
+    if let Ok(value) = spawn_list {
         for spawn in value
             .split(';')
             .map(str::trim)

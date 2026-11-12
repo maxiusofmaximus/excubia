@@ -2,7 +2,7 @@
 //! onboarding. Each one is a signed call; a refusal comes back as a typed
 //! `ChatFailure` whose `kind` the webview reads.
 
-use herdr_desktop_core::chat::{
+use excubia_desktop_core::chat::{
     ChatFailure, Hire, HireChange, Onboarding, OnboardingDone, RoleCatalog, TeamHires, TeamSummary,
 };
 use tauri::State;

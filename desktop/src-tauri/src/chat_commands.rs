@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
-use herdr_desktop_core::chat::{ChatFailure, ChatResult};
-use herdr_desktop_core::{ChatSnapshot, HostClient};
+use excubia_desktop_core::chat::{ChatFailure, ChatResult};
+use excubia_desktop_core::{ChatSnapshot, HostClient};
 use tauri::State;
 
 use crate::app_state::{lock, AppState};

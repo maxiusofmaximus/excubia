@@ -77,8 +77,8 @@ fn hook_token(data_dir: &Path) -> Result<()> {
     paths::ensure_data_dir(data_dir)?;
     let token = load_hook_token(data_dir)?;
     println!("hook token: {token}");
-    println!("sent as the X-HN-Hook-Token header to POST /v1/hooks/report (loopback only)");
-    println!("spawned agents receive it in HN_HOOK_TOKEN");
+    println!("sent as the X-Excubia-Hook-Token header to POST /v1/hooks/report (loopback only)");
+    println!("spawned agents receive it in EXCUBIA_HOOK_TOKEN");
     println!("data dir: {}", data_dir.display());
     Ok(())
 }
@@ -303,7 +303,7 @@ async fn lan_outcome(task: &mut Option<JoinHandle<std::io::Result<()>>>) -> std:
     }
 }
 
-/// The daemon's sibling binary (`excubia-mcp.exe` next to `host.exe`). Cargo builds
+/// The daemon's sibling binary (`excubia-mcp.exe` next to `excubia-host.exe`). Cargo builds
 /// it only when all binaries are requested, so the host reports a clear
 /// `seat_unavailable` if it is missing instead of guessing a path.
 fn sibling_binary(name: &str) -> Result<PathBuf> {
@@ -319,9 +319,9 @@ fn sibling_binary(name: &str) -> Result<PathBuf> {
     Ok(directory.join(file))
 }
 
-/// The simulated seat CLI: `HN_FAKE_CLI`, or `fake-cli` next to this binary.
+/// The simulated seat CLI: `EXCUBIA_FAKE_CLI`, or `fake-cli` next to this binary.
 fn fake_cli() -> Result<String> {
-    if let Ok(path) = std::env::var("HN_FAKE_CLI") {
+    if let Ok(path) = std::env::var("EXCUBIA_FAKE_CLI") {
         return Ok(path);
     }
     Ok(sibling_binary("fake-cli")?.display().to_string())

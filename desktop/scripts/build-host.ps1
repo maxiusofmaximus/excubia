@@ -1,4 +1,4 @@
-# Builds the Rust core daemon (`host`, shipped as `excubia-host`) from the core worktree and
+# Builds the Rust core daemon (`excubia-host`) from the core worktree and
 # copies it into this app as a Tauri sidecar. Only the binary travels: the
 # core sources are never copied into `desktop`.
 #
@@ -33,7 +33,7 @@ if ($Profile -eq "release") { $buildArgs += "--release" }
 & cargo build @buildArgs -p excubia-core-host -p excubia-core-seat --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
 if ($LASTEXITCODE -ne 0) { throw "cargo build falló con $LASTEXITCODE" }
 
-$built = Join-Path $targetDir "$Profile\host.exe"
+$built = Join-Path $targetDir "$Profile\excubia-host.exe"
 if (-not (Test-Path $built)) { throw "no se generó $built" }
 # Alfred drives the host through this shim; without it every chat send is
 # `409 seat_unavailable`.

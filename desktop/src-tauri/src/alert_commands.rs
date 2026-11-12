@@ -1,7 +1,7 @@
 //! The alert rules of «Avisos» and the mode they run in. Each one is a signed call; a refusal
 //! comes back as a typed `ChatFailure` the webview reads.
 
-use herdr_desktop_core::chat::{AlertMode, AlertRule, AlertRuleDraft, ChatFailure};
+use excubia_desktop_core::chat::{AlertMode, AlertRule, AlertRuleDraft, ChatFailure};
 use tauri::State;
 
 use crate::chat_commands::{client, shared, Shared};

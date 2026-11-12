@@ -2,11 +2,11 @@
 //! the operator approved. Each one is a signed call; a refusal comes back as a
 //! `MailFailure` whose code the webview reads and whose message is already Spanish.
 
-use herdr_desktop_core::mail::{
+use excubia_desktop_core::mail::{
     DeviceLogin, LoginStatus, MailAccount, MailDraft, MailFailure, MailResult, SendRequest,
     SendState, SendToggled,
 };
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::HostClient;
 use tauri::State;
 
 use crate::app_state::AppState;

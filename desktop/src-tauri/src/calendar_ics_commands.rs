@@ -4,7 +4,7 @@
 use std::io::Read;
 use std::path::Path;
 
-use herdr_desktop_core::chat::{ChatFailure, IcsImport, ICS_MAX_BYTES};
+use excubia_desktop_core::chat::{ChatFailure, IcsImport, ICS_MAX_BYTES};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 

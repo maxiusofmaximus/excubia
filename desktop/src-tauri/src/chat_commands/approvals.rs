@@ -1,7 +1,7 @@
 //! The operator's approvals: the inbox, resolved history, decisions and the
 //! approval mode settings.
 
-use herdr_desktop_core::chat::{Approval, ApprovalModeChange, ApprovalSettings, ChatFailure};
+use excubia_desktop_core::chat::{Approval, ApprovalModeChange, ApprovalSettings, ChatFailure};
 use tauri::State;
 
 use super::{client, shared, Shared};

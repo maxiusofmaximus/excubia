@@ -4,10 +4,10 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use herdr_desktop_core::client::{pair_device, PairResponse};
-use herdr_desktop_core::pair_link::{pair_through_link, PairLink};
-use herdr_desktop_core::transport::pinned_base_url;
-use herdr_desktop_core::{CoreError, Transport};
+use excubia_desktop_core::client::{pair_device, PairResponse};
+use excubia_desktop_core::pair_link::{pair_through_link, PairLink};
+use excubia_desktop_core::transport::pinned_base_url;
+use excubia_desktop_core::{CoreError, Transport};
 use excubia_core_pin::{unix_now, Identity, PinSet};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::version::TLS12;

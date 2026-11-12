@@ -183,8 +183,8 @@ const stateAgents = [
   ["w1:p3", "Demo", "working", "Ernesto — lead", "Ernesto"],
   ["w1:p9", "Demo", "blocked", "Bob — especialista", "Bob"],
   ["w1:p11", "Demo", "idle", "Ines — especialista", "Ines"],
-  ["w1:p20", "herdr-notify", "idle", "Hugo — lead", "Hugo"],
-  ["w1:p21", "herdr-notify", "working", "Sami — especialista", "Sami"],
+  ["w1:p20", "excubia", "idle", "Hugo — lead", "Hugo"],
+  ["w1:p21", "excubia", "working", "Sami — especialista", "Sami"],
 ].map(([pane, project, status, title, agent]) => ({
   pane_id: pane,
   project,
@@ -266,8 +266,8 @@ const server = createServer((request, response) => {
         },
         {
           id: "prj_hn",
-          name: "herdr-notify",
-          root_label: "herdr-notify",
+          name: "excubia",
+          root_label: "excubia",
           status: "active",
           lead: { agent_id: "ag_hugo", name: "Hugo", status: "idle", uac_state: "unchecked", pane_id: "w1:p20" },
         },

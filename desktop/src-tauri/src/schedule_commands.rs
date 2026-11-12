@@ -2,7 +2,7 @@
 //! Each one is a signed call to the host; a refusal comes back as a typed `ChatFailure` the screen
 //! words by its `code`. Nothing here runs a task on its own: every run is asked for.
 
-use herdr_desktop_core::chat::{ChatFailure, Schedule, ScheduleDraft, ScheduleLaunch, ScheduleRun};
+use excubia_desktop_core::chat::{ChatFailure, Schedule, ScheduleDraft, ScheduleLaunch, ScheduleRun};
 use tauri::State;
 
 use crate::chat_commands::{client, shared, Shared};

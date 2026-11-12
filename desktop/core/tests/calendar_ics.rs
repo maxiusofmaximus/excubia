@@ -3,9 +3,9 @@ mod common;
 use std::sync::Mutex;
 
 use common::{spawn_reply, Captured};
-use herdr_desktop_core::chat::{export_file_name, ChatFailure, ICS_MAX_BYTES};
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::HostClient;
+use excubia_desktop_core::chat::{export_file_name, ChatFailure, ICS_MAX_BYTES};
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::HostClient;
 
 const JSON: &str = "Content-Type: application/json\r\n";
 const ICS_FILE: &str = "Content-Type: text/calendar; charset=utf-8\r\nContent-Disposition: attachment; filename=\"excubia.ics\"\r\n";
@@ -68,7 +68,7 @@ async fn an_import_sends_the_file_as_it_is_and_reads_the_counts() {
     assert!(request
         .headers
         .to_ascii_lowercase()
-        .contains("x-hn-signature:"));
+        .contains("x-excubia-signature:"));
     assert_eq!(request.body, file);
 }
 

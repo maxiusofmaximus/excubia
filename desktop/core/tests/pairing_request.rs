@@ -3,8 +3,8 @@ mod common;
 use std::sync::Arc;
 
 use common::read_request;
-use herdr_desktop_core::client::pair_device;
-use herdr_desktop_core::Transport;
+use excubia_desktop_core::client::pair_device;
+use excubia_desktop_core::Transport;
 use serde_json::Value;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;

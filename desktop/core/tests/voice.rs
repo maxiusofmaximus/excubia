@@ -1,8 +1,8 @@
 mod common;
 
 use common::spawn_server;
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::{HostClient, VoiceFailure, VoiceTranscript};
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::{HostClient, VoiceFailure, VoiceTranscript};
 
 const TRANSCRIBED: &str = r#"{"text":"hola Excubia","ms":1840}"#;
 
@@ -30,7 +30,7 @@ async fn a_note_goes_as_a_signed_wav_and_the_text_comes_back() {
     assert_eq!(captured[0].body, wav);
     let headers = captured[0].headers.to_ascii_lowercase();
     assert!(headers.contains("content-type: audio/wav\r\n"), "{headers}");
-    assert!(headers.contains("x-hn-signature:"), "{headers}");
+    assert!(headers.contains("x-excubia-signature:"), "{headers}");
 }
 
 #[tokio::test]

@@ -1,7 +1,7 @@
 //! The page preview of a document. The host renders the page; the core checks the PNG and
 //! its size before the webview gets the base64 copy.
 
-use herdr_desktop_core::chat::{PreviewFailure, PreviewPage};
+use excubia_desktop_core::chat::{PreviewFailure, PreviewPage};
 use tauri::State;
 
 use super::{client, shared, Shared};

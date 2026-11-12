@@ -6,17 +6,17 @@ use std::time::Duration;
 
 use common::{fake_agent_binary, run_cli, start_host};
 use excubia_desktop::app_state::pair_code_from;
-use herdr_desktop_core::identity::DeviceIdentity;
-use herdr_desktop_core::{CoreError, HostClient, WriteAction};
+use excubia_desktop_core::identity::DeviceIdentity;
+use excubia_desktop_core::{CoreError, HostClient, WriteAction};
 
 async fn pair(
     host: &common::RunningHost,
     identity: &DeviceIdentity,
-) -> herdr_desktop_core::PairResponse {
+) -> excubia_desktop_core::PairResponse {
     let code = pair_code_from(&run_cli(&host.binary, &host.data_dir, &["pair-code"])).unwrap();
-    herdr_desktop_core::client::pair_device(
+    excubia_desktop_core::client::pair_device(
         &host.url(),
-        &herdr_desktop_core::Transport::Plain,
+        &excubia_desktop_core::Transport::Plain,
         "p256",
         &identity.public_key_b64(),
         "integration",

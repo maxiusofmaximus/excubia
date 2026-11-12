@@ -1,5 +1,5 @@
-use herdr_desktop_core::state::AgentStatus;
-use herdr_desktop_core::AgentAlert;
+use excubia_desktop_core::state::AgentStatus;
+use excubia_desktop_core::AgentAlert;
 use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
@@ -58,7 +58,7 @@ mod tests {
     fn alert(pane_id: &str, status: AgentStatus) -> AgentAlert {
         AgentAlert {
             pane_id: pane_id.to_string(),
-            project: "herdr-notify".to_string(),
+            project: "excubia".to_string(),
             title: "Tarea".to_string(),
             status,
         }
@@ -68,7 +68,7 @@ mod tests {
     fn one_blocked_alert_names_its_pane() {
         let alerts = [alert("w1:p1", AgentStatus::Blocked)];
         let (title, body, pane_id) = compose(&alerts);
-        assert_eq!(title, "Necesita tu atención: herdr-notify");
+        assert_eq!(title, "Necesita tu atención: excubia");
         assert_eq!(body, "Tarea");
         assert_eq!(pane_id, Some("w1:p1"));
     }
@@ -77,7 +77,7 @@ mod tests {
     fn one_done_alert_reads_as_finished() {
         let alerts = [alert("w1:p1", AgentStatus::Done)];
         let (title, _, pane_id) = compose(&alerts);
-        assert_eq!(title, "Terminó: herdr-notify");
+        assert_eq!(title, "Terminó: excubia");
         assert_eq!(pane_id, Some("w1:p1"));
     }
 
@@ -89,7 +89,7 @@ mod tests {
         ];
         let (title, body, pane_id) = compose(&alerts);
         assert_eq!(title, "2 agentes necesitan tu atención");
-        assert_eq!(body, "herdr-notify: Tarea\nherdr-notify: Tarea");
+        assert_eq!(body, "excubia: Tarea\nexcubia: Tarea");
         assert_eq!(pane_id, None, "a grouped toast cannot open one agent");
     }
 

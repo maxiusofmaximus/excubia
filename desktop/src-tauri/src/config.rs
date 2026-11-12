@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use herdr_desktop_core::{
+use excubia_desktop_core::{
     default_device_label, normalize_device_label, Fingerprint, PinSet, Transport,
 };
 use serde::{Deserialize, Serialize};

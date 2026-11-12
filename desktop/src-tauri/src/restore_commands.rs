@@ -1,7 +1,7 @@
 //! «Copias del turno»: the restore points of an agent. Each command is a signed call to
 //! the host; a refusal comes back as a typed `ChatFailure` the screen words by its `code`.
 
-use herdr_desktop_core::chat::{ChatFailure, RestoreChanges, RestoreDone, RestorePoints};
+use excubia_desktop_core::chat::{ChatFailure, RestoreChanges, RestoreDone, RestorePoints};
 use tauri::State;
 
 use crate::chat_commands::{client, shared, Shared};
