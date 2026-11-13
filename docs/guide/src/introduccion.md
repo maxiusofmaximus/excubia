@@ -21,8 +21,9 @@ después de [emparejarse](emparejar.md) con él.
 
 ## Lo que todavía no está disponible
 
-- **Avisos con la app cerrada.** Las notificaciones push (FCM) todavía no están
-  implementadas. Mientras la app está abierta, los cambios llegan en tiempo real.
+- **Avisos fuera de tu red.** Con la app cerrada los avisos llegan por la conexión con tu PC
+  (**Avisos en segundo plano**, en Ajustes). Las notificaciones push (FCM) no están
+  implementadas: si el móvil no alcanza al PC, no hay avisos.
 
 ## Cómo leer esta guía
 

@@ -7,8 +7,9 @@ conecta a él por la IP privada, con la conexión cifrada y la huella del certif
 
 ## ¿Recibo avisos si la app está cerrada?
 
-No todavía. Las notificaciones push (FCM) no están implementadas. Mientras la app está abierta,
-los cambios de tus agentes llegan en tiempo real.
+Sí, si activas **Avisos en segundo plano** en Ajustes y el móvil alcanza a tu PC por la red: la
+app mantiene la conexión y te avisa. No hay notificaciones push (FCM), así que fuera de esa red
+no llegan avisos.
 
 ## ¿El móvil habla con algún servidor externo?
 

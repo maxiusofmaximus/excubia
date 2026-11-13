@@ -38,7 +38,10 @@ excubia-host devices grant <id> --permission approve
 ## Avisos
 
 - **Móvil.** Mientras la app está abierta, recibe los cambios en tiempo real. Con la app
-  cerrada no hay avisos: las notificaciones push todavía no están implementadas.
+  cerrada, activa **Avisos en segundo plano** en Ajustes: la app mantiene la conexión con tu PC
+  y te avisa mientras el móvil alcance al PC por la red. No usa notificaciones push (FCM), así
+  que fuera de esa red no llegan avisos. Algunos móviles exigen además permitir el inicio
+  automático de la app y quitarle la restricción de batería.
 - **Escritorio.** Muestra avisos cuando cambia el estado de un agente.
 
 En el código, a estas peticiones se las llama «UAC». No son la ventana de control de cuentas

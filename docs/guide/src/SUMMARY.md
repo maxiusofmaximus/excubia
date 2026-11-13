@@ -15,4 +15,3 @@
 
 # Migración
 
-- [Migrar desde la app anterior](migracion.md)
