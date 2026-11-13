@@ -32,22 +32,22 @@ Un dispositivo recién emparejado queda pendiente y sin permisos. Tú decides qu
 Concede solo lo que necesite cada dispositivo:
 
 ```powershell
-host devices grant <id> --permission read_state
+excubia-host devices grant <id> --permission read_state
 ```
 
 ## Quitar un dispositivo
 
 ```powershell
-host devices list
-host devices revoke <id>
+excubia-host devices list
+excubia-host devices revoke <id>
 ```
 
 Revocar marca el dispositivo como revocado; deja de tener acceso de inmediato.
 
 ## Si pierdes el móvil
 
-1. En el PC, ejecuta `host devices list` y localiza el móvil.
-2. Revócalo con `host devices revoke <id>`.
+1. En el PC, ejecuta `excubia-host devices list` y localiza el móvil.
+2. Revócalo con `excubia-host devices revoke <id>`.
 3. Si sospechas que alguien vio un enlace de emparejamiento, crea otro para comprobarlo. Un
    enlace ya usado no sirve, y el enlace caduca en 600 segundos.
 

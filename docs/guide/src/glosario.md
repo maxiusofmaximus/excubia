@@ -9,7 +9,7 @@ agentes y se delegan tareas.
 **Aprobación.** Decisión sobre una petición de permiso de un agente. Puede ser **Aprobar**,
 **Permitir una vez** o **Denegar**.
 
-**Código de emparejamiento.** Código de un solo uso que el host crea con `host pair-code`. Va
+**Código de emparejamiento.** Código de un solo uso que el host crea con `excubia-host pair-code`. Va
 dentro del enlace `excubia://pair?…` o del código QR, y caduca a los 600 segundos por
 defecto.
 

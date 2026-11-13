@@ -32,7 +32,7 @@ Para aprobar desde un dispositivo hace falta el permiso `approve`. Si no lo tien
 dice que no puede cambiar la aprobación y muestra el comando para concederlo en el PC:
 
 ```powershell
-host devices grant <id> --permission approve
+excubia-host devices grant <id> --permission approve
 ```
 
 ## Avisos

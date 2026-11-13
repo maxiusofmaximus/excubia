@@ -31,6 +31,6 @@ README y su propio sistema de compilación.
    coincida con la del enlace. Sobre Tailscale, la red privada cifra el tráfico. En ambos casos,
    el dispositivo se autentica con su clave, no con el transporte.
 3. Los agentes avisan de su estado al host mediante hooks, con el token que imprime
-   `host hook-token`.
+   `excubia-host hook-token`.
 4. El host decide qué puede hacer cada dispositivo según sus permisos. Las peticiones de
    aprobación suben por niveles: política del proyecto, lead, Alfred y, por último, el usuario.

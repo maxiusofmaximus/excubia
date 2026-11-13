@@ -45,7 +45,8 @@ Desde la carpeta `desktop` del repositorio:
    Para generar la app completa, el repositorio indica
    `pnpm dlx @tauri-apps/cli@latest build`. Necesitas las herramientas de Tauri instaladas.
 
-En esta guía, `host` significa el ejecutable `excubia-host.exe`.
+Los comandos de esta guía usan `excubia-host`, el ejecutable del host. El instalador lo deja en
+`%LOCALAPPDATA%\Excubia\excubia-host.exe`.
 
 ## Dónde guarda sus datos
 
@@ -69,13 +70,13 @@ El host acepta estos comandos desde una terminal. Todos admiten `--data-dir DIR`
 
 | Comando | Para qué sirve |
 |---|---|
-| `host` | Arranca el host. Escucha en `127.0.0.1` por defecto (puerto `8791`). |
-| `host pair-code [--ttl S] [--lan IP:PUERTO]` | Crea un código de emparejamiento de un solo uso y el enlace para el móvil. Caduca a los 600 segundos por defecto. |
-| `host tls prepare` / `host tls activate` | Prepara y activa el certificado de la red local. |
-| `host devices list` | Lista los dispositivos emparejados. |
-| `host devices grant <id> --permission <permiso>` | Concede un permiso a un dispositivo. |
-| `host devices revoke <id>` | Quita un dispositivo. |
-| `host hook-token` | Imprime el token que los agentes usan para avisar de su estado. |
+| `excubia-host` | Arranca el host. Escucha en `127.0.0.1` por defecto (puerto `8791`). |
+| `excubia-host pair-code [--ttl S] [--lan IP:PUERTO]` | Crea un código de emparejamiento de un solo uso y el enlace para el móvil. Caduca a los 600 segundos por defecto. |
+| `excubia-host tls prepare` / `excubia-host tls activate` | Prepara y activa el certificado de la red local. |
+| `excubia-host devices list` | Lista los dispositivos emparejados. |
+| `excubia-host devices grant <id> --permission <permiso>` | Concede un permiso a un dispositivo. |
+| `excubia-host devices revoke <id>` | Quita un dispositivo. |
+| `excubia-host hook-token` | Imprime el token que los agentes usan para avisar de su estado. |
 
 Al arrancar, el host también acepta `--uac-plugin-dir DIR`, la carpeta del plugin que
 bloquea a los agentes mientras esperan una aprobación. Sin esa opción, el host avisa en su

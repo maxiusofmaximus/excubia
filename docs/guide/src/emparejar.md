@@ -23,7 +23,7 @@ El enlace de emparejamiento tiene tres datos importantes:
    `<IP-del-PC>` por la de tu equipo:
 
    ```powershell
-   host pair-code --lan <IP-del-PC>:8443
+   excubia-host pair-code --lan <IP-del-PC>:8443
    ```
 
 2. Copia el enlace que imprime. Empieza por `excubia://pair?`.
@@ -38,14 +38,14 @@ El móvil queda **pendiente**: el host lo conoce, pero no le concede ningún per
 que no lo autorices, la app no mostrará el estado de tus agentes. En el PC:
 
 ```powershell
-host devices list
-host devices grant <id> --permission read_state
+excubia-host devices list
+excubia-host devices grant <id> --permission read_state
 ```
 
 Los permisos y su significado están en [Seguridad](seguridad.md).
 
 ## Si el enlace falla
 
-Un enlace caducado o usado ya no sirve. Crea otro con `host pair-code`. Si la app dice que la
+Un enlace caducado o usado ya no sirve. Crea otro con `excubia-host pair-code`. Si la app dice que la
 huella no coincide, no sigas: es otro host o otra red. Más casos en
 [solución de problemas](solucion-problemas.md).
