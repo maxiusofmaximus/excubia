@@ -724,7 +724,7 @@ impl TestHost {
         format!("http://{}", self.addr)
     }
 
-    /// Mint a single-use pairing code, exactly like `host pair-code` does.
+    /// Mint a single-use pairing code, exactly like `excubia-host pair-code` does.
     pub fn pair_code(&self) -> String {
         self.devices
             .issue_enrollment_code(excubia_core_auth::ENROLLMENT_TTL_SECONDS)

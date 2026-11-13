@@ -51,7 +51,7 @@ struct Login {
     status: LoginStatus,
 }
 
-/// One account in the listing: what `host mail accounts` prints, as JSON.
+/// One account in the listing: what `excubia-host mail accounts` prints, as JSON.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AccountSummary {
     pub label: String,

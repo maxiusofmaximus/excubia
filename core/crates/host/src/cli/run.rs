@@ -1,4 +1,4 @@
-//! The daemon command line: `host [daemon flags]`.
+//! The daemon command line: `excubia-host [daemon flags]`.
 
 use std::net::IpAddr;
 use std::path::PathBuf;

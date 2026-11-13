@@ -1,5 +1,5 @@
 //! Alfred's model: Claude (the default) or the local Strata model, chosen by hand with
-//! `host alfred use`. The marker `<data-dir>/alfred-local` means "local". Each turn of Alfred
+//! `excubia-host alfred use`. The marker `<data-dir>/alfred-local` means "local". Each turn of Alfred
 //! is a new CLI process, so the seat reads the marker when a turn starts (`turn_env`). The
 //! contract is `docs/contracts/local-backend.md`.
 
@@ -12,7 +12,7 @@ use anyhow::{bail, Context, Result};
 use excubia_core_seat::TurnEnv;
 use tokio::task::JoinHandle;
 
-use crate::cli::AlfredCommand;
+use crate::cli::{AlfredCommand, BIN};
 use crate::pairing_notice::PairingNotice;
 use crate::paths;
 use crate::strata::{self, State};
@@ -24,7 +24,7 @@ pub const ENTER_NOTICE: &str = "Alfred usa ahora el modelo local";
 pub const EXIT_NOTICE: &str = "Volvió a Claude";
 /// At most one quota notice in this span, so a run of failed turns posts one message.
 const QUOTA_NOTICE_EVERY: Duration = Duration::from_secs(30 * 60);
-pub const QUOTA_NOTICE: &str = "Claude alcanzó su límite de uso. Para seguir con el modelo local, en el PC: host alfred local (tarda unos 4 min, apaga la voz y necesita ~34 GB de RAM libre)";
+pub const QUOTA_NOTICE: &str = "Claude alcanzó su límite de uso. Para seguir con el modelo local, en el PC: excubia-host alfred local (tarda unos 4 min, apaga la voz y necesita ~34 GB de RAM libre)";
 
 pub fn is_on(data_dir: &Path) -> bool {
     paths::alfred_local_path(data_dir).exists()
@@ -164,12 +164,12 @@ pub fn quota_hook(notices: Arc<PairingNotice>, data_dir: PathBuf) -> Arc<dyn Fn(
     })
 }
 
-/// Run one `host alfred` subcommand.
+/// Run one `excubia-host alfred` subcommand.
 pub fn run(command: AlfredCommand, data_dir: &Path) -> Result<()> {
     match command {
         AlfredCommand::UseLocal => {
             if !matches!(strata::state(&strata::binary()?), Ok(State::Ready)) {
-                bail!("Strata no está listo; arranca Strata antes: host strata start");
+                bail!("Strata no está listo; arranca Strata antes: {BIN} strata start");
             }
             set(data_dir).context("write the alfred-local marker")?;
             println!("Alfred: modelo local");
@@ -179,7 +179,7 @@ pub fn run(command: AlfredCommand, data_dir: &Path) -> Result<()> {
             let bin = strata::binary()?;
             strata::start(&bin, data_dir).context("start the local model")?;
             if !matches!(strata::state(&bin), Ok(State::Ready)) {
-                bail!("Strata no quedó listo; mira `host strata status`");
+                bail!("Strata no quedó listo; mira `{BIN} strata status`");
             }
             set(data_dir).context("write the alfred-local marker")?;
             println!("Alfred: modelo local");

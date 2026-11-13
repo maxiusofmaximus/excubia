@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use excubia_core_api::{PairOutcome, PairingAttempt, PairingAudit};
 use excubia_core_chat::{ChatError, ChatStore, ConversationFilter, NewConversation};
 
+use crate::cli::BIN;
 use crate::pairing_audit::JsonlPairingAudit;
 
 pub const NOTICE_TITLE: &str = "Avisos del sistema";
@@ -117,7 +118,7 @@ fn notice_text(attempt: &PairingAttempt) -> Option<String> {
     }
     let device = attempt.device_id.as_deref()?;
     let label = label_span(attempt.label.as_deref().unwrap_or_default());
-    let revoke = format!("Si no fuiste tú: `host devices revoke {device}`.");
+    let revoke = format!("Si no fuiste tú: `{BIN} devices revoke {device}`.");
     match attempt.outcome {
         PairOutcome::Paired => {
             // Without a pin there is no string to check, so the notice leaves it out.
@@ -182,9 +183,11 @@ mod tests {
         paired.sas = Some("042817".to_owned());
         assert_eq!(
             notice_text(&paired).expect("a notice"),
-            "Nuevo dispositivo pendiente: `Phone` (dev-1), sin permisos. \
-             Cadena de verificación: **042817** (debe ser la que muestra el móvil). \
-             Si no fuiste tú: `host devices revoke dev-1`."
+            format!(
+                "Nuevo dispositivo pendiente: `Phone` (dev-1), sin permisos. \
+                 Cadena de verificación: **042817** (debe ser la que muestra el móvil). \
+                 Si no fuiste tú: `{BIN} devices revoke dev-1`."
+            )
         );
     }
 
@@ -222,8 +225,10 @@ mod tests {
         .expect("a notice");
         assert_eq!(
             recovered,
-            "Se usó el código de recuperación de dev-2 (`Pixel`). \
-             Si no fuiste tú: `host devices revoke dev-2`."
+            format!(
+                "Se usó el código de recuperación de dev-2 (`Pixel`). \
+                 Si no fuiste tú: `{BIN} devices revoke dev-2`."
+            )
         );
     }
 
@@ -256,7 +261,9 @@ mod tests {
         unnamed.sas = Some("123456".to_owned());
         assert_eq!(
             notice_text(&unnamed).expect("a notice"),
-            "Nuevo dispositivo pendiente: `sin nombre` (dev-2), sin permisos. Cadena de verificación: **123456** (debe ser la que muestra el móvil). Si no fuiste tú: `host devices revoke dev-2`."
+            format!(
+                "Nuevo dispositivo pendiente: `sin nombre` (dev-2), sin permisos. Cadena de verificación: **123456** (debe ser la que muestra el móvil). Si no fuiste tú: `{BIN} devices revoke dev-2`."
+            )
         );
     }
 }

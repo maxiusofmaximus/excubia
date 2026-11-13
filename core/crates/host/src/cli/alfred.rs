@@ -1,4 +1,4 @@
-//! The `host alfred` subcommands: local, use local, use claude and status.
+//! The `excubia-host alfred` subcommands: local, use local, use claude and status.
 
 use std::path::PathBuf;
 

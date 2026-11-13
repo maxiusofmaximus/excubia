@@ -1,4 +1,4 @@
-//! The Strata local backend behind `host strata`.
+//! The Strata local backend behind `excubia-host strata`.
 //!
 //! Strata serves one local model on loopback (`strata launch`). The host starts
 //! it on demand, waits until it answers, and stops it. One thing at a time: the
@@ -17,7 +17,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use excubia_core_api::AgentCatalog;
 use serde_json::Value;
 
-use crate::cli::StrataCommand;
+use crate::cli::{BIN, StrataCommand};
 use crate::{agents, alfred_backend, local_mode, paths};
 
 /// The one model the local server loads.
@@ -272,7 +272,7 @@ fn wait_until_loaded(bin: &Path, mut launcher: Option<Child>) -> Result<()> {
         let elapsed = started.elapsed();
         if elapsed >= LOAD_TIMEOUT {
             bail!(
-                "no cargó en {} s; `host strata status` dice cómo está",
+                "no cargó en {} s; `{BIN} strata status` dice cómo está",
                 LOAD_TIMEOUT.as_secs()
             );
         }
@@ -375,7 +375,7 @@ pub fn enable_agent(data_dir: &Path) -> Result<bool> {
     Ok(true)
 }
 
-/// Run one `host strata` subcommand.
+/// Run one `excubia-host strata` subcommand.
 pub fn run(command: StrataCommand, data_dir: &Path) -> Result<()> {
     match command {
         StrataCommand::EnableAgent => {

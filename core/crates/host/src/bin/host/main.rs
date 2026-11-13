@@ -1,10 +1,10 @@
-//! `host` — the daemon and its host-side CLI.
+//! `excubia-host` — the daemon and its host-side CLI.
 //!
-//! Run `host` (no subcommand) to supervise agents and serve the local API on
-//! loopback. `host pair-code` mints a single-use pairing code (and its link,
-//! with `--lan`; with `--pake` it asks the running daemon for its PAKE code), `host tls prepare|activate` rotates the LAN certificate,
-//! `host hook-token` prints the token agent hooks use, and
-//! `host devices list|revoke|grant|recovery` manage the trust store — the
+//! Run `excubia-host` (no subcommand) to supervise agents and serve the local API on
+//! loopback. `excubia-host pair-code` mints a single-use pairing code (and its link,
+//! with `--lan`; with `--pake` it asks the running daemon for its PAKE code), `excubia-host tls prepare|activate` rotates the LAN certificate,
+//! `excubia-host hook-token` prints the token agent hooks use, and
+//! `excubia-host devices list|revoke|grant|recovery` manage the trust store — the
 //! same files the daemon re-reads, so both processes agree without a restart.
 
 mod admin;

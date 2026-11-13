@@ -403,7 +403,7 @@ impl Host {
         .expect("mail tools")
     }
 
-    /// Takes the send grant away the way `host mail disable-send` does.
+    /// Takes the send grant away the way `excubia-host mail disable-send` does.
     pub fn disable_send(&self) {
         let account = self
             .store

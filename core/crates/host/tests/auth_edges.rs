@@ -25,7 +25,7 @@ async fn pairing_failures_follow_the_contract() {
         "{}",
         refused.body
     );
-    assert!(refused.body.contains("host pair-code"), "{}", refused.body);
+    assert!(refused.body.contains("excubia-host pair-code"), "{}", refused.body);
 
     // An unsupported curve and an oversized label are model failures.
     let bad_curve = pair_device(

@@ -1,4 +1,4 @@
-//! The one-shot commands of `host`: pairing codes, the LAN certificate, the hook
+//! The one-shot commands of `excubia-host`: pairing codes, the LAN certificate, the hook
 //! token, the Claude settings, mail and the trust store. Each acts on the data
 //! dir and exits; the daemon is `daemon.rs`.
 
@@ -134,7 +134,7 @@ pub(super) fn hook_token(seat: Option<&str>, data_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// `host mail ...`: the errors name their stable code, never a secret.
+/// `excubia-host mail ...`: the errors name their stable code, never a secret.
 pub(super) async fn mail(invocation: MailInvocation) -> Result<()> {
     let mut out = std::io::stdout();
     mail_cli::main(invocation, &mut out)

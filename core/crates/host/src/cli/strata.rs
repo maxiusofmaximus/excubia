@@ -1,4 +1,4 @@
-//! The `host strata` subcommands: start, stop, status and enable-agent.
+//! The `excubia-host strata` subcommands: start, stop, status and enable-agent.
 
 use std::path::PathBuf;
 

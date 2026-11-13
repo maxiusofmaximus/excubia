@@ -18,6 +18,8 @@ use anyhow::{bail, Context, Result};
 use excubia_core_persist::{write_atomic, write_secret_atomic};
 use excubia_core_pin::{CertificateInfo, Fingerprint, Identity, PinSet};
 
+use crate::cli::BIN;
+
 use crate::paths;
 
 const ACTIVE: &str = "active";
@@ -86,7 +88,7 @@ impl TlsSlots {
     pub fn activate(&self) -> Result<(Fingerprint, Fingerprint)> {
         let next = self
             .load(NEXT)?
-            .context("nothing is prepared: run `host tls prepare` first")?;
+            .with_context(|| format!("nothing is prepared: run `{BIN} tls prepare` first"))?;
         let previous = self.active()?;
         write_atomic(&self.dir.join(PREVIOUS), previous.cert_der())?;
         self.store(ACTIVE, &next)?;

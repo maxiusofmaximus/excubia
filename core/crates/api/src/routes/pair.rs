@@ -229,11 +229,11 @@ fn empty_code_refusal(ip: &str) -> ApiError {
     let message = if ip == "127.0.0.1" || ip == "::1" {
         "no pairing code was provided and this request arrived from a local \
          address, so it cannot be matched to the host's tailnet owner (a local \
-         proxy makes every request look local); run `host pair-code` on the \
+         proxy makes every request look local); run `excubia-host pair-code` on the \
          host and enter the code"
     } else {
         "no pairing code was provided and this address is not the host's \
-         tailnet owner; run `host pair-code` on the host and enter the code"
+         tailnet owner; run `excubia-host pair-code` on the host and enter the code"
     };
     ApiError {
         status: axum::http::StatusCode::FORBIDDEN,

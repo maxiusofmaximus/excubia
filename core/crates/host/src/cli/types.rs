@@ -96,19 +96,19 @@ pub enum Command {
         command: DevicesCommand,
         data_dir: PathBuf,
     },
-    /// `host mail login|accounts|logout`: the mailboxes this host signs in.
+    /// `excubia-host mail login|accounts|logout`: the mailboxes this host signs in.
     Mail(crate::mail_cli::MailInvocation),
-    /// `host strata start|stop|status|enable-agent`: the local model backend.
+    /// `excubia-host strata start|stop|status|enable-agent`: the local model backend.
     Strata {
         command: StrataCommand,
         data_dir: PathBuf,
     },
-    /// `host alfred local|use local|use claude|status`: the model Alfred answers with.
+    /// `excubia-host alfred local|use local|use claude|status`: the model Alfred answers with.
     Alfred {
         command: AlfredCommand,
         data_dir: PathBuf,
     },
-    /// `host audit tail [--n N]`: the last N events of the audit log, readable.
+    /// `excubia-host audit tail [--n N]`: the last N events of the audit log, readable.
     AuditTail {
         n: usize,
         data_dir: PathBuf,

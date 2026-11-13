@@ -1,4 +1,4 @@
-//! The `host audit` subcommand: `tail` prints the last events of the audit log.
+//! The `excubia-host audit` subcommand: `tail` prints the last events of the audit log.
 
 use std::path::PathBuf;
 

@@ -1,4 +1,4 @@
-//! `host mail login|accounts|logout|enable-send|disable-send` (MAIL1C §3, MAIL2A):
+//! `excubia-host mail login|accounts|logout|enable-send|disable-send` (MAIL1C §3, MAIL2A):
 //! signing mailboxes in and out of this host from the terminal, and granting or
 //! revoking the separate consent that lets an approved draft be sent. Nothing
 //! printed here carries a token.
@@ -40,7 +40,7 @@ pub enum MailAction {
     },
 }
 
-/// A parsed `host mail ...` line. `None` means the default data directory.
+/// A parsed `excubia-host mail ...` line. `None` means the default data directory.
 #[derive(Debug)]
 pub struct MailInvocation {
     pub action: MailAction,

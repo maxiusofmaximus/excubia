@@ -35,7 +35,7 @@ told which code or which check failed, the same oracle reasoning as the uniform
 `401`/`403`. When **no code** was supplied there is only the tailnet-owner check
 to fail, and the caller already knows it sent no code, so the refusal is a
 `{code, message}` object whose message names the working path
-(`herdr-notify enroll`) and, for a loopback source, the local-proxy cause. It
+(`excubia-host pair-code`, as `crates/api/src/routes/pair.rs` prints it) and, for a loopback source, the local-proxy cause. It
 never reports whose account owns an address.
 
 ## PAKE pairing (F2b, alpha)
@@ -330,10 +330,10 @@ Vistas previas (`GET …/attachments/{att}/preview`), con `{"detail":{"code","me
 - `422` `scope_denied` para un seat de proyecto.
 
 `chat.reply` con `attachment_ids` (DOC8): `422` `invalid_arguments` (campo `attachment_ids`)
-si hay más de 4, un id repetido o vacío, o un archivo que no existe en la conversación, no
+si hay más de 10, un id repetido o vacío, o un archivo que no existe en la conversación, no
 lo creó Alfred, ya está en otro mensaje o no está listo. Mensajes: «ese archivo no existe en
 esta conversación o no lo creó Alfred», «ese archivo ya está en otro mensaje», «ese archivo
-todavía no está listo», «un mensaje lleva como máximo 4 archivos».
+todavía no está listo», «un mensaje lleva como máximo 10 archivos».
 
 ## Approval delegation (CORE9-B)
 
@@ -368,7 +368,7 @@ Los códigos de envío viven en `mail.md` («Códigos de error»). Su respuesta 
 
 | `code` | Status | Notes |
 |--------|--------|-------|
-| `mail_send_not_enabled` | `400` | the account has no send consent (`host mail enable-send`) |
+| `mail_send_not_enabled` | `400` | the account has no send consent (`excubia-host mail enable-send`) |
 | `mail_approval_stale` | `400` | the approval was spent, or the draft changed after it was approved |
 | `mail_approval_denied` | `400` | denied, or expired after 120 s; the answer for a spent `approval_id` |
 | `mail_draft_refused` | `400` | a new send question for content the owner denied: the draft must change before it is asked again (`el borrador fue rechazado; cámbialo para pedirlo de nuevo`) |

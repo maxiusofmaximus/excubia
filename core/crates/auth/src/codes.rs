@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 pub const ENROLLMENT_CODE_BYTES: usize = 4;
 /// 80 bits for a recovery code, printed once as four base32 groups.
 pub const RECOVERY_CODE_BYTES: usize = 10;
-/// Default life of a pairing code (`host pair-code --ttl` overrides it).
+/// Default life of a pairing code (`excubia-host pair-code --ttl` overrides it).
 pub const ENROLLMENT_TTL_SECONDS: f64 = 180.0;
 
 /// A new pairing code: base32, no padding (`AEBAGBA`).

@@ -55,22 +55,22 @@ An **empty pairing code is the exception, not the normal path.** It works only
 when the caller's source IP belongs to the host's own tailnet owner; any other
 address (a different account, a tagged node, an unavailable daemon, or a request
 that arrived through a proxy) is refused with `403 pairing_rejected`. The normal
-path is a **code from `herdr-notify enroll`**, which the operator reads off the
+path is a **code from `excubia-host pair-code`**, which the operator reads off the
 host and enters once on the phone.
 
 - **Pairing code**: `DeviceStore.issue_enrollment_code` — 4 random bytes, base32,
-  180 s TTL (the host default; `host pair-code --ttl` overrides it), **single use**. `herdr-notify enroll` prints it. The store validates
+  180 s TTL (the host default; `excubia-host pair-code --ttl` overrides it), **single use**. `excubia-host pair-code` prints it. The store validates
   the payload **before** spending the code, so a malformed request cannot deny
   the legitimate phone its pairing. The code is **persisted to the trust store**
-  (as a SHA-256 digest, never in the clear), because `enroll` and the running
-  `serve` daemon (`host`) are separate processes: the host notices the changed file
+  (as a SHA-256 digest, never in the clear), because `pair-code` and the running
+  `serve` daemon (`excubia-host`) are separate processes: the host notices the changed file
   (`reload_if_changed`) and accepts the code. A spent or expired code is dropped
   from the file, so single use survives a restart.
 - **Recovery code**: minted at pairing and returned exactly once; stored only as
-  a SHA-256 hash. `herdr-notify devices --recovery <id>` mints a new one
+  a SHA-256 hash. `excubia-host devices recovery <id>` mints a new one
   (rotating the old). It re-keys the device without manual approval and cannot
   be used for a revoked device.
-  The host CLI mints one the same way: `host devices recovery <device_id>
+  The host CLI mints one the same way: `excubia-host devices recovery <device_id>
   [--data-dir DIR]` prints the new code once and replaces the old one. An
   unknown or revoked device is refused with an error and no code is minted.
 - **Auto-approval**: with no code, `tailscale whois --json <source-ip>` must
@@ -78,10 +78,10 @@ host and enters once on the phone.
   account, a tagged node, or an unavailable daemon never auto-approves. A
   **local `tailscale serve` proxy** makes the request arrive from a loopback
   address, which has no tailnet owner, so it can never auto-approve: run
-  `herdr-notify enroll` and use the code.
+  `excubia-host pair-code` and use the code.
 - A **supplied code** that fails answers the uniform
   `403 {"detail":"pairing_rejected"}` (updated: an empty code now answers a
-  slightly clearer `403 {code, message}` naming `herdr-notify enroll`, since the
+  slightly clearer `403 {code, message}` naming `excubia-host pair-code`, since the
   caller already knows it sent no code and only the owner check could have
   failed; it still reveals no owner). The endpoint is rate-limited per source IP.
 
@@ -105,8 +105,8 @@ created by the first notice and found by its title among the conversations not
 archived; the host keeps its id until it restarts, so an archived one keeps the
 notices until then. The texts are:
 
-- ``Nuevo dispositivo pendiente: `<label>` (<device_id>), sin permisos. Cadena de verificación: **<sas>** (debe ser la que muestra el móvil). Si no fuiste tú: `host devices revoke <device_id>`.``
-- ``Se usó el código de recuperación de <device_id> (`<label>`). Si no fuiste tú: `host devices revoke <device_id>`.``
+- ``Nuevo dispositivo pendiente: `<label>` (<device_id>), sin permisos. Cadena de verificación: **<sas>** (debe ser la que muestra el móvil). Si no fuiste tú: `excubia-host devices revoke <device_id>`.``
+- ``Se usó el código de recuperación de <device_id> (`<label>`). Si no fuiste tú: `excubia-host devices revoke <device_id>`.``
 - ``` `<granter>` concedió <permisos> a `<label>` (<device_id>). ``` — `<granter>` is the admin device's id, `<permisos>` the permissions, comma-separated.
 
 The sentence with `<sas>` is left out when the host has no pin to compute it
@@ -130,11 +130,11 @@ sas = six digits of ( u32_big_endian( SHA-256( "excubia-sas-v1" ‖ 0x00 ‖ hos
 - `device_public_key`: the bytes the device sent in `POST /v1/pair`, after base64 decoding: the SEC1 point, 65 bytes for P-256.
 - Six digits with leading zeros kept, so the output is always 6 characters.
 
-Implementation: `hn_core_pin::sas` (crate `pin`, which has no host dependencies, so the
+Implementation: `excubia_core_pin::sas` (crate `pin`, which has no host dependencies, so the
 APK depends on it by path). Where it is shown:
 
 - the notice of a `paired` decision (above);
-- `host devices list`, on a line under each pending device: `cadena de verificación: <sas>`;
+- `excubia-host devices list`, on a line under each pending device: `cadena de verificación: <sas>`;
 - `GET /v1/devices`, field `sas`, on each device that holds no permission and is not revoked.
 
 It is not written to the audit file and it is not a secret. On the plain
@@ -207,7 +207,7 @@ that keeps enrollment host-side. This applies to the tailnet-owner path too:
 an owner match creates a pending device, not a reader.
 
 ```
-host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]
+excubia-host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]
 ```
 
 The line above is the **canonical grant hint**: it is exactly the nucleus CLI
@@ -223,7 +223,7 @@ can be granted this way:
 - `admin` is refused (`400 admin_not_grantable`): ADMIN stays the host CLI's act;
 - a device cannot grant itself (`400 cannot_grant_self`);
 - a device that already holds any permission answers `409 not_pending`: widening
-  it stays `host devices grant`;
+  it stays `excubia-host devices grant`;
 - a revoked or unknown device answers `404`, as in revoke.
 
 On success the host answers `200` with the device, appends a `granted` line to the
@@ -231,7 +231,7 @@ pairing audit (`via: admin`, `granted_by`, `permissions`) and posts the Alfred
 notice above. The UI for granting (Desktop and APK) is not part of F1-núcleo and
 remains pending.
 
-- `host devices list` shows each device and its permissions, and under each pending device its verification string.
+- `excubia-host devices list` shows each device and its permissions, and under each pending device its verification string.
 - A record without a `permissions` field (pre-M2) loads with `[READ_STATE]`,
   the pairing default before D3 — no re-pairing needed.
 - A permission id that is not one of the five is dropped on load: it grants
@@ -244,17 +244,17 @@ remains pending.
 
 ## LAN TLS pairing link — IMPLEMENTED (CORE11, RFC-transports L1)
 
-The LAN listener is off by default. `host --tls-bind <ip:port>` (repeatable) serves the
+The LAN listener is off by default. `excubia-host --tls-bind <ip:port>` (repeatable) serves the
 device routes over TLS 1.3 on a concrete address; a wildcard is refused, as
 `--bind` refuses it. The hook routes and the internal MCP surface are never
 mounted on this listener, so a LAN device cannot reach them.
 
-`host pair-code --lan <ip:port>` (repeatable) prints the code and a pairing link:
+`excubia-host pair-code --lan <ip:port>` (repeatable) prints the code and a pairing link:
 
 ```
 excubia://pair?v=1&c=<code>&h=<pin>[&b=<backup pin>]&a=<ip:port>...&e=<unix seconds>
 ```
-Lo anterior al cambio de nombre, `herdr-notify://`, se rechaza como cualquier esquema ajeno; la carpeta vieja `~/.config/herdr-notify` se mueve sola a `~/.config/excubia` al arrancar.
+Los enlaces `herdr-notify://` anteriores al cambio de nombre se leen solo para migrar y nunca se emiten; la carpeta vieja `~/.config/herdr-notify` se mueve sola a `~/.config/excubia` al arrancar.
 
 | Field | Meaning |
 |-------|---------|
@@ -275,8 +275,8 @@ the code is not.
 The host prints the link as text. A QR rendering belongs to the Desktop and the
 APK, so the host carries no QR dependency.
 
-**Rotation.** `host tls prepare` creates the next certificate and prints its
-pin; links printed afterwards carry it as `b`. `host tls activate` makes it the
+**Rotation.** `excubia-host tls prepare` creates the next certificate and prints its
+pin; links printed afterwards carry it as `b`. `excubia-host tls activate` makes it the
 served certificate and keeps the previous pin as the backup of later links. The
 daemon must restart to serve it. A device accepts a pin only if it was given
 it, so a device reaches the new certificate only if it paired (or re-paired)
@@ -295,8 +295,8 @@ traffic is unencrypted outside loopback.
 ## Revocation — IMPLEMENTED
 
 ```
-herdr-notify devices                 # list, with REVOKED markers
-herdr-notify devices --revoke <id>   # revoke one device
+excubia-host devices list                    # list, with REVOKED markers
+excubia-host devices revoke <id>             # revoke one device
 ```
 
 Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
@@ -312,7 +312,7 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
 
 ## F2a — PAKE core (library) — IMPLEMENTED
 
-Crate `crates/pake` (`hn-core-pake`): the cryptographic core of the short-code pairing in
+Crate `crates/pake` (`excubia-core-pake`): the cryptographic core of the short-code pairing in
 `docs/rfc/pairing-security.md` §5. It exists and is tested. The host endpoints of *F2b* below now call
 it; **the app does not** (no client, no mDNS). Pairing by link/code and the SAS flow above (F0/F1) are
 unchanged.
@@ -346,7 +346,7 @@ copy of the code or its scalars, and is not constant-time.
 
 Short-code pairing over the pinned TLS listener (`crates/api/src/routes/pake.rs`). Alpha: nothing in the app calls it.
 
-1. **The operator** runs `host pair-code --pake [--port N] [--data-dir D]` (default port 8791). The CLI reads the
+1. **The operator** runs `excubia-host pair-code --pake [--port N] [--data-dir D]` (default port 8791). The CLI reads the
    host hook token from the data dir and calls `POST /v1/admin/pake-code` on `127.0.0.1:<port>`; it prints the code once
    (`ABCD-EFGH`) and «válido 180 s, un solo intento». The route exists **only on the loopback router**
    (`404` on the LAN listener), needs the **host** hook token (a per-run token is `403 host_token_required`; no token
@@ -397,19 +397,19 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
   linger up to ~75 min on other devices; the Master accepted this. The TTL setters are not public in this version.
 - **Failure**: if `mdns-sd` cannot start or register, the host logs one line without secrets and pairing by IP and PAKE goes on.
   Errors the daemon reports later from its own thread are not logged.
-- **Windows firewall** asks per program path: allow `host.exe` from the path that is launched (UDP 5353 inbound), or the
+- **Windows firewall** asks per program path: allow `excubia-host.exe` from the path that is launched (UDP 5353 inbound), or the
   queries of the app may not reach it. Not verified on a real LAN.
 
 ## F3a — v2 link, the QR without an address — IMPLEMENTED in the host; no client yet (F3b-F3d)
 
 - **Format**: `excubia://pair?v=2&c=<8 chars>&h=<host pin, base64url 43>&e=<unix expiry>`. `c` is the PAKE code (alphabet of
-  `hn-core-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
+  `excubia-core-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
   About 90 bytes. No `a`, no `b`: the device finds the host by mDNS (F2c) and must see `h` before it sends anything.
-- **Parser**: `hn_core_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
+- **Parser**: `excubia_core_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
   `PinError`, `a`/`b`, unknown or repeated fields, a code that is not 8 characters of the alphabet, a bad `h` and a non-numeric `e`.
   It does not check the expiry: the caller does, with its own clock. `PairingLink::parse` (v1) is unchanged and refuses `v=2`.
 - **Source**: `POST /v1/admin/pake-code` (loopback, host token only, `Cache-Control: no-store`) now answers
-  `{code, expires_in, expires_at, uri}`; `uri` is built with the host's pin. `host pair-code --pake --uri` also prints
+  `{code, expires_in, expires_at, uri}`; `uri` is built with the host's pin. `excubia-host pair-code --pake --uri` also prints
   `pairing uri: <uri>`; `--uri` without `--pake` is a usage error. A daemon from before F3a sends no `uri`; the CLI says so.
 - **Secret**: the URI holds the live code, so it is as secret as the code: never logged, audited or stored (tests scan the data
   dir). It is for whoever shows it on screen. TTL stays 180 s. The v1 QR with addresses (`--lan`) stays for now.
@@ -435,7 +435,7 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
 | HTTP grant endpoint, pending devices only, never `admin` (`POST /v1/devices/{id}/grant`) | IMPLEMENTED (F1-núcleo; UI pending). Widening a device that already has access stays a host-side CLI act by design |
 | Verification string (SAS) on the pending device, in `devices list`, `GET /v1/devices` and the pairing notice | IMPLEMENTED (F1-núcleo; the APK reproduces the vector) |
 | PAKE core (`crates/pake`, SPAKE2 + TLS-bound key confirmation) | IMPLEMENTED (F2a: library, see *F2a*) |
-| PAKE endpoints `POST /v1/pair/pake/start` and `/finish`, loopback admin route, `host pair-code --pake` | IMPLEMENTED in the host (F2b3, alpha); no client (F2d), see *F2b* |
+| PAKE endpoints `POST /v1/pair/pake/start` and `/finish`, loopback admin route, `excubia-host pair-code --pake` | IMPLEMENTED in the host (F2b3, alpha); no client (F2d), see *F2b* |
 | mDNS announcement `_excubia-pair._tcp` only while a PAKE code is alive | IMPLEMENTED in the host (F2c); no client (F2d), see *F2c* |
 | v2 pairing link `excubia://pair?v=2&c&h&e` (QR without an address), `pake-code` answers `uri` and `expires_at`, `pair-code --pake --uri` | IMPLEMENTED in the host (F3a); no client yet, see *F3a* |
 | `APPROVE` permission endpoints | IMPLEMENTED (CORE8) — `POST /v1/chat/approvals/{id}/decision`, the UAC decision |

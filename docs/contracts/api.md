@@ -7,7 +7,7 @@ code: `crates/api/src/routes/`, `crates/api/src/lib.rs`.
 
 ## LAN TLS listener — IMPLEMENTED (CORE11)
 
-`host --tls-bind <ip:port>` serves the **device routes** on a second listener:
+`excubia-host --tls-bind <ip:port>` serves the **device routes** on a second listener:
 TLS 1.3 only, the certificate pinned by the device (see the *LAN TLS pairing
 link* in [`pairing.md`](pairing.md)). It is off by default, and a wildcard
 address is refused. It mounts the same device routes as the loopback listener
@@ -36,6 +36,7 @@ request to the port is refused at the handshake.
 | `GET` | `/v1/catalog` | signed | `READ_STATE` | read | The agents this host can start, by name, and this PC's default |
 | `POST` | `/v1/catalog/default` | signed | `APPROVE` | write | Name the agent new conversations on this PC start with |
 | `POST` | `/v1/catalog/{name}/fix` | signed | `APPROVE` | write | Point an agent Windows cannot start at its `.CMD` shim |
+| `GET` | `/v1/doc-tools` | signed | `READ_STATE` | read | The document CLIs this PC has: names, availability and tested version |
 | `GET` | `/v1/roles` | signed | `READ_STATE` | read | The role catalogue: areas, roles and levels (not the CLIs of `/v1/catalog`) |
 | `GET` | `/v1/hires` | signed | `READ_STATE` | read | The professionals contracted (`?include_removed=true` adds the dismissed) |
 | `POST` | `/v1/hires` | signed | `APPROVE` | write | Contract one role: `201` when new, `200` when already hired |
@@ -163,7 +164,7 @@ Body: `{ "mime": "image/png", "data": "<base64>" }`.
 - The bytes must actually be the declared container (PNG magic, JPEG `FF D8 FF`,
   or a `RIFF….WEBP` header). A renamed file is refused, not stored.
 - The host writes the file under its data dir (`--images`, default
-  `~/.config/herdr-notify/images`) and submits the **absolute path** to the agent
+  `~/.config/excubia/images`) and submits the **absolute path** to the agent
   as a prompt (`Imagen adjunta: <path>`), so the agent opens it with its own
   tools. The file is removed again if herdr refuses the prompt.
 
@@ -171,7 +172,7 @@ Response:
 
 ```json
 { "ok": true, "pane_id": "w1:p3",
-  "path": "/home/me/.config/herdr-notify/images/w1_p3-1a2b3c4d5e6f7890.png",
+  "path": "/home/me/.config/excubia/images/w1_p3-1a2b3c4d5e6f7890.png",
   "result": { "pane_id": "w1:p3", "agent": "opencode", "agent_status": "idle" } }
 ```
 
@@ -254,6 +255,24 @@ can be added, removed or edited without restarting the host; creation
 reported in an additive `warning` string on this response, while the last good
 catalogue keeps being served (creation keeps working with it). The warning
 disappears once the file parses again.
+
+### `GET /v1/doc-tools`
+
+The document CLIs this PC has (GridCraft, WordCraft, PdfCraft), discovered when
+the host starts. Always the three, in `App::ALL` order; `tested_version` is
+shown even when the app is missing. Read-only: it never downloads or installs
+anything, and it **never** returns a path.
+
+Response:
+
+```json
+{ "ok": true, "tools": [
+  { "app": "gridcraft", "name": "GridCraft", "available": true, "tested_version": "0.16.1" },
+  { "app": "wordcraft", "name": "WordCraft", "available": false, "tested_version": "0.15.2" },
+  { "app": "pdfcraft", "name": "PdfCraft", "available": true, "tested_version": "0.18.2" } ] }
+```
+
+Permission: `READ_STATE`.
 
 ### `GET /v1/roles`
 
@@ -451,7 +470,7 @@ A pane restored from a previous run has no process to stop and answers `409`
 
 Agent hooks — the agent's own plugins, running as local processes — report
 `{ "pane_id": "w1:p4", "state": "blocked", "message": "…" }` with a hook token
-in `X-HN-Hook-Token`: the host token (`host hook-token`) or the per-run token
+in `X-Excubia-Hook-Token`: the host token (`excubia-host hook-token`) or the per-run token
 the host handed to the agent. Only loopback is accepted, and this is not part
 of the signed device surface: a device signature is never accepted here, and
 the hook token is never accepted on the device routes. A fresh report wins
@@ -492,8 +511,8 @@ Failures: `400 invalid_body` / `pake_invalid_message`, `403 pake_requires_tls` /
 ### `POST /v1/admin/pake-code` (host-local; not a device route)
 
 Arms the one PAKE code and answers `{"code": "ABCDEFGH", "expires_in": 180}`. Only the loopback router mounts it (`404` on
-the LAN listener), only the host hook token in `X-HN-Hook-Token` opens it (`401` without or with a wrong one, `403
-host_token_required` for a per-run token), `409 pake_unavailable` when the host has no TLS identity. `host pair-code --pake`
+the LAN listener), only the host hook token in `X-Excubia-Hook-Token` opens it (`401` without or with a wrong one, `403
+host_token_required` for a per-run token), `409 pake_unavailable` when the host has no TLS identity. `excubia-host pair-code --pake`
 is its client. The response is the only place the code appears; it is never logged or written.
 
 ### `GET /v1/devices` (signed, `ADMIN`)
@@ -533,7 +552,7 @@ is not revoked. Errors (see [`errors.md`](errors.md)):
 
 | Status | `detail` | When |
 |--------|----------|------|
-| `400` | `{"code": "admin_not_grantable", …}` | `admin` in the list; ADMIN is granted by `host devices grant` only |
+| `400` | `{"code": "admin_not_grantable", …}` | `admin` in the list; ADMIN is granted by `excubia-host devices grant` only |
 | `400` | `{"code": "cannot_grant_self", …}` | the path names the calling device |
 | `400` | `"invalid_body"` | not JSON |
 | `404` | `"no such device"` | unknown or revoked device |
@@ -757,7 +776,7 @@ backwards and never past the last message; response
 
 ### Attachments (ATT4/ATT5)
 
-A user can attach up to four files to a message: images, and documents from the
+A user can attach up to ten files to a message: images, and documents from the
 list under Complete. The host checks the bytes it receives. It decodes each image
 in an isolated worker and keeps only the result it re-encodes; it keeps a document
 as sent. The six routes are signed and scoped to their conversation: an id of
@@ -933,7 +952,7 @@ Coded refusals keep the `detail.code` and `detail.message` shape. The `404`s and
 
 - The type is the one of the file's real header (PNG, JPEG or WebP signature),
   never the name or a MIME type the client sent.
-- Decoding runs in an isolated worker process (`hn-media-worker`) with a 5 s
+- Decoding runs in an isolated worker process (`excubia-media-worker`) with a 5 s
   timeout and fixed input, side and pixel limits. The output is re-encoded from
   the decoded pixels, so no metadata of the input survives.
 - The agent receives the files as untrusted data. Its prompt holds one line per
@@ -1165,7 +1184,7 @@ a message, another agent or the agent itself never approves anything.
 
 Two surfaces share the domain and never mix their credentials:
 
-- **hook** (`X-HN-Hook-Token`, loopback only): `POST /v1/chat/approvals`,
+- **hook** (`X-Excubia-Hook-Token`, loopback only): `POST /v1/chat/approvals`,
   `GET /v1/chat/approvals/{id}` and `POST /v1/chat/approvals/{id}/consume`.
   These are not device routes: a device signature is never accepted there and
   the hook token is never accepted on the device routes.
@@ -1173,7 +1192,7 @@ Two surfaces share the domain and never mix their credentials:
   `POST /v1/chat/approvals/{id}/decision`.
 
 The hook token is **per run** (`orchestrator-chat.md` §5.2): the host mints one
-when it launches the run, hands it to the CLI in `HN_HOOK_TOKEN`, and revokes it
+when it launches the run, hands it to the CLI in `EXCUBIA_HOOK_TOKEN`, and revokes it
 when the run closes. A resident panel has one for its seat instead, because it
 serves many turns. The host, not the body, decides which run an approval
 belongs to:
@@ -1570,10 +1589,10 @@ nunca su contenido. Solo Alfred la tiene: un seat de proyecto recibe `scope_deni
   debe ser válido). Como máximo 10 MiB.
 - El archivo queda como adjunto listo de la conversación, sin mensaje todavía. Cada
   creación es un adjunto nuevo: nunca sobrescribe ni cambia un archivo existente.
-- `chat.reply` acepta `attachment_ids` (hasta 4, sin repetir) con los archivos que Alfred
+- `chat.reply` acepta `attachment_ids` (hasta 10, sin repetir) con los archivos que Alfred
   creó en esta conversación y que ningún mensaje lleva. Si el turno termina sin nombrar sus
-  archivos, el host publica un mensaje de Alfred («Te dejo el archivo <nombre>») con ellos
-  enlazados; son más de 4, va en mensajes de hasta 4.
+  archivos, el host publica un mensaje de Alfred («Te dejo el archivo `<nombre>`») con ellos
+  enlazados; son más de 10, va en mensajes de hasta 10.
 - Solo Alfred la tiene: un seat de proyecto recibe `scope_denied`. La auditoría guarda la
   herramienta y el id del adjunto, nunca el contenido.
 - Errores: `invalid_arguments` (campo `format`, `name` o `content`), `bad_content` (campo

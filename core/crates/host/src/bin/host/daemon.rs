@@ -1,4 +1,4 @@
-//! `host` without a subcommand: supervise the agents and serve the local API on
+//! `excubia-host` without a subcommand: supervise the agents and serve the local API on
 //! loopback, and the LAN listener when it is named.
 
 use std::net::SocketAddr;
@@ -18,7 +18,7 @@ use excubia_core_host::alfred_backend;
 use excubia_core_host::alfred_switch::{Strata, Switch};
 use excubia_core_host::audit::AuditLog;
 use excubia_core_host::calendar_reminders;
-use excubia_core_host::cli::RunOptions;
+use excubia_core_host::cli::{BIN, RunOptions};
 use excubia_core_host::craft::Craft;
 use excubia_core_host::doc_tools::DocTools;
 use excubia_core_host::local_mode;
@@ -269,7 +269,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         catalog.names().join(", ")
     );
     println!("host: data dir {}", options.data_dir.display());
-    println!("host: hooks POST http://{local}/v1/hooks/report (token: host hook-token)");
+    println!("host: hooks POST http://{local}/v1/hooks/report (token: {BIN} hook-token)");
 
     let actions: Arc<dyn AgentActions> = Arc::clone(&host) as Arc<dyn AgentActions>;
     let speech = options

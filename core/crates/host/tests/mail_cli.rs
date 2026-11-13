@@ -1,4 +1,4 @@
-//! `host mail` against a scripted transport: no network, no Microsoft account.
+//! `excubia-host mail` against a scripted transport: no network, no Microsoft account.
 //! The output must name the user code and the account, never a token.
 
 mod mail_support;

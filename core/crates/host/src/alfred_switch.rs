@@ -28,7 +28,7 @@ pub trait Engine: Send + Sync + 'static {
     fn stop(&self, data_dir: &Path) -> Result<()>;
 }
 
-/// Strata, through the functions `host strata` and `host alfred local` run.
+/// Strata, through the functions `excubia-host strata` and `excubia-host alfred local` run.
 pub struct Strata;
 
 impl Engine for Strata {

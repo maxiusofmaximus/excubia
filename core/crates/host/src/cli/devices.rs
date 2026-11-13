@@ -1,4 +1,4 @@
-//! The `host devices` subcommands: list, revoke, grant and recovery.
+//! The `excubia-host devices` subcommands: list, revoke, grant and recovery.
 
 use std::path::PathBuf;
 

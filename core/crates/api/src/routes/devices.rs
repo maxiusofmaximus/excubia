@@ -126,7 +126,7 @@ fn parse_permissions(labels: &[String]) -> Result<Vec<Permission>, ApiError> {
             Some(Permission::Admin) => {
                 return Err(ApiError::action(
                     "admin_not_grantable",
-                    "ADMIN is not granted over HTTP; use `host devices grant --permission admin`",
+                    "ADMIN is not granted over HTTP; use `excubia-host devices grant --permission admin`",
                 ))
             }
             Some(permission) => permissions.push(permission),

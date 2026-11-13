@@ -88,6 +88,15 @@ fn claude_settings_needs_the_hook_and_takes_an_optional_out() {
     );
 }
 
+#[test]
+fn every_usage_line_names_the_binary() {
+    assert!(
+        USAGE.lines().all(|line| line.trim_start().starts_with(BIN)),
+        "every usage line must start with {BIN}: {USAGE}"
+    );
+    assert!(GRANT_HINT.starts_with(BIN), "{GRANT_HINT}");
+}
+
 /// The canonical hint the contracts and the clients quote must be exactly
 /// the usage line the CLI prints, must parse with the real CLI, and must
 /// list exactly the permissions the core knows.

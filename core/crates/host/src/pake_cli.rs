@@ -1,4 +1,4 @@
-//! `host pair-code --pake`: asks the running daemon to arm its one PAKE code and prints it.
+//! `excubia-host pair-code --pake`: asks the running daemon to arm its one PAKE code and prints it.
 //!
 //! The code lives in the daemon's memory only (`PakeSlot`), so this process cannot mint it: it calls the
 //! daemon's loopback admin route with the host hook token from the data dir. The code goes to stdout once and

@@ -26,12 +26,12 @@ Authoritative code: `crates/auth/src/verify.rs`, `crates/auth/src/store/`,
 
 | Header | Meaning |
 |--------|---------|
-| `X-HN-Device` | The device id from the trust store |
-| `X-HN-Timestamp` | Unix seconds, integer, **not** milliseconds |
-| `X-HN-Nonce` | Base64 of 16 random bytes, unique per request |
-| `X-HN-Signature` | Base64 of the signature (see below) |
+| `X-Excubia-Device` | The device id from the trust store |
+| `X-Excubia-Timestamp` | Unix seconds, integer, **not** milliseconds |
+| `X-Excubia-Nonce` | Base64 of 16 random bytes, unique per request |
+| `X-Excubia-Signature` | Base64 of the signature (see below) |
 
-`X-HN-Key-Id` is reserved and **not used in v1**. A client must not send it; a
+`X-Excubia-Key-Id` is reserved and **not used in v1**. A client must not send it; a
 server must ignore it. It exists as a name so key rotation can be added later
 without a second header name.
 
@@ -39,7 +39,7 @@ without a second header name.
 
 Alfred's CLI calls the MCP shim over stdio; the shim forwards tool calls to a
 second listener bound to `127.0.0.1:0`, never to the public/tailnet socket.
-Those requests are not device-signed: they carry `X-HN-Tool-Token`, a random
+Those requests are not device-signed: they carry `X-Excubia-Tool-Token`, a random
 per-run value passed only in the CLI's inherited environment. The token is
 never in argv, prompt, history or a config file, and the seat invalidates it
 when the run closes. A missing or unknown token is `401`; the public router
@@ -48,14 +48,14 @@ does not mount the internal path at all.
 ## Hook surface (CORE8B)
 
 Agent hooks are local processes, so they authenticate with a token in
-`X-HN-Hook-Token` and only from loopback. There are two kinds and they are not
+`X-Excubia-Hook-Token` and only from loopback. There are two kinds and they are not
 interchangeable:
 
-- **Host token** (`host hook-token`, persisted in the data directory): reports
+- **Host token** (`excubia-host hook-token`, persisted in the data directory): reports
   pane state on `POST /v1/hooks/report`. It names no run, so the approval
   routes refuse it with `403 hook_token_not_scoped`.
 - **Run token**: minted when the host launches one run (or one resident panel),
-  handed to the CLI in `HN_HOOK_TOKEN`, and revoked when that run closes. Only
+  handed to the CLI in `EXCUBIA_HOOK_TOKEN`, and revoked when that run closes. Only
   a run token opens, reads and burns approvals, and only for the run it names:
   another run's approval is `403 hook_scope_mismatch` and a closed run's token
   is `403 hook_token_revoked`.
@@ -266,9 +266,9 @@ Chat reads consume the read budget; chat mutations consume read and write.
 Moving the read cursor (`POST /v1/chat/conversations/{id}/read`) consumes no
 write budget, the same reasoning as `seen`: it is reversible and drives no
 agent. A device without `RESPOND` gets the uniform `403`; the client shows the
-canonical grant hint `host devices grant <device_id> --permission respond` and
+canonical grant hint `excubia-host devices grant <device_id> --permission respond` and
 does not retry. The UAC decision spends the `APPROVE` grant, and only that
-one: the client shows the canonical hint `host devices grant <device_id>
+one: the client shows the canonical hint `excubia-host devices grant <device_id>
 --permission approve` and does not retry.
 
 ### The 403 response
@@ -330,7 +330,7 @@ leaves no last-seen trace, the same way a revoked device never reaches either.
 unknown
   ↓  host-side CLI (pair-code) or HTTP POST /v1/pair (code | recovery | same-owner)
 paired (default grant: READ_STATE)
-  ↓  host-side CLI (host devices grant)
+  ↓  host-side CLI (excubia-host devices grant)
 authorized (for exactly the granted operations)
   ↓  host-side CLI (devices --revoke / --revoke-permission) or HTTP POST /v1/devices/{id}/revoke (ADMIN)
 revoked (marked, never deleted: the device stays visible and refused)
