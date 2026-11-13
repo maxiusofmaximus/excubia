@@ -3,8 +3,7 @@
 La app anterior (Kotlin, versión 0.1.x) usaba el mismo identificador de aplicación y la
 misma firma que la nueva, así que la actualización se instala encima. Hoy la app nueva
 **no reutiliza** el emparejamiento antiguo: hay que emparejar de nuevo. La reutilización
-automática está en desarrollo y todavía no se ha verificado en un dispositivo real. El diseño
-está en la [documentación técnica de la migración](../docs/apk/migration-from-kotlin.html).
+automática está en desarrollo y todavía no se ha verificado en un dispositivo real.
 
 ## Qué hacer
 

@@ -11,10 +11,9 @@ español.
 | Documento | Para qué sirve |
 |---|---|
 | [Arquitectura](arquitectura.md) | Visión general del host, la app Android y el escritorio, y cómo se hablan. |
-| [Contratos](contracts/) | Formas exactas de peticiones, respuestas, estado y emparejamiento. |
+| [Contratos](contracts/index.html) | Formas exactas de peticiones, respuestas, estado y emparejamiento. |
 | [RFC](rfc/RFC-transports.md) | Propuestas de diseño, con sus decisiones abiertas. |
 | [Revisión de seguridad](security-review.md) | Qué se ha revisado y qué queda pendiente. |
-| [Migración desde la app Kotlin](apk/migration-from-kotlin.md) | Cómo reutilizar el emparejamiento de la app anterior. |
 
 ## Estado de la implementación
 

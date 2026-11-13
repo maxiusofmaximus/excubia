@@ -19,6 +19,6 @@
 - [Transportes](rfc/RFC-transports.md)
 - [Escalado de aprobaciones](rfc/approvals-escalation.md)
 
-# Seguridad y migración
+# Seguridad
 
 - [Revisión de seguridad](security-review.md)
