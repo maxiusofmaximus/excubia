@@ -1,0 +1,61 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: Inter, sans-serif;
+      color: #f3e3c0;
+    }
+    #intro-icon {
+      width: 220px;
+      height: 220px;
+    }
+    #intro-name {
+      margin-top: 36px;
+      font-size: 120px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      padding-left: 0.12em;
+    }
+    #intro-rule {
+      width: 420px;
+      height: 4px;
+      margin: 28px 0 36px;
+      background: #f2a93b;
+    }
+    #intro-line1,
+    #intro-line2 {
+      font-size: 52px;
+      line-height: 1.3;
+      text-align: center;
+    }
+    #intro-line1 {
+      font-weight: 700;
+    }
+    #intro-line2 {
+      font-weight: 400;
+      color: #a9b6d3;
+    }
+  </style>
+  <div id="root" data-composition-id="intro" data-width="1920" data-height="1080">
+    <img id="intro-icon" src="assets/img/icon.svg" alt="" />
+    <div id="intro-name">EXCUBIA</div>
+    <div id="intro-rule"></div>
+    <div id="intro-line1">Tu PC aloja a tus agentes de IA.</div>
+    <div id="intro-line2">Dirígelos desde el móvil o el escritorio.</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#intro-icon", { scale: 0.86 }, { scale: 1, duration: 0.9, ease: "power3.out" }, 0);
+    tl.fromTo("#intro-name", { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "power3.out" }, 0.4);
+    tl.fromTo("#intro-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.inOut" }, 0.8);
+    tl.fromTo("#intro-line1", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.3);
+    tl.fromTo("#intro-line2", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.9);
+    tl.fromTo("#root", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 4.65);
+    window.__timelines["intro"] = tl;
+  </script>
+</template>
