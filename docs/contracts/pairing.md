@@ -130,7 +130,7 @@ sas = six digits of ( u32_big_endian( SHA-256( "excubia-sas-v1" ‖ 0x00 ‖ hos
 - `device_public_key`: the bytes the device sent in `POST /v1/pair`, after base64 decoding: the SEC1 point, 65 bytes for P-256.
 - Six digits with leading zeros kept, so the output is always 6 characters.
 
-Implementation: `excubia_core_pin::sas` (crate `pin`, which has no host dependencies, so the
+Implementation: `excubia_pin::sas` (crate `pin`, which has no host dependencies, so the
 APK depends on it by path). Where it is shown:
 
 - the notice of a `paired` decision (above);
@@ -312,7 +312,7 @@ Since Fase 2(c), an `ADMIN`-granted device can also do this over HTTP:
 
 ## F2a — PAKE core (library) — IMPLEMENTED
 
-Crate `crates/pake` (`excubia-core-pake`): the cryptographic core of the short-code pairing in
+Crate `crates/pake` (`excubia-pake`): the cryptographic core of the short-code pairing in
 `docs/rfc/pairing-security.md` §5. It exists and is tested. The host endpoints of *F2b* below now call
 it; **the app does not** (no client, no mDNS). Pairing by link/code and the SAS flow above (F0/F1) are
 unchanged.
@@ -403,9 +403,9 @@ The host announces itself on the LAN so the app finds it without typing an IP (`
 ## F3a — v2 link, the QR without an address — IMPLEMENTED in the host; no client yet (F3b-F3d)
 
 - **Format**: `excubia://pair?v=2&c=<8 chars>&h=<host pin, base64url 43>&e=<unix expiry>`. `c` is the PAKE code (alphabet of
-  `excubia-core-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
+  `excubia-pake`), `h` the same SPKI `Fingerprint` as in v1 (the device hex-encodes it for the PAKE `host_id`), `e` when the code dies.
   About 90 bytes. No `a`, no `b`: the device finds the host by mDNS (F2c) and must see `h` before it sends anything.
-- **Parser**: `excubia_core_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
+- **Parser**: `excubia_pin::PakeLink::parse` (and `to_uri`, `is_expired(now)`). It demands `v=2` and refuses, with a typed
   `PinError`, `a`/`b`, unknown or repeated fields, a code that is not 8 characters of the alphabet, a bad `h` and a non-numeric `e`.
   It does not check the expiry: the caller does, with its own clock. `PairingLink::parse` (v1) is unchanged and refuses `v=2`.
 - **Source**: `POST /v1/admin/pake-code` (loopback, host token only, `Cache-Control: no-store`) now answers

@@ -1,5 +1,5 @@
 use super::*;
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 #[test]
 fn the_child_environment_never_names_a_key() {

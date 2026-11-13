@@ -1,8 +1,8 @@
 //! Screen and hook state helpers: the store's status for a detected state, the
 //! terminal query responder and the last-lines text helpers.
 
-use excubia_core_detect::DetectedState;
-use excubia_core_state::Status;
+use excubia_detect::DetectedState;
+use excubia_state::Status;
 
 /// The store's status for a detected screen state.
 pub(crate) fn status_of(state: DetectedState) -> Status {

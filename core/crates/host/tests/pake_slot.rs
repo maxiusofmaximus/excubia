@@ -2,9 +2,9 @@
 
 mod harness;
 
+use excubia_api::PAKE_CODE_TTL;
+use excubia_test_support::{pair_device, DemoIdentity};
 use harness::TestHost;
-use excubia_core_api::PAKE_CODE_TTL;
-use excubia_core_test_support::{pair_device, DemoIdentity};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_pake_code_does_not_pair_a_device_over_the_plain_route() {

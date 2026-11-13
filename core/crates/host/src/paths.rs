@@ -3,7 +3,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use excubia_core_persist::migrate::{adopt_dir, chosen_dir};
+use excubia_persist::migrate::{adopt_dir, chosen_dir};
 
 /// legacy: the folder name before the Excubia rename, read until it is moved.
 const LEGACY_DIR: &str = "herdr-notify";
@@ -129,8 +129,8 @@ pub fn ensure_data_dir(data_dir: &Path) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_persist::migrate::MOVED_NOTE;
-    use excubia_core_test_dir::TestDir;
+    use excubia_persist::migrate::MOVED_NOTE;
+    use excubia_test_dir::TestDir;
     use std::fs;
 
     #[test]

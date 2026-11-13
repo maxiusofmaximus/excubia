@@ -1,15 +1,15 @@
 [package]
-name = "excubia-core-state"
+name = "excubia-state"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Authoritative state store for Excubia core (contract: docs/contracts/state.md)"
 
 [dependencies]
-excubia-core-persist = { path = "../persist" }
+excubia-persist = { path = "../persist" }
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
-excubia-core-test-dir = { path = "../test-dir" }
+excubia-test-dir = { path = "../test-dir" }

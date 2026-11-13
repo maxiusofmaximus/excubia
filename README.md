@@ -66,7 +66,7 @@ agentes CLI ──pty──▶ host (Rust, en tu PC)
 
 | Carpeta | Qué es |
 |---------|--------|
-| [`core/`](core/) | Núcleo en Rust: el host (`excubia-host`) y sus crates `excubia-core-*` |
+| [`core/`](core/) | Núcleo en Rust: el host (`excubia-host`) y sus crates `excubia-*` |
 | [`desktop/`](desktop/) | App de escritorio (Tauri 2) |
 | [`apk/`](apk/) | App de Android (Flutter, con núcleo Rust) |
 | [`docs/`](docs/) | Guía, documentación técnica y contratos |
@@ -76,7 +76,7 @@ Cada carpeta tiene su README con cómo compilar y probar. Para el núcleo:
 ```bash
 cd core
 cargo build --workspace
-cargo run -p excubia-core-host --bin excubia-host -- --help
+cargo run -p excubia-host --bin excubia-host -- --help
 cargo test --workspace
 ```
 

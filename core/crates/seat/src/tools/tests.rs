@@ -1,4 +1,4 @@
-use excubia_core_chat::{AlertMode, NewAlertRule, ToolRequest};
+use excubia_chat::{AlertMode, NewAlertRule, ToolRequest};
 
 use super::parse::PROGRESS_MAX_CHARS;
 use super::*;
@@ -199,7 +199,7 @@ fn invalid_arguments_are_rejected_with_a_field() {
 
     let too_long = parse(&request(
         "chat.reply",
-        json!({"text": "a".repeat(excubia_core_chat::MAX_MESSAGE_BYTES + 1)}),
+        json!({"text": "a".repeat(excubia_chat::MAX_MESSAGE_BYTES + 1)}),
     ))
     .expect_err("too long");
     assert_eq!(too_long.code, "invalid_body");

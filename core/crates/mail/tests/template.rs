@@ -1,7 +1,7 @@
 //! The agent's fixed layout (TASK-MAIL-TEMPLATE-MJML): what the agent writes
 //! becomes one HTML mail, and nothing it writes can add markup or markers.
 
-use excubia_core_mail::{agent_html, agent_text, DraftBody, MailError};
+use excubia_mail::{agent_html, agent_text, DraftBody, MailError};
 
 const SUBJECT: &str = "Resumen de la reunión";
 

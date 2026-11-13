@@ -10,12 +10,12 @@ description = "Acceptance host for the desktop: the host's code with fake-cli as
 
 [dependencies]
 anyhow = "1"
-excubia-core-api = { path = "../../../core/crates/api" }
-excubia-core-auth = { path = "../../../core/crates/auth" }
-excubia-core-chat = { path = "../../../core/crates/chat" }
-excubia-core-host = { path = "../../../core/crates/host" }
-excubia-core-pin = { path = "../../../core/crates/pin" }
-excubia-core-pty = { path = "../../../core/crates/pty" }
-excubia-core-seat = { path = "../../../core/crates/seat" }
-excubia-core-state = { path = "../../../core/crates/state" }
+excubia-api = { path = "../../../core/crates/api" }
+excubia-auth = { path = "../../../core/crates/auth" }
+excubia-chat = { path = "../../../core/crates/chat" }
+excubia-host = { path = "../../../core/crates/host" }
+excubia-pin = { path = "../../../core/crates/pin" }
+excubia-pty = { path = "../../../core/crates/pty" }
+excubia-seat = { path = "../../../core/crates/seat" }
+excubia-state = { path = "../../../core/crates/state" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "io-std", "process", "signal"] }

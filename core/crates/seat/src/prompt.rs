@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::role_seed::{OLD_ROLE_SEEDS, ROLE_SEED};
-use excubia_core_chat::ContextPage;
+use excubia_chat::ContextPage;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
@@ -53,7 +53,7 @@ pub fn seed_and_load(data_dir: &Path) -> Result<Role, PromptError> {
     let stale =
         !path.is_file() || OLD_ROLE_SEEDS.contains(&std::fs::read_to_string(&path)?.as_str());
     if stale {
-        excubia_core_persist::write_atomic(&path, ROLE_SEED.as_bytes())?;
+        excubia_persist::write_atomic(&path, ROLE_SEED.as_bytes())?;
     }
     let text = std::fs::read_to_string(&path)?;
     if text.trim().is_empty() {
@@ -135,8 +135,8 @@ pub fn build_turn_prompt(context: &ContextPage, boundary: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_chat::{ContextAttachment, FileKind, LinkedFile, Message};
-    use excubia_core_test_dir::TestDir;
+    use excubia_chat::{ContextAttachment, FileKind, LinkedFile, Message};
+    use excubia_test_dir::TestDir;
     use std::collections::HashMap;
 
     fn message(seq: i64, author: &str, body: &str) -> Message {
@@ -290,9 +290,9 @@ mod tests {
         let prompt = build_turn_prompt(&context, "EXCUBIA-TEST");
         assert!(!prompt.contains("NO confiables"));
         assert!(!prompt.contains("[adjunto"));
-        assert!(
-            prompt.contains("<<<EXCUBIA-TEST id=msg_1 seq=1 author=user>>>\nhola\n<<<END-EXCUBIA-TEST>>>")
-        );
+        assert!(prompt.contains(
+            "<<<EXCUBIA-TEST id=msg_1 seq=1 author=user>>>\nhola\n<<<END-EXCUBIA-TEST>>>"
+        ));
     }
 
     #[test]

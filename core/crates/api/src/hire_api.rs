@@ -2,7 +2,7 @@
 //! may be hired and the store decides what may be kept, so nothing here writes.
 //! The wire shape of a hire lives here too: every route answers with it.
 
-use excubia_core_chat::{activity_of, Hire, HireLink, MemberInput, NewHire};
+use excubia_chat::{activity_of, Hire, HireLink, MemberInput, NewHire};
 use serde_json::{json, Value};
 
 use crate::error::ApiError;
@@ -95,7 +95,7 @@ pub fn member_input(
 
 #[cfg(test)]
 mod tests {
-    use excubia_core_chat::{summarize, TeamStatus};
+    use excubia_chat::{summarize, TeamStatus};
 
     use super::*;
 

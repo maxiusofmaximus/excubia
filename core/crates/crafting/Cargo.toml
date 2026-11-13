@@ -1,5 +1,5 @@
 [package]
-name = "excubia-core-crafting"
+name = "excubia-crafting"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,4 +12,4 @@ thiserror.workspace = true
 ulid.workspace = true
 
 [dev-dependencies]
-excubia-core-test-dir = { path = "../test-dir" }
+excubia-test-dir = { path = "../test-dir" }

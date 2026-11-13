@@ -6,7 +6,7 @@
 mod common;
 
 use common::{team, Team};
-use excubia_core_chat::{
+use excubia_chat::{
     draft_text, ChatError, ChatStore, Delegation, DelegationState, HireFilter, NewDelegation,
     NewHire, Recipe, RecipeText, MAX_RECIPES_PER_ROLE, RECIPE_BODY_CHARS, RECIPE_TITLE_CHARS,
 };
@@ -62,7 +62,8 @@ fn run(
         steps,
         plan_id,
     })?;
-    t.store.count_recipe_use(source.recipe_id.as_deref().expect("a recipe run"))?;
+    t.store
+        .count_recipe_use(source.recipe_id.as_deref().expect("a recipe run"))?;
     Ok(delegation)
 }
 

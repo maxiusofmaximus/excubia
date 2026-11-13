@@ -4,15 +4,15 @@
 
 mod harness;
 
+use excubia_auth::Permission;
+use excubia_chat::NewConversation;
+use excubia_test_support::SignedClient;
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_chat::NewConversation;
-use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 use tokio::sync::broadcast::{error::TryRecvError, Receiver};
 
 /// The `alert` frames received since the last call.
-fn alerts(receiver: &mut Receiver<excubia_core_state::SharedFrame>) -> Vec<Value> {
+fn alerts(receiver: &mut Receiver<excubia_state::SharedFrame>) -> Vec<Value> {
     let mut found = Vec::new();
     loop {
         match receiver.try_recv() {
@@ -81,7 +81,7 @@ async fn a_reminder_alerts_only_when_a_notify_rule_names_it_and_mute_wins() {
 
     // No rule: the card arrives, and no alert frame.
     create_due_event(&host, &writer, "Sin regla").await;
-    excubia_core_host::calendar_reminders::deliver(&host.chat, &host.store);
+    excubia_host::calendar_reminders::deliver(&host.chat, &host.store);
     assert_eq!(cards(&host, &conversation_id), 1);
     assert!(alerts(&mut receiver).is_empty());
 
@@ -99,7 +99,7 @@ async fn a_reminder_alerts_only_when_a_notify_rule_names_it_and_mute_wins() {
     let rule_id = rule["rule"]["id"].as_str().expect("rule id").to_string();
 
     create_due_event(&host, &writer, "Con regla").await;
-    excubia_core_host::calendar_reminders::deliver(&host.chat, &host.store);
+    excubia_host::calendar_reminders::deliver(&host.chat, &host.store);
     assert_eq!(cards(&host, &conversation_id), 2);
     let frames = alerts(&mut receiver);
     assert_eq!(frames.len(), 1, "{frames:?}");
@@ -124,7 +124,7 @@ async fn a_reminder_alerts_only_when_a_notify_rule_names_it_and_mute_wins() {
     assert_eq!(status, 201);
 
     create_due_event(&host, &writer, "Silenciado").await;
-    excubia_core_host::calendar_reminders::deliver(&host.chat, &host.store);
+    excubia_host::calendar_reminders::deliver(&host.chat, &host.store);
     assert_eq!(cards(&host, &conversation_id), 3);
     assert!(alerts(&mut receiver).is_empty());
 }
@@ -160,7 +160,7 @@ async fn a_burst_of_reminders_sends_every_card_but_only_a_few_frames() {
     for number in 0..5 {
         create_due_event(&host, &writer, &format!("Perdido {number}")).await;
     }
-    excubia_core_host::calendar_reminders::deliver(&host.chat, &host.store);
+    excubia_host::calendar_reminders::deliver(&host.chat, &host.store);
     assert_eq!(cards(&host, &conversation_id), 5);
     assert_eq!(alerts(&mut receiver).len(), 3);
 }

@@ -6,7 +6,7 @@ mod common;
 mod schedule_support;
 
 use common::team;
-use excubia_core_chat::{
+use excubia_chat::{
     ChatError, ChatStore, Content, HireFilter, NewConversation, NewHire, RecipeText, HISTORY_KEEP,
     MAX_ACTIVE_SCHEDULES,
 };
@@ -93,7 +93,7 @@ fn a_recipe_schedule_runs_the_text_of_the_recipe() {
         .store
         .create_recipe(
             ROLE,
-            excubia_core_chat::RecipeText {
+            excubia_chat::RecipeText {
                 title: "Plantilla".to_string(),
                 body: "Resume la semana.".to_string(),
             },

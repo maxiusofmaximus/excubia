@@ -3,11 +3,11 @@
 
 use std::path::PathBuf;
 
-use excubia_core_chat::{
+use excubia_chat::{
     ChatError, ChatStore, ConversationFilter, ConversationUpdate, NewConversation, RunState,
     SectionChange,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 fn temp_dir(name: &str) -> TestDir {
     TestDir::new(&format!("core-chat-tests-{name}"))

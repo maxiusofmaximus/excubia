@@ -6,9 +6,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_chat::ChatStore;
-use excubia_core_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
-use excubia_core_test_dir::TestDir;
+use excubia_chat::ChatStore;
+use excubia_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
+use excubia_test_dir::TestDir;
 
 #[test]
 fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {

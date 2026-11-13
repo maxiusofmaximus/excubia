@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use excubia_core_persist::migrate::{adopt_dir, chosen_dir};
+use excubia_persist::migrate::{adopt_dir, chosen_dir};
 use serde::Deserialize;
 
 use crate::auth::assert_scopes_safe;

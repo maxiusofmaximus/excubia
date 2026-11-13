@@ -6,8 +6,8 @@ mod mail_send_support;
 
 use std::time::Duration;
 
-use excubia_core_chat::Decision;
-use excubia_core_mail::{FailCode, Retry, SendFailure, SendState};
+use excubia_chat::Decision;
+use excubia_mail::{FailCode, Retry, SendFailure, SendState};
 use mail_send_support::{approved_and_sent, ask, scheduled, settle, Host};
 use serde_json::json;
 

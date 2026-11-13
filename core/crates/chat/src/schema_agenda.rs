@@ -38,7 +38,7 @@ END;
 #[cfg(test)]
 mod tests {
     use crate::schema::{open, SCHEMA_VERSION};
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
     use rusqlite::Connection;
 
     fn has_table(connection: &Connection, name: &str) -> bool {

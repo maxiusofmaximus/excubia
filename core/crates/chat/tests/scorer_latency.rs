@@ -9,7 +9,7 @@ mod scorer_support;
 use std::time::{Duration, Instant};
 
 use common::{team, Team};
-use excubia_core_chat::{action_digest, ApprovalKind, ApprovalStatus, NewApproval, DEFAULT_TTL_SECONDS};
+use excubia_chat::{action_digest, ApprovalKind, ApprovalStatus, NewApproval, DEFAULT_TTL_SECONDS};
 use scorer_support::{Behaviour, Scorer};
 use serde_json::json;
 

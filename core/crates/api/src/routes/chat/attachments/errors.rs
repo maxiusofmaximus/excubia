@@ -2,7 +2,7 @@
 //! follow `errors.md`: 404 for an unknown or foreign id, 409 for a state clash.
 
 use axum::http::StatusCode;
-use excubia_core_chat::AttachmentError;
+use excubia_chat::AttachmentError;
 use serde_json::json;
 
 use crate::error::ApiError;

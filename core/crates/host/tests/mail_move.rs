@@ -6,9 +6,9 @@
 mod mail_move_support;
 mod mail_support;
 
-use excubia_core_chat::{ApprovalStatus, ChatStore, Decision};
-use excubia_core_seat::MoveFolder;
-use excubia_core_test_dir::TestDir;
+use excubia_chat::{ApprovalStatus, ChatStore, Decision};
+use excubia_seat::MoveFolder;
+use excubia_test_dir::TestDir;
 use mail_move_support::*;
 use mail_support::token_answer;
 use std::sync::Arc;

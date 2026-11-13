@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use excubia_core_pin::{client_config, PinError, PinSet};
+use excubia_pin::{client_config, PinError, PinSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_rustls::rustls::pki_types::ServerName;
@@ -146,19 +146,19 @@ fn status_code(response: &[u8]) -> Option<u16> {
 mod tests {
     use std::net::SocketAddr;
 
-    use excubia_core_pin::{Fingerprint, Identity};
+    use excubia_pin::{Fingerprint, Identity};
     use tokio::net::TcpListener;
     use tokio_rustls::TlsAcceptor;
 
     use super::*;
 
     /// Answers every TLS connection with `status`, as the host would. It uses
-    /// the same server config as the host (`excubia_core_pin::server_config`).
+    /// the same server config as the host (`excubia_pin::server_config`).
     async fn serve(identity: &Identity, status: &'static str) -> SocketAddr {
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
         let addr = listener.local_addr().expect("address");
         let acceptor = TlsAcceptor::from(Arc::new(
-            excubia_core_pin::server_config(identity).expect("server config"),
+            excubia_pin::server_config(identity).expect("server config"),
         ));
         tokio::spawn(async move {
             loop {

@@ -2,7 +2,7 @@
 //! question for the user and the approval it asks for. The lifecycle of the
 //! turn itself lives in [`crate::service`].
 
-use excubia_core_chat::{ProgressOutcome, ToolError, ToolReply};
+use excubia_chat::{ProgressOutcome, ToolError, ToolReply};
 use serde_json::json;
 
 use crate::approvals::{approval_for, approval_result, ApprovalAsk};

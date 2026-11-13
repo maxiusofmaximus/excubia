@@ -2,8 +2,8 @@
 //! channel for the SSE forwarder, and an append-only event journal that makes
 //! `Last-Event-ID` resumption possible.
 
-mod agent_files;
 mod agenda;
+mod agent_files;
 mod alerts;
 mod approval_create;
 mod approval_decisions;
@@ -68,8 +68,8 @@ mod schedule_claim;
 mod schedules;
 
 pub use schedule_claim::{Claim, Launch};
-mod recipes;
 mod projects;
+mod recipes;
 mod runs;
 mod seats;
 mod sections;

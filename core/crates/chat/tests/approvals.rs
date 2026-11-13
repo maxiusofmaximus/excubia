@@ -5,12 +5,12 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use excubia_core_chat::{
+use excubia_chat::{
     action_digest, ApprovalFilter, ApprovalKind, ApprovalStatus, ChatError, ChatStore, Decision,
     HookScope, NewApproval, NewConversation, Risk, DEFAULT_TTL_SECONDS,
     MAX_PENDING_PER_CONVERSATION,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 fn temp_dir(name: &str) -> TestDir {
     TestDir::new(&format!("core-approval-tests-{name}"))

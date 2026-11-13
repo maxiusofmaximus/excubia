@@ -3,8 +3,8 @@
 //! first, and the question is never the lead's. A note's text is data for the
 //! model; the answers carry it only where a search needs it, and nothing is logged.
 
-use excubia_core_chat::{Note, NoteHit, SeatActor, ToolError, ToolReply, NOTE_DELETE_TOOL};
-use excubia_core_seat::NoteCall;
+use excubia_chat::{Note, NoteHit, SeatActor, ToolError, ToolReply, NOTE_DELETE_TOOL};
+use excubia_seat::NoteCall;
 use serde_json::{json, Value};
 
 use super::team::TeamService;

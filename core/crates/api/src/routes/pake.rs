@@ -20,9 +20,9 @@ use axum::routing::post;
 use axum::{Json, Router};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use excubia_core_auth::{p256_public_key_is_valid, Class, Curve};
-use excubia_core_pake::{Role, Session, MESSAGE_LEN};
-use excubia_core_pin::{unix_now, PakeLink};
+use excubia_auth::{p256_public_key_is_valid, Class, Curve};
+use excubia_pake::{Role, Session, MESSAGE_LEN};
+use excubia_pin::{unix_now, PakeLink};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

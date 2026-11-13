@@ -1,7 +1,7 @@
 mod support;
 
-use excubia_core_crafting::{App, Captured, CraftError, Driver};
-use excubia_core_test_dir::TestDir;
+use excubia_crafting::{App, Captured, CraftError, Driver};
+use excubia_test_dir::TestDir;
 use std::fs;
 use support::{
     args, document, failed, fake_tools, ok, ooxml_zip, png_bytes, shape, value_after,
@@ -29,7 +29,11 @@ fn pdf_renders_the_page_through_pdfcraft() {
         .unwrap();
 
     assert_eq!(preview.png, png_bytes());
-    assert_eq!(preview.pages, Some(3), "the count comes from PdfCraft's text");
+    assert_eq!(
+        preview.pages,
+        Some(3),
+        "the count comes from PdfCraft's text"
+    );
     let calls = runner.calls();
     assert_eq!(
         shape(&calls[0]),
@@ -128,7 +132,7 @@ fn a_missing_second_app_is_named_as_missing() {
 }
 
 /// A two-page PDF: the page count is what PdfCraft's text prints, one form feed between pages.
-fn two_page_text(inv: &excubia_core_crafting::Invocation) -> Result<Captured, CraftError> {
+fn two_page_text(inv: &excubia_crafting::Invocation) -> Result<Captured, CraftError> {
     if args(inv)[0] == "text" {
         Ok(ok("uno\x0cdos"))
     } else {

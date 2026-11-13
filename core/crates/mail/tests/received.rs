@@ -1,7 +1,7 @@
 //! The checks a received mail gets from the host (MAIL-LECTURA). They are pure
 //! functions of the headers and the body, so each verdict is one row of a table.
 
-use excubia_core_mail::received::{
+use excubia_mail::received::{
     auth_summary, check_message, claims_attachment, clean_body, cut, kept_headers, links, one_line,
     AttachmentInfo, AuthSummary, MAX_BODY_CHARS,
 };

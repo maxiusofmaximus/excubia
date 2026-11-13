@@ -581,14 +581,14 @@ name = "fake-host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "excubia-core-api",
- "excubia-core-auth",
- "excubia-core-chat",
- "excubia-core-host",
- "excubia-core-pin",
- "excubia-core-pty",
- "excubia-core-seat",
- "excubia-core-state",
+ "excubia-api",
+ "excubia-auth",
+ "excubia-chat",
+ "excubia-host",
+ "excubia-pin",
+ "excubia-pty",
+ "excubia-seat",
+ "excubia-state",
  "tokio",
 ]
 
@@ -795,16 +795,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-api"
+name = "excubia-api"
 version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
  "futures-core",
- "excubia-core-auth",
- "excubia-core-chat",
- "excubia-core-push",
- "excubia-core-state",
+ "excubia-auth",
+ "excubia-chat",
+ "excubia-push",
+ "excubia-state",
  "rustls",
  "serde",
  "serde_json",
@@ -815,15 +815,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-auth"
+name = "excubia-auth"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "data-encoding",
  "ed25519-dalek",
  "hex",
- "excubia-core-persist",
- "excubia-core-push",
+ "excubia-persist",
+ "excubia-push",
  "p256",
  "rand_core 0.6.4",
  "serde",
@@ -833,7 +833,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-chat"
+name = "excubia-chat"
 version = "0.1.0"
 dependencies = [
  "async-trait",
@@ -851,7 +851,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-detect"
+name = "excubia-detect"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -861,24 +861,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-host"
+name = "excubia-host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
  "axum",
  "hex",
- "excubia-core-api",
- "excubia-core-auth",
- "excubia-core-chat",
- "excubia-core-detect",
- "excubia-core-mail",
- "excubia-core-persist",
- "excubia-core-pin",
- "excubia-core-pty",
- "excubia-core-push",
- "excubia-core-seat",
- "excubia-core-state",
+ "excubia-api",
+ "excubia-auth",
+ "excubia-chat",
+ "excubia-detect",
+ "excubia-mail",
+ "excubia-persist",
+ "excubia-pin",
+ "excubia-pty",
+ "excubia-push",
+ "excubia-seat",
+ "excubia-state",
  "rand_core 0.6.4",
  "serde",
  "serde_json",
@@ -888,14 +888,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-mail"
+name = "excubia-mail"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
  "base64 0.22.1",
- "excubia-core-persist",
- "excubia-core-push",
+ "excubia-persist",
+ "excubia-push",
  "rand_core 0.6.4",
  "reqwest",
  "rusqlite",
@@ -909,7 +909,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-persist"
+name = "excubia-persist"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -917,7 +917,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-pin"
+name = "excubia-pin"
 version = "0.1.0"
 dependencies = [
  "data-encoding",
@@ -930,7 +930,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-pty"
+name = "excubia-pty"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -940,14 +940,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-push"
+name = "excubia-push"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
  "base64 0.22.1",
  "hkdf",
- "excubia-core-state",
+ "excubia-state",
  "httpdate",
  "p256",
  "rand_core 0.6.4",
@@ -962,13 +962,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-seat"
+name = "excubia-seat"
 version = "0.1.0"
 dependencies = [
  "async-trait",
  "hex",
- "excubia-core-chat",
- "excubia-core-persist",
+ "excubia-chat",
+ "excubia-persist",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -978,10 +978,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-state"
+name = "excubia-state"
 version = "0.1.0"
 dependencies = [
- "excubia-core-persist",
+ "excubia-persist",
  "serde",
  "serde_json",
  "tokio",

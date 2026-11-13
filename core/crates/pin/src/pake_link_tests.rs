@@ -129,12 +129,12 @@ fn the_code_alphabet_is_the_one_that_mints_codes() {
         .filter(|c| !c.is_ascii_lowercase() && *c != '-')
     {
         let code = format!("AAAAAAA{symbol}");
-        let minted = excubia_core_pake::Code::parse(&code).is_ok();
+        let minted = excubia_pake::Code::parse(&code).is_ok();
         let uri = sample().to_uri().replacen("ABCD2345", &code, 1);
         assert_eq!(PakeLink::parse(&uri).is_ok(), minted, "{symbol:?}");
     }
     for _ in 0..50 {
-        let code = excubia_core_pake::Code::generate().expect("rng");
+        let code = excubia_pake::Code::generate().expect("rng");
         let link = PakeLink {
             code: code.reveal().to_owned(),
             ..sample()

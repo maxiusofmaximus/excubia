@@ -11,7 +11,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
-use excubia_core_pake::{Code, PakeError, SessionKey};
+use excubia_pake::{Code, PakeError, SessionKey};
 
 /// How long a code lives, and the longest `arm` accepts (a longer `ttl` is cut to this).
 pub const PAKE_CODE_TTL: Duration = Duration::from_secs(180);
@@ -207,7 +207,7 @@ mod tests {
 
     /// A real key, from two runs over the same code (the only way to get one).
     fn a_key(code: &Code, device: &[u8]) -> SessionKey {
-        use excubia_core_pake::{Role, Session};
+        use excubia_pake::{Role, Session};
         let (host, host_message) = Session::start(Role::Host, code, "host", device).expect("host");
         let (device_side, device_message) =
             Session::start(Role::Device, code, "host", device).expect("device");
@@ -216,7 +216,7 @@ mod tests {
     }
 
     fn tag_of(key: &SessionKey) -> [u8; 32] {
-        key.confirm_tag(excubia_core_pake::Role::Host, &[1; 32], &[2; 32])
+        key.confirm_tag(excubia_pake::Role::Host, &[1; 32], &[2; 32])
             .expect("tag")
     }
 

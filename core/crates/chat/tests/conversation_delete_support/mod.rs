@@ -3,8 +3,8 @@
 
 use std::path::PathBuf;
 
-use excubia_core_chat::{AttachmentFiles, ChatStore, NewConversation};
-use excubia_core_test_dir::TestDir;
+use excubia_chat::{AttachmentFiles, ChatStore, NewConversation};
+use excubia_test_dir::TestDir;
 use rusqlite::{params, Connection};
 
 pub const DEVICE: &str = "dev_owner";
@@ -247,7 +247,7 @@ pub fn populate(fixture: &Fixture, conversation: &str) {
             params![conversation, NOW],
         )
         .expect("note");
-    let attachment = format!("att_{}", excubia_core_chat::new_ulid());
+    let attachment = format!("att_{}", excubia_chat::new_ulid());
     connection
         .execute(
             "INSERT INTO attachment (id, conversation_id, client_id, name, declared_size,

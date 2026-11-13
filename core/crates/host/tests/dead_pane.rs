@@ -6,8 +6,8 @@ mod harness;
 
 use std::time::Duration;
 
+use excubia_auth::Permission;
 use harness::{wait_for_status, wait_until_gone, TestHost};
-use excubia_core_auth::Permission;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_dead_pane_leaves_the_list_and_answers_a_typed_error() {

@@ -95,7 +95,7 @@ async fn revision_and_seq_are_monotonic() {
 
 #[tokio::test]
 async fn counters_continue_after_a_restart() {
-    let dir = excubia_core_test_dir::TestDir::new("state-tests-restart");
+    let dir = excubia_test_dir::TestDir::new("state-tests-restart");
     let path = dir.join("counters.json");
 
     let first = StateStore::open("test", Some(path.clone()));

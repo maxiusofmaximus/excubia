@@ -1,7 +1,7 @@
 //! The schemas of Alfred's agenda tools: notes (F2) and contacts (F3). Alfred only;
 //! the host enforces who may call them.
 
-use excubia_core_chat::{
+use excubia_chat::{
     ADDRESS_MAX_CHARS, CONTACT_NAME_MAX_CHARS, MAX_ADDRESSES_PER_CONTACT, MAX_ALIASES_PER_CONTACT,
     NOTE_SEARCH_MAX_RESULTS, NOTE_SUBJECT_MAX_CHARS,
 };

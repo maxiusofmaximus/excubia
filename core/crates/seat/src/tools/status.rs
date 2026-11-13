@@ -1,7 +1,7 @@
 //! `status.overview`: Alfred's read of the company. It takes no arguments, so a
 //! caller cannot widen what it sees, and it changes nothing.
 
-use excubia_core_chat::{ToolError, ToolRequest};
+use excubia_chat::{ToolError, ToolRequest};
 
 use super::{no_arguments, ToolCall};
 

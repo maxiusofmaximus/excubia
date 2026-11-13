@@ -6,11 +6,11 @@ mod harness;
 
 use std::time::{Duration, Instant};
 
-use harness::{process_exists, SeatKind, TestHost};
-use excubia_core_chat::{
+use excubia_chat::{
     action_digest, Approval, ApprovalKind, ApprovalStatus, NewApproval, NewConversation,
     NewProject, NewSeat, ProjectSummary, SeatActor, DEFAULT_TTL_SECONDS,
 };
+use harness::{process_exists, SeatKind, TestHost};
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);

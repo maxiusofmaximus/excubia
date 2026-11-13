@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use excubia_core_chat::{
+use excubia_chat::{
     preview, ChatError, ChatSeat, Delegation, DelegationState, Launch, NewDelegation, RecipeRun,
     SeatActor, ToolError, ToolReply,
 };
@@ -16,7 +16,7 @@ impl TeamService {
     pub(super) async fn assign(
         &self,
         actor: &SeatActor,
-        assign: excubia_core_seat::DelegationAssign,
+        assign: excubia_seat::DelegationAssign,
     ) -> Result<ToolReply, ToolError> {
         let parent = if actor.role_id == "lead" {
             Some(
@@ -104,7 +104,9 @@ impl TeamService {
             .map_err(tool_chat_error)?;
         self.dispatch(&delegation).await?;
         if let Some(recipe_id) = &run.recipe_id {
-            self.chat.count_recipe_use(recipe_id).map_err(tool_chat_error)?;
+            self.chat
+                .count_recipe_use(recipe_id)
+                .map_err(tool_chat_error)?;
         }
         Ok(delegation)
     }
@@ -280,7 +282,7 @@ impl TeamService {
 
     pub(super) fn synthesis_text(
         &self,
-        rows: &[excubia_core_chat::SynthesisRow],
+        rows: &[excubia_chat::SynthesisRow],
     ) -> Result<String, ChatError> {
         let mut lines = Vec::with_capacity(rows.len());
         for row in rows {
@@ -317,7 +319,7 @@ impl TeamService {
             let Some(pane_id) = frame.body["pane_id"].as_str().map(str::to_string) else {
                 continue;
             };
-            if frame.event == excubia_core_state::EVENT_STATUS {
+            if frame.event == excubia_state::EVENT_STATUS {
                 let state = match frame.body["agent_status"].as_str() {
                     Some("blocked") => Some(DelegationState::Waiting),
                     Some("working") => Some(DelegationState::Running),
@@ -328,7 +330,7 @@ impl TeamService {
                         eprintln!("team: pane state for {pane_id}: {error}");
                     }
                 }
-            } else if frame.event == excubia_core_state::EVENT_CLOSED {
+            } else if frame.event == excubia_state::EVENT_CLOSED {
                 if let Ok(Some(delegation)) = self.chat.active_delegation_for_pane(&pane_id) {
                     self.stop_watcher(&delegation.id);
                 }

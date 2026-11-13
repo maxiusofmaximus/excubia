@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use axum::response::IntoResponse;
 use serde::Deserialize;
 
-pub use excubia_core_chat::MAX_MESSAGE_BYTES;
-use excubia_core_chat::{
+pub use excubia_chat::MAX_MESSAGE_BYTES;
+use excubia_chat::{
     message_text as validate_text, AttachmentError, ChatError, TextError, ATTACHMENT_ONLY_TEXT,
     MAX_ATTACHMENTS_PER_MESSAGE,
 };

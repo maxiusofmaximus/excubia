@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_api::voice::VoiceService;
+use excubia_api::voice::VoiceService;
 use tokio::task::JoinHandle;
 
 use crate::pairing_notice::PairingNotice;
@@ -23,7 +23,7 @@ pub fn is_on(data_dir: &Path) -> bool {
 
 pub fn set(data_dir: &Path) -> io::Result<()> {
     paths::ensure_data_dir(data_dir)?;
-    excubia_core_persist::write_atomic(&paths::local_mode_path(data_dir), b"")
+    excubia_persist::write_atomic(&paths::local_mode_path(data_dir), b"")
 }
 
 pub fn clear(data_dir: &Path) -> io::Result<()> {
@@ -85,7 +85,7 @@ fn announce(notices: &PairingNotice, text: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     #[test]
     fn the_marker_is_set_seen_and_cleared_and_clearing_twice_is_fine() {

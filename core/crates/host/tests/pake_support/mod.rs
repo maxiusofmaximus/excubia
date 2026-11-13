@@ -10,15 +10,15 @@ use crate::harness::{raw_exchange, TestHost};
 use axum::serve::Listener;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use excubia_core_api::{
+use excubia_api::{
     serve, serve_client, AgentActions, AlfredBackend, ApiConfig, ApiContext, PakeSlot, TlsListener,
 };
-use excubia_core_host::pairing_audit::AUDIT_FILE;
-use excubia_core_host::pairing_notice::PairingNotice;
-use excubia_core_host::tls_slots::TlsSlots;
-use excubia_core_pake::{Code, Role, Session, SessionKey};
-use excubia_core_pin::{client_config, CertificateInfo, PinSet};
-use excubia_core_test_support::DemoIdentity;
+use excubia_host::pairing_audit::AUDIT_FILE;
+use excubia_host::pairing_notice::PairingNotice;
+use excubia_host::tls_slots::TlsSlots;
+use excubia_pake::{Code, Role, Session, SessionKey};
+use excubia_pin::{client_config, CertificateInfo, PinSet};
+use excubia_test_support::DemoIdentity;
 use serde_json::{json, Value};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -49,7 +49,7 @@ impl Rig {
         let slots = TlsSlots::open(&host.data_dir);
         let identity = slots.active().expect("identity");
         let pin = slots.active_pin().expect("pin");
-        let config = Arc::new(excubia_core_pin::server_config(&identity).expect("server config"));
+        let config = Arc::new(excubia_pin::server_config(&identity).expect("server config"));
         let listener = TlsListener::bind("127.0.0.1:0".parse().expect("address"), config)
             .await
             .expect("bind");
@@ -59,7 +59,7 @@ impl Rig {
             store: Arc::clone(&host.store),
             actions,
             devices: Arc::clone(&host.devices),
-            agents: Arc::new(excubia_core_host::load_agents(&host.data_dir).expect("catalog")),
+            agents: Arc::new(excubia_host::load_agents(&host.data_dir).expect("catalog")),
             chat: Arc::clone(&host.chat),
             seat: Arc::clone(&host.seat),
             hook_token: Arc::new(host.hook_token.clone()),
@@ -68,11 +68,11 @@ impl Rig {
                 Arc::clone(&host.chat),
                 crate::harness::mail_transport(None),
             )),
-            voice: Arc::new(excubia_core_api::voice::VoiceService::new(None)),
+            voice: Arc::new(excubia_api::voice::VoiceService::new(None)),
             alfred: Arc::clone(&host.alfred) as Arc<dyn AlfredBackend>,
             pairing_audit: Arc::new(PairingNotice::new(&host.data_dir, Arc::clone(&host.chat))),
-            audit: Arc::new(excubia_core_host::audit::AuditLog::new(&host.data_dir)),
-            docs: Arc::new(excubia_core_host::craft::Craft::without_tools(&host.data_dir)),
+            audit: Arc::new(excubia_host::audit::AuditLog::new(&host.data_dir)),
+            docs: Arc::new(excubia_host::craft::Craft::without_tools(&host.data_dir)),
         })
         .with_host_pin(Some(pin));
         let base = Instant::now();

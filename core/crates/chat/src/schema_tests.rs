@@ -1,5 +1,5 @@
 use super::*;
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 #[test]
 fn migrations_run_once_and_keep_the_seed() {

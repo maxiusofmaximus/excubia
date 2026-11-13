@@ -1,7 +1,7 @@
 //! How the errors of the chat store become the typed codes of the MCP
 //! surface: one place, so a code never changes between two tools.
 
-use excubia_core_chat::{ChatError, ToolError};
+use excubia_chat::{ChatError, ToolError};
 
 pub(super) fn tool_chat_error(error: ChatError) -> ToolError {
     let message = error.to_string();

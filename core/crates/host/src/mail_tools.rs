@@ -9,14 +9,14 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use excubia_core_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
-use excubia_core_mail::attach::{attach_chat_file, attach_file, AttachContext};
-use excubia_core_mail::auth;
-use excubia_core_mail::{
+use excubia_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
+use excubia_mail::attach::{attach_chat_file, attach_file, AttachContext};
+use excubia_mail::auth;
+use excubia_mail::{
     AccountStore, ActionLog, AuditLog, DraftInput, DraftMeta, GraphClient, HttpTransport, Ledger,
     MailError, PathPolicy, ReadRecord, Redacted, DEFAULT_MAX_ATTACHMENT_BYTES,
 };
-use excubia_core_seat::{
+use excubia_seat::{
     AttachSource, DraftFields, DraftRef, InboxQuery, MailAttach, MailCall, MessageRef,
 };
 use serde_json::{json, Value};

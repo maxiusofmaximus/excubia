@@ -3,8 +3,8 @@
 
 #![allow(dead_code)]
 
-use excubia_core_chat::{ChatSeat, SeatError, ToolError, ToolReply, ToolRequest, Turn};
-use excubia_core_host::paths;
+use excubia_chat::{ChatSeat, SeatError, ToolError, ToolReply, ToolRequest, Turn};
+use excubia_host::paths;
 
 use super::TOOL_TOKEN;
 
@@ -23,7 +23,7 @@ impl ChatSeat for ToolSeat {
         if token != TOOL_TOKEN {
             return Err(ToolError::unauthorized("unknown or expired tool token"));
         }
-        match excubia_core_seat::parse_tool(&request) {
+        match excubia_seat::parse_tool(&request) {
             Ok(_) => Ok(ToolReply {
                 result: serde_json::json!({ "status": "accepted" }),
             }),

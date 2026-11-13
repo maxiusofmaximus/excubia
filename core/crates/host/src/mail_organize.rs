@@ -4,9 +4,9 @@
 //! back here. Undo needs no approval: it returns a message to the folder the operator
 //! already had it in, and it is recorded in the log.
 
-use excubia_core_chat::SeatActor;
-use excubia_core_mail::{MailError, Redacted};
-use excubia_core_seat::{MoveUndo, Organize, UndoList};
+use excubia_chat::SeatActor;
+use excubia_mail::{MailError, Redacted};
+use excubia_seat::{MoveUndo, Organize, UndoList};
 use serde_json::{json, Value};
 
 use crate::mail_shadow::rfc3339;

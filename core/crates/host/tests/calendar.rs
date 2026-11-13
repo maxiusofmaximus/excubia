@@ -7,10 +7,10 @@ mod harness;
 
 use std::time::Duration;
 
-use harness::{SeatKind, TestHost};
-use excubia_core_chat::{
+use excubia_chat::{
     Approval, ApprovalFilter, ApprovalStatus, ChatStore, Decision, NewConversation, SeatActor,
 };
+use harness::{SeatKind, TestHost};
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);
@@ -222,7 +222,7 @@ async fn a_lead_cannot_touch_the_calendar() {
     grant(&host, "tok-alfred", "alfred", &alfred, &conversation_id);
     let id = create_event(&host, "tok-alfred", "De Alfred").await;
     let project = chat
-        .create_project(excubia_core_chat::NewProject {
+        .create_project(excubia_chat::NewProject {
             name: "Demo".to_string(),
             root_path: host.data_dir.join("demo"),
         })

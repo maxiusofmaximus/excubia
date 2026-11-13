@@ -7,13 +7,13 @@ mod harness;
 use std::path::Path;
 use std::time::Duration;
 
-use harness::{SeatKind, TestHost};
-use excubia_core_chat::{
+use excubia_chat::{
     action_digest, ApprovalKind, NewApproval, NewConversation, NewDelegation, NewProject, NewSeat,
     SeatActor, DEFAULT_TTL_SECONDS,
 };
-use excubia_core_host::paths;
-use excubia_core_state::{NewAgent, Status};
+use excubia_host::paths;
+use excubia_state::{NewAgent, Status};
+use harness::{SeatKind, TestHost};
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);

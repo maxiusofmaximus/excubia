@@ -5,8 +5,8 @@ use serde_json::Value;
 
 use crate::model::Turn;
 use crate::model_recipe::RecipeRun;
-use crate::store::Launch;
 use crate::model_team::Delegation;
+use crate::store::Launch;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SeatErrorCode {
@@ -174,7 +174,9 @@ pub trait ChatSeat: Send + Sync + 'static {
     /// Start a scheduled run: the hire takes the text from Alfred. Refused by a seat that
     /// cannot deliver, as a recipe is.
     async fn run_scheduled(&self, _launch: Launch) -> Result<Delegation, ToolError> {
-        Err(ToolError::unavailable("this seat cannot start a scheduled run"))
+        Err(ToolError::unavailable(
+            "this seat cannot start a scheduled run",
+        ))
     }
 
     /// Stop the open turns of one conversation. The chat state is already

@@ -40,7 +40,7 @@ Además, código adaptado del cliente de escritorio (MIT):
     client}.rs` (MIT), para los tests de integración y el cliente de la demo
     (`demo-client`). Es una dependencia de desarrollo (`publish = false`), no
     forma parte de ningún artefacto del producto, y la canonicalización no se
-    duplica: reutiliza `excubia_core_auth::canonical_string`. Fijado contra los
+    duplica: reutiliza `excubia_auth::canonical_string`. Fijado contra los
     mismos vectores dorados compartidos
     (`docs/contracts/vectors/signing_vectors.json`).
 

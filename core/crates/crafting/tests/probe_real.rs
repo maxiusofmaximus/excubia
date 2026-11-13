@@ -5,14 +5,14 @@
 //!
 //! ```text
 //! set CRAFT_PROBE_DIR=<scratchpad>\craft-probe
-//! cargo test -p excubia-core-crafting --test probe_real -- --ignored --nocapture
+//! cargo test -p excubia-crafting --test probe_real -- --ignored --nocapture
 //! ```
 //!
 //! The probe folder must hold `grid/`, `wordcraft/`, `pdfcraft/` (each with the
 //! unzipped portable build), `v.pdf` (two pages) and `b6.xlsx`.
 
-use excubia_core_crafting::{App, Driver, ProcessRunner, ReadOpts, Tools, CONFIG_FILE};
-use excubia_core_test_dir::TestDir;
+use excubia_crafting::{App, Driver, ProcessRunner, ReadOpts, Tools, CONFIG_FILE};
+use excubia_test_dir::TestDir;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -114,7 +114,10 @@ fn real_clis_read_and_render() {
     );
     let preview = driver.render_png(&doc, 1).unwrap();
     assert_eq!(&preview.png[..4], [0x89, b'P', b'N', b'G']);
-    assert!(preview.pages.is_some(), "a sheet converted to PDF has pages");
+    assert!(
+        preview.pages.is_some(),
+        "a sheet converted to PDF has pages"
+    );
 
     let version = driver.version(App::GridCraft).unwrap();
     assert!(version.matches, "found {}", version.found);
@@ -126,10 +129,10 @@ fn support_document(
     name: &str,
     from: &Path,
     mime: &str,
-) -> excubia_core_crafting::Document {
+) -> excubia_crafting::Document {
     let path = root.join(format!("chat-{name}"));
     fs::copy(from, &path).unwrap();
-    excubia_core_crafting::Document {
+    excubia_crafting::Document {
         path,
         name: name.to_string(),
         mime: mime.to_string(),

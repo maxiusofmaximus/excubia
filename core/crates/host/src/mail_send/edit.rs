@@ -2,12 +2,12 @@
 //! (§A). The owner's fields pass the same checks the tools apply; the audit keeps
 //! the device and never the content, and the cards hold no body.
 
-use excubia_core_api::DraftEdit;
-use excubia_core_chat::MailDraftCard;
-use excubia_core_mail::{
+use excubia_api::DraftEdit;
+use excubia_chat::MailDraftCard;
+use excubia_mail::{
     agent_text, DraftBody, DraftReview, EditRecord, GraphClient, MailError, Redacted,
 };
-use excubia_core_seat::check_draft_fields;
+use excubia_seat::check_draft_fields;
 
 use super::graph::{owner_view, sender};
 use super::MailSends;

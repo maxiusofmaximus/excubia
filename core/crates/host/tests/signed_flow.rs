@@ -7,8 +7,8 @@ mod harness;
 
 use std::time::{Duration, Instant};
 
+use excubia_auth::Permission;
 use harness::{wait_for_status, wait_until_gone, TestHost};
-use excubia_core_auth::Permission;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn the_signed_flow_end_to_end() {
@@ -153,9 +153,9 @@ async fn state_revision_continues_after_a_restart() {
     assert!(revision_before >= 1);
 
     // A fresh store over the same counters file: what a host restart does.
-    let reopened = excubia_core_state::StateStore::open(
+    let reopened = excubia_state::StateStore::open(
         "test",
-        Some(excubia_core_host::paths::counters_path(&host.data_dir)),
+        Some(excubia_host::paths::counters_path(&host.data_dir)),
     );
     assert!(
         reopened.revision().await >= revision_before,

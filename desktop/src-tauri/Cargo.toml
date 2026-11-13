@@ -10,7 +10,7 @@ tauri-build = { version = "2.7", features = [] }
 [dependencies]
 async-trait = "0.1"
 excubia-desktop-core = { path = "../core", features = ["os-keyring"] }
-excubia-core-pin = { path = "../../core/crates/pin" }
+excubia-pin = { path = "../../core/crates/pin" }
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

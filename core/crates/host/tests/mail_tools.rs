@@ -8,13 +8,13 @@ mod mail_support;
 
 use std::sync::Arc;
 
-use excubia_core_chat::{ChatStore, ContactFields, NewConversation, SeatActor};
-use excubia_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
-use excubia_core_host::mail_tools::{open_ledger, MailTools};
-use excubia_core_mail::auth::Tenant;
-use excubia_core_mail::{Account, AccountStore, FileKey, HttpTransport, Secret, Tokens};
-use excubia_core_seat::{BodyFormat, DraftFields, MailCall};
-use excubia_core_test_dir::TestDir;
+use excubia_chat::{ChatStore, ContactFields, NewConversation, SeatActor};
+use excubia_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
+use excubia_host::mail_tools::{open_ledger, MailTools};
+use excubia_mail::auth::Tenant;
+use excubia_mail::{Account, AccountStore, FileKey, HttpTransport, Secret, Tokens};
+use excubia_seat::{BodyFormat, DraftFields, MailCall};
+use excubia_test_dir::TestDir;
 use mail_support::{token_answer, Scripted, ACCESS, REFRESH};
 
 const OLD_REFRESH: &str = "REFRESCO-ANTIGUO";
@@ -112,7 +112,7 @@ async fn a_call_without_a_registration_is_refused_before_any_request() {
     let refused = tools
         .call(
             &actor(),
-            MailCall::DraftGet(excubia_core_seat::DraftRef {
+            MailCall::DraftGet(excubia_seat::DraftRef {
                 account: "trabajo".into(),
                 draft_id: "d1".into(),
             }),
@@ -134,7 +134,7 @@ async fn an_account_nobody_signed_in_is_invalid_input() {
     let refused = tools
         .call(
             &actor(),
-            MailCall::DraftGet(excubia_core_seat::DraftRef {
+            MailCall::DraftGet(excubia_seat::DraftRef {
                 account: "nadie".into(),
                 draft_id: "d1".into(),
             }),
@@ -157,7 +157,7 @@ async fn a_draft_this_host_did_not_make_is_refused_and_the_rotated_token_is_kept
     let refused = tools
         .call(
             &actor(),
-            MailCall::DraftGet(excubia_core_seat::DraftRef {
+            MailCall::DraftGet(excubia_seat::DraftRef {
                 account: "trabajo".into(),
                 draft_id: "d-ajena".into(),
             }),
@@ -191,10 +191,10 @@ async fn attaching_to_a_foreign_draft_is_refused_before_the_path_is_read() {
     let refused = tools
         .call(
             &actor(),
-            MailCall::AttachFile(excubia_core_seat::MailAttach {
+            MailCall::AttachFile(excubia_seat::MailAttach {
                 account: "trabajo".into(),
                 draft_id: "d-ajena".into(),
-                source: excubia_core_seat::AttachSource::Path(
+                source: excubia_seat::AttachSource::Path(
                     dir.join("no-existe.pdf").display().to_string(),
                 ),
             }),

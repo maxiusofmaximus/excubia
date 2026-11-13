@@ -73,7 +73,10 @@ fn worker_path() -> io::Result<PathBuf> {
     if dir.ends_with("deps") {
         dir.pop();
     }
-    Ok(dir.join(format!("excubia-media-worker{}", std::env::consts::EXE_SUFFIX)))
+    Ok(dir.join(format!(
+        "excubia-media-worker{}",
+        std::env::consts::EXE_SUFFIX
+    )))
 }
 
 fn read_capped(stdout: ChildStdout) -> io::Result<Vec<u8>> {

@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn commands_map_to_their_categories() {
         let cases = [
-            ("cargo test -p excubia-core-chat", Category::Test),
+            ("cargo test -p excubia-chat", Category::Test),
             ("cargo clippy --workspace", Category::Build),
             ("npm test", Category::Test),
             ("pnpm run build", Category::Build),

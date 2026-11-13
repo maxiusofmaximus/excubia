@@ -1,7 +1,7 @@
 mod support;
 
-use excubia_core_crafting::{App, CraftError, Driver};
-use excubia_core_test_dir::TestDir;
+use excubia_crafting::{App, CraftError, Driver};
+use excubia_test_dir::TestDir;
 use support::{args, fake_tools, ok, ScriptedRunner};
 
 #[test]

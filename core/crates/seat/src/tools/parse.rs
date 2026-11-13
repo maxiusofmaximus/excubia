@@ -1,6 +1,6 @@
 //! Turns a tool request into a `ToolCall`, refusing anything malformed.
 
-use excubia_core_chat::{
+use excubia_chat::{
     message_text, validate_suggestions, TextError, ToolError, ToolRequest,
     MAX_ATTACHMENTS_PER_MESSAGE,
 };

@@ -7,8 +7,8 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use excubia_core_auth::{Device, GrantOutcome, Permission, VerifiedDevice};
-use excubia_core_pin::{sas, Fingerprint};
+use excubia_auth::{Device, GrantOutcome, Permission, VerifiedDevice};
+use excubia_pin::{sas, Fingerprint};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

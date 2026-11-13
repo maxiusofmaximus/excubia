@@ -6,13 +6,13 @@
 
 mod harness;
 
+use excubia_auth::Permission;
+use excubia_chat::SeatActor;
+use excubia_crafting::App;
+use excubia_mail::AuditLog;
+use excubia_test_support::SignedClient;
 use harness::docs::{ooxml_zip, send, upload};
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_chat::SeatActor;
-use excubia_core_crafting::App;
-use excubia_core_mail::AuditLog;
-use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 
 const READ: &[Permission] = &[Permission::Respond];

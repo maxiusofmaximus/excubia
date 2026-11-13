@@ -9,8 +9,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use excubia_core_pake::{Code, Role, Session};
-use excubia_core_pin::{client_config, Fingerprint, PinSet};
+use excubia_pake::{Code, Role, Session};
+use excubia_pin::{client_config, Fingerprint, PinSet};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};

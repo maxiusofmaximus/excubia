@@ -7,7 +7,7 @@
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
-use excubia_core_pin::{client_config, PinError, PinSet};
+use excubia_pin::{client_config, PinError, PinSet};
 use reqwest::Client;
 use rustls::{CertificateError, OtherError};
 
@@ -123,7 +123,7 @@ fn rustls_failure(error: &rustls::Error) -> Option<CoreError> {
 
 #[cfg(test)]
 mod tests {
-    use excubia_core_pin::Fingerprint;
+    use excubia_pin::Fingerprint;
 
     use super::*;
 

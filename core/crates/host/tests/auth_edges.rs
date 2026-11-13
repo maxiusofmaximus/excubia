@@ -5,9 +5,9 @@ mod harness;
 
 use std::time::Duration;
 
+use excubia_auth::{canonical_string, Permission};
+use excubia_test_support::{pair_device, DemoIdentity, HttpError};
 use harness::TestHost;
-use excubia_core_auth::{canonical_string, Permission};
-use excubia_core_test_support::{pair_device, DemoIdentity, HttpError};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn pairing_failures_follow_the_contract() {
@@ -25,7 +25,11 @@ async fn pairing_failures_follow_the_contract() {
         "{}",
         refused.body
     );
-    assert!(refused.body.contains("excubia-host pair-code"), "{}", refused.body);
+    assert!(
+        refused.body.contains("excubia-host pair-code"),
+        "{}",
+        refused.body
+    );
 
     // An unsupported curve and an oversized label are model failures.
     let bad_curve = pair_device(

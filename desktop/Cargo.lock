@@ -1162,25 +1162,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-pin"
-version = "0.1.0"
-dependencies = [
- "data-encoding",
- "rcgen",
- "rustls",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "time",
- "x509-parser",
-]
-
-[[package]]
 name = "excubia-desktop"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "excubia-core-pin",
  "excubia-desktop-core",
+ "excubia-pin",
  "qrcode",
  "serde",
  "serde_json",
@@ -1200,7 +1187,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
- "excubia-core-pin",
+ "excubia-pin",
  "futures-util",
  "hex",
  "keyring",
@@ -1215,6 +1202,19 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-util",
+]
+
+[[package]]
+name = "excubia-pin"
+version = "0.1.0"
+dependencies = [
+ "data-encoding",
+ "rcgen",
+ "rustls",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "time",
+ "x509-parser",
 ]
 
 [[package]]

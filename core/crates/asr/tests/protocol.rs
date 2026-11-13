@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use excubia_core_asr::{AsrConfig, AsrEngine, AsrError};
+use excubia_asr::{AsrConfig, AsrEngine, AsrError};
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

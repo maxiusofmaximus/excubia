@@ -10,11 +10,11 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use excubia_api::voice::{Engine, EngineStarter, MAX_VOICE_BODY_BYTES};
+use excubia_asr::AsrError;
+use excubia_auth::{canonical_string, Permission};
+use excubia_test_support::DemoIdentity;
 use harness::TestHost;
-use excubia_core_api::voice::{Engine, EngineStarter, MAX_VOICE_BODY_BYTES};
-use excubia_core_asr::AsrError;
-use excubia_core_auth::{canonical_string, Permission};
-use excubia_core_test_support::DemoIdentity;
 use serde_json::Value;
 
 const FIXTURE: &[u8] = include_bytes!("../../asr/tests/fixtures/tones_2s5.opus");

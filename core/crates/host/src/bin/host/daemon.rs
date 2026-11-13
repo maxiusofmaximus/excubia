@@ -8,36 +8,36 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use axum::serve::Listener;
-use excubia_core_api::voice::{EngineStarter, VoiceService};
-use excubia_core_api::{
+use excubia_api::voice::{EngineStarter, VoiceService};
+use excubia_api::{
     serve, serve_client, serve_internal, AgentActions, ApiConfig, ApiContext, TlsListener,
 };
-use excubia_core_auth::DeviceStore;
-use excubia_core_chat::{ChatSeat, ChatStore};
-use excubia_core_host::alfred_backend;
-use excubia_core_host::alfred_switch::{Strata, Switch};
-use excubia_core_host::audit::AuditLog;
-use excubia_core_host::calendar_reminders;
-use excubia_core_host::cli::{BIN, RunOptions};
-use excubia_core_host::craft::Craft;
-use excubia_core_host::doc_tools::DocTools;
-use excubia_core_host::local_mode;
-use excubia_core_host::mail_routes;
-use excubia_core_host::mail_shadow::Shadow;
-use excubia_core_host::mail_cli::ACCOUNTS_DIR;
-use excubia_core_host::mail_tools::MailTools;
-use excubia_core_host::mdns;
-use excubia_core_host::pairing_notice::PairingNotice;
-use excubia_core_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
-use excubia_core_host::tls_slots::TlsSlots;
-use excubia_core_host::{
+use excubia_auth::DeviceStore;
+use excubia_chat::{ChatSeat, ChatStore};
+use excubia_host::alfred_backend;
+use excubia_host::alfred_switch::{Strata, Switch};
+use excubia_host::audit::AuditLog;
+use excubia_host::calendar_reminders;
+use excubia_host::cli::{RunOptions, BIN};
+use excubia_host::craft::Craft;
+use excubia_host::doc_tools::DocTools;
+use excubia_host::local_mode;
+use excubia_host::mail_cli::ACCOUNTS_DIR;
+use excubia_host::mail_routes;
+use excubia_host::mail_shadow::Shadow;
+use excubia_host::mail_tools::MailTools;
+use excubia_host::mdns;
+use excubia_host::pairing_notice::PairingNotice;
+use excubia_host::team::{TeamConfig, TeamService, DELEGATION_TIMEOUT};
+use excubia_host::tls_slots::TlsSlots;
+use excubia_host::{
     configured_profiles, engine_listing, load_agents, load_hook_token, paths, ready_engines,
     spawn_alerts, AgentHost, HostOptions, SpawnSpec,
 };
-use excubia_core_pin::Identity;
-use excubia_core_pty::PtySize;
-use excubia_core_seat::{canary_plan, run_canary, CliId, CliProfile, SeatConfig, SeatService, UacState};
-use excubia_core_state::StateStore;
+use excubia_pin::Identity;
+use excubia_pty::PtySize;
+use excubia_seat::{canary_plan, run_canary, CliId, CliProfile, SeatConfig, SeatService, UacState};
+use excubia_state::StateStore;
 use tokio::task::JoinHandle;
 
 const SEAT_QUEUE: usize = 8;
@@ -233,7 +233,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     let docs = Arc::new(DocTools::new(
         Arc::clone(&craft),
         Arc::clone(&chat),
-        excubia_core_mail::AuditLog::new(&options.data_dir.join(ACCOUNTS_DIR)),
+        excubia_mail::AuditLog::new(&options.data_dir.join(ACCOUNTS_DIR)),
     ));
 
     // The team seat is the only surface the API knows: it routes Alfred's
@@ -314,7 +314,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         alfred: Arc::new(alfred),
         pairing_audit: notices.clone(),
         audit: Arc::new(AuditLog::new(&options.data_dir)),
-        docs: craft as Arc<dyn excubia_core_api::DocumentPages>,
+        docs: craft as Arc<dyn excubia_api::DocumentPages>,
     })
     // The active pin is the input of each pending device's SAS. A host that cannot
     // read it still serves; it only shows no verification string.
@@ -388,7 +388,7 @@ async fn lan_outcome(task: &mut Option<JoinHandle<std::io::Result<()>>>) -> std:
 /// The LAN listener, or `None` when it cannot start: the host then serves only
 /// loopback, and a device still reaches it there or over another transport.
 async fn bind_lan(address: SocketAddr, identity: &Identity) -> Option<TlsListener> {
-    let bound = match excubia_core_pin::server_config(identity) {
+    let bound = match excubia_pin::server_config(identity) {
         Ok(config) => TlsListener::bind(address, Arc::new(config)).await,
         Err(error) => Err(std::io::Error::other(error.to_string())),
     };

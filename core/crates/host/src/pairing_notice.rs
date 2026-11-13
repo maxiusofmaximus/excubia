@@ -6,8 +6,8 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use excubia_core_api::{PairOutcome, PairingAttempt, PairingAudit};
-use excubia_core_chat::{ChatError, ChatStore, ConversationFilter, NewConversation};
+use excubia_api::{PairOutcome, PairingAttempt, PairingAudit};
+use excubia_chat::{ChatError, ChatStore, ConversationFilter, NewConversation};
 
 use crate::cli::BIN;
 use crate::pairing_audit::JsonlPairingAudit;
@@ -171,7 +171,7 @@ fn label_span(label: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_api::PairVia;
+    use excubia_api::PairVia;
 
     fn attempt(outcome: PairOutcome, device: Option<&str>, label: Option<&str>) -> PairingAttempt {
         PairingAttempt::new(outcome, PairVia::Code, device, label, "127.0.0.1")

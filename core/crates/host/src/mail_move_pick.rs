@@ -4,8 +4,8 @@
 //! the account that this conversation asked, approved, neither applied nor expired. One
 //! is applied; none and several are answered, and nothing moves.
 
-use excubia_core_chat::{Approval, ApprovalFilter, ApprovalStatus, SeatActor};
-use excubia_core_mail::MailError;
+use excubia_chat::{Approval, ApprovalFilter, ApprovalStatus, SeatActor};
+use excubia_mail::MailError;
 
 use crate::mail_move::chat_error;
 use crate::mail_move_apply::belongs_to;

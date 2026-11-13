@@ -5,7 +5,7 @@
 mod common;
 
 use common::{team, Team};
-use excubia_core_chat::{
+use excubia_chat::{
     ChatError, Delegation, NewDelegation, NewPlan, NewSeat, PlanDecision, PlanStatus, PlanStep,
     Touch,
 };
@@ -23,7 +23,7 @@ fn steps(count: usize, touches: &[Touch]) -> Vec<PlanStep> {
         .collect()
 }
 
-fn propose(t: &Team, steps: Vec<PlanStep>) -> excubia_core_chat::Plan {
+fn propose(t: &Team, steps: Vec<PlanStep>) -> excubia_chat::Plan {
     t.store
         .propose_plan(NewPlan {
             conversation_id: t.conversation.clone(),
@@ -277,7 +277,10 @@ fn a_declared_count_of_one_does_not_hold_back_a_four_step_plan() {
     let delegation = assign_steps(&t, &parent, "uno", &t.specialist, 1, Some(plan.id.clone()))
         .expect("the plan decides, not the declared one");
     let linked = t.store.plan(&plan.id).expect("plan");
-    assert_eq!(linked.delegation_id.as_deref(), Some(delegation.id.as_str()));
+    assert_eq!(
+        linked.delegation_id.as_deref(),
+        Some(delegation.id.as_str())
+    );
 }
 
 #[test]
@@ -289,6 +292,13 @@ fn a_declared_count_that_disagrees_with_the_plan_loses_to_the_plan() {
         .decide_plan(&plan.id, PlanDecision::Approve, None, "user")
         .expect("approve");
 
-    assign_steps(&t, &parent, "dice-nueve", &t.specialist, 9, Some(plan.id.clone()))
-        .expect("the two-step plan decides, not the declared nine");
+    assign_steps(
+        &t,
+        &parent,
+        "dice-nueve",
+        &t.specialist,
+        9,
+        Some(plan.id.clone()),
+    )
+    .expect("the two-step plan decides, not the declared nine");
 }

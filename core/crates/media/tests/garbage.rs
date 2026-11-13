@@ -1,6 +1,6 @@
 mod support;
 
-use excubia_core_media::{process_image, Limits};
+use excubia_media::{process_image, Limits};
 use image::ImageFormat;
 use support::{encode, gradient};
 

@@ -8,10 +8,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::serve::Listener;
+use excubia_api::{serve_client, AgentActions, AlfredBackend, ApiConfig, ApiContext, TlsListener};
+use excubia_host::tls_slots::TlsSlots;
+use excubia_pin::{client_config, Identity, PinSet};
 use harness::TestHost;
-use excubia_core_api::{serve_client, AgentActions, AlfredBackend, ApiConfig, ApiContext, TlsListener};
-use excubia_core_host::tls_slots::TlsSlots;
-use excubia_core_pin::{client_config, Identity, PinSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
@@ -22,7 +22,7 @@ use tokio_rustls::TlsConnector;
 /// state, with the certificate the host's slots hold.
 async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Result<()>>) {
     let identity = TlsSlots::open(&host.data_dir).active().expect("identity");
-    let config = Arc::new(excubia_core_pin::server_config(&identity).expect("server config"));
+    let config = Arc::new(excubia_pin::server_config(&identity).expect("server config"));
     let listener = TlsListener::bind("127.0.0.1:0".parse().expect("address"), config)
         .await
         .expect("bind");
@@ -32,7 +32,7 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
         store: Arc::clone(&host.store),
         actions,
         devices: Arc::clone(&host.devices),
-        agents: Arc::new(excubia_core_host::load_agents(&host.data_dir).expect("catalog")),
+        agents: Arc::new(excubia_host::load_agents(&host.data_dir).expect("catalog")),
         chat: Arc::clone(&host.chat),
         seat: Arc::clone(&host.seat),
         hook_token: Arc::new(host.hook_token.clone()),
@@ -41,13 +41,13 @@ async fn lan_listener(host: &TestHost) -> (SocketAddr, JoinHandle<std::io::Resul
             Arc::clone(&host.chat),
             harness::mail_transport(None),
         )),
-        voice: Arc::new(excubia_core_api::voice::VoiceService::new(None)),
+        voice: Arc::new(excubia_api::voice::VoiceService::new(None)),
         alfred: Arc::clone(&host.alfred) as Arc<dyn AlfredBackend>,
-        pairing_audit: Arc::new(excubia_core_host::pairing_audit::JsonlPairingAudit::new(
+        pairing_audit: Arc::new(excubia_host::pairing_audit::JsonlPairingAudit::new(
             &host.data_dir,
         )),
-        audit: Arc::new(excubia_core_host::audit::AuditLog::new(&host.data_dir)),
-        docs: Arc::new(excubia_core_host::craft::Craft::without_tools(&host.data_dir)),
+        audit: Arc::new(excubia_host::audit::AuditLog::new(&host.data_dir)),
+        docs: Arc::new(excubia_host::craft::Craft::without_tools(&host.data_dir)),
     });
     (addr, tokio::spawn(serve_client(listener, context)))
 }

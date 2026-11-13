@@ -19,8 +19,8 @@ mod render;
 mod tests;
 
 pub use render::claude_settings;
-pub(crate) use render::{opencode_config, OpenCodeRun};
 use render::{claude_mcp, codex_config, test_mcp};
+pub(crate) use render::{opencode_config, OpenCodeRun};
 
 pub struct LaunchInput<'a> {
     pub profile: &'a CliProfile,
@@ -113,7 +113,7 @@ impl LaunchPlan {
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
-            excubia_core_persist::write_atomic(path, bytes)?;
+            excubia_persist::write_atomic(path, bytes)?;
         }
         Ok(())
     }
@@ -264,7 +264,10 @@ pub fn prepare_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchE
         ],
         env: vec![
             ("EXCUBIA_ENV".to_string(), "1".to_string()),
-            ("EXCUBIA_CHAT_AGENT_ID".to_string(), input.agent_id.to_string()),
+            (
+                "EXCUBIA_CHAT_AGENT_ID".to_string(),
+                input.agent_id.to_string(),
+            ),
             ("EXCUBIA_SEAT_ROLE".to_string(), input.role_id.to_string()),
             ("EXCUBIA_TOOL_URL".to_string(), input.tool_url.to_string()),
         ],
@@ -284,7 +287,10 @@ fn common_env(input: &LaunchInput<'_>) -> Vec<(String, String)> {
         // The OpenCode plugin reads `EXCUBIA_RUN_ID`; keep both spellings of the
         // same fact so no adapter has to guess.
         ("EXCUBIA_RUN_ID".to_string(), input.run_id.to_string()),
-        ("EXCUBIA_CHAT_AGENT_ID".to_string(), input.agent_id.to_string()),
+        (
+            "EXCUBIA_CHAT_AGENT_ID".to_string(),
+            input.agent_id.to_string(),
+        ),
         (
             "EXCUBIA_CHAT_CONVERSATION_ID".to_string(),
             input.conversation_id.to_string(),
@@ -293,7 +299,10 @@ fn common_env(input: &LaunchInput<'_>) -> Vec<(String, String)> {
     ];
     if !input.hook_url.is_empty() {
         env.push(("EXCUBIA_HOOK_URL".to_string(), input.hook_url.to_string()));
-        env.push(("EXCUBIA_HOOK_TOKEN".to_string(), input.hook_token.to_string()));
+        env.push((
+            "EXCUBIA_HOOK_TOKEN".to_string(),
+            input.hook_token.to_string(),
+        ));
     }
     env
 }

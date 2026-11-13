@@ -15,8 +15,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
-use excubia_core_persist::{write_atomic, write_secret_atomic};
-use excubia_core_pin::{CertificateInfo, Fingerprint, Identity, PinSet};
+use excubia_persist::{write_atomic, write_secret_atomic};
+use excubia_pin::{CertificateInfo, Fingerprint, Identity, PinSet};
 
 use crate::cli::BIN;
 
@@ -156,7 +156,7 @@ fn read_optional(path: &Path) -> Result<Option<Vec<u8>>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     #[test]
     fn a_rotation_publishes_both_pins_and_then_keeps_the_old_one_as_backup() {

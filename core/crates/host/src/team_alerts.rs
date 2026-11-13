@@ -2,8 +2,8 @@
 //! phone, and the mode they run in. No approval: a rule is reversible, and a rule only changes
 //! what alerts, never what the agents do.
 
-use excubia_core_chat::{AlertRule, AlertWriter, SeatActor, ToolError, ToolReply};
-use excubia_core_seat::AlertCall;
+use excubia_chat::{AlertRule, AlertWriter, SeatActor, ToolError, ToolReply};
+use excubia_seat::AlertCall;
 use serde_json::json;
 
 use super::team::TeamService;

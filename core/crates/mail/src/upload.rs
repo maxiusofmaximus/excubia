@@ -194,7 +194,9 @@ impl GraphClient<'_> {
                 name: item.name,
                 size: item.size,
             })
-            .ok_or_else(|| upload_failed("the upload finished but the attachment is not on the draft"))
+            .ok_or_else(|| {
+                upload_failed("the upload finished but the attachment is not on the draft")
+            })
     }
 
     /// The byte Graph expects next, from the session status.

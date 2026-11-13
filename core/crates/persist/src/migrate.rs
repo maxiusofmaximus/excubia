@@ -70,7 +70,7 @@ fn move_dir(old: &Path, new: &Path) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     fn folder_with(dir: &Path, file: &str) {
         fs::create_dir_all(dir).expect("folder");

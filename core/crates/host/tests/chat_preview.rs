@@ -8,12 +8,12 @@ mod harness;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use excubia_auth::Permission;
+use excubia_crafting::App;
+use excubia_host::paths;
+use excubia_test_support::SignedClient;
 use harness::docs::{upload, PNG};
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_crafting::App;
-use excubia_core_host::paths;
-use excubia_core_test_support::SignedClient;
 use reqwest::header::HeaderMap;
 use serde_json::Value;
 
@@ -283,11 +283,17 @@ async fn a_pdf_preview_says_how_many_pages_it_has_and_keeps_saying_it() {
 
     let (status, headers, _) = preview(&client, &conv, &pdf, "?page=2").await;
     assert_eq!(status, 200);
-    assert_eq!(headers["x-preview-pages"], "2", "PdfCraft's text has two pages");
+    assert_eq!(
+        headers["x-preview-pages"], "2",
+        "PdfCraft's text has two pages"
+    );
 
     let (status, headers, _) = preview(&client, &conv, &pdf, "?page=2").await;
     assert_eq!(status, 200);
-    assert_eq!(headers["x-preview-pages"], "2", "the cached page keeps the count");
+    assert_eq!(
+        headers["x-preview-pages"], "2",
+        "the cached page keeps the count"
+    );
     assert_eq!(host.cli.renders(), 1, "the page is rendered once");
 }
 

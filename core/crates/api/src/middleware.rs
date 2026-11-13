@@ -12,11 +12,11 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use subtle::ConstantTimeEq;
 
-use excubia_core_auth::{
+use excubia_auth::{
     authorize, classify, Budget, Class, HeaderSource, SignedRequest, VerifiedDevice,
     MAX_SIGNED_BODY_BYTES,
 };
-use excubia_core_chat::{HookScope, HookTokenUse};
+use excubia_chat::{HookScope, HookTokenUse};
 
 use crate::error::ApiError;
 use crate::routes::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
@@ -133,7 +133,7 @@ pub async fn hook_guard(
 ) -> Response {
     if !addr.ip().is_loopback() {
         return ApiError::forbidden(
-            excubia_core_auth::AuthzReason::NotPermitted,
+            excubia_auth::AuthzReason::NotPermitted,
             None,
             "hook (non-loopback)",
         )

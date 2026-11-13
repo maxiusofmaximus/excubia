@@ -8,7 +8,7 @@ use std::io::{Error, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
-use excubia_core_api::{PairingAttempt, PairingAudit};
+use excubia_api::{PairingAttempt, PairingAudit};
 
 pub const AUDIT_FILE: &str = "pairing-audit.jsonl";
 const ROTATED_FILE: &str = "pairing-audit.jsonl.1";
@@ -79,8 +79,8 @@ impl PairingAudit for JsonlPairingAudit {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_api::{PairOutcome, PairVia};
-    use excubia_core_test_dir::TestDir;
+    use excubia_api::{PairOutcome, PairVia};
+    use excubia_test_dir::TestDir;
 
     fn attempt(label: &str) -> PairingAttempt {
         PairingAttempt::new(

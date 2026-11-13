@@ -2,7 +2,7 @@
 //!
 //! Adapted from `desktop/core/src/client.rs` (MIT): same headers, same target
 //! (`path?query` exactly as signed), same body hashing. The canonical string
-//! is not copied â€” it is `excubia_core_auth::canonical_string`, the same function
+//! is not copied â€” it is `excubia_auth::canonical_string`, the same function
 //! the server verifies with.
 
 mod api;

@@ -38,7 +38,7 @@ pub use stop::stop_conversation;
 pub use tool::call as tool;
 
 use axum::response::{IntoResponse, Response};
-use excubia_core_chat::{ChatError, ChatStore, SeatError, SeatErrorCode};
+use excubia_chat::{ChatError, ChatStore, SeatError, SeatErrorCode};
 
 use crate::error::ApiError;
 

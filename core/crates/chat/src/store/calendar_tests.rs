@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 use super::calendar::EventOrigin;
 use crate::error::CalendarError;

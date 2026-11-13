@@ -1,5 +1,5 @@
 [package]
-name = "excubia-core-pty"
+name = "excubia-pty"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

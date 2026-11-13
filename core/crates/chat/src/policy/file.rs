@@ -10,8 +10,8 @@ use serde::Deserialize;
 
 use super::category::Category;
 use super::plans::{PlanRules, RawPlans};
-use super::schedules::{RawSchedules, ScheduleRules};
 use super::rules::{Effect, Policy, Rule, Scope};
+use super::schedules::{RawSchedules, ScheduleRules};
 use crate::scorer::{RawScorer, ScorerConfig};
 
 pub const POLICY_FILE: &str = "approvals.toml";
@@ -203,7 +203,7 @@ mod tests {
     use crate::model_approval::Risk;
     use crate::policy::rules::Verdict;
     use crate::policy::{category::Category, classify::Location, rules::Facts};
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     const VALID: &str = r#"
 version = 1

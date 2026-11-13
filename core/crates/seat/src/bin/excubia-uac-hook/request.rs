@@ -3,7 +3,7 @@
 
 use std::io::Read;
 
-use excubia_core_seat::hook_action;
+use excubia_seat::hook_action;
 use serde_json::{json, Value};
 
 use super::Refusal;
@@ -95,7 +95,7 @@ impl Flags {
             cwd: None,
             paths: Vec::new(),
             // The longest the hook waits when the payload does not say.
-            ttl_seconds: u64::from(excubia_core_chat::DEFAULT_TTL_SECONDS),
+            ttl_seconds: u64::from(excubia_chat::DEFAULT_TTL_SECONDS),
         };
         let mut index = 0;
         while index < argv.len() {

@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_chat::{ChatSeat, ChatStore, ToolError, ToolReply, ToolRequest, Turn};
+use excubia_chat::{ChatSeat, ChatStore, ToolError, ToolReply, ToolRequest, Turn};
 
 /// Delay before the simulated reply, so the HTTP `202` is observably
 /// asynchronous and the turn exists before it is answered.
@@ -37,7 +37,7 @@ impl FakeSeat {
 
 #[async_trait::async_trait]
 impl ChatSeat for FakeSeat {
-    fn try_enqueue(&self, turn: Turn) -> Result<(), excubia_core_chat::SeatError> {
+    fn try_enqueue(&self, turn: Turn) -> Result<(), excubia_chat::SeatError> {
         let Some(chat) = self.chat.clone() else {
             return Ok(());
         };

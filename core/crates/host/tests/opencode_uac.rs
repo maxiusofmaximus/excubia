@@ -5,19 +5,19 @@
 //!
 //! The tests are `#[ignore]`d: they need the OpenCode binary (`EXCUBIA_OPENCODE_BIN`,
 //! or the shipped command on the PATH) and the plugin under `tooling/`. Run with
-//! `cargo test -p excubia-core-host --test opencode_uac -- --ignored`.
+//! `cargo test -p excubia-host --test opencode_uac -- --ignored`.
 
 mod harness;
 
 use std::path::{absolute, Path, PathBuf};
 use std::time::Duration;
 
+use excubia_auth::Permission;
+use excubia_chat::RunState;
+use excubia_seat::{canary_command, CanaryProvider};
+use excubia_test_dir::TestDir;
+use excubia_test_support::SignedClient;
 use harness::{SeatKind, TestHost};
-use excubia_core_auth::Permission;
-use excubia_core_chat::RunState;
-use excubia_core_seat::{canary_command, CanaryProvider};
-use excubia_core_test_dir::TestDir;
-use excubia_core_test_support::SignedClient;
 use serde_json::Value;
 use tokio::time::{sleep, Instant};
 
@@ -170,7 +170,7 @@ async fn an_alfred_turn_on_the_engine_marker_runs_through_the_real_opencode() {
     host.grant(&paired.device_id, Permission::ReadState);
     host.grant(&paired.device_id, Permission::Respond);
     host.grant(&paired.device_id, Permission::Approve);
-    excubia_core_host::alfred_backend::set_engine(&host.data_dir, "opencode").expect("marker");
+    excubia_host::alfred_backend::set_engine(&host.data_dir, "opencode").expect("marker");
 
     let run_id = send(&client, "Motor por marcador").await;
     let approval = wait_for_approval(&client, "pending", CLI_TIMEOUT).await;
@@ -192,8 +192,7 @@ async fn a_denied_command_does_not_run_through_the_real_opencode() {
     let work = TestDir::new("opencode-uac-deny");
     let marker = marker_in(&work);
     let command = canary_command(&marker);
-    let (host, client, device, _provider) =
-        opencode_host("opencode-deny", TTL, &command, 45).await;
+    let (host, client, device, _provider) = opencode_host("opencode-deny", TTL, &command, 45).await;
 
     let run_id = send(&client, "Permiso opencode").await;
     let approval = wait_for_approval(&client, "pending", CLI_TIMEOUT).await;
@@ -218,8 +217,7 @@ async fn a_command_without_an_answer_expires_and_does_not_run() {
     let command = canary_command(&marker);
     // The host and the plugin both wait 3 s: nobody answers.
     let ttl = Duration::from_secs(3);
-    let (host, client, _device, _provider) =
-        opencode_host("opencode-ttl", ttl, &command, 3).await;
+    let (host, client, _device, _provider) = opencode_host("opencode-ttl", ttl, &command, 3).await;
 
     let run_id = send(&client, "Permiso opencode").await;
     wait_for_approval(&client, "pending", CLI_TIMEOUT).await;

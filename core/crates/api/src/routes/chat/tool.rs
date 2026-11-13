@@ -7,7 +7,7 @@ use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use excubia_core_chat::{ToolError, ToolErrorKind, ToolRequest};
+use excubia_chat::{ToolError, ToolErrorKind, ToolRequest};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

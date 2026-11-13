@@ -1,5 +1,5 @@
 //! `/v1/alerts` (F5): the rules that decide which changes alert the phone, and the mode they run
-//! in. The matrix that guards them is `excubia-core-auth`'s `authz/agenda.rs`; a handler here only
+//! in. The matrix that guards them is `excubia-auth`'s `authz/agenda.rs`; a handler here only
 //! shapes the request and the reply.
 
 use axum::body::Bytes;
@@ -7,8 +7,8 @@ use axum::extract::{Extension, Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use excubia_core_auth::VerifiedDevice;
-use excubia_core_chat::{AlertRule, AlertWriter};
+use excubia_auth::VerifiedDevice;
+use excubia_chat::{AlertRule, AlertWriter};
 use serde_json::{json, Value};
 
 use crate::alert_api::{EnabledBody, ModeBody, RuleBody};

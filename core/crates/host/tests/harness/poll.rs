@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use excubia_core_test_support::SignedClient;
+use excubia_test_support::SignedClient;
 
 /// True while the OS still knows the process. Test-only, and deliberately
 /// tool-based: no new dependency for one check.

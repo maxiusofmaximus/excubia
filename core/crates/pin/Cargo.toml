@@ -1,5 +1,5 @@
 [package]
-name = "excubia-core-pin"
+name = "excubia-pin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -16,6 +16,6 @@ x509-parser = "0.15"
 
 [dev-dependencies]
 # Only to compare the code alphabet with the one that mints codes.
-excubia-core-pake = { path = "../pake" }
+excubia-pake = { path = "../pake" }
 tokio.workspace = true
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }

@@ -9,15 +9,15 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use excubia_api::{AlfredBackend, EngineListing, Requested};
+use excubia_auth::Permission;
+use excubia_chat::{ChatStore, ConversationFilter};
+use excubia_host::alfred_backend;
+use excubia_host::alfred_switch::{Engine, Switch};
+use excubia_host::local_mode;
+use excubia_host::pairing_notice::{PairingNotice, NOTICE_TITLE};
+use excubia_test_support::client::SignedClient;
 use harness::{FakeEngine, TestHost};
-use excubia_core_api::{AlfredBackend, EngineListing, Requested};
-use excubia_core_auth::Permission;
-use excubia_core_chat::{ChatStore, ConversationFilter};
-use excubia_core_host::alfred_backend;
-use excubia_core_host::alfred_switch::{Engine, Switch};
-use excubia_core_host::local_mode;
-use excubia_core_host::pairing_notice::{PairingNotice, NOTICE_TITLE};
-use excubia_core_test_support::client::SignedClient;
 use serde_json::Value;
 
 const PATH: &str = "/v1/alfred/backend";

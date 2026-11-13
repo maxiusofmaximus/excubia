@@ -5,11 +5,11 @@
 //! recorded in the action log under its new id. Without an id, the batch is the one
 //! `mail_move_pick` finds for the conversation.
 
-use excubia_core_chat::{Approval, ApprovalStatus, ChatError, SeatActor};
-use excubia_core_mail::{
+use excubia_chat::{Approval, ApprovalStatus, ChatError, SeatActor};
+use excubia_mail::{
     batch_digest, FolderAliases, GraphClient, MailActionRecord, MailError, MoveDest, Redacted,
 };
-use excubia_core_seat::MoveApply;
+use excubia_seat::MoveApply;
 use serde_json::{json, Value};
 
 use crate::mail_move::{chat_error, ACTION};

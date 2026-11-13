@@ -1,5 +1,5 @@
-use excubia_core_crafting::{App, CraftError, Tools, CONFIG_FILE};
-use excubia_core_test_dir::TestDir;
+use excubia_crafting::{App, CraftError, Tools, CONFIG_FILE};
+use excubia_test_dir::TestDir;
 use std::env;
 use std::fs;
 use std::path::Path;

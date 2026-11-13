@@ -2,7 +2,7 @@
 //! page to type it on while the login waits, it goes when the login ends, and
 //! it never carries a device code or a token.
 
-use excubia_core_chat::{ChatStore, NewConversation, NewMailCard, TimelineEntry};
+use excubia_chat::{ChatStore, NewConversation, NewMailCard, TimelineEntry};
 
 const CODE: &str = "ABCD-1234";
 const PAGE: &str = "https://microsoft.com/devicelogin";
@@ -139,7 +139,7 @@ fn a_card_for_an_unknown_conversation_is_refused() {
         .expect_err("refused");
 
     assert!(
-        matches!(refused, excubia_core_chat::ChatError::NoSuchConversation),
+        matches!(refused, excubia_chat::ChatError::NoSuchConversation),
         "{refused:?}"
     );
 }

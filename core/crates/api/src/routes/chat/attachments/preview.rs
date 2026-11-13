@@ -8,7 +8,7 @@ use std::sync::Arc;
 use axum::extract::{Path, Query, State};
 use axum::http::{header, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use excubia_core_chat::{AttachmentError, AttachmentFiles, AttachmentState};
+use excubia_chat::{AttachmentError, AttachmentFiles, AttachmentState};
 use serde::Deserialize;
 
 use crate::doc_pages::{PageError, PageSource, RenderedPage};

@@ -2,7 +2,7 @@
 //! `details` only for the operator, and the payload of any other tool is left as
 //! it was for everyone.
 
-use excubia_core_chat::{ApprovalKind, ChatStore, NewApproval, Reader};
+use excubia_chat::{ApprovalKind, ChatStore, NewApproval, Reader};
 use serde_json::{json, Value};
 
 fn question(tool: &str, payload: Value) -> NewApproval {

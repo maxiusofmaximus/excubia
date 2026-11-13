@@ -3,8 +3,8 @@
 //! store's refusals into the shapes `docs/contracts/errors.md` gives them.
 
 use axum::http::StatusCode;
-use excubia_core_chat::{ChatError, ToolError, ToolRequest};
-use excubia_core_seat::{parse_tool, ToolCall};
+use excubia_chat::{ChatError, ToolError, ToolRequest};
+use excubia_seat::{parse_tool, ToolCall};
 use serde_json::{json, Value};
 
 use crate::error::ApiError;

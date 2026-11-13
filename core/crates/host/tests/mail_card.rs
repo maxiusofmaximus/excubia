@@ -7,11 +7,11 @@ mod mail_support;
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_chat::{ChatStore, NewConversation, TimelineEntry};
-use excubia_core_host::mail_api::{LoginStatus, MailLogins};
-use excubia_core_mail::auth::Tenant;
-use excubia_core_mail::{AccountStore, FileKey, HttpResponse, HttpTransport, MailError};
-use excubia_core_test_dir::TestDir;
+use excubia_chat::{ChatStore, NewConversation, TimelineEntry};
+use excubia_host::mail_api::{LoginStatus, MailLogins};
+use excubia_mail::auth::Tenant;
+use excubia_mail::{AccountStore, FileKey, HttpResponse, HttpTransport, MailError};
+use excubia_test_dir::TestDir;
 use mail_support::{device_answer, ok, token_answer, Scripted, USER_CODE};
 use serde_json::json;
 

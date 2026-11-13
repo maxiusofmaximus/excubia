@@ -6,14 +6,14 @@ use std::path::Path;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use excubia_core_api::{
+use excubia_api::{
     DraftEdit, MailAccount, MailActions, MailDraft, MailDraftAttachment, MailFailure,
     MailLoginStart, MailLoginStatus, SendAnswer, SendFailure, SendStatus,
 };
-use excubia_core_chat::{Approval, ChatStore};
-use excubia_core_mail::auth::Tenant;
-use excubia_core_mail::config::DEFAULT_SENDS_PER_HOUR;
-use excubia_core_mail::{AccountStore, DraftReview, MailConfig, MailError, Redacted, ReqwestTransport};
+use excubia_chat::{Approval, ChatStore};
+use excubia_mail::auth::Tenant;
+use excubia_mail::config::DEFAULT_SENDS_PER_HOUR;
+use excubia_mail::{AccountStore, DraftReview, MailConfig, MailError, Redacted, ReqwestTransport};
 
 use crate::mail_api::MailLogins;
 use crate::mail_cli::{client_id, ACCOUNTS_DIR, CLIENT_ID_ENV, CONFIG_FILE};

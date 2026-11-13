@@ -1,7 +1,7 @@
 //! The text the operator reads from an HTML body another client wrote: tags
 //! dropped, entities decoded once, a bare `<` kept as text.
 
-use excubia_core_mail::DraftBody;
+use excubia_mail::DraftBody;
 
 #[test]
 fn other_html_keeps_its_lines_and_loses_its_markup() {

@@ -9,9 +9,9 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use excubia_core_mail::auth::{poll_device_login, start_device_login, start_send_consent, Tenant};
-use excubia_core_mail::graph::fetch_upn;
-use excubia_core_mail::{
+use excubia_mail::auth::{poll_device_login, start_device_login, start_send_consent, Tenant};
+use excubia_mail::graph::fetch_upn;
+use excubia_mail::{
     Account, AccountStore, HttpTransport, MailConfig, MailError, Redacted, ReqwestTransport,
 };
 

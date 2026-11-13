@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use excubia_core_mail::{
+use excubia_mail::{
     Approval, ApprovalGate, AuditLog, DraftBody, DraftInput, Ledger, MailError, PathApproval,
     PathPolicy, DEFAULT_MAX_ATTACHMENT_BYTES,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 

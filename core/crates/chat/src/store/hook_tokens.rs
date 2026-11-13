@@ -5,7 +5,7 @@
 //! against the approval routes. A token is revoked when its run closes and
 //! every live token dies with the process that owned it (`schema::open`).
 
-use excubia_core_persist::{fill_random, RandomError};
+use excubia_persist::{fill_random, RandomError};
 use rusqlite::{params, OptionalExtension};
 use sha2::{Digest, Sha256};
 

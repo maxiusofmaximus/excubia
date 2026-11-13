@@ -4,14 +4,14 @@
 
 mod harness;
 
-use harness::{raw_exchange, TestHost};
-use excubia_core_auth::Permission;
-use excubia_core_chat::{
+use excubia_auth::Permission;
+use excubia_chat::{
     action_digest, ApprovalKind, NewApproval, NewConversation, NewDelegation, NewPlan, NewProject,
     PlanStep, Touch, DEFAULT_TTL_SECONDS,
 };
-use excubia_core_state::{NewAgent, Status};
-use excubia_core_test_support::SignedClient;
+use excubia_state::{NewAgent, Status};
+use excubia_test_support::SignedClient;
+use harness::{raw_exchange, TestHost};
 use serde_json::{json, Value};
 
 /// One signed request, answered as the status and the parsed body.

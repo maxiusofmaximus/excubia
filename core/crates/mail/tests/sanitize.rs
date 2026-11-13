@@ -1,7 +1,7 @@
 //! The text sanitizer (MAIL-SANITIZE-TEXT): the acceptance cases of the brief,
 //! one behaviour per test. No Graph, no files, no network.
 
-use excubia_core_mail::{sanitize_text, MailError, Policy, Sanitized};
+use excubia_mail::{sanitize_text, MailError, Policy, Sanitized};
 
 fn outgoing(text: &str) -> Sanitized {
     sanitize_text(text, Policy::Outgoing).expect("the text is accepted")
@@ -221,7 +221,7 @@ fn nfc_composes_what_it_can() {
 
 #[test]
 fn the_emoji_table_is_pinned_to_a_unicode_version() {
-    assert_eq!(excubia_core_mail::sanitize::UNICODE_EMOJI_VERSION, "16.0");
+    assert_eq!(excubia_mail::sanitize::UNICODE_EMOJI_VERSION, "16.0");
 }
 
 #[test]

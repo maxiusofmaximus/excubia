@@ -4,10 +4,10 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use excubia_core_mail::{
+use excubia_mail::{
     FailCode, Ledger, MailError, Redacted, Retry, SendFailure, SendResult, SendRow, SendState,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 use rusqlite::Connection;
 
 fn graph(status: u16, code: &str) -> MailError {

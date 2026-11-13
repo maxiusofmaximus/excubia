@@ -3,11 +3,11 @@
 
 mod harness;
 
+use excubia_chat::{ChatStore, ConversationFilter};
+use excubia_host::pairing_audit::AUDIT_FILE;
+use excubia_host::pairing_notice::NOTICE_TITLE;
+use excubia_test_support::{pair_device, DemoIdentity};
 use harness::TestHost;
-use excubia_core_chat::{ChatStore, ConversationFilter};
-use excubia_core_host::pairing_audit::AUDIT_FILE;
-use excubia_core_host::pairing_notice::NOTICE_TITLE;
-use excubia_core_test_support::{pair_device, DemoIdentity};
 use serde_json::Value;
 
 #[tokio::test(flavor = "multi_thread")]

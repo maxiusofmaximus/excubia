@@ -3,12 +3,12 @@
 
 use std::path::PathBuf;
 
-use excubia_core_chat::{
+use excubia_chat::{
     new_ulid, Attachment, AttachmentError, AttachmentFiles, AttachmentState, ChatError, ChatStore,
     NewConversation, ReadyFile, CHUNK_MAX_BYTES, CONVERSATION_QUOTA_BYTES, FILE_MAX_BYTES,
     MAX_ATTACHMENTS_PER_MESSAGE,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 const MIB: u64 = 1024 * 1024;
 
@@ -458,12 +458,12 @@ fn a_preview_takes_only_checked_ids() {
 
 #[test]
 fn only_excel_word_and_pdf_documents_are_previewable() {
-    use excubia_core_chat::FileKind::{Document, Image};
+    use excubia_chat::FileKind::{Document, Image};
     for name in ["Informe.xlsx", "carta.DOCX", "factura.pdf"] {
-        assert!(excubia_core_chat::previewable(name, Document), "{name}");
+        assert!(excubia_chat::previewable(name, Document), "{name}");
     }
     for name in ["datos.csv", "notas.txt", "deck.pptx", "sin_extension"] {
-        assert!(!excubia_core_chat::previewable(name, Document), "{name}");
+        assert!(!excubia_chat::previewable(name, Document), "{name}");
     }
-    assert!(!excubia_core_chat::previewable("foto.pdf", Image));
+    assert!(!excubia_chat::previewable("foto.pdf", Image));
 }

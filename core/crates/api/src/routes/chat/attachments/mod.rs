@@ -17,7 +17,7 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use std::fmt::Write;
 
-use excubia_core_chat::{Attachment, AttachmentError, AttachmentFiles, AttachmentState, FileKind};
+use excubia_chat::{Attachment, AttachmentError, AttachmentFiles, AttachmentState, FileKind};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

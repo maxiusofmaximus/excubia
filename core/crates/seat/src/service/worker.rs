@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use excubia_core_chat::{ChatStore, Turn};
+use excubia_chat::{ChatStore, Turn};
 use tokio::sync::mpsc;
 
 use crate::profile::{self, SelectedProfile};

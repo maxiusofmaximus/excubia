@@ -16,5 +16,5 @@ pub(crate) use category::Category;
 pub(crate) use classify::{assess_risk, classify, in_workspace, locate};
 pub(crate) use file::PolicySource;
 pub(crate) use plans::PlanRules;
-pub(crate) use schedules::ScheduleRules;
 pub(crate) use rules::{Facts, Level, Reason, Verdict};
+pub(crate) use schedules::ScheduleRules;

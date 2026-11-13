@@ -1,5 +1,5 @@
 [package]
-name = "excubia-core-mail"
+name = "excubia-mail"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ aes-gcm = "0.10"
 ammonia.workspace = true
 async-trait = "0.1"
 base64.workspace = true
-excubia-core-persist = { path = "../persist" }
+excubia-persist = { path = "../persist" }
 rusqlite.workspace = true
 mrml = { version = "6.0", default-features = false, features = ["parse", "render"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
@@ -26,5 +26,5 @@ unicode-normalization = "0.1"
 unicode-segmentation = "1.13"
 
 [dev-dependencies]
-excubia-core-test-dir = { path = "../test-dir" }
+excubia-test-dir = { path = "../test-dir" }
 tokio = { workspace = true, features = ["test-util"] }

@@ -1,7 +1,7 @@
 //! The PAKE core end to end: both sides in one process, plus the negative cases of the F2a table.
 
 use curve25519_dalek::{constants::EIGHT_TORSION, edwards::CompressedEdwardsY};
-use excubia_core_pake::{Code, PakeError, Role, Session, SessionKey, MESSAGE_LEN};
+use excubia_pake::{Code, PakeError, Role, Session, SessionKey, MESSAGE_LEN};
 
 const HOST: &str = "excubia-host-1";
 const DEVICE_KEY: [u8; 65] = [4; 65];

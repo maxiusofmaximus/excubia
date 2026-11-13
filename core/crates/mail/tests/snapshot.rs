@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use excubia_core_mail::{
+use excubia_mail::{
     attach_file, Approval, ApprovalGate, AttachContext, AttachedFile, GraphClient, MailError,
     PathApproval,
 };

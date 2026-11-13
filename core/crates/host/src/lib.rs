@@ -1,9 +1,9 @@
 //! Agent host for the Excubia core.
 //!
-//! Supervises CLI agents: each one gets a pty ([`excubia_core_pty`]), a terminal
+//! Supervises CLI agents: each one gets a pty ([`excubia_pty`]), a terminal
 //! emulator to read its screen, and a detector built from the manifests in
-//! [`excubia_core_detect`]. Detected states are written into the authoritative
-//! store ([`excubia_core_state`]) and the local API ([`excubia_core_api`]) serves them.
+//! [`excubia_detect`]. Detected states are written into the authoritative
+//! store ([`excubia_state`]) and the local API ([`excubia_api`]) serves them.
 //!
 //! Panes survive a restart as records: the agents themselves are processes
 //! and are not relaunched, but their last screen is kept so a client never
@@ -47,9 +47,9 @@ pub mod pairing_notice;
 pub mod pake_cli;
 pub mod paths;
 mod restore_points;
+pub mod schedule_runner;
 mod session;
 mod snapshot;
-pub mod schedule_runner;
 pub mod strata;
 pub mod team;
 mod team_alerts;
@@ -81,9 +81,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use excubia_core_detect::{identify_program, Detector, TitleTracker};
-use excubia_core_pty::{CommandSpec, PtySession, PtySize};
-use excubia_core_state::{NewAgent, StatePayload, StateStore};
+use excubia_detect::{identify_program, Detector, TitleTracker};
+use excubia_pty::{CommandSpec, PtySession, PtySize};
+use excubia_state::{NewAgent, StatePayload, StateStore};
 use tokio::sync::Notify;
 
 use restore_points::RestoreStore;
@@ -405,7 +405,7 @@ impl AgentHost {
 
     /// Pane events (`pane.agent_status_changed`, `pane.closed`) for the chat
     /// card state. The API already subscribes for SSE; broadcast is multi-reader.
-    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<excubia_core_state::SharedFrame> {
+    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<excubia_state::SharedFrame> {
         self.store.receiver()
     }
 

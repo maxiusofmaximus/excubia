@@ -448,7 +448,7 @@ fn candidates(path: &Path, pathext: &Option<OsString>) -> Vec<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     fn temp_dir(name: &str) -> TestDir {
         TestDir::new(&format!("catalog-tests-{name}"))

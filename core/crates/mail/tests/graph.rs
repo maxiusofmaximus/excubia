@@ -2,8 +2,8 @@ mod support;
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use excubia_core_mail::graph::fetch_upn;
-use excubia_core_mail::{
+use excubia_mail::graph::fetch_upn;
+use excubia_mail::{
     DraftBody, DraftInput, GraphClient, MailError, SmallAttachment, SMALL_ATTACHMENT_LIMIT,
 };
 use serde_json::json;

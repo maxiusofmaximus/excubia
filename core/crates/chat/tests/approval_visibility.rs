@@ -2,11 +2,11 @@
 //! approval (the signed device, `client_id` only as the idempotency key) and of
 //! a turn the seat refused (withdrawn from the conversation).
 
-use excubia_core_chat::{
+use excubia_chat::{
     action_digest, ApprovalFilter, ApprovalKind, ApprovalStatus, ChatError, ChatStore, Decision,
     NewApproval, NewConversation, DEFAULT_TTL_SECONDS,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 fn store(name: &str) -> (ChatStore, TestDir) {
     let dir = TestDir::new(&format!("core-approval-visibility-{name}"));
@@ -49,7 +49,7 @@ fn request(store: &ChatStore, conversation_id: Option<&str>, action: &str) -> Ne
     }
 }
 
-fn approval_lines(store: &ChatStore, conversation_id: &str) -> Vec<excubia_core_chat::TimelineEntry> {
+fn approval_lines(store: &ChatStore, conversation_id: &str) -> Vec<excubia_chat::TimelineEntry> {
     store
         .timeline(conversation_id, None, 100)
         .expect("timeline")

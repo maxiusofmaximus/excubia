@@ -1,6 +1,6 @@
 mod support;
 
-use excubia_core_crafting::{ooxml, CraftError};
+use excubia_crafting::{ooxml, CraftError};
 use support::{ooxml_zip, zip};
 
 const MIB: u32 = 1024 * 1024;

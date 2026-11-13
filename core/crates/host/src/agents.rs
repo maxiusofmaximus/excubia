@@ -2,14 +2,14 @@
 //!
 //! The file is the closed list `POST /v1/workspaces` resolves against: a
 //! client names an entry, the host runs the command the file holds. The
-//! default file is seeded from the agents `excubia-core-detect` knows.
+//! default file is seeded from the agents `excubia-detect` knows.
 
 use std::path::Path;
 
 use anyhow::{anyhow, Context, Result};
-use excubia_core_api::{AgentCatalog, EngineListing};
-use excubia_core_detect::AgentKind;
-use excubia_core_seat::{probe, shipped, CliId, CliProfile, HookSupport, SelectedProfile};
+use excubia_api::{AgentCatalog, EngineListing};
+use excubia_detect::AgentKind;
+use excubia_seat::{probe, shipped, CliId, CliProfile, HookSupport, SelectedProfile};
 
 /// Agents the nucleus's default catalogue offers. The default file also
 /// carries a display label per entry.
@@ -38,7 +38,7 @@ pub fn load_or_create(data_dir: &Path) -> Result<AgentCatalog> {
     let path = crate::paths::agents_path(data_dir);
     let untouched_v1 = std::fs::read_to_string(&path).is_ok_and(|text| text == V1_DEFAULT_CATALOG);
     if !path.is_file() || untouched_v1 {
-        excubia_core_persist::write_atomic(&path, default_catalog().as_bytes())
+        excubia_persist::write_atomic(&path, default_catalog().as_bytes())
             .with_context(|| format!("write {}", path.display()))?;
     }
     AgentCatalog::open(path).map_err(|error| anyhow!("{error}"))
@@ -125,7 +125,7 @@ fn display_label(kind: AgentKind) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     #[test]
     fn the_default_catalogue_parses_and_names_the_known_agents() {
@@ -204,14 +204,14 @@ mod tests {
 
     #[test]
     fn a_cli_without_a_blocking_hook_is_never_an_engine() {
-        let profile = excubia_core_seat::test_profile("no-such-cli-for-test");
+        let profile = excubia_seat::test_profile("no-such-cli-for-test");
         assert!(ready_engines(&[profile], &[CliId::Fake]).is_empty());
     }
 
     #[test]
     fn a_proven_cli_that_does_not_start_is_not_listed() {
         // The gate says yes, the binary says no: no engine without both.
-        let mut profile = excubia_core_seat::test_profile("no-such-cli-for-test");
+        let mut profile = excubia_seat::test_profile("no-such-cli-for-test");
         profile.id = CliId::Codex;
         profile.hook = HookSupport::Blocking;
         assert!(ready_engines(&[profile], &[CliId::Codex]).is_empty());

@@ -27,7 +27,7 @@ CREATE INDEX attachment_message ON attachment(message_id);
 
 #[cfg(test)]
 mod tests {
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     use crate::schema::{open, open_in_memory, SCHEMA_VERSION};
 

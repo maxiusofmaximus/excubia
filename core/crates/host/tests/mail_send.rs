@@ -6,9 +6,9 @@ mod mail_send_support;
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_api::DraftEdit;
-use excubia_core_chat::{Decision, ManualClock};
-use excubia_core_mail::MailError;
+use excubia_api::DraftEdit;
+use excubia_chat::{Decision, ManualClock};
+use excubia_mail::MailError;
 use mail_send_support::{
     approved_and_sent, ask, scheduled, settle, Host, ACCOUNT, BODY, DRAFT, LOGIN_ACCESS,
     LOGIN_REFRESH, SEND_ACCESS, SEND_REFRESH, TO,

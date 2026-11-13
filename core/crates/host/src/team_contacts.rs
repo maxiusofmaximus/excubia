@@ -2,8 +2,8 @@
 //! a draft's recipients come from. A delete waits for the user's approval, as a
 //! note's does. A contact's text is data for the model, and nothing here is logged.
 
-use excubia_core_chat::{Contact, SeatActor, ToolError, ToolReply, CONTACT_DELETE_TOOL};
-use excubia_core_seat::ContactCall;
+use excubia_chat::{Contact, SeatActor, ToolError, ToolReply, CONTACT_DELETE_TOOL};
+use excubia_seat::ContactCall;
 use serde_json::{json, Value};
 
 use super::team::TeamService;

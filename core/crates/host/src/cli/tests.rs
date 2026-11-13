@@ -136,7 +136,7 @@ fn the_grant_hint_matches_the_cli_and_the_permission_labels() {
         .expect("permission placeholder");
     let mut hinted: Vec<&str> = placeholder.split('|').collect();
     hinted.sort_unstable();
-    let mut labels: Vec<&str> = excubia_core_auth::Permission::ALL
+    let mut labels: Vec<&str> = excubia_auth::Permission::ALL
         .iter()
         .map(|permission| permission.label())
         .collect();

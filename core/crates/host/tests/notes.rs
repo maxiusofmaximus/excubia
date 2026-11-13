@@ -7,12 +7,12 @@ mod harness;
 
 use std::time::Duration;
 
-use harness::{SeatKind, TestHost};
-use excubia_core_chat::{
+use excubia_chat::{
     Approval, ApprovalFilter, ApprovalStatus, ChatError, ChatStore, Decision, NewConversation,
     NewProject, SeatActor,
 };
-use excubia_core_host::paths;
+use excubia_host::paths;
+use harness::{SeatKind, TestHost};
 use serde_json::{json, Value};
 
 const TTL: Duration = Duration::from_secs(45);
@@ -76,7 +76,7 @@ fn conversation(chat: &ChatStore) -> String {
     .id
 }
 
-fn pending(chat: &ChatStore) -> Vec<excubia_core_chat::Approval> {
+fn pending(chat: &ChatStore) -> Vec<excubia_chat::Approval> {
     chat.approvals(&ApprovalFilter {
         status: Some(ApprovalStatus::Pending),
         conversation_id: None,

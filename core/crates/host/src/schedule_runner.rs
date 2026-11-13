@@ -2,7 +2,7 @@
 //! them through the team seat. A run the host reaches late is never started: it is recorded
 //! as missed and announced. The host never runs anything at its own startup.
 
-use excubia_core_chat::{launch_schedule, ChatSeat, ChatStore};
+use excubia_chat::{launch_schedule, ChatSeat, ChatStore};
 
 /// One pass: every due run is launched, or recorded as skipped or missed. A failure is printed
 /// and the pass goes on, so one broken schedule never holds back the others.

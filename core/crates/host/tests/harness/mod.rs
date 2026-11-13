@@ -23,36 +23,36 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_api::voice::{EngineStarter, VoiceService};
-use excubia_core_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext};
-use excubia_core_auth::{DeviceStore, Permission};
-use excubia_core_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
-use excubia_core_crafting::App;
-use excubia_core_host::alfred_switch::{Engine, Switch};
-use excubia_core_host::audit::AuditLog;
-use excubia_core_host::doc_tools::DocTools;
-use excubia_core_host::mail_api::MailLogins;
-use excubia_core_host::mail_cli::ACCOUNTS_DIR;
-use excubia_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
-use excubia_core_host::mail_tools::{MailTools, LEDGER_FILE};
-use excubia_core_host::pairing_notice::PairingNotice;
-use excubia_core_host::strata::State;
-use excubia_core_host::team::{TeamConfig, TeamService};
-use excubia_core_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
-use excubia_core_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
-use excubia_core_pty::PtySize;
-use excubia_core_seat::{shipped, test_profile, CliId, CliProfile, SeatConfig, SeatService, TurnEnv};
-use excubia_core_state::StateStore;
-use excubia_core_test_dir::TestDir;
-use excubia_core_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
+use excubia_api::voice::{EngineStarter, VoiceService};
+use excubia_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext};
+use excubia_auth::{DeviceStore, Permission};
+use excubia_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
+use excubia_crafting::App;
+use excubia_host::alfred_switch::{Engine, Switch};
+use excubia_host::audit::AuditLog;
+use excubia_host::doc_tools::DocTools;
+use excubia_host::mail_api::MailLogins;
+use excubia_host::mail_cli::ACCOUNTS_DIR;
+use excubia_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
+use excubia_host::mail_tools::{MailTools, LEDGER_FILE};
+use excubia_host::pairing_notice::PairingNotice;
+use excubia_host::strata::State;
+use excubia_host::team::{TeamConfig, TeamService};
+use excubia_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
+use excubia_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
+use excubia_pty::PtySize;
+use excubia_seat::{shipped, test_profile, CliId, CliProfile, SeatConfig, SeatService, TurnEnv};
+use excubia_state::StateStore;
+use excubia_test_dir::TestDir;
+use excubia_test_support::{pair_device, FakeSeat, PairResponse, SignedClient};
 
-/// The approval hook binary. It belongs to `excubia-core-seat`, which this crate does
+/// The approval hook binary. It belongs to `excubia-seat`, which this crate does
 /// not depend on, so it is found next to a binary of this crate: the seat
 /// refuses to start when it is not there.
 /// The test seat's turn environment: the `alfred-local` marker of its data directory.
 fn alfred_turn_env(data_dir: &Path) -> Arc<dyn Fn() -> TurnEnv + Send + Sync> {
     let data_dir = data_dir.to_path_buf();
-    Arc::new(move || excubia_core_host::alfred_backend::turn_env(&data_dir))
+    Arc::new(move || excubia_host::alfred_backend::turn_env(&data_dir))
 }
 
 /// The real OpenCode of the test: `EXCUBIA_OPENCODE_BIN` names it, the shipped command otherwise.
@@ -79,7 +79,7 @@ fn opencode_turn_env(
     let data_dir = data_dir.to_path_buf();
     let provider_url = provider_url.to_string();
     Arc::new(move || {
-        let mut env = excubia_core_host::alfred_backend::turn_env(&data_dir);
+        let mut env = excubia_host::alfred_backend::turn_env(&data_dir);
         env.set.push((
             "OPENCODE_CONFIG_CONTENT".to_string(),
             opencode_provider(&provider_url),
@@ -148,20 +148,20 @@ impl Engine for FakeEngine {
 
     fn start(&self, data_dir: &Path) -> anyhow::Result<()> {
         self.starts.fetch_add(1, Ordering::SeqCst);
-        excubia_core_host::local_mode::set(data_dir)?;
+        excubia_host::local_mode::set(data_dir)?;
         self.entered.store(true, Ordering::SeqCst);
         let outcome = self.launch();
         if outcome.is_err() {
-            excubia_core_host::alfred_backend::clear(data_dir)?;
-            excubia_core_host::local_mode::clear(data_dir)?;
+            excubia_host::alfred_backend::clear(data_dir)?;
+            excubia_host::local_mode::clear(data_dir)?;
         }
         outcome
     }
 
     fn stop(&self, data_dir: &Path) -> anyhow::Result<()> {
         self.ready.store(false, Ordering::SeqCst);
-        excubia_core_host::alfred_backend::clear(data_dir)?;
-        excubia_core_host::local_mode::clear(data_dir)?;
+        excubia_host::alfred_backend::clear(data_dir)?;
+        excubia_host::local_mode::clear(data_dir)?;
         Ok(())
     }
 }
@@ -312,9 +312,9 @@ pub struct TestHost {
     pub data_dir: PathBuf,
     pub hook_token: String,
     /// The host's certificate pin, the input of each pending device's SAS.
-    pub host_pin: excubia_core_pin::Fingerprint,
+    pub host_pin: excubia_pin::Fingerprint,
     /// The host's in-memory PAKE pairing code slot (the context's own).
-    pub pake_slot: Arc<excubia_core_api::PakeSlot>,
+    pub pake_slot: Arc<excubia_api::PakeSlot>,
     /// The alfred switch of the host, over [`Self::alfred_engine`] (a double).
     pub alfred: Arc<Switch>,
     pub alfred_engine: Arc<FakeEngine>,
@@ -468,10 +468,10 @@ impl TestHost {
         apps: &[App],
     ) -> Self {
         let devices = Arc::new(DeviceStore::open(Some(paths::devices_path(&data_dir))));
-        let host_pin = excubia_core_pin::Fingerprint::of_spki(b"harness host certificate");
+        let host_pin = excubia_pin::Fingerprint::of_spki(b"harness host certificate");
         let store = StateStore::open("test", Some(paths::counters_path(&data_dir)));
-        let catalog = Arc::new(excubia_core_host::load_agents(&data_dir).expect("catalog"));
-        let hook_token = excubia_core_host::load_hook_token(&data_dir).expect("hook token");
+        let catalog = Arc::new(excubia_host::load_agents(&data_dir).expect("catalog"));
+        let hook_token = excubia_host::load_hook_token(&data_dir).expect("hook token");
         let chat =
             Arc::new(ChatStore::open(&paths::chat_db_path(&data_dir)).expect("chat database"));
         chat.set_attachments_root(&paths::attachments_dir(&data_dir));
@@ -537,8 +537,7 @@ impl TestHost {
                 provider_url,
                 approval_ttl_seconds,
             } => {
-                let engines =
-                    excubia_core_host::ready_engines(&[real_opencode()], &[CliId::OpenCode]);
+                let engines = excubia_host::ready_engines(&[real_opencode()], &[CliId::OpenCode]);
                 let marker_dir = data_dir.clone();
                 Some(
                     SeatService::start(SeatConfig {
@@ -555,7 +554,7 @@ impl TestHost {
                         turn_env: opencode_turn_env(&data_dir, &provider_url, approval_ttl_seconds),
                         engines,
                         turn_engine: Arc::new(move || {
-                            excubia_core_host::alfred_backend::engine(&marker_dir)
+                            excubia_host::alfred_backend::engine(&marker_dir)
                         }),
                         on_quota_exhausted: quota_counter(),
                     })
@@ -613,7 +612,7 @@ impl TestHost {
         // opens its approvals there.
         options.hook_url = format!("http://{addr}");
         let host = AgentHost::new(Arc::clone(&store), options).await;
-        excubia_core_host::spawn_alerts(Arc::clone(&store), Arc::clone(&chat));
+        excubia_host::spawn_alerts(Arc::clone(&store), Arc::clone(&chat));
 
         // One mail surface for the host: the team's `mail.*` tools share its sends,
         // so a draft changed through a tool settles the owner's open question.
@@ -652,7 +651,7 @@ impl TestHost {
                     docs: Arc::new(DocTools::new(
                         Arc::clone(&craft),
                         Arc::clone(&chat),
-                        excubia_core_mail::AuditLog::new(&data_dir.join(ACCOUNTS_DIR)),
+                        excubia_mail::AuditLog::new(&data_dir.join(ACCOUNTS_DIR)),
                     )),
                     mail: Arc::new(test_mail_tools(
                         &data_dir,
@@ -688,7 +687,7 @@ impl TestHost {
             alfred: Arc::clone(&alfred) as Arc<dyn AlfredBackend>,
             pairing_audit: notices,
             audit: Arc::new(AuditLog::new(&data_dir)),
-            docs: craft as Arc<dyn excubia_core_api::DocumentPages>,
+            docs: craft as Arc<dyn excubia_api::DocumentPages>,
         })
         .with_host_pin(Some(host_pin));
         let pake_slot = Arc::clone(&context.pake_slot);
@@ -727,7 +726,7 @@ impl TestHost {
     /// Mint a single-use pairing code, exactly like `excubia-host pair-code` does.
     pub fn pair_code(&self) -> String {
         self.devices
-            .issue_enrollment_code(excubia_core_auth::ENROLLMENT_TTL_SECONDS)
+            .issue_enrollment_code(excubia_auth::ENROLLMENT_TTL_SECONDS)
             .expect("issue code")
     }
 
@@ -741,7 +740,7 @@ impl TestHost {
     /// Pair a fresh device through the real `POST /v1/pair` and return the
     /// signed client bound to it.
     pub async fn pair(&self, name: &str) -> (SignedClient, PairResponse) {
-        let mut identity = excubia_core_test_support::DemoIdentity::generate("", name);
+        let mut identity = excubia_test_support::DemoIdentity::generate("", name);
         let code = self.pair_code();
         let response = pair_device(
             &self.base_url(),

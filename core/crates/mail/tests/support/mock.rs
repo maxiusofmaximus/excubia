@@ -6,7 +6,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
 
 use async_trait::async_trait;
-use excubia_core_mail::{HttpResponse, HttpTransport, MailError, MAX_UPLOAD_CHUNK_BYTES};
+use excubia_mail::{HttpResponse, HttpTransport, MailError, MAX_UPLOAD_CHUNK_BYTES};
 use serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

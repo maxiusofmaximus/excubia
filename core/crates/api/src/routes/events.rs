@@ -10,8 +10,8 @@ use axum::extract::{Extension, State};
 use axum::http::{header, HeaderMap, HeaderName};
 use axum::response::sse::{Event, Sse};
 use axum::response::{IntoResponse, Response};
-use excubia_core_auth::VerifiedDevice;
-use excubia_core_chat::{ChatError, ChatFrame, ChatStore};
+use excubia_auth::VerifiedDevice;
+use excubia_chat::{ChatError, ChatFrame, ChatStore};
 use serde_json::json;
 use tokio::sync::mpsc;
 

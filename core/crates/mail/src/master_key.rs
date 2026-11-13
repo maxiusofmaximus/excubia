@@ -1,7 +1,7 @@
 //! Moving the mail master key to its new Credential Manager name without losing
 //! it: the accounts cannot be read without it.
 
-use excubia_core_persist::credential::SecretStore;
+use excubia_persist::credential::SecretStore;
 
 /// The master key in `store`, moved there from `legacy` when only the legacy
 /// name holds one. The legacy copy is forgotten only after the new name reads
@@ -34,7 +34,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::adopt_master_key;
-    use excubia_core_persist::credential::SecretStore;
+    use excubia_persist::credential::SecretStore;
 
     /// An in-memory secret whose write, read-back or delete can be made to fail.
     #[derive(Default)]
@@ -153,7 +153,7 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn the_real_credential_manager_moves_a_binary_key_and_forgets_the_legacy_name() {
-        use excubia_core_persist::credential::CredentialManager;
+        use excubia_persist::credential::CredentialManager;
 
         struct Cleanup(Vec<CredentialManager>);
         impl Drop for Cleanup {

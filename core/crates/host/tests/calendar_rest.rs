@@ -4,9 +4,9 @@
 
 mod harness;
 
+use excubia_auth::Permission;
+use excubia_test_support::SignedClient;
 use harness::{TestHost, TOOL_TOKEN};
-use excubia_core_auth::Permission;
-use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 
 const WINDOW: &str = "/v1/calendar/events?from=2026-11-01&to=2026-11-08";

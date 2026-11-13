@@ -1,6 +1,6 @@
 //! Needs CUDA and the spiked Canary model. Run once with:
 //! `EXCUBIA_ASR_PYTHON=<venv python> EXCUBIA_ASR_MODEL=<model dir> EXCUBIA_ASR_AUDIO=<16 kHz mono wav>`
-//! `cargo test -p excubia-core-asr --test canary -- --ignored --nocapture`
+//! `cargo test -p excubia-asr --test canary -- --ignored --nocapture`
 
 mod common;
 
@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use common::{env_path, read_wav_16k_mono};
-use excubia_core_asr::{AsrConfig, AsrEngine};
+use excubia_asr::{AsrConfig, AsrEngine};
 
 #[test]
 #[ignore = "needs CUDA and the Canary model; see the module docs"]

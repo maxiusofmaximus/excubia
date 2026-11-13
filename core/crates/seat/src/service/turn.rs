@@ -2,7 +2,7 @@ use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use excubia_core_chat::{new_ulid, HookScope, RunState, Turn};
+use excubia_chat::{new_ulid, HookScope, RunState, Turn};
 use tokio::io::AsyncWriteExt;
 use tokio::process::{Child, Command};
 

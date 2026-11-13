@@ -42,13 +42,13 @@ pub fn write(path: &Path, panes: Vec<SnapshotPane>) -> std::io::Result<()> {
         version: VERSION,
         panes,
     };
-    excubia_core_persist::write_json_atomic(path, &snapshot)
+    excubia_persist::write_json_atomic(path, &snapshot)
 }
 
 /// Read a snapshot. A missing file is an empty session; a corrupt one is
 /// logged and treated the same way — a bad snapshot must not stop the host.
 pub fn read(path: &Path) -> Snapshot {
-    match excubia_core_persist::read_json::<Snapshot>(path) {
+    match excubia_persist::read_json::<Snapshot>(path) {
         Ok(Some(snapshot)) if snapshot.version <= VERSION => snapshot,
         Ok(Some(snapshot)) => {
             eprintln!("host: unsupported snapshot version {}", snapshot.version);
@@ -72,7 +72,7 @@ fn empty() -> Snapshot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     /// The scratch directory, which the caller keeps alive, and the file in it.
     fn temp_path(name: &str) -> (TestDir, std::path::PathBuf) {

@@ -8,13 +8,13 @@ mod mail_support;
 use std::path::Path;
 use std::sync::Arc;
 
-use excubia_core_chat::{ChatStore, SeatActor};
-use excubia_core_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
-use excubia_core_host::mail_tools::{open_ledger, MailTools};
-use excubia_core_mail::auth::Tenant;
-use excubia_core_mail::{Account, AccountStore, FileKey, HttpResponse, HttpTransport, Secret, Tokens};
-use excubia_core_seat::{FoldersQuery, InboxFolder, InboxQuery, MailCall, MessageRef, TriageQuery};
-use excubia_core_test_dir::TestDir;
+use excubia_chat::{ChatStore, SeatActor};
+use excubia_host::mail_send::{MailSends, SendPolicy, DEFAULT_WINDOW};
+use excubia_host::mail_tools::{open_ledger, MailTools};
+use excubia_mail::auth::Tenant;
+use excubia_mail::{Account, AccountStore, FileKey, HttpResponse, HttpTransport, Secret, Tokens};
+use excubia_seat::{FoldersQuery, InboxFolder, InboxQuery, MailCall, MessageRef, TriageQuery};
+use excubia_test_dir::TestDir;
 use mail_support::{ok, token_answer, Scripted, ACCESS, REFRESH};
 use serde_json::json;
 

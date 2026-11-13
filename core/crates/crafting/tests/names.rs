@@ -1,4 +1,4 @@
-use excubia_core_crafting::safe_name;
+use excubia_crafting::safe_name;
 
 #[test]
 fn directories_and_traversal_are_dropped() {

@@ -6,10 +6,10 @@ mod harness;
 
 use std::sync::Arc;
 
+use excubia_auth::Permission;
+use excubia_chat::{Decision, MailDraftCard, ManualClock, NewConversation};
 use harness::mail_send_support::{ACCOUNT, BODY, DRAFT, TO};
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_chat::{Decision, MailDraftCard, ManualClock, NewConversation};
 use serde_json::{json, Value};
 
 const ACCOUNTS: &str = "/v1/mail/accounts";

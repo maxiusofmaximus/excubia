@@ -10,7 +10,7 @@ use crate::hook_action::CLAUDE_HOOK_MATCHER;
 
 /// Seconds Claude waits for `excubia-uac-hook`: the approval TTL plus a margin, so
 /// the hook always answers before Claude gives up on it.
-pub(super) const CLAUDE_HOOK_TIMEOUT_SECONDS: u64 = excubia_core_chat::DEFAULT_TTL_SECONDS as u64 + 30;
+pub(super) const CLAUDE_HOOK_TIMEOUT_SECONDS: u64 = excubia_chat::DEFAULT_TTL_SECONDS as u64 + 30;
 
 /// The MCP server name the seat declares to every CLI.
 pub(super) const MCP_SERVER: &str = "excubia-core";

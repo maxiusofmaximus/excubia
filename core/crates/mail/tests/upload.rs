@@ -2,14 +2,15 @@ mod support;
 
 use std::path::Path;
 
-use excubia_core_mail::{
+use excubia_mail::{
     attach_file, Approval, AttachContext, AttachedFile, GraphClient, Ledger, MailError,
     DEFAULT_UPLOAD_CHUNK_BYTES, MAX_UPLOAD_CHUNK_BYTES, UPLOAD_GRANULE_BYTES,
 };
 use support::mock::{Call, MockResponse, MockTransport};
 use support::{
-    attachment_item, attachments_body, draft_input, in_memory_ledger, message_body, pending_body, session_body,
-    sparse_file, CountingApproval, Harness, ACCESS_TOKEN, ACCOUNT, DRAFT_ID, UPLOAD_URL,
+    attachment_item, attachments_body, draft_input, in_memory_ledger, message_body, pending_body,
+    session_body, sparse_file, CountingApproval, Harness, ACCESS_TOKEN, ACCOUNT, DRAFT_ID,
+    UPLOAD_URL,
 };
 
 const SEVEN_MIB: u64 = 7 * 1024 * 1024;

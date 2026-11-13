@@ -8,7 +8,7 @@
 use std::io::{BufRead, BufReader};
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use excubia_core_pin::{sas, unix_now, Fingerprint, PairingLink, PinError};
+use excubia_pin::{sas, unix_now, Fingerprint, PairingLink, PinError};
 
 use crate::frb_generated::StreamSink;
 use crate::pinned::pake;

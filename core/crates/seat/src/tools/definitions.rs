@@ -349,7 +349,7 @@ fn recipients_property(description: &str) -> Value {
 mod tests {
     use super::definitions;
     use crate::tools::parse;
-    use excubia_core_chat::ToolRequest;
+    use excubia_chat::ToolRequest;
     use serde_json::json;
 
     /// The mail surface is exactly the twelve tools MAIL1D, MAIL-LECTURA, the F0 triage,

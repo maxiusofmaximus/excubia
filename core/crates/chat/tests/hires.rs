@@ -5,7 +5,7 @@
 mod common;
 
 use common::team;
-use excubia_core_chat::{
+use excubia_chat::{
     ChatError, ChatStore, HireError, HireFilter, HireStatus, NameError, NewHire, NewSeat,
     OnboardingState, MAX_HIRES_PER_AREA,
 };

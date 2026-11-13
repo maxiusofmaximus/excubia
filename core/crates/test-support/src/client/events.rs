@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use excubia_core_auth::canonical_string;
+use excubia_auth::canonical_string;
 
 use super::signed::{random_nonce, unix_seconds, HttpError, SignedClient};
 

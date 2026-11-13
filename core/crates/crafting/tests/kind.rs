@@ -1,6 +1,6 @@
 mod support;
 
-use excubia_core_crafting::{CraftError, Kind};
+use excubia_crafting::{CraftError, Kind};
 use support::{CSV, DOCX, JSON, MD, PDF, TXT, XLSX};
 
 #[test]

@@ -5,7 +5,7 @@
 
 #[tokio::main]
 async fn main() {
-    if let Err(error) = excubia_core_seat::run_stdio().await {
+    if let Err(error) = excubia_seat::run_stdio().await {
         eprintln!("excubia-mcp: {error}");
         std::process::exit(1);
     }

@@ -9,7 +9,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_pin::{client_config, CertificateInfo, Fingerprint, PinError, PinSet};
+use excubia_pin::{client_config, CertificateInfo, Fingerprint, PinError, PinSet};
 use rustls::pki_types::ServerName;
 use rustls::{CertificateError, ClientConfig, ClientConnection, Error as TlsError, StreamOwned};
 

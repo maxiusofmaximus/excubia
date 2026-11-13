@@ -2,7 +2,7 @@
 //! phone, and the mode they run in. The parser checks every field; the host decides who may
 //! call a tool. No tool asks for approval: a rule is reversible and only changes what alerts.
 
-use excubia_core_chat::{field_refusal, AlertMode, NewAlertRule, ToolError, ToolRequest};
+use excubia_chat::{field_refusal, AlertMode, NewAlertRule, ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::args::IdArgs;

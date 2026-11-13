@@ -6,10 +6,10 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use excubia_core_chat::{AcceptedMessage, ChatStore};
-use excubia_core_crafting::{App, Captured, CraftError, Invocation, Runner, Tools, CONFIG_FILE};
-use excubia_core_host::craft::Craft;
-use excubia_core_test_support::SignedClient;
+use excubia_chat::{AcceptedMessage, ChatStore};
+use excubia_crafting::{App, Captured, CraftError, Invocation, Runner, Tools, CONFIG_FILE};
+use excubia_host::craft::Craft;
+use excubia_test_support::SignedClient;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 

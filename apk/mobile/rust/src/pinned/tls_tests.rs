@@ -11,7 +11,7 @@ use crate::api::pinned::{
     pinned_request, pinned_request_bytes, HeaderField, PinnedBytesReply, PinnedBytesResponse,
     PinnedEndpoint, PinnedFailureKind, PinnedReply, PinnedResponse,
 };
-use excubia_core_pin::{server_config, unix_now, Identity, DEFAULT_VALIDITY_SECONDS};
+use excubia_pin::{server_config, unix_now, Identity, DEFAULT_VALIDITY_SECONDS};
 use rustls::crypto::ring::default_provider;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::version::TLS12;

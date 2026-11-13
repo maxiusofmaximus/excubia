@@ -65,8 +65,8 @@ name = "apk_core"
 version = "0.1.0"
 dependencies = [
  "base64",
- "excubia-core-pake",
- "excubia-core-pin",
+ "excubia-pake",
+ "excubia-pin",
  "flutter_rust_bridge",
  "hex",
  "p256",
@@ -495,7 +495,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-pake"
+name = "excubia-pake"
 version = "0.1.0"
 dependencies = [
  "curve25519-dalek",
@@ -509,7 +509,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "excubia-core-pin"
+name = "excubia-pin"
 version = "0.1.0"
 dependencies = [
  "data-encoding",

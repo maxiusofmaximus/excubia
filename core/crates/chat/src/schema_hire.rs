@@ -50,7 +50,7 @@ mod tests {
     use crate::schema_base::BASE_SCHEMA;
     use crate::schema_mail::{MAIL_CARD_EXPIRY_SCHEMA, MAIL_SCHEMA};
     use crate::schema_team::TEAM_SCHEMA;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     /// A database written by version 8 keeps its seats, gains the hire table and
     /// the seat link empty, and the migration can run again without change.

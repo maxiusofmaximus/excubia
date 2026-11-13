@@ -3,7 +3,7 @@
 //! This crate owns `chat.db`: the single company, seats, conversations,
 //! messages, sections and the durable `chat_event` journal. It has no HTTP and
 //! no agent-launch code; the API crate maps its errors to the contract and
-//! `excubia-core-seat` implements the seat port.
+//! `excubia-seat` implements the seat port.
 
 mod attachments;
 mod clock;
@@ -24,17 +24,18 @@ mod model_note;
 mod model_plan;
 mod model_recipe;
 mod model_schedule;
-mod schedule_due;
-mod schedule_launch;
-mod recipe_guard;
 mod model_team;
 mod model_team_status;
 mod model_timeline;
 mod policy;
+mod recipe_guard;
 mod recurrence;
 mod recurrence_expand;
+mod schedule_due;
+mod schedule_launch;
 mod schema;
 mod schema_agenda;
+mod schema_agent_file;
 mod schema_alert;
 mod schema_approval;
 mod schema_attachment;
@@ -45,12 +46,11 @@ mod schema_hire;
 mod schema_ics;
 mod schema_mail;
 mod schema_plan;
-mod schema_recipe;
-mod schema_agent_file;
-mod schema_schedule;
 mod schema_progress;
+mod schema_recipe;
 mod schema_recurrence;
 mod schema_reply;
+mod schema_schedule;
 mod schema_team;
 mod scorer;
 pub use scorer::local_endpoint;
@@ -82,9 +82,9 @@ pub use model_approval::{
     MAX_TTL_SECONDS,
 };
 pub use model_attachment::{
-    previewable, Attachment, AttachmentState, FileKind, LinkedFile, ReadyFile, ATTACHMENT_ONLY_TEXT,
-    CHUNK_MAX_BYTES, CONVERSATION_QUOTA_BYTES, FILE_MAX_BYTES, HOST_QUOTA_BYTES,
-    MAX_ATTACHMENTS_PER_MESSAGE,
+    previewable, Attachment, AttachmentState, FileKind, LinkedFile, ReadyFile,
+    ATTACHMENT_ONLY_TEXT, CHUNK_MAX_BYTES, CONVERSATION_QUOTA_BYTES, FILE_MAX_BYTES,
+    HOST_QUOTA_BYTES, MAX_ATTACHMENTS_PER_MESSAGE,
 };
 pub use model_calendar::{
     CalendarEvent, EventPatch, Listed, Listing, NewEvent, Window, CALENDAR_DELETE_TOOL,
@@ -109,6 +109,12 @@ pub use model_recipe::{
     draft_text, DraftSource, Recipe, RecipeRun, RecipeText, MAX_RECIPES_PER_ROLE,
     RECIPE_BODY_CHARS, RECIPE_TITLE_CHARS,
 };
+pub use model_schedule::{
+    cadence_of, parse_start_date, parse_time_local, rule_text, timing_of, Cadence, Content,
+    NewSchedule, RunOutcome, Schedule, ScheduleRun, ScheduleStatus, Timing,
+    DEFAULT_PER_DAY_PER_AGENT, DEFAULT_PER_DAY_TOTAL, DEFAULT_PER_HOUR_PER_AGENT, HISTORY_KEEP,
+    MAX_ACTIVE_SCHEDULES,
+};
 pub use model_team::{
     Card, Delegation, DelegationDetail, DelegationState, NewDelegation, NewProject, NewSeat,
     ProjectRecord, Seat, SynthesisInfo, SynthesisRow, UAC_SAFE, UAC_UNCHECKED, UAC_UNSAFE,
@@ -117,20 +123,15 @@ pub use model_team_status::{
     activity_of, status_of, summarize, Activity, MemberInput, TeamMemberSummary, TeamStatus,
 };
 pub use recurrence::{RecurrenceError, Rule};
+pub use schedule_launch::launch_schedule;
 pub use schema::SearchMode;
 pub use seat::{
     ChatSeat, SeatActor, SeatError, SeatErrorCode, ToolError, ToolErrorKind, ToolReply, ToolRequest,
 };
 pub use store::{
-    validate_suggestions, Claim, Launch, AlertSummary, AlertWriter, CalendarSummary, ChatStore, EventOrigin,
-    HireLink, MailDraftCard, NewMailCard, NextEvent, PendingApproval, PendingPlan, ProgressOutcome,
-    SenderHistory, StatusApproval, StatusDelegation, StatusFacts,
+    validate_suggestions, AlertSummary, AlertWriter, CalendarSummary, ChatStore, Claim,
+    EventOrigin, HireLink, Launch, MailDraftCard, NewMailCard, NextEvent, PendingApproval,
+    PendingPlan, ProgressOutcome, SenderHistory, StatusApproval, StatusDelegation, StatusFacts,
 };
-pub use model_schedule::{
-    cadence_of, parse_start_date, parse_time_local, rule_text, timing_of, Cadence, Content,
-    NewSchedule, RunOutcome, Schedule, ScheduleRun, ScheduleStatus, Timing, DEFAULT_PER_DAY_PER_AGENT,
-    DEFAULT_PER_DAY_TOTAL, DEFAULT_PER_HOUR_PER_AGENT, HISTORY_KEEP, MAX_ACTIVE_SCHEDULES,
-};
-pub use schedule_launch::launch_schedule;
 pub use text::{message_text, NameError, TextError, MAX_MESSAGE_BYTES};
 pub use timezone::EventTime;

@@ -2,7 +2,7 @@
 //! must give the same messages, the same key and the same confirmation tags from the same scalars.
 //! These are NOT RFC 9382 vectors: `spake2` 0.4.0 is not RFC 9382 (see PAIRING-F2A-RESULT.md).
 
-use excubia_core_pake::{Code, Role, Session};
+use excubia_pake::{Code, Role, Session};
 
 const CODE: &str = "K7M2QXTZ";
 const HOST_ID: &str = "excubia-host-1";

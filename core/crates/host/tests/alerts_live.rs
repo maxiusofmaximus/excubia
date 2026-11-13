@@ -6,10 +6,10 @@ mod harness;
 
 use std::time::Duration;
 
+use excubia_auth::Permission;
+use excubia_state::{NewAgent, SharedFrame, Status};
+use excubia_test_support::SignedClient;
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_state::{NewAgent, SharedFrame, Status};
-use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 use tokio::sync::broadcast::{error::TryRecvError, Receiver};
 

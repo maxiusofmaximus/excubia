@@ -3,7 +3,7 @@
 use std::io;
 use std::process::ExitCode;
 
-use excubia_core_media::worker::{parse_limits, serve};
+use excubia_media::worker::{parse_limits, serve};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();

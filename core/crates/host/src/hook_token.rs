@@ -23,9 +23,9 @@ pub fn load_or_create(data_dir: &Path) -> Result<String> {
         }
     }
     let mut bytes = [0u8; TOKEN_BYTES];
-    excubia_core_persist::fill_random(&mut bytes)?;
+    excubia_persist::fill_random(&mut bytes)?;
     let token = hex::encode(bytes);
-    excubia_core_persist::write_atomic(&path, token.as_bytes())
+    excubia_persist::write_atomic(&path, token.as_bytes())
         .with_context(|| format!("write {}", path.display()))?;
     Ok(token)
 }
@@ -33,7 +33,7 @@ pub fn load_or_create(data_dir: &Path) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     #[test]
     fn the_token_is_created_once_and_stable() {

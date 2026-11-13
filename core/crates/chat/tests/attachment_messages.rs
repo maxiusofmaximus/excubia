@@ -2,11 +2,11 @@
 //! in the same transaction as the message, and the timeline and the agent's
 //! context show them.
 
-use excubia_core_chat::{
+use excubia_chat::{
     new_ulid, AcceptedMessage, AttachmentError, AttachmentFiles, ChatError, ChatStore,
     NewConversation, ReadyFile, TimelineEntry, MAX_ATTACHMENTS_PER_MESSAGE,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 fn store(name: &str) -> (ChatStore, TestDir) {
     let dir = TestDir::new(&format!("core-chat-attachment-messages-{name}"));

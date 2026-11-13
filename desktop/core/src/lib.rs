@@ -27,7 +27,7 @@ pub use chat::{
 pub use chat_feed::{ChatEntry, ChatFeed, ChatSnapshot};
 pub use client::{CatalogAgent, HostClient, PairResponse, WorkspaceCreated};
 pub use error::{CoreError, ErrorInfo, Result, WriteAction};
-pub use excubia_core_pin::{Fingerprint, PinSet};
+pub use excubia_pin::{Fingerprint, PinSet};
 pub use identity::{
     default_device_label, normalize_device_label, validate_device_label, DeviceIdentity,
     IdentityStore, MAX_DEVICE_LABEL_CHARS,

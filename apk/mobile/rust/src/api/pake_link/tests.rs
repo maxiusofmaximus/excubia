@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use excubia_core_pin::{Fingerprint, PakeLink};
+use excubia_pin::{Fingerprint, PakeLink};
 
 use super::*;
 use crate::api::pinned::parse_pairing_link;

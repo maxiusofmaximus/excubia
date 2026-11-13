@@ -88,7 +88,7 @@ pub(super) fn role_text(role_id: &str, name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     #[test]
     fn paths_stay_inside_the_workspace_root() {

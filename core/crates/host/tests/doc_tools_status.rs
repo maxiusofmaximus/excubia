@@ -2,7 +2,7 @@
 
 mod harness;
 
-use excubia_core_crafting::App;
+use excubia_crafting::App;
 use harness::TestHost;
 use serde_json::Value;
 
@@ -70,7 +70,7 @@ async fn the_host_lists_the_three_document_tools_without_paths() {
 
     // A device without read_state gets the same refusal as /v1/catalog.
     let (readerless, paired) = host.pair("no read state").await;
-    let path = excubia_core_host::paths::devices_path(&host.data_dir);
+    let path = excubia_host::paths::devices_path(&host.data_dir);
     let mut file = read_json(&path);
     for device in file["devices"].as_array_mut().expect("devices") {
         if device["device_id"] == paired.device_id.as_str() {

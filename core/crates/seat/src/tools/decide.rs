@@ -2,7 +2,7 @@
 //! level. The arguments name the approval and the answer. Who answers is never
 //! read from them: the host reads it from the token that called.
 
-use excubia_core_chat::{Decision, ToolError, ToolRequest};
+use excubia_chat::{Decision, ToolError, ToolRequest};
 use serde::Deserialize;
 
 use super::{invalid_arguments, name_field, ToolCall};

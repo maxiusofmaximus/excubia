@@ -1,5 +1,5 @@
-use excubia_core_auth::{Permission, VerifiedDevice};
-use excubia_core_chat::{HookScope, Reader};
+use excubia_auth::{Permission, VerifiedDevice};
+use excubia_chat::{HookScope, Reader};
 
 use crate::error::ApiError;
 use crate::middleware::HookAuth;

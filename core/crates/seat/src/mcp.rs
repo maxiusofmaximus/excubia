@@ -7,7 +7,7 @@
 
 use std::time::Duration;
 
-use excubia_core_chat::{ToolError, ToolErrorKind, ToolReply, ToolRequest};
+use excubia_chat::{ToolError, ToolErrorKind, ToolReply, ToolRequest};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
@@ -62,7 +62,7 @@ pub async fn run_stdio() -> Result<(), String> {
                         "protocolVersion": PROTOCOL_VERSION,
                         "capabilities": { "tools": { "listChanged": false } },
                         "serverInfo": {
-                            "name": "excubia-core-chat",
+                            "name": "excubia-chat",
                             "version": env!("CARGO_PKG_VERSION")
                         }
                     }),

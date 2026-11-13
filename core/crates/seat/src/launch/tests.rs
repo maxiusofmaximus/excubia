@@ -4,7 +4,7 @@ use super::render::CLAUDE_HOOK_TIMEOUT_SECONDS;
 use super::*;
 use crate::hook_action::CLAUDE_HOOK_MATCHER;
 use crate::profile::{test_profile, McpDeclaration};
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 use std::path::PathBuf;
 
 fn input<'a>(
@@ -206,7 +206,11 @@ fn opencode_plan_sets_agent_prompt_without_a_session() {
     let root = PathBuf::from("run-dir");
     let plan = prepare(&input(&profile, &root, "role", "prompt")).expect("plan");
     // Every turn is a fresh OpenCode session: no `--session` argument.
-    assert!(!plan.args.iter().any(|arg| arg == "--session"), "{:?}", plan.args);
+    assert!(
+        !plan.args.iter().any(|arg| arg == "--session"),
+        "{:?}",
+        plan.args
+    );
     let config: serde_json::Value =
         serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
     assert_eq!(config["agent"]["alfred"]["prompt"], "role");

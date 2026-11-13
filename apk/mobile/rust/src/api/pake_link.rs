@@ -1,8 +1,8 @@
-//! The v2 pairing link, the QR without an address (F3b, `excubia_core_pin::PakeLink`):
+//! The v2 pairing link, the QR without an address (F3b, `excubia_pin::PakeLink`):
 //! the short code, the host's pin and when the code dies. The v1 link stays in
 //! `pinned::parse_pairing_link`, which refuses a v2 one.
 
-use excubia_core_pin::PakeLink;
+use excubia_pin::PakeLink;
 
 use super::pinned::{PinnedFailure, PinnedFailureKind};
 
@@ -50,8 +50,8 @@ pub fn parse_pake_link(uri: String) -> PakeLinkResult {
     }
 }
 
-fn failure(error: excubia_core_pin::PinError) -> PinnedFailure {
-    use excubia_core_pin::PinError::{MalformedFingerprint, UnsupportedLinkVersion};
+fn failure(error: excubia_pin::PinError) -> PinnedFailure {
+    use excubia_pin::PinError::{MalformedFingerprint, UnsupportedLinkVersion};
     match error {
         UnsupportedLinkVersion(version) => PinnedFailure::of(
             PinnedFailureKind::UnsupportedLinkVersion,

@@ -6,8 +6,8 @@
 
 use std::time::Duration;
 
-use excubia_core_chat::ApprovalStatus;
-use excubia_core_mail::{Closing, MailError, SendFailure, SendRecord, SendResult, SendRow, SendState};
+use excubia_chat::ApprovalStatus;
+use excubia_mail::{Closing, MailError, SendFailure, SendRecord, SendResult, SendRow, SendState};
 use tokio::sync::broadcast::error::RecvError;
 
 use super::MailSends;
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn a_report_names_the_code_and_never_the_detail() {
-        let error = MailError::InvalidInput(excubia_core_mail::Redacted::new("ana@ejemplo.com"));
+        let error = MailError::InvalidInput(excubia_mail::Redacted::new("ana@ejemplo.com"));
         let line = note("the send could not be audited", &error);
         assert_eq!(
             line,

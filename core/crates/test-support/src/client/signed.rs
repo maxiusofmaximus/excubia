@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use excubia_core_auth::canonical_string;
+use excubia_auth::canonical_string;
 use rand_core::{OsRng, RngCore};
 use serde_json::Value;
 

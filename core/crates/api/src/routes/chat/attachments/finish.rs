@@ -3,8 +3,8 @@
 
 use std::time::Duration;
 
-use excubia_core_chat::{Attachment, AttachmentFiles, AttachmentState, ReadyFile};
-use excubia_core_media::{process_image_isolated, Limits, MediaError, ProcessedImage};
+use excubia_chat::{Attachment, AttachmentFiles, AttachmentState, ReadyFile};
+use excubia_media::{process_image_isolated, Limits, MediaError, ProcessedImage};
 use sha2::{Digest, Sha256};
 
 use crate::error::ApiError;

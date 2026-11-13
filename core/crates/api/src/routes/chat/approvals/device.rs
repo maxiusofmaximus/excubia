@@ -9,8 +9,8 @@ use axum::Extension;
 
 use serde_json::{json, Value};
 
-use excubia_core_auth::VerifiedDevice;
-use excubia_core_chat::{ApprovalFilter, ApprovalStatus, Decision};
+use excubia_auth::VerifiedDevice;
+use excubia_chat::{ApprovalFilter, ApprovalStatus, Decision};
 
 use crate::error::ApiError;
 use crate::routes::parse_body;

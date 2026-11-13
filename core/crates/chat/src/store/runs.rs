@@ -128,14 +128,14 @@ impl super::ChatStore {
             )?;
         }
         check_agent_files(&transaction, &info.conversation_id, attachment_ids)?;
-        link_in(&transaction, &info.conversation_id, &message_id, attachment_ids)?;
-        let mut frames = announce_message(
+        link_in(
             &transaction,
             &info.conversation_id,
             &message_id,
-            seq,
-            text,
+            attachment_ids,
         )?;
+        let mut frames =
+            announce_message(&transaction, &info.conversation_id, &message_id, seq, text)?;
         frames.extend(self.deliver_unnamed_files(
             &transaction,
             &info.conversation_id,

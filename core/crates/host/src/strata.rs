@@ -14,10 +14,10 @@ use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
-use excubia_core_api::AgentCatalog;
+use excubia_api::AgentCatalog;
 use serde_json::Value;
 
-use crate::cli::{BIN, StrataCommand};
+use crate::cli::{StrataCommand, BIN};
 use crate::{agents, alfred_backend, local_mode, paths};
 
 /// The one model the local server loads.
@@ -370,7 +370,7 @@ pub fn enable_agent(data_dir: &Path) -> Result<bool> {
     let text = format!("{text}{}", agent_block());
     // Refuse a bad entry before writing it: the file would not load.
     AgentCatalog::from_toml(&text).map_err(|error| anyhow!("{error}"))?;
-    excubia_core_persist::write_atomic(&path, text.as_bytes())
+    excubia_persist::write_atomic(&path, text.as_bytes())
         .with_context(|| format!("write {}", path.display()))?;
     Ok(true)
 }

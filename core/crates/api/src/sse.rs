@@ -13,10 +13,10 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use axum::response::sse::Event;
+use excubia_auth::{DeviceStore, StreamRegistry};
+use excubia_chat::ChatFrame;
+use excubia_state::SharedFrame;
 use futures_core::Stream;
-use excubia_core_auth::{DeviceStore, StreamRegistry};
-use excubia_core_chat::ChatFrame;
-use excubia_core_state::SharedFrame;
 use tokio::sync::{broadcast, mpsc};
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);

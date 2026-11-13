@@ -10,7 +10,7 @@ use axum::body::Bytes;
 use axum::extract::{ConnectInfo, State};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use excubia_core_auth::{is_host_owner, tailnet_owner_of, Class, Curve, Device};
+use excubia_auth::{is_host_owner, tailnet_owner_of, Class, Curve, Device};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

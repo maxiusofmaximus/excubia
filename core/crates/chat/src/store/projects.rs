@@ -1,5 +1,5 @@
 //! Projects and their seats. A project is created under the operator's
-//! `workspaces_root` (the path is resolved and canonicalized by `excubia-core-team`,
+//! `workspaces_root` (the path is resolved and canonicalized by `excubia-team`,
 //! which owns the filesystem); this module owns the durable records and the
 //! limits: one lead per project and at most eight visible seats.
 

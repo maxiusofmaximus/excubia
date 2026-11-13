@@ -6,8 +6,8 @@
 use axum::body::Bytes;
 use axum::extract::{Extension, State};
 use axum::Json;
-use excubia_core_auth::{Permission, VerifiedDevice};
-use excubia_core_chat::NewHire;
+use excubia_auth::{Permission, VerifiedDevice};
+use excubia_chat::NewHire;
 use serde::Deserialize;
 use serde_json::{json, Value};
 

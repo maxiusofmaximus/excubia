@@ -1,5 +1,5 @@
 [package]
-name = "excubia-core-auth"
+name = "excubia-auth"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ base64.workspace = true
 data-encoding.workspace = true
 ed25519-dalek.workspace = true
 hex.workspace = true
-excubia-core-persist = { path = "../persist" }
+excubia-persist = { path = "../persist" }
 p256.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -18,4 +18,4 @@ sha2.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-excubia-core-test-dir = { path = "../test-dir" }
+excubia-test-dir = { path = "../test-dir" }

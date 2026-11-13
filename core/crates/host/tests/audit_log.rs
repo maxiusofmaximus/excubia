@@ -3,11 +3,11 @@
 
 mod harness;
 
+use excubia_auth::Permission;
+use excubia_host::audit::AUDIT_FILE;
+use excubia_test_support::client::SignedClient;
+use excubia_test_support::{pair_device, DemoIdentity};
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_host::audit::AUDIT_FILE;
-use excubia_core_test_support::client::SignedClient;
-use excubia_core_test_support::{pair_device, DemoIdentity};
 use serde_json::{json, Value};
 
 const ALFRED: &str = "/v1/alfred/backend";

@@ -3,17 +3,17 @@
 //!
 //! The evidence test is `#[ignore]`d: it needs the OpenCode V1 build the `e2e/`
 //! harness of the plugin installs under `target/opencode-v1`, and it is run by
-//! hand (`cargo test -p excubia-core-seat --test uac_canary -- --ignored`).
+//! hand (`cargo test -p excubia-seat --test uac_canary -- --ignored`).
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use excubia_core_seat::http::{self, LoopbackUrl};
-use excubia_core_seat::{
+use excubia_seat::http::{self, LoopbackUrl};
+use excubia_seat::{
     canary_command, canary_plan, run_canary, shipped, CanaryProvider, CliId, CliProfile, UacState,
     CANARY_MARKER,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 /// The real OpenCode of the harness, or whatever `EXCUBIA_OPENCODE_BIN` names.
 fn opencode() -> CliProfile {

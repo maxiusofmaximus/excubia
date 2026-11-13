@@ -2,7 +2,7 @@
 //! operator's answer. The store checks the steps; this file keeps every call to
 //! the conversation of the seat that asks.
 
-use excubia_core_chat::{NewPlan, Plan, PlanStep, SeatActor, ToolError, ToolReply};
+use excubia_chat::{NewPlan, Plan, PlanStep, SeatActor, ToolError, ToolReply};
 use serde_json::json;
 
 use super::team::TeamService;

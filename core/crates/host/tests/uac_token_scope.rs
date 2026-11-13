@@ -9,9 +9,9 @@ mod harness;
 
 use std::time::Duration;
 
+use excubia_auth::Permission;
+use excubia_test_support::SignedClient;
 use harness::{approval_body, detail, SeatKind, TestHost};
-use excubia_core_auth::Permission;
-use excubia_core_test_support::SignedClient;
 use serde_json::Value;
 
 const TTL: Duration = Duration::from_secs(45);

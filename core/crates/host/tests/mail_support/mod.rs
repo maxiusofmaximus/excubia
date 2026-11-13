@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
 
 use async_trait::async_trait;
-use excubia_core_mail::{HttpResponse, HttpTransport, MailError, Redacted};
+use excubia_mail::{HttpResponse, HttpTransport, MailError, Redacted};
 use serde_json::json;
 
 pub const ACCESS: &str = "ACCESO-SECRETO-NO-DEBE-SALIR";

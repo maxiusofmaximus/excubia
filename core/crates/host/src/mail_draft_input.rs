@@ -1,10 +1,10 @@
 //! The body of a draft as the host sends it to Graph: the owner's text and HTML are
 //! cleaned, an agent's template is drawn by the host and reaches Graph as it was drawn.
 
-use excubia_core_mail::{
+use excubia_mail::{
     agent_html, sanitize_html, sanitize_text, DraftBody, DraftInput, MailError, Policy,
 };
-use excubia_core_seat::{BodyFormat, DraftFields};
+use excubia_seat::{BodyFormat, DraftFields};
 
 /// Where an HTML body comes from. The owner's HTML is cleaned; an agent template is
 /// the host's own markup and reaches Graph as it was drawn.

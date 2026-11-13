@@ -2,11 +2,11 @@
 //! message, `chat.reply` links the ones it names, and a turn that names none still
 //! leaves its files in a short message of Alfred.
 
-use excubia_core_chat::{
+use excubia_chat::{
     new_ulid, AcceptedMessage, AttachmentError, AttachmentFiles, ChatError, ChatStore,
     NewConversation, ReadyFile, TimelineEntry,
 };
-use excubia_core_test_dir::TestDir;
+use excubia_test_dir::TestDir;
 
 fn store(name: &str) -> (ChatStore, TestDir) {
     let dir = TestDir::new(&format!("core-chat-agent-files-{name}"));
@@ -62,7 +62,13 @@ fn a_created_file_is_a_ready_document_with_no_message() {
     let turn = open_turn(&store, &conversation_id, "u-1");
 
     let file = store
-        .create_agent_file(&conversation_id, &turn.turn.id, "Ventas.csv", "text/csv", b"a,b")
+        .create_agent_file(
+            &conversation_id,
+            &turn.turn.id,
+            "Ventas.csv",
+            "text/csv",
+            b"a,b",
+        )
         .expect("created");
 
     assert_eq!(file.name, "Ventas.csv");
@@ -105,10 +111,16 @@ fn a_turn_that_names_no_file_still_delivers_it_in_a_short_message() {
 
     let messages = agent_messages(&store, &conversation_id);
     assert_eq!(messages.len(), 2, "the reply and the file's own message");
-    assert_eq!(messages[1].preview.as_deref(), Some("Te dejo el archivo Gastos.xlsx"));
+    assert_eq!(
+        messages[1].preview.as_deref(),
+        Some("Te dejo el archivo Gastos.xlsx")
+    );
     assert_eq!(messages[1].attachments[0].id, file);
     assert_eq!(messages[1].attachments[0].name, "Gastos.xlsx");
-    assert_eq!(store.attachment(&file).expect("row").message_id, messages[1].message_id.clone());
+    assert_eq!(
+        store.attachment(&file).expect("row").message_id,
+        messages[1].message_id.clone()
+    );
 }
 
 #[test]
@@ -156,7 +168,13 @@ fn a_user_upload_cannot_be_sent_as_one_of_alfreds_files() {
     let conversation_id = conversation(&store, "Subida");
     let turn = open_turn(&store, &conversation_id, "u-1");
     let upload = store
-        .begin_attachment(&conversation_id, &new_ulid(), "tuyo.csv", 3, &"ab".repeat(32))
+        .begin_attachment(
+            &conversation_id,
+            &new_ulid(),
+            "tuyo.csv",
+            3,
+            &"ab".repeat(32),
+        )
         .expect("begin");
     store
         .mark_ready(
@@ -197,7 +215,8 @@ fn a_file_past_the_conversation_quota_is_refused_and_leaves_no_row() {
             .expect("declared");
     }
 
-    let refusal = store.create_agent_file(&conversation_id, &turn.turn.id, "mas.csv", "text/csv", b"x");
+    let refusal =
+        store.create_agent_file(&conversation_id, &turn.turn.id, "mas.csv", "text/csv", b"x");
 
     assert!(
         matches!(refusal, Err(AttachmentError::ConversationQuota)),
@@ -211,7 +230,16 @@ fn a_name_that_is_not_one_line_is_refused() {
     let conversation_id = conversation(&store, "Nombre");
     let turn = open_turn(&store, &conversation_id, "u-1");
 
-    let refusal = store.create_agent_file(&conversation_id, &turn.turn.id, "a\nb.csv", "text/csv", b"x");
+    let refusal = store.create_agent_file(
+        &conversation_id,
+        &turn.turn.id,
+        "a\nb.csv",
+        "text/csv",
+        b"x",
+    );
 
-    assert!(matches!(refusal, Err(AttachmentError::InvalidName)), "{refusal:?}");
+    assert!(
+        matches!(refusal, Err(AttachmentError::InvalidName)),
+        "{refusal:?}"
+    );
 }

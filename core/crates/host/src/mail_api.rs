@@ -1,6 +1,6 @@
 //! What `POST /v1/mail/login/start`, `GET /v1/mail/login/status`,
 //! `GET /v1/mail/accounts` (MAIL1C §4) and the sending consent (MAIL2A) answer.
-//! The routes are wired in excubia-core-api; this module keeps the logins and never
+//! The routes are wired in excubia-api; this module keeps the logins and never
 //! returns a token.
 //!
 //! The device code stays here. The client gets the user code and the page to
@@ -11,19 +11,19 @@
 
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
-use excubia_core_chat::{new_ulid, Approval, ChatError, ChatStore, NewMailCard};
-use excubia_core_mail::auth::{
+use excubia_chat::{new_ulid, Approval, ChatError, ChatStore, NewMailCard};
+use excubia_mail::auth::{
     poll_device_login, start_device_login, start_send_consent, DeviceLogin, Tenant,
 };
-use excubia_core_mail::graph::fetch_upn;
-use excubia_core_mail::{Account, AccountStore, HttpTransport, MailError, Redacted};
+use excubia_mail::graph::fetch_upn;
+use excubia_mail::{Account, AccountStore, HttpTransport, MailError, Redacted};
 use serde::Serialize;
 
 use crate::mail_send::MailSends;
 use crate::mail_tools::MailTools;
 
 /// Where a login stands: the shape the API serves, so no mapping is needed.
-pub use excubia_core_api::MailLoginStatus as LoginStatus;
+pub use excubia_api::MailLoginStatus as LoginStatus;
 
 /// What a device login grants: the account itself, or the send permission on an
 /// account that already exists (MAIL2A).

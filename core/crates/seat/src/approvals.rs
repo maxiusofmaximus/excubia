@@ -3,7 +3,7 @@
 //! The operator decides and the agent only learns the answer: the tool call
 //! blocks until the decision and it never carries a decision of its own.
 
-use excubia_core_chat::{
+use excubia_chat::{
     action_digest, Approval, ApprovalStatus, NewApproval, ToolError, ToolReply, DEFAULT_TTL_SECONDS,
 };
 use serde_json::json;
@@ -84,12 +84,12 @@ mod tests {
             agent_label: None,
             run_id: None,
             pane_id: None,
-            kind: excubia_core_chat::ApprovalKind::Command,
+            kind: excubia_chat::ApprovalKind::Command,
             tool: "bash".to_string(),
             summary: "cargo test".to_string(),
             cwd: None,
             paths: Vec::new(),
-            risk: excubia_core_chat::Risk::High,
+            risk: excubia_chat::Risk::High,
             action_digest: "sha256:0".to_string(),
             status,
             scope: "once".to_string(),

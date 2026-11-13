@@ -6,8 +6,8 @@
 //! with APPROVE answers it; nothing in this module decides for the user.
 
 use async_trait::async_trait;
-use excubia_core_chat::{ApprovalKind, ApprovalStatus, ChatStore, NewApproval};
-use excubia_core_mail::{Approval, ApprovalGate, MailError, PathApproval, Redacted};
+use excubia_chat::{ApprovalKind, ApprovalStatus, ChatStore, NewApproval};
+use excubia_mail::{Approval, ApprovalGate, MailError, PathApproval, Redacted};
 use serde_json::json;
 
 /// The action the approval is filed under. Also the `tool` of the question.

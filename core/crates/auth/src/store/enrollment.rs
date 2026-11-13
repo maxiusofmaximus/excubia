@@ -1,7 +1,7 @@
 //! Pairing: devices enrolled with a pairing code or a recovery code, and the
 //! minting of those codes.
 
-use excubia_core_persist::{fill_random, RandomError};
+use excubia_persist::{fill_random, RandomError};
 
 use super::{Device, DeviceStore, EnrollmentCode};
 use crate::codes::{code_hash, mint_enrollment_code, mint_recovery_code};

@@ -1,4 +1,4 @@
-use excubia_core_chat::{ChatStore, HookScope, HookTokenUse, RunState, Turn};
+use excubia_chat::{ChatStore, HookScope, HookTokenUse, RunState, Turn};
 
 use super::grant::HookTokenGuard;
 use super::{lock, Phase, RunGrant, SeatService};

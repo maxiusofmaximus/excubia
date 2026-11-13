@@ -4,9 +4,9 @@
 
 use std::sync::Arc;
 
-use excubia_core_chat::{new_ulid, ChatStore, ReadyFile};
-use excubia_core_seat::{AttachSource, MailAttach, MailCall};
-use excubia_core_test_dir::TestDir;
+use excubia_chat::{new_ulid, ChatStore, ReadyFile};
+use excubia_seat::{AttachSource, MailAttach, MailCall};
+use excubia_test_dir::TestDir;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 

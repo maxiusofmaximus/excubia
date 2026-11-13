@@ -3,10 +3,10 @@
 
 mod mail_support;
 
-use excubia_core_host::mail_cli::{self, MailAction, MailDeps};
-use excubia_core_mail::auth::Tenant;
-use excubia_core_mail::{AccountStore, FileKey, MailError};
-use excubia_core_test_dir::TestDir;
+use excubia_host::mail_cli::{self, MailAction, MailDeps};
+use excubia_mail::auth::Tenant;
+use excubia_mail::{AccountStore, FileKey, MailError};
+use excubia_test_dir::TestDir;
 use mail_support::{device_answer, ok, token_answer, Scripted, ACCESS, DEVICE, REFRESH, USER_CODE};
 use serde_json::json;
 

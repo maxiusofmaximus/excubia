@@ -3,7 +3,7 @@ mod support;
 use std::fs;
 use std::path::PathBuf;
 
-use excubia_core_mail::{AuditRecord, CheckedFile, Decision};
+use excubia_mail::{AuditRecord, CheckedFile, Decision};
 use support::{Harness, ACCOUNT, DRAFT_ID};
 
 fn file() -> CheckedFile {

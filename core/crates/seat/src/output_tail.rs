@@ -120,7 +120,8 @@ mod tests {
 
     #[test]
     fn sensitive_key_values_are_redacted_by_shape() {
-        let text = "EXCUBIA_TOOL_TOKEN=abc Authorization: Bearer zzz \"password\": \"pw\" hora 12:30";
+        let text =
+            "EXCUBIA_TOOL_TOKEN=abc Authorization: Bearer zzz \"password\": \"pw\" hora 12:30";
         let clean = redact(text, &[]);
         for leaked in ["abc", "zzz", "\"pw\""] {
             assert!(!clean.contains(leaked), "leaked {leaked}: {clean}");

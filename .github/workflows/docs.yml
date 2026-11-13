@@ -102,7 +102,7 @@ jobs:
           cp -r target-docs/desktop/doc _site/api/rust/desktop
           cp -r target-docs/apk/doc _site/api/rust/apk
           # rustdoc no crea index.html en la raíz de cada árbol: se redirige a su crate principal.
-          for par in core:excubia_core_host desktop:excubia_desktop_core apk:apk_core; do
+          for par in core:excubia_host desktop:excubia_desktop_core apk:apk_core; do
             dir="${par%%:*}"
             main="${par##*:}"
             cat > "_site/api/rust/$dir/index.html" <<EOF

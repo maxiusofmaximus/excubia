@@ -1,5 +1,5 @@
 [package]
-name = "excubia-core-pake"
+name = "excubia-pake"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -23,4 +23,4 @@ test-vectors = []
 [dev-dependencies]
 data-encoding.workspace = true
 # Turns the feature on for this crate's own tests only.
-excubia-core-pake = { path = ".", features = ["test-vectors"] }
+excubia-pake = { path = ".", features = ["test-vectors"] }

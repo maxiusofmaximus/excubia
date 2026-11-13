@@ -4,9 +4,9 @@ mod harness;
 
 use std::time::Duration;
 
+use excubia_auth::Permission;
+use excubia_test_support::SignedClient;
 use harness::{row_of, wait_for_status, TestHost};
-use excubia_core_auth::Permission;
-use excubia_core_test_support::SignedClient;
 use serde_json::json;
 
 async fn create(client: &SignedClient, agent: &str, cwd: &str, label: &str) -> (u16, String) {

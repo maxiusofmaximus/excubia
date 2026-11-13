@@ -5,13 +5,13 @@
 
 mod harness;
 
+use excubia_auth::Permission;
+use excubia_chat::{AttachmentState, SeatActor};
+use excubia_crafting::App;
+use excubia_mail::AuditLog;
+use excubia_test_support::SignedClient;
 use harness::docs::ooxml_zip;
 use harness::{docs::send, TestHost};
-use excubia_core_auth::Permission;
-use excubia_core_chat::{AttachmentState, SeatActor};
-use excubia_core_crafting::App;
-use excubia_core_mail::AuditLog;
-use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 
 const READ: &[Permission] = &[Permission::Respond];
@@ -60,12 +60,7 @@ fn alfred_turn(host: &TestHost, conversation: &str) {
     );
 }
 
-async fn create(
-    host: &TestHost,
-    format: &str,
-    name: &str,
-    content: &str,
-) -> (u16, Value) {
+async fn create(host: &TestHost, format: &str, name: &str, content: &str) -> (u16, Value) {
     call(
         host,
         ALFRED_TOKEN,
@@ -82,8 +77,18 @@ async fn each_format_becomes_a_ready_document_of_the_conversation() {
     let conv = conversation(&client).await;
     alfred_turn(&host, &conv);
     let cases = [
-        ("xlsx", "Ventas.xlsx", "Mes,Total\nEnero,10", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-        ("docx", "Carta.docx", "# Carta", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        (
+            "xlsx",
+            "Ventas.xlsx",
+            "Mes,Total\nEnero,10",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        (
+            "docx",
+            "Carta.docx",
+            "# Carta",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ),
         ("pdf", "Informe.pdf", "# Informe", "application/pdf"),
         ("csv", "datos.csv", "a,b\n1,2", "text/csv"),
         ("txt", "nota.txt", "hola", "text/plain"),
@@ -193,7 +198,13 @@ async fn a_full_conversation_quota_refuses_with_quota_exceeded() {
     alfred_turn(&host, &conv);
     for number in 0..10 {
         host.chat
-            .begin_attachment(&conv, &format!("pre-{number}"), "grande.csv", TEN_MIB, &"ab".repeat(32))
+            .begin_attachment(
+                &conv,
+                &format!("pre-{number}"),
+                "grande.csv",
+                TEN_MIB,
+                &"ab".repeat(32),
+            )
             .expect("declared");
     }
 
@@ -248,5 +259,8 @@ async fn a_creation_is_audited_by_tool_and_id_never_by_content() {
         .expect("audit log");
     assert!(log.contains("doc.create"), "{log}");
     assert!(log.contains(id), "{log}");
-    assert!(!log.contains("secreto-del-contenido"), "the content never reaches the audit");
+    assert!(
+        !log.contains("secreto-del-contenido"),
+        "the content never reaches the audit"
+    );
 }

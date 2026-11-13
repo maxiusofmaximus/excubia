@@ -1,7 +1,7 @@
 //! The HTML sanitizer of an owner's draft (MAIL-SANITIZE-HTML): the attacks of the
 //! brief, one behaviour per test. No Graph, no files, no network.
 
-use excubia_core_mail::{sanitize_html, MailError};
+use excubia_mail::{sanitize_html, MailError};
 
 const MAX_HTML_BYTES: usize = 2 * 1024 * 1024;
 

@@ -2,7 +2,7 @@
 //! and a ZIP built by hand, so no test needs a real Office or PDF file.
 #![allow(dead_code)]
 
-use excubia_core_crafting::{
+use excubia_crafting::{
     App, Captured, CraftError, Document, Invocation, Runner, Tools, CONFIG_FILE,
 };
 use std::env::consts::EXE_SUFFIX;

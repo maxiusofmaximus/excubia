@@ -3,8 +3,8 @@
 
 mod support;
 
-use excubia_core_mail::mover::OTHER_FOLDER;
-use excubia_core_mail::{GraphClient, MailError, MoveDest};
+use excubia_mail::mover::OTHER_FOLDER;
+use excubia_mail::{GraphClient, MailError, MoveDest};
 use serde_json::json;
 use support::mock::{MockResponse, MockTransport};
 use support::{in_memory_ledger, ACCESS_TOKEN, ACCOUNT};

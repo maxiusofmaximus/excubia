@@ -80,7 +80,7 @@ pub fn tmp_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
     use serde::Deserialize;
 
     #[derive(Debug, PartialEq, Serialize, Deserialize)]

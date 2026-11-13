@@ -1,8 +1,8 @@
 //! The notes of the agenda over REST (AGENDA-REST): the bodies a device sends, the JSON
 //! it reads, and the store calls behind them. The tool parser checks every field.
 
-use excubia_core_chat::{ChatStore, Note, NoteHit};
-use excubia_core_seat::{NoteCall, ToolCall};
+use excubia_chat::{ChatStore, Note, NoteHit};
+use excubia_seat::{NoteCall, ToolCall};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

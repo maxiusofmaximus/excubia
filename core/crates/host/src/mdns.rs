@@ -12,7 +12,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use excubia_core_api::PakeSlot;
+use excubia_api::PakeSlot;
 use mdns_sd::{IfKind, ServiceDaemon, ServiceInfo};
 use rand_core::{OsRng, RngCore};
 use tokio::sync::oneshot;

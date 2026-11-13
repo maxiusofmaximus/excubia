@@ -1,5 +1,5 @@
-//! The fake host of the `pake_pair` tests: a rustls server with a `excubia_core_pin::Identity` that speaks the
-//! host side of `/v1/pair/pake/*` with `excubia_core_pake::Role::Host` and reads its own RFC 9266 exporter.
+//! The fake host of the `pake_pair` tests: a rustls server with a `excubia_pin::Identity` that speaks the
+//! host side of `/v1/pair/pake/*` with `excubia_pake::Role::Host` and reads its own RFC 9266 exporter.
 
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener};
@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use excubia_core_pake::{Code, Role, Session, SessionKey};
-use excubia_core_pin::{server_config, Identity};
+use excubia_pake::{Code, Role, Session, SessionKey};
+use excubia_pin::{server_config, Identity};
 use rustls::{ServerConnection, StreamOwned};
 use serde_json::{json, Value};
 

@@ -1,13 +1,13 @@
 //! The document CLIs of the host (DOC5B): the tools found at start, run through
-//! `excubia-core-crafting`. One `Craft` serves every read by `doc.read` and every page
+//! `excubia-crafting`. One `Craft` serves every read by `doc.read` and every page
 //! the API previews.
 
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use excubia_core_api::{DocTool, DocumentPages, PageError, PageSource, RenderedPage};
-use excubia_core_crafting::{
+use excubia_api::{DocTool, DocumentPages, PageError, PageSource, RenderedPage};
+use excubia_crafting::{
     App, CraftError, Document, Driver, Kind, Preview, ProcessRunner, ReadOpts, ReadOut, Runner,
     Tools,
 };

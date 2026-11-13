@@ -1,8 +1,8 @@
 //! `mail.folders` (F2A): the top-level folders of one account, read only. One GET for
 //! the list; the read is audited by account and tool, never by a folder name.
 
-use excubia_core_mail::{MailError, ReadRecord};
-use excubia_core_seat::FoldersQuery;
+use excubia_mail::{MailError, ReadRecord};
+use excubia_seat::FoldersQuery;
 use serde_json::Value;
 
 use crate::mail_read;

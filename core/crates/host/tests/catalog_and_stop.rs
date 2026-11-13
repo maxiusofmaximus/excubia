@@ -4,8 +4,8 @@ mod harness;
 
 use std::time::Duration;
 
+use excubia_auth::Permission;
 use harness::{process_exists, wait_for_status, wait_until_gone, TestHost};
-use excubia_core_auth::Permission;
 use serde_json::{json, Value};
 
 fn workdir() -> String {
@@ -56,7 +56,7 @@ async fn the_catalog_lists_names_and_availability_without_paths() {
 
     // A device without read_state fails closed (403).
     let (readerless, paired) = host.pair("no read state").await;
-    let path = excubia_core_host::paths::devices_path(&host.data_dir);
+    let path = excubia_host::paths::devices_path(&host.data_dir);
     let mut file = read_json(&path);
     for device in file["devices"].as_array_mut().expect("devices") {
         if device["device_id"] == paired.device_id.as_str() {
@@ -178,7 +178,7 @@ async fn stopping_a_restored_pane_is_refused() {
 async fn the_catalogue_reloads_without_a_restart() {
     let host = TestHost::start("catalog-reload").await;
     let client = host.paired_with("reloader", &[Permission::Respond]).await;
-    let path = excubia_core_host::paths::agents_path(&host.data_dir);
+    let path = excubia_host::paths::agents_path(&host.data_dir);
     let fake = env!("CARGO_BIN_EXE_fake-agent");
 
     // The harness catalogue starts with fake + missing.

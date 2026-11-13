@@ -22,7 +22,7 @@ pub const LINK_PREFIX: &str = "excubia://pair?";
 pub const LINK_VERSION: u32 = 1;
 const MAX_CODE_CHARS: usize = 64;
 pub const PAKE_LINK_VERSION: u32 = 2;
-/// Characters of a PAKE code and the symbols they come from: a copy of `excubia_core_pake::Code`, which this crate
+/// Characters of a PAKE code and the symbols they come from: a copy of `excubia_pake::Code`, which this crate
 /// cannot depend on; a test compares both.
 const PAKE_CODE_CHARS: usize = 8;
 const PAKE_CODE_ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -277,11 +277,7 @@ mod tests {
         let link = sample();
         let uri = link.to_uri();
         assert!(uri.starts_with("excubia://pair?v=1&"), "{uri}");
-        for scheme in [
-            "herdr://pair?",
-            "excubia-x://pair?",
-            "EXCUBIA://pair?",
-        ] {
+        for scheme in ["herdr://pair?", "excubia-x://pair?", "EXCUBIA://pair?"] {
             let other = uri.replacen("excubia://pair?", scheme, 1);
             assert!(
                 matches!(PairingLink::parse(&other), Err(PinError::MalformedLink(_))),
@@ -295,7 +291,10 @@ mod tests {
         let link = sample();
         let uri = link.to_uri();
         let legacy = uri.replacen(LINK_PREFIX, LEGACY_LINK_PREFIX, 1);
-        assert_eq!(PairingLink::parse(&legacy).expect("legacy link").to_uri(), uri);
+        assert_eq!(
+            PairingLink::parse(&legacy).expect("legacy link").to_uri(),
+            uri
+        );
     }
 
     #[test]

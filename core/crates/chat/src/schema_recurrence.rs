@@ -32,7 +32,7 @@ pub fn migrate_to_19(connection: &mut Connection) -> Result<(), ChatError> {
 #[cfg(test)]
 mod tests {
     use crate::schema::{open, SCHEMA_VERSION};
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
     use rusqlite::Connection;
 
     use super::add_recurrence_schema;

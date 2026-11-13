@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use excubia_core_chat::{
+use excubia_chat::{
     AttachmentError, ChatError, ChatSeat, ChatStore, SeatActor, SeatError, ToolError,
     ToolErrorKind, ToolReply, ToolRequest, Turn, MAX_ATTACHMENTS_PER_MESSAGE,
 };

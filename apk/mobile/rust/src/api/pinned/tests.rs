@@ -1,6 +1,6 @@
 //! Unit tests of the pairing link and the SAS entry points.
 
-use excubia_core_pin::{Fingerprint, PairingLink, PinSet};
+use excubia_pin::{Fingerprint, PairingLink, PinSet};
 
 use super::*;
 

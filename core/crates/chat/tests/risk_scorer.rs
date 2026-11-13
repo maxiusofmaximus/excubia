@@ -8,7 +8,7 @@ mod scorer_support;
 use std::time::{Duration, Instant};
 
 use common::{team, Team};
-use excubia_core_chat::{
+use excubia_chat::{
     action_digest, Approval, ApprovalKind, ApprovalStatus, NewApproval, Risk, DEFAULT_TTL_SECONDS,
 };
 use scorer_support::{closed_port, Behaviour, Scorer};
@@ -83,7 +83,7 @@ fn a_low_score_in_an_auto_ok_category_approves_and_names_the_scorer() {
     let scorer = Scorer::start(Behaviour::Scores(risky));
     let team = team("scorer-approve");
     configure(&team, &local(scorer.port, "\"read\", \"test\", \"build\""));
-    let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+    let approval = ask(&team, None, "cargo test -p excubia-chat");
     assert_eq!(approval.status, ApprovalStatus::Approved);
     assert_eq!(approval.level.as_deref(), Some("scorer"));
     assert_eq!(approval.decider_kind.as_deref(), Some("scorer"));
@@ -100,7 +100,7 @@ fn a_low_score_outside_the_auto_ok_categories_goes_to_the_lead() {
     let scorer = Scorer::start(Behaviour::Scores(risky));
     let team = team("scorer-not-auto-ok");
     configure(&team, &local(scorer.port, "\"read\""));
-    let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+    let approval = ask(&team, None, "cargo test -p excubia-chat");
     assert_at_lead(&approval, "scorer_not_auto_ok");
     assert_eq!(approval.risk_score, Some(0.05));
     assert_eq!(approval.scorer_version.as_deref(), Some("clef-flash@p1"));
@@ -111,7 +111,7 @@ fn a_medium_score_climbs_to_the_lead() {
     let scorer = Scorer::start(Behaviour::Scores(|_| 0.4));
     let team = team("scorer-medium");
     configure(&team, &local(scorer.port, "\"test\""));
-    let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+    let approval = ask(&team, None, "cargo test -p excubia-chat");
     assert_at_lead(&approval, "scorer_risk");
     assert_eq!(approval.risk_score, Some(0.4));
 }
@@ -121,7 +121,7 @@ fn a_high_risk_action_is_never_approved_by_the_scorer() {
     let scorer = Scorer::start(Behaviour::Scores(risky));
     let team = team("scorer-high");
     configure(&team, &local(scorer.port, "\"test\""));
-    let approval = ask(&team, Some(Risk::High), "cargo test -p excubia-core-chat");
+    let approval = ask(&team, Some(Risk::High), "cargo test -p excubia-chat");
     assert_at_lead(&approval, "scorer_not_auto_ok");
     assert_eq!(
         scorer.hits(),
@@ -145,7 +145,7 @@ fn a_never_delegated_action_never_reaches_the_scorer() {
 fn a_refused_connection_goes_to_the_lead_and_says_why() {
     let team = team("scorer-down");
     configure(&team, &local(closed_port(), "\"test\""));
-    let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+    let approval = ask(&team, None, "cargo test -p excubia-chat");
     assert_at_lead(&approval, "scorer_unavailable");
     assert_eq!(approval.risk_score, None);
     assert_eq!(approval.scorer_version.as_deref(), Some("clef-flash@p1"));
@@ -157,7 +157,7 @@ fn a_slow_scorer_is_cut_at_its_budget_and_the_lead_gets_the_action() {
     let team = team("scorer-slow");
     configure(&team, &local(scorer.port, "\"test\""));
     let started = Instant::now();
-    let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+    let approval = ask(&team, None, "cargo test -p excubia-chat");
     let waited = started.elapsed();
     assert_at_lead(&approval, "scorer_unavailable");
     assert!(
@@ -175,7 +175,7 @@ fn an_answer_that_is_not_a_score_or_an_error_goes_to_the_lead() {
         let scorer = Scorer::start(behaviour);
         let team = team("scorer-bad-answer");
         configure(&team, &local(scorer.port, "\"test\""));
-        let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+        let approval = ask(&team, None, "cargo test -p excubia-chat");
         assert_at_lead(&approval, "scorer_unavailable");
     }
 }
@@ -187,7 +187,7 @@ fn the_cloud_backend_fails_closed_without_a_call() {
         &team,
         "backend = \"cloud\"\nendpoint = \"https://scorer.example.test/v1\"\napi_key_env = \"EXCUBIA_SCORER_KEY\"\nauto_ok_if_low = [\"test\"]\n",
     );
-    let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+    let approval = ask(&team, None, "cargo test -p excubia-chat");
     assert_at_lead(&approval, "scorer_unavailable");
 }
 
@@ -198,7 +198,7 @@ fn a_broken_scorer_section_rejects_the_file_and_scores_nothing() {
         &team,
         "backend = \"local_http\"\nendpoint = \"http://10.0.0.5:8765\"\n",
     );
-    let approval = ask(&team, None, "cargo test -p excubia-core-chat");
+    let approval = ask(&team, None, "cargo test -p excubia-chat");
     assert_eq!(approval.status, ApprovalStatus::Approved);
     assert_eq!(approval.decider_kind.as_deref(), Some("policy"));
     assert_eq!(

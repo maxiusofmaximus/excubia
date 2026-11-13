@@ -74,7 +74,7 @@ pub fn admit_app_source(connection: &Connection) -> Result<(), rusqlite::Error> 
 mod tests {
     use super::admit_app_source;
     use crate::schema::{open, open_in_memory, SCHEMA_VERSION};
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
     use rusqlite::params;
 
     /// A version 14 database has the notes and no contacts. Version 15 keeps every

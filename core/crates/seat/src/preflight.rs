@@ -297,7 +297,7 @@ fn path(value: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_core_test_dir::TestDir;
+    use excubia_test_dir::TestDir;
 
     #[test]
     fn a_plugin_that_did_not_load_is_unsafe() {

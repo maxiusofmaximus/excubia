@@ -11,7 +11,7 @@ use axum::Json;
 use serde::Deserialize;
 use serde_json::json;
 
-use excubia_core_chat::AcceptedMessage;
+use excubia_chat::AcceptedMessage;
 
 use crate::error::ApiError;
 use crate::routes::parse_body;

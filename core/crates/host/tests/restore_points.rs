@@ -9,10 +9,10 @@ mod harness;
 use std::fs;
 use std::path::Path;
 
+use excubia_auth::Permission;
+use excubia_host::SpawnSpec;
+use excubia_test_dir::TestDir;
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_host::SpawnSpec;
-use excubia_core_test_dir::TestDir;
 use serde_json::Value;
 
 /// A point id that is well formed and was never issued.

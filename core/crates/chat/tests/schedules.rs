@@ -7,7 +7,7 @@ mod common;
 mod schedule_support;
 
 use common::team;
-use excubia_core_chat::{ChatError, Claim, RunOutcome, ScheduleStatus};
+use excubia_chat::{ChatError, Claim, RunOutcome, ScheduleStatus};
 
 use schedule_support::*;
 

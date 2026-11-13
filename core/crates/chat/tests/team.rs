@@ -4,7 +4,7 @@
 mod common;
 
 use common::team;
-use excubia_core_chat::{ChatError, DelegationState};
+use excubia_chat::{ChatError, DelegationState};
 #[test]
 fn the_tree_is_alfred_lead_specialist() {
     let t = team("tree");

@@ -7,9 +7,9 @@ mod harness;
 use std::io::Cursor;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
+use excubia_auth::Permission;
+use excubia_test_support::SignedClient;
 use harness::TestHost;
-use excubia_core_auth::Permission;
-use excubia_core_test_support::SignedClient;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 

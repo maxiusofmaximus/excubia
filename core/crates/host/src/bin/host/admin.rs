@@ -6,16 +6,16 @@ use std::net::SocketAddr;
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
-use excubia_core_api::{AuditEvent, AuditSink};
-use excubia_core_auth::{DeviceStore, Permission};
-use excubia_core_chat::{ChatStore, HookScope};
-use excubia_core_host::audit::AuditLog;
-use excubia_core_host::cli::{DevicesCommand, TlsCommand};
-use excubia_core_host::mail_cli::{self, MailInvocation};
-use excubia_core_host::pake_cli;
-use excubia_core_host::tls_slots::TlsSlots;
-use excubia_core_host::{load_hook_token, paths};
-use excubia_core_pin::{unix_now, PairingLink};
+use excubia_api::{AuditEvent, AuditSink};
+use excubia_auth::{DeviceStore, Permission};
+use excubia_chat::{ChatStore, HookScope};
+use excubia_host::audit::AuditLog;
+use excubia_host::cli::{DevicesCommand, TlsCommand};
+use excubia_host::mail_cli::{self, MailInvocation};
+use excubia_host::pake_cli;
+use excubia_host::tls_slots::TlsSlots;
+use excubia_host::{load_hook_token, paths};
+use excubia_pin::{unix_now, PairingLink};
 
 /// Mint a single-use pairing code. Only its hash is stored, so the plaintext
 /// exists on this screen and nowhere else. With `--lan` it also prints the
@@ -101,7 +101,7 @@ pub(super) fn tls(command: TlsCommand, data_dir: &Path) -> Result<()> {
 /// Print (or write) the Claude settings the seat gives each run: the same bytes
 /// `launch` writes, so a harness that runs Claude by hand cannot drift from it.
 pub(super) fn claude_settings(hook: &Path, out: Option<&Path>) -> Result<()> {
-    let bytes = excubia_core_seat::claude_settings(hook).context("encode the Claude settings")?;
+    let bytes = excubia_seat::claude_settings(hook).context("encode the Claude settings")?;
     match out {
         Some(path) => {
             std::fs::write(path, bytes).with_context(|| format!("write {}", path.display()))?
@@ -169,7 +169,7 @@ pub(super) fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {
                     revoked
                 );
                 if device.permissions.is_empty() && !device.revoked {
-                    if let Some(text) = excubia_core_api::device_sas(pin.as_ref(), &device) {
+                    if let Some(text) = excubia_api::device_sas(pin.as_ref(), &device) {
                         println!("    cadena de verificación: {text}");
                     }
                 }

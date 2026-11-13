@@ -10,7 +10,7 @@
 
 use std::sync::Arc;
 
-use excubia_core_pin::{CertificateInfo, PinError};
+use excubia_pin::{CertificateInfo, PinError};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::crypto::ring::default_provider;
 use rustls::crypto::CryptoProvider;

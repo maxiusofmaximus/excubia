@@ -34,7 +34,11 @@ const LEGACY_HEADER_TIMESTAMP: &str = "X-HN-Timestamp";
 const LEGACY_HEADER_NONCE: &str = "X-HN-Nonce";
 const LEGACY_HEADER_SIGNATURE: &str = "X-HN-Signature";
 
-fn header_or_legacy<'a>(headers: &'a dyn HeaderSource, current: &str, legacy: &str) -> Option<&'a str> {
+fn header_or_legacy<'a>(
+    headers: &'a dyn HeaderSource,
+    current: &str,
+    legacy: &str,
+) -> Option<&'a str> {
     headers.header(current).or_else(|| headers.header(legacy))
 }
 
@@ -198,9 +202,11 @@ impl RequestVerifier {
 
     pub fn verify(&self, request: &SignedRequest<'_>) -> Result<VerifiedDevice, Unauthorized> {
         let device_id = header_or_legacy(request.headers, HEADER_DEVICE, LEGACY_HEADER_DEVICE);
-        let timestamp_raw = header_or_legacy(request.headers, HEADER_TIMESTAMP, LEGACY_HEADER_TIMESTAMP);
+        let timestamp_raw =
+            header_or_legacy(request.headers, HEADER_TIMESTAMP, LEGACY_HEADER_TIMESTAMP);
         let nonce = header_or_legacy(request.headers, HEADER_NONCE, LEGACY_HEADER_NONCE);
-        let signature_raw = header_or_legacy(request.headers, HEADER_SIGNATURE, LEGACY_HEADER_SIGNATURE);
+        let signature_raw =
+            header_or_legacy(request.headers, HEADER_SIGNATURE, LEGACY_HEADER_SIGNATURE);
         let (Some(device_id), Some(timestamp_raw), Some(nonce), Some(signature_raw)) =
             (device_id, timestamp_raw, nonce, signature_raw)
         else {

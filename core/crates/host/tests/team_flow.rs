@@ -10,10 +10,10 @@ mod harness;
 
 use std::time::{Duration, Instant};
 
+use excubia_auth::Permission;
+use excubia_chat::DelegationState;
+use excubia_test_support::client::SignedClient;
 use harness::{SeatKind, TestHost};
-use excubia_core_auth::Permission;
-use excubia_core_chat::DelegationState;
-use excubia_core_test_support::client::SignedClient;
 use serde_json::Value;
 
 const TTL: Duration = Duration::from_secs(45);
@@ -309,7 +309,7 @@ async fn six_live_panels_stop_the_seventh() {
     let deadline = Instant::now() + CLI_TIMEOUT;
     loop {
         let state = host.chat.run_state(&run_id).expect("run state");
-        if state.is_some_and(|state| state == excubia_core_chat::RunState::Failed) {
+        if state.is_some_and(|state| state == excubia_chat::RunState::Failed) {
             break;
         }
         assert!(

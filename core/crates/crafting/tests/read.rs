@@ -1,7 +1,7 @@
 mod support;
 
-use excubia_core_crafting::{App, CraftError, Driver, ReadOpts, MAX_OUTPUT_BYTES};
-use excubia_core_test_dir::TestDir;
+use excubia_crafting::{App, CraftError, Driver, ReadOpts, MAX_OUTPUT_BYTES};
+use excubia_test_dir::TestDir;
 use support::{
     args, document, failed, fake_tools, ok, ooxml_zip, shape, ScriptedRunner, CSV, DOCX, JSON, PDF,
     TXT, XLSX,
@@ -10,8 +10,8 @@ use support::{
 const SHEETS: &str = r#"{"sheets":[{"name":"Hoja1"},{"name":"Resumen"}]}"#;
 
 fn grid_reply(
-    inv: &excubia_core_crafting::Invocation,
-) -> Result<excubia_core_crafting::Captured, CraftError> {
+    inv: &excubia_crafting::Invocation,
+) -> Result<excubia_crafting::Captured, CraftError> {
     if args(inv)[0] == "info" {
         Ok(ok(SHEETS))
     } else {
@@ -335,7 +335,7 @@ fn truncation_reported_by_the_runner_reaches_the_caller() {
     let root = TestDir::new("craft-read-trunc");
     let tools = fake_tools(&root, &[App::WordCraft]);
     let runner = ScriptedRunner::new(|_| {
-        Ok(excubia_core_crafting::Captured {
+        Ok(excubia_crafting::Captured {
             truncated: true,
             ..ok("parcial")
         })

@@ -1,5 +1,5 @@
 //! `/v1/recipes` (F5): the recipes a person keeps per oficio. The matrix that
-//! guards them is `excubia-core-auth`'s `authz/recipes.rs`; the store runs the guard.
+//! guards them is `excubia-auth`'s `authz/recipes.rs`; the store runs the guard.
 //! The audit names ids only: a recipe's text never reaches the log.
 
 use axum::body::Bytes;
@@ -7,8 +7,8 @@ use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use excubia_core_auth::VerifiedDevice;
-use excubia_core_chat::{draft_text, RecipeText};
+use excubia_auth::VerifiedDevice;
+use excubia_chat::{draft_text, RecipeText};
 use serde::Deserialize;
 use serde_json::{json, Value};
 

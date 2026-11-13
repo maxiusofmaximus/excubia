@@ -7,7 +7,7 @@ use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use excubia_core_auth::VerifiedDevice;
+use excubia_auth::VerifiedDevice;
 use serde::Deserialize;
 use serde_json::Value;
 

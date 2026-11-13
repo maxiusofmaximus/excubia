@@ -3,9 +3,9 @@
 
 use std::time::{Duration, Instant};
 
-use excubia_core_chat::action_digest;
-use excubia_core_seat::env;
-use excubia_core_seat::http::{self, LoopbackUrl};
+use excubia_chat::action_digest;
+use excubia_seat::env;
+use excubia_seat::http::{self, LoopbackUrl};
 use serde_json::{json, Value};
 
 use super::request::Request;

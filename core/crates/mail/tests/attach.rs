@@ -3,7 +3,7 @@ mod support;
 use std::fs;
 use std::path::Path;
 
-use excubia_core_mail::{
+use excubia_mail::{
     attach_chat_file, attach_file, Approval, AttachContext, AttachedFile, GraphClient, Ledger,
     MailError, SMALL_ATTACHMENT_LIMIT,
 };

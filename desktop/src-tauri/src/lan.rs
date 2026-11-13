@@ -4,7 +4,7 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 
 use excubia_desktop_core::PairLink;
-use excubia_core_pin::{unix_now, PakeLink};
+use excubia_pin::{unix_now, PakeLink};
 use qrcode::render::svg;
 use qrcode::QrCode;
 

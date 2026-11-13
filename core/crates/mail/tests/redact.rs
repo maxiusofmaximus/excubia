@@ -1,6 +1,6 @@
 mod support;
 
-use excubia_core_mail::{redact, MailError, Redacted, Secret};
+use excubia_mail::{redact, MailError, Redacted, Secret};
 
 const TOKEN: &str =
     "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJleGN1YmlhIn0.c2lnbmF0dXJlLWxvbmctZW5vdWdo";

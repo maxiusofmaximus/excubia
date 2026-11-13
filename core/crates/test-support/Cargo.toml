@@ -1,5 +1,5 @@
 [package]
-name = "excubia-core-test-support"
+name = "excubia-test-support"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,8 +10,8 @@ description = "Test-only signed HTTP client for Excubia core (a dev-dependency; 
 async-trait = "0.1"
 base64.workspace = true
 hex.workspace = true
-excubia-core-auth = { path = "../auth" }
-excubia-core-chat = { path = "../chat" }
+excubia-auth = { path = "../auth" }
+excubia-chat = { path = "../chat" }
 p256.workspace = true
 rand_core.workspace = true
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

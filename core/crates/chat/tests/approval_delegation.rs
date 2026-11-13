@@ -5,7 +5,7 @@
 mod common;
 
 use common::{team, Team};
-use excubia_core_chat::{
+use excubia_chat::{
     action_digest, Approval, ApprovalKind, ApprovalStatus, ChatError, Decision, HookScope,
     NewApproval, NewProject, SeatActor, DEFAULT_TTL_SECONDS,
 };
