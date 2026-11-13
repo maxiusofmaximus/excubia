@@ -3,28 +3,30 @@
 
 :root {
   color-scheme: light dark;
-  --bg: #ffffff;
-  --surface: #f3f6f5;
-  --text: #1b2321;
-  --muted: #4a5654;
-  --accent: #0f6b6b;
-  --accent-text: #ffffff;
-  --border: #d3dcd9;
-  --link: #0f6b6b;
-  --focus: #0f6b6b;
+  /* Marca: azul noche y latón. Claro = pergamino; oscuro = noche. */
+  --bg: #fbf7ee;
+  --surface: #f3ecdc;
+  --text: #14213d;
+  --muted: #46516b;
+  --accent: #14213d;
+  --accent-text: #f3e3c0;
+  --border: #d9cfb8;
+  --link: #1f3f8f;
+  --focus: #1f3f8f;
+  --brass: #f2a93b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121614;
-    --surface: #1b211f;
-    --text: #e8efec;
-    --muted: #a9b8b5;
-    --accent: #7fd6cc;
-    --accent-text: #0b1a18;
-    --border: #2e3836;
-    --link: #7fd6cc;
-    --focus: #7fd6cc;
+    --bg: #0b1426;
+    --surface: #14213d;
+    --text: #f3e3c0;
+    --muted: #a9b6d3;
+    --accent: #f2a93b;
+    --accent-text: #0b1426;
+    --border: #2a3b66;
+    --link: #f2a93b;
+    --focus: #f2a93b;
   }
 }
 
@@ -48,9 +50,24 @@ a {
   color: var(--link);
 }
 
-a:focus-visible {
+a:focus-visible,
+pre:focus-visible,
+video:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* Enlace para saltar la cabecera: solo se ve al recibir el foco. */
+.skip {
+  position: absolute;
+  left: 16px;
+  top: -100px;
+  padding: 8px 12px;
+  background: var(--bg);
+}
+
+.skip:focus {
+  top: 8px;
 }
 
 h1,
@@ -114,14 +131,24 @@ h3 {
 
 .hero-icon {
   display: block;
-  width: 128px;
-  height: 128px;
+  width: 112px;
+  height: 112px;
   margin-bottom: 20px;
 }
 
 .hero h1 {
   margin: 0 0 12px;
-  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-size: clamp(2.25rem, 7vw, 3.5rem);
+  letter-spacing: 0.02em;
+}
+
+.hero h1::after {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 4px;
+  margin-top: 12px;
+  background: var(--brass);
 }
 
 .lead {
@@ -221,6 +248,58 @@ section.wrap h2 {
   margin: 0 0 8px;
 }
 
+/* Vídeo y bloque de comando */
+
+.film {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: #0b1426;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+pre {
+  margin: 0 0 8px;
+  padding: 12px;
+  overflow-x: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+/* Los pasos son rejilla: sin esto, el comando largo ensancha su columna en móvil. */
+.steps li,
+.points li {
+  min-width: 0;
+}
+
+.points {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points li {
+  padding-left: 16px;
+  border-left: 4px solid var(--brass);
+}
+
+.points h3 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+
+.points p {
+  margin: 0;
+  color: var(--muted);
+}
+
 /* Tarjetas */
 
 .cards {
@@ -269,7 +348,7 @@ section.wrap h2 {
 /* Anchos a partir de tableta y escritorio */
 
 @media (min-width: 640px) {
-  .steps {
+  .points {
     grid-template-columns: repeat(3, 1fr);
   }
 

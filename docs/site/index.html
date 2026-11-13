@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Excubia: documentación</title>
-  <meta name="description" content="Controla desde el móvil los agentes de programación que corren en tu PC: mira su estado, aprueba sus peticiones y habla con Alfred.">
+  <title>Excubia: tu PC aloja a tus agentes de IA</title>
+  <meta name="description" content="Excubia convierte tu PC en la base de tus agentes de IA de línea de comandos. Hablas con Alfred, que reparte el trabajo, y apruebas lo delicado desde el móvil o el escritorio.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="./"><img src="favicon.svg" alt="" width="28" height="28">Excubia</a>
@@ -20,37 +21,63 @@
     </div>
   </header>
 
-  <main>
+  <main id="contenido">
     <section class="hero wrap">
-      <img class="hero-icon" src="icon.svg" alt="Icono de la app: el yelmo de un Excubitor, la guardia que vela de noche" width="128" height="128">
+      <img class="hero-icon" src="icon.svg" alt="Icono de Excubia: el yelmo de un excubitor, la guardia que vela de noche" width="112" height="112">
       <h1>Excubia</h1>
-      <p class="lead">Mira desde el móvil lo que hacen tus agentes de programación que corren en tu PC, y responde a sus peticiones sin estar delante.</p>
+      <p class="lead">Tu PC aloja a tus agentes de IA de línea de comandos. Tú hablas con Alfred, que reparte el trabajo entre el equipo, y lo delicado espera tu aprobación desde el móvil o el escritorio.</p>
       <div class="actions">
-        <a class="btn primary" href="https://github.com/maxiusofmaximus/excubia/releases">Descargar</a>
+        <a class="btn primary" href="#instalar">Instalar</a>
         <a class="btn secondary" href="guide/">Guía de usuario</a>
       </div>
-      <p class="note">La app Android se descarga desde las Releases de GitHub. El host de escritorio se compila desde el código: todavía no hay instalador.</p>
     </section>
 
-    <section class="wrap" aria-labelledby="inicio">
-      <h2 id="inicio">Inicio rápido</h2>
-      <ol class="steps">
+    <section class="wrap" aria-labelledby="video">
+      <h2 id="video">Excubia en 30 segundos</h2>
+      <video class="film" controls preload="none" poster="media/excubia-poster.jpg" width="1920" height="1080" aria-describedby="video-texto">
+        <source src="media/excubia.mp4" type="video/mp4">
+        <a href="media/excubia.mp4">Descargar el vídeo (MP4)</a>
+      </video>
+      <p class="note" id="video-texto">El vídeo dura 32 segundos y lleva música, sin voz. Muestra el chat con Alfred en el móvil, el equipo de agentes en el escritorio y una petición que espera aprobación.</p>
+    </section>
+
+    <section class="wrap" aria-labelledby="como">
+      <h2 id="como">Cómo funciona</h2>
+      <ul class="points">
         <li>
-          <h3>Instala la app</h3>
-          <p>Descarga el APK de la última versión e instálalo en tu móvil Android.</p>
-          <a href="guide/instalar-apk.html">Cómo instalar la app</a>
+          <h3>Hablas con Alfred</h3>
+          <p>Abres un chat con Alfred, el orquestador. Él decide qué agente hace cada parte y te responde.</p>
         </li>
         <li>
-          <h3>Prepara el host</h3>
-          <p>Compila el host en tu PC con Windows y déjalo en marcha.</p>
-          <a href="guide/instalar-host.html">Cómo preparar el host</a>
+          <h3>El equipo trabaja en tu PC</h3>
+          <p>Los agentes son los de línea de comandos que ya tienes instalados. Trabajan en la carpeta que elijas para cada conversación.</p>
+        </li>
+        <li>
+          <h3>Tú apruebas lo delicado</h3>
+          <p>Ejecutar un comando o enviar un correo espera tu visto bueno, en el móvil o en el escritorio.</p>
+        </li>
+      </ul>
+    </section>
+
+    <section class="wrap" aria-labelledby="instalar">
+      <h2 id="instalar">Instalar</h2>
+      <ol class="steps">
+        <li>
+          <h3>Escritorio en Windows</h3>
+          <p>Abre PowerShell y pega esta línea. Descarga el instalador de la última versión, comprueba su huella y lo instala para tu usuario.</p>
+          <pre tabindex="0" aria-label="Comando de instalación"><code>irm https://raw.githubusercontent.com/maxiusofmaximus/excubia/main/desktop/scripts/install.ps1 | iex</code></pre>
+          <p>O descarga el instalador a mano: <a href="https://github.com/maxiusofmaximus/excubia/releases/tag/desktop-v2.3.1">escritorio 2.3.1</a>. Más detalle en <a href="guide/instalar-host.html">instalar el escritorio</a>.</p>
+        </li>
+        <li>
+          <h3>App Android</h3>
+          <p>Descarga el APK de la <a href="https://github.com/maxiusofmaximus/excubia/releases/tag/v2.3.2">versión 2.3.2</a> e instálalo en el móvil. Los pasos están en <a href="guide/instalar-apk.html">instalar la app</a>.</p>
         </li>
         <li>
           <h3>Empareja el móvil</h3>
-          <p>Escanea el código QR del escritorio o pega el enlace de emparejamiento.</p>
-          <a href="guide/emparejar.html">Cómo emparejar</a>
+          <p>Escanea el código QR que muestra el escritorio. Los pasos están en <a href="guide/emparejar.html">emparejar el móvil</a>.</p>
         </li>
       </ol>
+      <p class="note">Todas las versiones están en las <a href="https://github.com/maxiusofmaximus/excubia/releases">Releases de GitHub</a>.</p>
     </section>
 
     <section class="wrap" aria-labelledby="documentacion">
