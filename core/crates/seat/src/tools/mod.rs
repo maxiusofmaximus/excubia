@@ -20,12 +20,14 @@ mod doc;
 mod doc_definitions;
 mod mail;
 mod mail_organize_definitions;
+mod mail_rule_definitions;
 mod note;
 mod parse;
 mod pending;
 mod plan;
 mod reply_definitions;
 mod status;
+mod style;
 
 #[cfg(test)]
 mod tests;
@@ -40,9 +42,11 @@ pub use definitions::definitions;
 pub use doc::{DocCreate, DocFormat, DocRead};
 pub use mail::{
     check_draft_fields, AttachSource, BodyFormat, DraftFields, DraftRef, DraftUpdate, FoldersQuery,
-    InboxFolder, InboxQuery, MailAttach, MailCall, MessageRef, MoveApply, MoveFolder, MoveProposal,
-    MoveUndo, Organize, ProposedMove, TriageQuery, UndoList,
+    InboxFolder, InboxQuery, MailAttach, MailCall, MailRuleDraft, MessageRef, MoveApply,
+    MoveFolder, MoveProposal, MoveUndo, Organize, ProposedMove, RuleActionsDraft,
+    RuleConditionsDraft, RuleFolder, RuleListQuery, TriageQuery, UndoList,
 };
 pub use note::NoteCall;
 pub use parse::parse;
 use parse::{invalid_arguments, name_field, no_arguments, text_error};
+pub use style::{StyleLearnQuery, StyleProposal};

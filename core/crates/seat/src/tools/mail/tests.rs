@@ -111,10 +111,25 @@ fn an_inbox_read_has_safe_defaults_and_bounded_fields() {
         }))
     );
 
+    let drafts = parse(&request(
+        "mail.inbox_list",
+        json!({"account": "t", "folder": "drafts"}),
+    ));
+    assert_eq!(
+        drafts,
+        Ok(MailCall::InboxList(InboxQuery {
+            account: "t".into(),
+            folder: InboxFolder::Drafts,
+            limit: 10,
+            unread_only: false,
+            from: None,
+        }))
+    );
+
     for arguments in [
         json!({"account": "t", "limit": 0}),
         json!({"account": "t", "limit": 21}),
-        json!({"account": "t", "folder": "drafts"}),
+        json!({"account": "t", "folder": "archive"}),
         json!({"account": "t", "unread_only": "yes"}),
         json!({"account": "t", "from": ""}),
         json!({"account": "t", "mark_read": true}),

@@ -54,7 +54,11 @@ async fn a_rule_is_created_with_the_exact_body_and_signed() {
     let sent = seen(&captured);
     assert_eq!(sent.method, "POST");
     assert_eq!(sent.target, "/v1/alerts/rules");
-    assert!(sent.headers.contains("x-excubia-signature:"), "{}", sent.headers);
+    assert!(
+        sent.headers.contains("x-excubia-signature:"),
+        "{}",
+        sent.headers
+    );
     assert_eq!(
         String::from_utf8(sent.body).unwrap(),
         r#"{"trigger":"pane_status","agent":"Bob","status":"done","action":"notify"}"#

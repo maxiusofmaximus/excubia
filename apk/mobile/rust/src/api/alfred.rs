@@ -20,9 +20,9 @@ pub fn plan_alfred_backend_read() -> ChatPlan {
 pub fn plan_alfred_backend_set(backend: String) -> ChatPlan {
     let shaped = !backend.is_empty()
         && backend.len() <= 40
-        && backend
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_');
+        && backend.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+        });
     if !shaped {
         return ChatPlan {
             request: None,
@@ -31,7 +31,10 @@ pub fn plan_alfred_backend_set(backend: String) -> ChatPlan {
     }
     post(
         BACKEND.to_string(),
-        json!({ "backend": backend }).as_object().cloned().unwrap_or_default(),
+        json!({ "backend": backend })
+            .as_object()
+            .cloned()
+            .unwrap_or_default(),
     )
 }
 
@@ -71,7 +74,10 @@ mod tests {
     #[test]
     fn the_read_is_a_get_of_the_engine_state() {
         let call = plan_alfred_backend_read().request.expect("a request");
-        assert_eq!((call.method.as_str(), call.target.as_str()), ("GET", BACKEND));
+        assert_eq!(
+            (call.method.as_str(), call.target.as_str()),
+            ("GET", BACKEND)
+        );
         assert!(call.body.is_empty());
     }
 
@@ -90,7 +96,10 @@ mod tests {
 
         for refused in ["", "Open Code", "../etc", "opencode;rm"] {
             let plan = plan_alfred_backend_set(refused.to_string());
-            assert!(plan.request.is_none(), "{refused:?} must not reach the wire");
+            assert!(
+                plan.request.is_none(),
+                "{refused:?} must not reach the wire"
+            );
             assert!(plan.problem.is_some());
         }
     }

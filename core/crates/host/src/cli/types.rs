@@ -96,7 +96,8 @@ pub enum Command {
         command: DevicesCommand,
         data_dir: PathBuf,
     },
-    /// `excubia-host mail login|accounts|logout`: the mailboxes this host signs in.
+    /// `excubia-host mail login|accounts|logout|enable-send|disable-send|enable-rules|disable-rules`:
+    /// the mailboxes this host signs in.
     Mail(crate::mail_cli::MailInvocation),
     /// `excubia-host strata start|stop|status|enable-agent`: the local model backend.
     Strata {

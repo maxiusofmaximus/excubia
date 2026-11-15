@@ -18,7 +18,8 @@ pub const USAGE: &str = "excubia-host [--port N] [--bind ADDR] [--rows R] [--col
        excubia-host devices list [--data-dir DIR]\n\
        excubia-host devices revoke <device_id> [--data-dir DIR]\n\
        excubia-host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]\n\
-       excubia-host devices recovery <device_id> [--data-dir DIR]";
+       excubia-host devices recovery <device_id> [--data-dir DIR]\n\
+       excubia-host mail login|accounts|logout|enable-send|disable-send|enable-rules|disable-rules [--data-dir DIR]";
 
 /// The canonical grant command, exactly as the host CLI accepts it. The
 /// contracts and the clients' hints quote this text; a test keeps it equal to

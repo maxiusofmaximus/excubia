@@ -10,20 +10,23 @@ use crate::clock::iso;
 use crate::error::ChatError;
 use crate::id;
 use crate::model_approval::{
-    max_ttl_seconds, Approval, ApprovalStatus, NewApproval, MAIL_ACTIONS,
-    MAX_PENDING_PER_CONVERSATION,
+    max_ttl_seconds, Approval, ApprovalStatus, NewApproval, ATTACH_PATH_MAX_TTL_SECONDS,
+    MAIL_ACTIONS, MAX_PENDING_PER_CONVERSATION, MAX_PENDING_STYLE_RULES,
 };
 use crate::model_mode::ApprovalMode;
 use crate::policy::Category;
 use crate::scorer::Judgement;
 
 use super::agenda::delete_key;
+
+/// The tool of a file outside the workspace (`excubia-host::mail_approval::ACTION`).
+const ATTACH_PATH_ACTION: &str = "mail.attach_path";
 use super::approval_level::ApprovalLevel;
 use super::approval_mode;
 use super::approval_policy::{Assessment, Placement, SCORER_ACTOR};
 use super::approval_rules::{
-    approval_by_id, digest_holder, frame_of, pending_in_conversation, project_of_seat,
-    resolve_context, write_audit, ApprovalContext, Decider,
+    approval_by_id, digest_holder, frame_of, pending_in_conversation, pending_of_tool,
+    project_of_seat, resolve_context, write_audit, ApprovalContext, Decider,
 };
 use super::approval_settle;
 use super::company_id;
@@ -100,6 +103,10 @@ impl super::ChatStore {
     /// category is set by the host, whatever the seat and its project: the
     /// rules send it to the operator, so no agent can decide it.
     pub fn create_outside_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.expire_now()?;
+        // Each attach is its own question: the same file may go to another draft, or be
+        // asked again after the card expired unanswered.
+        self.hold_mail_digest(&new.action_digest, true)?;
         self.create_placed(new, Some(Category::OutsideWorkspace))
     }
 
@@ -124,13 +131,27 @@ impl super::ChatStore {
         self.create_mail_approval(new, Category::MailOrganize)
     }
 
+    /// Create the question for one mailbox rule (F3B). Forced to `MailRule`:
+    /// one approval covers one rule, and only a device with APPROVE can let it
+    /// through.
+    pub fn create_mail_rule_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.create_mail_approval(new, Category::MailRule)
+    }
+
+    /// Create the question for one line of the writing rules (RFC estilo-aprendido §3).
+    /// Forced to `StyleRule`: only a device with APPROVE can let it through.
+    pub fn create_style_rule_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.expire_now()?;
+        self.create_placed(new, Some(Category::StyleRule))
+    }
+
     fn create_mail_approval(
         &self,
         new: NewApproval,
         category: Category,
     ) -> Result<Approval, ChatError> {
         self.expire_now()?;
-        self.hold_mail_digest(&new.action_digest)?;
+        self.hold_mail_digest(&new.action_digest, false)?;
         self.create_placed(new, Some(category))
     }
 
@@ -138,15 +159,20 @@ impl super::ChatStore {
     /// (MAILUX-HOST §C). An expired one can no longer be answered, so it lets the
     /// content be asked again: its digest is renamed, which frees the unique index
     /// and keeps the digest in its audit lines. A denied one refuses the content
-    /// until the draft changes. Anything else keeps the content held as before.
-    fn hold_mail_digest(&self, digest: &str) -> Result<(), ChatError> {
+    /// until the draft changes. Anything else keeps the content held as before,
+    /// except a spent one when `reask_spent`: then it is renamed like an expired one.
+    fn hold_mail_digest(&self, digest: &str, reask_spent: bool) -> Result<(), ChatError> {
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
         if let Some(holder) = digest_holder(&transaction, digest)? {
-            if holder.status == ApprovalStatus::Expired.as_str() {
+            let spent = reask_spent && holder.status == ApprovalStatus::Consumed.as_str();
+            if spent || holder.status == ApprovalStatus::Expired.as_str() {
                 transaction.execute(
                     "UPDATE approval SET action_digest = ?1 WHERE id = ?2",
-                    params![format!("{digest}#expired:{}", holder.id), holder.id],
+                    params![
+                        format!("{digest}#{}:{}", holder.status, holder.id),
+                        holder.id
+                    ],
                 )?;
             } else if holder.status == ApprovalStatus::Denied.as_str() {
                 return Err(ChatError::ApprovalDigestRefused);
@@ -208,9 +234,18 @@ impl super::ChatStore {
         if let Some(approval_id) = pending_delete(connection, new)? {
             return Ok(Admission::Existing(approval_id));
         }
-        if pending_in_conversation(connection, context.conversation_id.as_deref())?
-            >= MAX_PENDING_PER_CONVERSATION
-        {
+        // Writing-rule questions have their own room, so Alfred's batch of proposals fits.
+        let full = match reach {
+            Some(Category::StyleRule) => {
+                pending_of_tool(connection, context.conversation_id.as_deref(), &new.tool)?
+                    >= MAX_PENDING_STYLE_RULES
+            }
+            _ => {
+                pending_in_conversation(connection, context.conversation_id.as_deref())?
+                    >= MAX_PENDING_PER_CONVERSATION
+            }
+        };
+        if full {
             return Err(ChatError::ApprovalLimit);
         }
         let assessment = self.assess(connection, new, seat.as_deref(), reach)?;
@@ -253,7 +288,12 @@ impl super::ChatStore {
             placement = placement.scored(judgement, approves);
         }
         let mut placement = placement.under(basis.mode);
-        let ttl_ms = i64::from(new.ttl_seconds.clamp(1, max_ttl_seconds(reach))) * 1000;
+        let max_ttl = if new.tool == ATTACH_PATH_ACTION {
+            ATTACH_PATH_MAX_TTL_SECONDS
+        } else {
+            max_ttl_seconds(reach)
+        };
+        let ttl_ms = i64::from(new.ttl_seconds.clamp(1, max_ttl)) * 1000;
         let expires_ms = now_ms + ttl_ms;
         approval_settle::route(
             &transaction,

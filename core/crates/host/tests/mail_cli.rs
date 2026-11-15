@@ -5,7 +5,7 @@ mod mail_support;
 
 use excubia_host::mail_cli::{self, MailAction, MailDeps};
 use excubia_mail::auth::Tenant;
-use excubia_mail::{AccountStore, FileKey, MailError};
+use excubia_mail::{Account, AccountStore, FileKey, MailError, Tokens};
 use excubia_test_dir::TestDir;
 use mail_support::{device_answer, ok, token_answer, Scripted, ACCESS, DEVICE, REFRESH, USER_CODE};
 use serde_json::json;
@@ -36,6 +36,16 @@ fn login(account: &str, upn: Option<&str>) -> MailAction {
         tenant: Tenant::Organizations,
         upn: upn.map(str::to_owned),
     }
+}
+
+fn saved_account() -> Account {
+    Account::new(
+        "trabajo",
+        Tenant::Organizations,
+        "ana@example.com",
+        Tokens::new("login-access", None, 3600),
+    )
+    .with_send(Tokens::new("send-access", None, 3600))
 }
 
 fn words(list: &[&str]) -> impl Iterator<Item = String> {
@@ -202,4 +212,105 @@ fn logout_takes_the_label_and_unknown_words_are_refused() {
 
     assert!(mail_cli::parse(words(&["sincronizar"])).is_err());
     assert!(mail_cli::parse(words(&["accounts", "--tokens"])).is_err());
+}
+
+#[tokio::test]
+async fn enable_rules_adds_the_rules_consent_and_keeps_login_and_send() {
+    let dir = TestDir::new("mail-cli-enable-rules");
+    let store = store(&dir);
+    store.save(&saved_account()).expect("saved");
+    let transport = Scripted::new(vec![device_answer(), token_answer()]);
+
+    let out = act(
+        MailAction::EnableRules {
+            account: "trabajo".to_owned(),
+        },
+        &transport,
+        &store,
+        Some("app"),
+    )
+    .await
+    .expect("enable rules");
+
+    assert!(out.contains(USER_CODE), "{out}");
+    assert!(out.contains("Reglas activadas para trabajo."), "{out}");
+    assert!(
+        !out.contains(ACCESS) && !out.contains(REFRESH) && !out.contains(DEVICE),
+        "{out}"
+    );
+    let saved = store.load("trabajo").expect("load").expect("account");
+    assert!(saved.rules_enabled());
+    assert!(saved.send_enabled());
+    assert_eq!(saved.tokens.access_token(), "login-access");
+    assert_eq!(
+        saved.send.as_ref().expect("send").access_token(),
+        "send-access"
+    );
+    assert_eq!(saved.rules.as_ref().expect("rules").access_token(), ACCESS);
+    assert_eq!(transport.asked().len(), 2, "device code and token only");
+
+    let listed = act(MailAction::Accounts, &Scripted::new(vec![]), &store, None)
+        .await
+        .expect("accounts");
+    assert_eq!(listed.trim(), "trabajo\torganizations\tana@example.com");
+}
+
+#[tokio::test]
+async fn disable_rules_removes_only_the_rules_consent() {
+    let dir = TestDir::new("mail-cli-disable-rules");
+    let store = store(&dir);
+    store
+        .save(&saved_account().with_rules(Tokens::new(ACCESS, None, 3600)))
+        .expect("saved");
+    let transport = Scripted::new(vec![]);
+
+    let out = act(
+        MailAction::DisableRules {
+            account: "trabajo".to_owned(),
+        },
+        &transport,
+        &store,
+        None,
+    )
+    .await
+    .expect("disable rules");
+    let missing = act(
+        MailAction::DisableRules {
+            account: "nadie".to_owned(),
+        },
+        &transport,
+        &store,
+        None,
+    )
+    .await
+    .expect("missing account");
+
+    assert!(out.contains("Reglas desactivadas para trabajo."), "{out}");
+    assert!(missing.contains("No hay cuenta nadie."), "{missing}");
+    let saved = store.load("trabajo").expect("load").expect("account");
+    assert!(!saved.rules_enabled());
+    assert!(saved.send_enabled());
+    assert_eq!(saved.tokens.access_token(), "login-access");
+    assert_eq!(
+        saved.send.as_ref().expect("send").access_token(),
+        "send-access"
+    );
+}
+
+#[test]
+fn the_rules_commands_parse_and_the_help_names_them() {
+    let enable = mail_cli::parse(words(&["enable-rules", "trabajo"])).expect("enable-rules");
+    assert!(
+        matches!(enable.action, MailAction::EnableRules { ref account } if account == "trabajo")
+    );
+    let disable =
+        mail_cli::parse(words(&["disable-rules", "--account", "trabajo"])).expect("disable-rules");
+    assert!(
+        matches!(disable.action, MailAction::DisableRules { ref account } if account == "trabajo")
+    );
+
+    let help = mail_cli::parse(words(&[])).expect_err("no verb");
+    for command in ["enable-rules", "disable-rules"] {
+        assert!(help.contains(command), "{help}");
+    }
 }

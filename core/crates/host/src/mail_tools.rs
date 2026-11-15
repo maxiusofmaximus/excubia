@@ -7,14 +7,14 @@
 //! host that made it.
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use excubia_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
 use excubia_mail::attach::{attach_chat_file, attach_file, AttachContext};
 use excubia_mail::auth;
 use excubia_mail::{
-    AccountStore, ActionLog, AuditLog, DraftInput, DraftMeta, GraphClient, HttpTransport, Ledger,
-    MailError, PathPolicy, ReadRecord, Redacted, DEFAULT_MAX_ATTACHMENT_BYTES,
+    Account, AccountStore, ActionLog, AuditLog, DraftInput, DraftMeta, GraphClient, HttpTransport,
+    Ledger, MailError, PathPolicy, ReadRecord, Redacted, RulesClient, DEFAULT_MAX_ATTACHMENT_BYTES,
 };
 use excubia_seat::{
     AttachSource, DraftFields, DraftRef, InboxQuery, MailAttach, MailCall, MessageRef,
@@ -30,6 +30,7 @@ use crate::mail_read;
 use crate::mail_routes::{message_of, parts};
 use crate::mail_send::MailSends;
 use crate::mail_shadow::Shadow;
+use crate::mail_style::{self, PROFILE_FILE, WORD_LIST_FILE};
 use crate::team_errors::tool_chat_error;
 
 /// The ledger of what this host created, in the data dir and never in memory:
@@ -55,11 +56,17 @@ pub struct MailTools {
     pub(crate) audit: AuditLog,
     /// The moves the host made, for `mail.undo`. Beside the audit log, in the accounts folder.
     pub(crate) actions: ActionLog,
-    policy: PathPolicy,
-    scratch: PathBuf,
+    pub(crate) policy: PathPolicy,
+    pub(crate) scratch: PathBuf,
     pub(crate) chat: Arc<ChatStore>,
     workspaces_root: PathBuf,
-    sends: MailSends,
+    pub(crate) sends: MailSends,
+    /// The operator's word list the style check reads on each draft (`estilo/tecnicas.txt`).
+    word_list: PathBuf,
+    /// The operator's style rules, read by `style.get` (`estilo/estilo.md`).
+    pub(crate) profile: PathBuf,
+    /// Held while approved writing rules are applied, so one line is never written twice.
+    pub(crate) style_lock: Mutex<()>,
     /// The triage sidecar in shadow mode. Off unless the host was started with `--mail-sidecar`.
     pub(crate) shadow: Option<Arc<Shadow>>,
 }
@@ -99,7 +106,9 @@ impl MailTools {
         let scratch = data_dir.join(SCRATCH_DIR);
         create_dir(&scratch)?;
         create_dir(workspaces_root)?;
-        Ok(Self {
+        mail_style::seed_word_list(data_dir)?;
+        mail_style::seed_profile(data_dir)?;
+        let tools = Self {
             transport,
             store,
             client_id,
@@ -111,8 +120,14 @@ impl MailTools {
             chat,
             workspaces_root: workspaces_root.to_path_buf(),
             sends,
+            word_list: data_dir.join(WORD_LIST_FILE),
+            profile: data_dir.join(PROFILE_FILE),
+            style_lock: Mutex::new(()),
             shadow: None,
-        })
+        };
+        // A line approved before the host stopped is written now, before Alfred drafts again.
+        tools.apply_approved_rules();
+        Ok(tools)
     }
 
     /// Adds the triage sidecar in shadow mode: each triage then also feeds the shadow log.
@@ -121,12 +136,24 @@ impl MailTools {
         self
     }
 
+    /// `style.get`: the operator's writing rules. Read-only, no network.
+    pub fn style(&self) -> Result<ToolReply, ToolError> {
+        self.apply_approved_rules();
+        mail_style::read_profile(&self.profile)
+    }
+
     /// Runs one `mail.*` call for `actor`. Failures carry the stable code and a
     /// fixed message, never the address, path or token behind them.
     pub async fn call(&self, actor: &SeatActor, call: MailCall) -> Result<ToolReply, ToolError> {
         match &call {
-            MailCall::DraftCreate(fields) => self.check_recipients(actor, fields)?,
-            MailCall::DraftUpdate(update) => self.check_recipients(actor, &update.fields)?,
+            MailCall::DraftCreate(fields) => {
+                self.check_recipients(actor, fields)?;
+                mail_style::check_draft(&self.word_list, fields)?;
+            }
+            MailCall::DraftUpdate(update) => {
+                self.check_recipients(actor, &update.fields)?;
+                mail_style::check_draft(&self.word_list, &update.fields)?;
+            }
             _ => {}
         }
         let outcome = match call {
@@ -142,6 +169,8 @@ impl MailTools {
             MailCall::Triage(query) => self.triage(&query).await,
             MailCall::Folders(query) => self.folders(&query).await,
             MailCall::Organize(call) => self.organize(actor, call).await,
+            MailCall::RuleList(query) => self.rule_list(&query).await,
+            MailCall::RuleCreate(rule) => self.rule_create(actor, &rule).await,
         };
         outcome
             .map(|result| ToolReply { result })
@@ -231,13 +260,20 @@ impl MailTools {
         let access = self.session(&reference.account).await?;
         let client = self.client(&access, &reference.account);
         let meta = client.get_draft_meta(&reference.draft_id).await?;
-        Ok(draft_json(&meta))
+        let (body, body_truncated) = client.get_draft_body(&reference.draft_id).await?;
+        let mut reply = draft_json(&meta);
+        reply["draft"]["body"] = json!(body);
+        reply["draft"]["body_truncated"] = json!(body_truncated);
+        reply["untrusted_content"] = json!(true);
+        Ok(reply)
     }
 
     async fn attach(&self, actor: &SeatActor, file: &MailAttach) -> Result<Value, MailError> {
         let access = self.session(&file.account).await?;
         let client = self.client(&access, &file.account);
-        let gate = self.gate(&actor.conversation_id);
+        let gate = self
+            .gate(&actor.conversation_id)
+            .for_draft(&file.account, &file.draft_id);
         let ctx = AttachContext {
             client: &client,
             account: &file.account,
@@ -247,7 +283,19 @@ impl MailTools {
             scratch: &self.scratch,
         };
         let attached = match &file.source {
-            AttachSource::Path(path) => attach_file(&ctx, &file.draft_id, Path::new(path)).await?,
+            AttachSource::Path(path) => {
+                match attach_file(&ctx, &file.draft_id, Path::new(path)).await {
+                    Err(MailError::ApprovalPending) if gate.asked().is_some() => {
+                        return Ok(json!({
+                            "ok": true,
+                            "status": "pending_approval",
+                            "approval_id": gate.asked(),
+                            "message": "The file is outside the workspace. The draft stays as it is; the host attaches the file when the operator approves the card, and tells this conversation.",
+                        }));
+                    }
+                    attached => attached?,
+                }
+            }
             AttachSource::Chat(id) => {
                 let stored = chat_file::resolve(&self.chat, &actor.conversation_id, id)?;
                 attach_chat_file(&ctx, &file.draft_id, &stored.path, &stored.name).await?
@@ -313,6 +361,32 @@ impl MailTools {
         Ok(access)
     }
 
+    /// Refreshes the rules consent of the account and saves the rotated pair. The
+    /// login and send consents are kept as they were.
+    pub(crate) async fn rules_session(&self, label: &str) -> Result<Account, MailError> {
+        let client_id = self.client_id.as_deref().ok_or(MailError::NotConfigured)?;
+        let account = self.store.load(label)?.ok_or_else(|| {
+            MailError::InvalidInput(Redacted::new("no account with that label is signed in"))
+        })?;
+        let rules = account.rules.as_ref().ok_or(MailError::RulesNotEnabled)?;
+        let refresh = rules.refresh_token().ok_or(MailError::AuthRequired)?;
+        let tokens =
+            auth::refresh_rules(self.transport.as_ref(), client_id, account.tenant, refresh)
+                .await?;
+        let renewed = account.with_rules(tokens);
+        self.store.save(&renewed)?;
+        Ok(renewed)
+    }
+
+    /// The rules primitives over this host's transport, bound to `account` and its
+    /// rules consent.
+    pub(crate) fn rules_client<'a>(
+        &'a self,
+        account: &'a Account,
+    ) -> Result<RulesClient<'a>, MailError> {
+        RulesClient::new(self.transport.as_ref(), account)
+    }
+
     /// The ledger this host's drafts are recorded in. The send service shares it,
     /// so a draft's owner and its sends are read from the same rows.
     pub fn ledger(&self) -> Ledger {
@@ -361,7 +435,7 @@ fn draft_json(meta: &DraftMeta) -> Value {
 
 /// Refusals the caller can fix by changing its request; everything else is the
 /// host or Graph failing.
-fn tool_error(error: MailError) -> ToolError {
+pub(crate) fn tool_error(error: MailError) -> ToolError {
     let code = error.code();
     if !error.is_refusal() {
         // The tool message is fixed on purpose; the operator still needs the real cause in the host log.

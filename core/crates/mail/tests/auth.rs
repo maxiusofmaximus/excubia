@@ -3,8 +3,9 @@ mod support;
 use std::time::Duration;
 
 use excubia_mail::{
-    assert_scopes_safe, assert_send_scopes_safe, poll_device_login, refresh, refresh_send,
-    start_device_login, start_send_consent, MailError, Tenant, SCOPES, SEND_SCOPES,
+    assert_rules_scopes_safe, assert_scopes_safe, assert_send_scopes_safe, poll_device_login,
+    refresh, refresh_rules, refresh_send, start_device_login, start_rules_consent,
+    start_send_consent, MailError, Tenant, RULES_SCOPES, SCOPES, SEND_SCOPES,
 };
 use support::mock::{MockResponse, MockTransport};
 use support::{device_code_body, token_body, ACCESS_TOKEN, CLIENT_ID, DEVICE_CODE, REFRESH_TOKEN};
@@ -262,6 +263,57 @@ async fn refreshing_the_send_tokens_asks_for_the_send_scopes_only() {
         calls[0].form_value("scope"),
         Some("offline_access Mail.Send")
     );
+}
+
+#[test]
+fn the_rules_scope_list_is_exactly_offline_access_and_mailbox_settings() {
+    assert!(assert_rules_scopes_safe().is_ok());
+    assert_eq!(
+        RULES_SCOPES,
+        ["offline_access", "MailboxSettings.ReadWrite"]
+    );
+    assert_eq!(SCOPES, ["offline_access", "User.Read", "Mail.ReadWrite"]);
+    assert_eq!(SEND_SCOPES, ["offline_access", "Mail.Send"]);
+    assert!(!RULES_SCOPES
+        .iter()
+        .any(|scope| scope.eq_ignore_ascii_case("mail.send") || scope.contains("Mail.Read")));
+}
+
+#[tokio::test]
+async fn the_rules_consent_asks_for_mailbox_settings_and_nothing_that_reads_or_sends() {
+    let transport = MockTransport::new(vec![MockResponse::ok(device_code_body())]);
+
+    let login = start_rules_consent(&transport, CLIENT_ID, "trabajo", Tenant::Organizations)
+        .await
+        .expect("consent");
+    assert_eq!(login.label, "trabajo");
+
+    let calls = transport.calls();
+    assert_eq!(
+        calls[0].form_value("scope"),
+        Some("offline_access MailboxSettings.ReadWrite")
+    );
+    assert!(!calls[0].text().contains("Mail.Send"));
+    assert!(!calls[0].text().contains("Mail.ReadWrite"));
+}
+
+#[tokio::test]
+async fn refreshing_the_rules_tokens_asks_for_the_rules_scopes_only() {
+    let transport = MockTransport::new(vec![MockResponse::ok(token_body(
+        ACCESS_TOKEN,
+        Some(REFRESH_TOKEN),
+    ))]);
+
+    refresh_rules(&transport, CLIENT_ID, Tenant::Organizations, REFRESH_TOKEN)
+        .await
+        .expect("refresh");
+
+    let calls = transport.calls();
+    assert_eq!(
+        calls[0].form_value("scope"),
+        Some("offline_access MailboxSettings.ReadWrite")
+    );
+    assert!(!calls[0].text().contains("Mail.Send"));
 }
 
 #[test]

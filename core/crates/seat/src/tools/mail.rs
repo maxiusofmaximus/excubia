@@ -1,9 +1,10 @@
-//! The `mail.*` MCP tools (MAIL1D §3, MAIL-LECTURA). Twelve exist: list the
-//! accounts, create, update and read a draft, attach a local file to a draft, and
-//! read the inbox: list a folder, read one message, and triage a folder (F0), and
-//! list the folders of an account (F2A). The reads change nothing. The organize
-//! tools (F2b2) propose a batch of moves for the operator to decide, apply the
-//! decided batch, and undo one move.
+//! The `mail.*` MCP tools (MAIL1D §3, MAIL-LECTURA). Fifteen exist: list the
+//! accounts, create, update and read a draft, attach a local file to a draft,
+//! read the inbox: list a folder, read one message, and triage a folder (F0), list
+//! the folders of an account (F2A), and list or create a mailbox rule (F3B). The
+//! reads change nothing. The organize tools (F2b2) propose a batch of moves for
+//! the operator to decide, apply the decided batch, and undo one move. A rule is
+//! created only after the operator decides.
 //! There is no send and no delete, and an argument the schema does not name is
 //! refused, so nothing here can send a message.
 
@@ -15,6 +16,7 @@ mod attach;
 mod folder;
 mod folders;
 mod organize;
+mod rules;
 mod triage;
 
 pub use attach::{AttachSource, MailAttach};
@@ -23,6 +25,7 @@ pub use folders::FoldersQuery;
 pub use organize::{
     MoveApply, MoveFolder, MoveProposal, MoveUndo, Organize, ProposedMove, UndoList,
 };
+pub use rules::{MailRuleDraft, RuleActionsDraft, RuleConditionsDraft, RuleFolder, RuleListQuery};
 pub use triage::TriageQuery;
 
 const MAX_ID_CHARS: usize = 512;
@@ -47,6 +50,8 @@ pub enum MailCall {
     Triage(TriageQuery),
     Folders(FoldersQuery),
     Organize(Organize),
+    RuleList(RuleListQuery),
+    RuleCreate(MailRuleDraft),
 }
 
 /// A read of one folder. `limit` is 1..=20; `from` is an address or a domain.
@@ -218,6 +223,7 @@ pub fn parse(request: &ToolRequest) -> Result<MailCall, ToolError> {
         "mail.move_propose" | "mail.move_apply" | "mail.undo" | "mail.undo_list" => {
             organize::parse(request)
         }
+        "mail.rule_list" | "mail.rule_create" => rules::parse(request),
         "mail.message_get" => {
             let args: MessageArgs = arguments(request)?;
             Ok(MailCall::MessageGet(MessageRef {
@@ -341,16 +347,17 @@ fn draft_fields(draft: &Draft) -> Result<DraftFields, ToolError> {
     })
 }
 
-/// An omitted folder is the inbox. The three names are the only ones Graph's
+/// An omitted folder is the inbox. The four names are the only ones Graph's
 /// well-known folders this surface offers.
 fn inbox_folder(raw: Option<&str>) -> Result<InboxFolder, ToolError> {
     match raw {
         None | Some("inbox") => Ok(InboxFolder::Inbox),
         Some("sentitems") => Ok(InboxFolder::SentItems),
         Some("junkemail") => Ok(InboxFolder::JunkEmail),
+        Some("drafts") => Ok(InboxFolder::Drafts),
         Some(_) => Err(invalid(
             "folder",
-            "folder must be inbox, sentitems or junkemail".into(),
+            "folder must be inbox, sentitems, junkemail or drafts".into(),
         )),
     }
 }

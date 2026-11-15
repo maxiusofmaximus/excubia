@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:excubia/src/rust/api/chat/attach_model.dart';
 import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/api/approvals/model.dart';
 
 import '../../core/api/alerts_api.dart';
 import '../../core/api/chat_attachment_source.dart';
@@ -98,12 +99,16 @@ class _ChatScreenState extends State<ChatScreen> {
   /// One key per timeline row, by seq, so a quote can scroll to its message.
   final Map<int, GlobalKey> _rowKeys = <int, GlobalKey>{};
 
+  /// The approvals this screen has already shown; a new one jumps to the end once.
+  final Set<String> _seenApprovals = <String>{};
+
   ChatController get _chat => widget.controller;
 
   @override
   void initState() {
     super.initState();
     _chat.addListener(_onChanged);
+    _chat.approvals?.addListener(_onChanged);
     _scroll.addListener(_onScroll);
     _syncPin();
   }
@@ -111,6 +116,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _chat.removeListener(_onChanged);
+    _chat.approvals?.removeListener(_onChanged);
     // Leaving the screen drops the composer's files, so none is left on the host.
     unawaited(_chat.attachments.discard());
     _composer.dispose();
@@ -124,9 +130,42 @@ class _ChatScreenState extends State<ChatScreen> {
   void _onChanged() {
     if (!mounted) return;
     _syncPin();
+    final fresh = _markNewApprovals();
     setState(() {});
+    // A new approval's card waits at the end, so the chat goes there even from afar.
+    if (fresh) _jumpToEnd();
     // The new row is laid out after this frame; only then is the distance known.
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAway());
+  }
+
+  /// The ids of the open conversation's approvals this user must decide now.
+  Iterable<String> _pendingApprovalIds() {
+    final id = _chat.current?.id;
+    if (id == null) return const <String>[];
+    return _chat.approvals
+            ?.userPending(conversationId: id)
+            .map((approval) => approval.approvalId) ??
+        const <String>[];
+  }
+
+  /// Marks the pending approvals as shown; true when one of them was not.
+  /// A mail card grows when its facts arrive after the frame, so it counts as
+  /// shown again once they are there: the chat follows it to its buttons.
+  bool _markNewApprovals() {
+    final id = _chat.current?.id;
+    if (id == null) return false;
+    var fresh = false;
+    for (final approval
+        in _chat.approvals?.userPending(conversationId: id) ??
+            const <ChatApproval>[]) {
+      final full =
+          approval.mailSend != null ||
+          approval.mailAttach != null ||
+          approval.mailMove != null;
+      final key = full ? '${approval.approvalId}#facts' : approval.approvalId;
+      if (_seenApprovals.add(key)) fresh = true;
+    }
+    return fresh;
   }
 
   /// Once a conversation has loaded, its timeline starts at the last message.
@@ -138,6 +177,8 @@ class _ChatScreenState extends State<ChatScreen> {
       unawaited(_chat.attachments.discard());
     }
     _pinnedId = id;
+    // Its end is shown at once, so the approvals waiting there count as seen.
+    _markNewApprovals();
     _away.value = false;
     _unseen.value = 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -165,6 +206,23 @@ class _ChatScreenState extends State<ChatScreen> {
     _unseen.value = away ? unseenAgentMessages(_chat.entries, _seqAtBottom) : 0;
   }
 
+  /// At the end, the end stays in view when a row grows after it was laid out,
+  /// such as an approval card whose facts arrive: its buttons never hide.
+  bool _followGrowth(ScrollMetricsNotification notification) {
+    final metrics = notification.metrics;
+    if (notification.depth == 0 &&
+        metrics.axis == Axis.vertical &&
+        !_away.value &&
+        metrics.maxScrollExtent > metrics.pixels) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scroll.hasClients && !_away.value) {
+          _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        }
+      });
+    }
+    return false;
+  }
+
   /// «Ir al final»: a jump, not an animation, so the button never reappears
   /// midway; the count restarts.
   void _jumpToEnd() {
@@ -174,6 +232,11 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
       _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      // A row built in that frame adds its height to the end only once laid out.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_scroll.hasClients) return;
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      });
     });
   }
 
@@ -307,25 +370,28 @@ class _ChatScreenState extends State<ChatScreen> {
                     )
                   : Stack(
                       children: [
-                        ConversationView(
-                          chat: _chat,
-                          starters: StarterSuggestions(
+                        NotificationListener<ScrollMetricsNotification>(
+                          onNotification: _followGrowth,
+                          child: ConversationView(
                             chat: _chat,
-                            hires: widget.hires,
-                            onSuggestion: _suggest,
+                            starters: StarterSuggestions(
+                              chat: _chat,
+                              hires: widget.hires,
+                              onSuggestion: _suggest,
+                            ),
+                            scroll: _scroll,
+                            rowKey: _rowKey,
+                            onRetrySend: _chat.retryLocal,
+                            onRetryTurn: _chat.retryTurn,
+                            onRetryFailure: _chat.retryFailure,
+                            onOpenDelegation: _openDelegation,
+                            onOpenAgent: _openAgent,
+                            onCancelDelegation: _cancelDelegation,
+                            onReply: _chat.startReply,
+                            onOpenQuote: _openQuote,
+                            onSuggestion: _sendSuggestion,
+                            onOpenDraft: _openDraft,
                           ),
-                          scroll: _scroll,
-                          rowKey: _rowKey,
-                          onRetrySend: _chat.retryLocal,
-                          onRetryTurn: _chat.retryTurn,
-                          onRetryFailure: _chat.retryFailure,
-                          onOpenDelegation: _openDelegation,
-                          onOpenAgent: _openAgent,
-                          onCancelDelegation: _cancelDelegation,
-                          onReply: _chat.startReply,
-                          onOpenQuote: _openQuote,
-                          onSuggestion: _sendSuggestion,
-                          onOpenDraft: _openDraft,
                         ),
                         Positioned(
                           right: Spacing.lg,
@@ -333,6 +399,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: _JumpToEnd(
                             away: _away,
                             unseen: _unseen,
+                            approvals: _pendingApprovalIds().length,
                             onTap: _jumpToEnd,
                           ),
                         ),

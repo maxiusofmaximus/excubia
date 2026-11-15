@@ -138,6 +138,24 @@ void main() {
         await tester.pumpWidget(const SizedBox());
       });
 
+      testWidgets('a card that waits for days shows no countdown', (
+        tester,
+      ) async {
+        final later = DateTime.now()
+            .toUtc()
+            .add(const Duration(days: 30))
+            .toIso8601String();
+        await tester.pumpWidget(
+          _card(_record(expiresAt: later), brightness: brightness),
+        );
+        expect(find.textContaining('Caduca en'), findsNothing);
+        expect(
+          find.widgetWithText(FilledButton, 'Permitir una vez'),
+          findsOneWidget,
+        );
+        await tester.pumpWidget(const SizedBox());
+      });
+
       testWidgets('a pending card past the host deadline reads as expired', (
         tester,
       ) async {

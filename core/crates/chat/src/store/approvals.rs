@@ -100,6 +100,24 @@ impl super::ChatStore {
         Ok(approvals)
     }
 
+    /// The approved questions of one `tool` that nothing has consumed yet, in the order
+    /// they were created. The host applies them and consumes each one (ESTILO3).
+    pub fn approved_for_tool(&self, tool: &str) -> Result<Vec<Approval>, ChatError> {
+        self.expire_now()?;
+        let connection = self.lock();
+        let mut statement = connection.prepare(&format!(
+            "{APPROVAL_SELECT}
+              WHERE tool = ?1 AND status = 'approved'
+              ORDER BY rowid ASC"
+        ))?;
+        let rows = statement.query_map([tool], approval_row)?;
+        let mut approvals = Vec::new();
+        for row in rows {
+            approvals.push(approval_from_columns(row?)?);
+        }
+        Ok(approvals)
+    }
+
     /// Open an approval and wait for the operator. The approval is consumed
     /// the moment it is allowed, so the action behind it can only run once.
     pub async fn request_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
@@ -114,6 +132,18 @@ impl super::ChatStore {
     pub async fn request_outside_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
         let ttl_seconds = new.ttl_seconds;
         let approval = self.create_outside_approval(new)?;
+        self.settle_request(&approval, ttl_seconds).await
+    }
+
+    /// As [`Self::request_approval`], for one mailbox rule (F3B). The rule is
+    /// created only after the operator's device approves it; nothing else decides
+    /// a `mail_rule`.
+    pub async fn request_mail_rule_approval(
+        &self,
+        new: NewApproval,
+    ) -> Result<Approval, ChatError> {
+        let ttl_seconds = new.ttl_seconds;
+        let approval = self.create_mail_rule_approval(new)?;
         self.settle_request(&approval, ttl_seconds).await
     }
 

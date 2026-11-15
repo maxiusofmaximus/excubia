@@ -78,8 +78,8 @@ pub use model_alert::{
 };
 pub use model_approval::{
     Approval, ApprovalAudit, ApprovalFilter, ApprovalKind, ApprovalState, ApprovalStatus, Decision,
-    NewApproval, Reader, Risk, DEFAULT_TTL_SECONDS, HOOK_CONSUMER, MAX_PENDING_PER_CONVERSATION,
-    MAX_TTL_SECONDS,
+    NewApproval, Reader, Risk, ATTACH_PATH_MAX_TTL_SECONDS, DEFAULT_TTL_SECONDS, HOOK_CONSUMER,
+    MAX_PENDING_PER_CONVERSATION, MAX_TTL_SECONDS,
 };
 pub use model_attachment::{
     previewable, Attachment, AttachmentState, FileKind, LinkedFile, ReadyFile,

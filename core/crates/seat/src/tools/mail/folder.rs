@@ -1,9 +1,10 @@
-/// The folders the inbox reads may use: these three, and no other.
+/// The folders the inbox reads may use: these four, and no other.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InboxFolder {
     Inbox,
     SentItems,
     JunkEmail,
+    Drafts,
 }
 
 impl InboxFolder {
@@ -13,6 +14,7 @@ impl InboxFolder {
             Self::Inbox => "inbox",
             Self::SentItems => "sentitems",
             Self::JunkEmail => "junkemail",
+            Self::Drafts => "drafts",
         }
     }
 }

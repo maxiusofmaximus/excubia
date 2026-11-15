@@ -29,6 +29,7 @@ const MAX_LABEL_BYTES: usize = 64;
 
 /// One signed-in mailbox. `send` holds the tokens of the send consent: present
 /// only after the owner grants `Mail.Send` (MAIL2A), and removed by revoking it.
+/// `rules` holds the tokens of the rules consent (F3A) in the same way.
 #[derive(Clone)]
 pub struct Account {
     pub label: String,
@@ -36,6 +37,7 @@ pub struct Account {
     pub upn: String,
     pub tokens: Tokens,
     pub send: Option<Tokens>,
+    pub rules: Option<Tokens>,
 }
 
 impl Account {
@@ -51,10 +53,12 @@ impl Account {
             upn: upn.into(),
             tokens,
             send: None,
+            rules: None,
         }
     }
 
-    /// The same account with rotated login tokens; the send consent is kept.
+    /// The same account with rotated login tokens; the send and rules consents
+    /// are kept.
     pub fn renewed(&self, tokens: Tokens) -> Self {
         Self {
             tokens,
@@ -78,8 +82,28 @@ impl Account {
         }
     }
 
+    /// The same account with the rules consent granted.
+    pub fn with_rules(&self, rules: Tokens) -> Self {
+        Self {
+            rules: Some(rules),
+            ..self.clone()
+        }
+    }
+
+    /// The same account with the rules consent revoked (its tokens forgotten).
+    pub fn without_rules(&self) -> Self {
+        Self {
+            rules: None,
+            ..self.clone()
+        }
+    }
+
     pub fn send_enabled(&self) -> bool {
         self.send.is_some()
+    }
+
+    pub fn rules_enabled(&self) -> bool {
+        self.rules.is_some()
     }
 }
 
@@ -92,6 +116,7 @@ impl fmt::Debug for Account {
             .field("upn", &self.upn)
             .field("tokens", &self.tokens)
             .field("send", &self.send)
+            .field("rules", &self.rules)
             .finish()
     }
 }
@@ -332,6 +357,9 @@ struct StoredAccount {
     /// Absent in files written before MAIL2A, which means no send consent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     send: Option<StoredTokens>,
+    /// Absent in files written before F3A, which means no rules consent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rules: Option<StoredTokens>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -369,6 +397,7 @@ impl From<&Account> for StoredAccount {
             upn: account.upn.clone(),
             login: StoredTokens::from(&account.tokens),
             send: account.send.as_ref().map(StoredTokens::from),
+            rules: account.rules.as_ref().map(StoredTokens::from),
         }
     }
 }
@@ -381,6 +410,7 @@ impl StoredAccount {
             upn: self.upn,
             tokens: self.login.into_tokens(),
             send: self.send.map(StoredTokens::into_tokens),
+            rules: self.rules.map(StoredTokens::into_tokens),
         }
     }
 }
@@ -405,4 +435,29 @@ fn random_bytes<const N: usize>() -> Result<[u8; N], MailError> {
 
 fn store_error(error: impl fmt::Display) -> MailError {
     MailError::Store(Redacted::new(error.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::StoredAccount;
+
+    /// A file written before F3A has no `rules` field at all.
+    #[test]
+    fn an_account_file_written_before_the_rules_consent_has_none() {
+        let old = r#"{
+            "label": "trabajo",
+            "tenant": "organizations",
+            "upn": "ana@example.com",
+            "access_token": "access",
+            "refresh_token": null,
+            "expires_in": 3600,
+            "send": {"access_token": "send", "refresh_token": null, "expires_in": 3600}
+        }"#;
+        let stored: StoredAccount = serde_json::from_str(old).expect("an old account file");
+        let account = stored.into_account();
+        assert!(!account.rules_enabled());
+        assert!(account.send_enabled());
+        assert_eq!(account.tokens.access_token(), "access");
+        assert_eq!(account.send.as_ref().expect("send").access_token(), "send");
+    }
 }

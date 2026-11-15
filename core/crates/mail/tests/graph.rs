@@ -275,6 +275,47 @@ async fn get_draft_meta_reads_the_message_and_the_attachment_names() {
 }
 
 #[tokio::test]
+async fn get_draft_body_reads_only_the_body_as_text() {
+    let html = json!({"body": {"contentType": "html", "content": "<p>Hola<br>mundo</p>"}});
+    let transport = MockTransport::new(vec![
+        MockResponse::created(message_body(DRAFT_ID, "Hola", false)),
+        MockResponse::ok(html.to_string()),
+    ]);
+    let ledger = in_memory_ledger();
+    let client = GraphClient::new(&transport, ACCESS_TOKEN, &ledger, ACCOUNT);
+    client
+        .create_draft(&input("Hola", DraftBody::Text("Hola".to_owned())))
+        .await
+        .expect("create");
+    let (text, truncated) = client.get_draft_body(DRAFT_ID).await.expect("body");
+
+    assert!(
+        text.contains("Hola") && text.contains("mundo") && !text.contains("<p>"),
+        "{text}"
+    );
+    assert!(!truncated);
+    let call = &transport.calls()[1];
+    assert_eq!(call.method, "GET");
+    assert_eq!(
+        call.url,
+        "https://graph.microsoft.com/v1.0/me/messages/draft-1?$select=body"
+    );
+}
+
+#[tokio::test]
+async fn get_draft_body_refuses_a_draft_created_outside_this_client() {
+    let transport = MockTransport::new(vec![]);
+    let ledger = in_memory_ledger();
+    let client = GraphClient::new(&transport, ACCESS_TOKEN, &ledger, ACCOUNT);
+    let error = client
+        .get_draft_body("draft-ajeno")
+        .await
+        .expect_err("foreign draft");
+    assert!(matches!(error, MailError::DraftNotOwned { .. }));
+    assert!(transport.calls().is_empty());
+}
+
+#[tokio::test]
 async fn a_small_attachment_is_sent_as_base64() {
     let transport = MockTransport::new(vec![
         MockResponse::created(message_body(DRAFT_ID, "Hola", false)),

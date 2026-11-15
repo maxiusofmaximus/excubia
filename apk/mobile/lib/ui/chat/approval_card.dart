@@ -187,7 +187,8 @@ class _ApprovalCardState extends State<ApprovalCard> {
               if (riskLabel(approval.risk) case final risk?) _Chip(label: risk),
               if (levelLabel(approval.level) case final level?)
                 _Chip(label: level),
-              if (closed == null && left != null)
+              // A card that waits for days (a file for a draft) shows no clock.
+              if (closed == null && left != null && left < 3600)
                 _Chip(
                   label: 'Caduca en ${formatCountdown(left)}',
                   icon: Icons.timer_outlined,

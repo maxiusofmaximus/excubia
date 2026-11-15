@@ -7,7 +7,7 @@ pub fn tools() -> Vec<Value> {
     vec![
         json!({
             "name": "doc.create",
-            "description": "Crea un documento nuevo (Excel, Word, PDF, CSV, texto) y lo deja en el chat como adjunto. No modifica archivos existentes.",
+            "description": "Crea un documento nuevo (Excel, Word, PDF, CSV, texto) y lo deja en el chat como adjunto. No modifica archivos existentes. Antes de redactar, llama a `style.get` y sigue sus reglas.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

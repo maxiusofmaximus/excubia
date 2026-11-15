@@ -137,6 +137,39 @@ async fn the_inbox_list_comes_back_as_data_and_is_audited_without_its_subject() 
 }
 
 #[tokio::test]
+async fn the_drafts_folder_is_listed_from_the_drafts_alias() {
+    let dir = TestDir::new("mail-inbox-drafts");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = Arc::new(Scripted::new(vec![
+        token_answer(),
+        ok(json!({"value": []})),
+    ]));
+    let (tools, store) = tools(&dir, &transport, &chat);
+    sign_in(&store, "trabajo", OLD_REFRESH);
+
+    tools
+        .call(
+            &actor(),
+            MailCall::InboxList(InboxQuery {
+                account: "trabajo".into(),
+                folder: InboxFolder::Drafts,
+                limit: 10,
+                unread_only: false,
+                from: None,
+            }),
+        )
+        .await
+        .expect("list");
+
+    let asked = transport.asked();
+    assert!(
+        asked[1].contains("/me/mailFolders/drafts/messages?"),
+        "{}",
+        asked[1]
+    );
+}
+
+#[tokio::test]
 async fn a_received_message_comes_with_its_checks_and_no_attachment_content() {
     let dir = TestDir::new("mail-inbox-message");
     let chat = Arc::new(ChatStore::in_memory().expect("chat"));

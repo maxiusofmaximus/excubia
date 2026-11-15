@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! Alfred's seat: the real-CLI adapter layer of CORE6B.
 //!
 //! The crate has five responsibilities, each in its own module:
@@ -52,7 +53,8 @@ pub use tools::{
     check_draft_fields, parse as parse_tool, AgentSpawn, AlertCall, ApprovalDecide,
     ApprovalRequest, AttachSource, BodyFormat, CalendarCall, ContactCall, DelegationAssign,
     DelegationComplete, DocCreate, DocFormat, DocRead, DraftFields, DraftRef, DraftUpdate,
-    FoldersQuery, InboxFolder, InboxQuery, MailAttach, MailCall, MessageRef, MoveApply, MoveFolder,
-    MoveProposal, MoveUndo, NoteCall, Organize, ProjectCreate, ProposedMove, ToolCall, TriageQuery,
-    UndoList,
+    FoldersQuery, InboxFolder, InboxQuery, MailAttach, MailCall, MailRuleDraft, MessageRef,
+    MoveApply, MoveFolder, MoveProposal, MoveUndo, NoteCall, Organize, ProjectCreate, ProposedMove,
+    RuleActionsDraft, RuleConditionsDraft, RuleFolder, RuleListQuery, StyleLearnQuery,
+    StyleProposal, ToolCall, TriageQuery, UndoList,
 };

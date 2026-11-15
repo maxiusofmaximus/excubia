@@ -84,9 +84,9 @@ impl Runner for FakeCli {
         let args = args_of(inv);
         self.calls.lock().unwrap().push((inv.app, args.clone()));
         match (inv.app, args[0].as_str()) {
-            (App::GridCraft, "info") => {
-                Ok(ok(r#"{"sheets":[{"name":"Ventas"},{"name":"Gastos"}]}"#))
-            }
+            (App::GridCraft, "info") => Ok(ok(
+                "libro.xlsx\n  Ventas: used A1:B2, 4 cells\n  Gastos: used A1:B2, 4 cells\n",
+            )),
             (App::GridCraft, "cat") => Ok(ok("a,b\n1,2")),
             (App::GridCraft | App::WordCraft, "convert") => {
                 fs::write(&args[2], converted(&args[2])).unwrap();

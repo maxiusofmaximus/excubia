@@ -124,3 +124,26 @@ async fn a_seat_cannot_answer_the_file_question() {
 
     assert_eq!(answer.expect("an answer"), Approval::Approved);
 }
+
+/// The operator reads the path without Windows' verbatim prefix, and no hash in the line.
+#[tokio::test]
+async fn the_card_shows_the_plain_path_and_size() {
+    let chat = ChatStore::in_memory().expect("store");
+    let gate = ChatApprovalGate::new(&chat, "C:/proyecto");
+    let mut asked = request();
+    asked.file.path = PathBuf::from(r"\\?\D:\Docs\informe.xlsx");
+
+    let deciding = async {
+        let id = next_pending(&chat).await;
+        let card = chat.approval(&id).expect("approval");
+        chat.decide_approval(&id, Decision::Deny, "device-1", "device-1")
+            .expect("the device decides");
+        card
+    };
+    let (_, card) = tokio::join!(gate.decide(&asked), deciding);
+
+    assert_eq!(card.summary, r"Adjuntar D:\Docs\informe.xlsx (2048 bytes)");
+    let payload = card.payload_redacted.expect("payload");
+    assert_eq!(payload["path"], r"D:\Docs\informe.xlsx");
+    assert_eq!(payload["sha256"], "cd".repeat(32));
+}

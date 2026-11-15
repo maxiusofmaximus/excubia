@@ -15,7 +15,8 @@ use super::args::{
 use super::call::{AgentSpawn, DelegationAssign, DelegationComplete, ProjectCreate};
 
 use super::{
-    alert, approval, calendar, contact, decide, doc, mail, note, pending, plan, status, ToolCall,
+    alert, approval, calendar, contact, decide, doc, mail, note, pending, plan, status, style,
+    ToolCall,
 };
 
 /// The longest progress line, in characters. Longer text is refused, never cut.
@@ -121,10 +122,15 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
         "approval.decide" => decide::parse(request),
         "approval.pending" => pending::parse(request),
         "status.overview" => status::parse(request),
+        "style.get" => style::parse(request),
+        "style.learn_sent" => style::parse_learn(request),
+        "style.propose_rule" => style::parse_propose(request),
         "mail.accounts" | "mail.draft_create" | "mail.draft_update" | "mail.draft_get"
         | "mail.attach_file" | "mail.inbox_list" | "mail.message_get" | "mail.triage"
         | "mail.folders" | "mail.move_propose" | "mail.move_apply" | "mail.undo"
-        | "mail.undo_list" => Ok(ToolCall::Mail(mail::parse(request)?)),
+        | "mail.undo_list" | "mail.rule_list" | "mail.rule_create" => {
+            Ok(ToolCall::Mail(mail::parse(request)?))
+        }
         "note.save" => Ok(ToolCall::Note(note::save(request)?)),
         "note.search" => Ok(ToolCall::Note(note::search(request)?)),
         "note.update" => Ok(ToolCall::Note(note::update(request)?)),
@@ -150,7 +156,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
             format!(
                 "unknown MCP tool {other:?}; use chat.reply, chat.ask_user, chat.progress, \
                  project.create, agent.spawn, delegation.assign, delegation.complete, \n                 plan.propose, plan.status, \
-                 approval.request, approval.decide, approval.pending, status.overview, \
+                 approval.request, approval.decide, approval.pending, status.overview, style.get, style.learn_sent, style.propose_rule, \
                  a mail.*, note.*, contact.*, calendar.*, alert.*, doc.read or doc.create tool"
             ),
         )),

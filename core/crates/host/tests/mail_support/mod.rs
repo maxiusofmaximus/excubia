@@ -22,6 +22,8 @@ pub struct Scripted {
     urls: Mutex<Vec<String>>,
     /// The URLs of the JSON POSTs asked, in order: the ones that may change the mailbox.
     posts: Mutex<Vec<String>>,
+    /// The JSON bodies of those POSTs, in the same order.
+    bodies: Mutex<Vec<serde_json::Value>>,
     /// The answers of `GET /me/mailFolders/{alias}?$select=id`; any other alias is a 404.
     aliases: HashMap<&'static str, HttpResponse>,
 }
@@ -32,8 +34,13 @@ impl Scripted {
             answers: Mutex::new(answers.into()),
             urls: Mutex::new(Vec::new()),
             posts: Mutex::new(Vec::new()),
+            bodies: Mutex::new(Vec::new()),
             aliases: HashMap::new(),
         }
+    }
+
+    pub fn posted_bodies(&self) -> Vec<serde_json::Value> {
+        self.bodies.lock().expect("bodies").clone()
     }
 
     pub fn with_alias(mut self, alias: &'static str, answer: HttpResponse) -> Self {
@@ -108,9 +115,10 @@ impl HttpTransport for Scripted {
         &self,
         url: &str,
         _bearer: &str,
-        _body: &serde_json::Value,
+        body: &serde_json::Value,
     ) -> Result<HttpResponse, MailError> {
         self.posts.lock().expect("posts").push(url.to_owned());
+        self.bodies.lock().expect("bodies").push(body.clone());
         self.next(url)
     }
 

@@ -16,10 +16,11 @@ use crate::http::{self, LoopbackUrl};
 use crate::tools;
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
-/// The longest a tool call may take. The slow ones are the panel spawns: the
-/// UAC canary runs before the panel exists and may install its provider
-/// package in the shared cache on the first turn of a host.
-const CALL_TIMEOUT: Duration = Duration::from_secs(75);
+/// The longest a tool call may take. The slowest are the calls that wait for the
+/// operator's card: up to 300 s for a mailbox or style rule, plus the host's
+/// decision slack. Shorter, and an approval given after the cut is recorded but
+/// never applied.
+const CALL_TIMEOUT: Duration = Duration::from_secs(330);
 
 pub async fn run_stdio() -> Result<(), String> {
     let url = env::var_or_legacy("EXCUBIA_TOOL_URL", "HN_TOOL_URL").ok_or_else(|| {

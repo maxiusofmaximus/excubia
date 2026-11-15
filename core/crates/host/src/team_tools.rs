@@ -73,6 +73,30 @@ impl TeamService {
                 "tool",
                 "the mail tools belong to Alfred, not to a project seat",
             )),
+            ToolCall::StyleGet => match grant.actor.role_id.as_str() {
+                "alfred" => self.mail.style(),
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "style.get belongs to Alfred, not to a project seat",
+                )),
+            },
+            ToolCall::StyleLearn(query) => match grant.actor.role_id.as_str() {
+                "alfred" => self.mail.style_learn(&query).await,
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "style.learn_sent belongs to Alfred, not to a project seat",
+                )),
+            },
+            ToolCall::StylePropose(proposal) => match grant.actor.role_id.as_str() {
+                "alfred" => self.mail.style_propose(&grant.actor, &proposal).await,
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "style.propose_rule belongs to Alfred, not to a project seat",
+                )),
+            },
             ToolCall::Note(call) => match grant.actor.role_id.as_str() {
                 "alfred" => self.note_tool(&grant.actor, call).await,
                 _ => Err(ToolError::invalid(
@@ -159,6 +183,9 @@ impl TeamService {
             ToolCall::ApprovalPending => self.pending_approvals(&actor),
             ToolCall::StatusOverview => self.status_overview(&actor).await,
             ToolCall::Mail(call) => self.mail.call(&actor, call).await,
+            ToolCall::StyleGet => self.mail.style(),
+            ToolCall::StyleLearn(query) => self.mail.style_learn(&query).await,
+            ToolCall::StylePropose(proposal) => self.mail.style_propose(&actor, &proposal).await,
             ToolCall::Doc(call) => self.docs.call(&actor, call).await,
             ToolCall::DocCreate(call) => self.docs.create(&actor, call).await,
             ToolCall::Note(call) => self.note_tool(&actor, call).await,

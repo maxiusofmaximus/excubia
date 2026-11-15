@@ -5,6 +5,8 @@
 #[path = "mail_tools/chat_attach.rs"]
 mod chat_attach;
 mod mail_support;
+#[path = "mail_tools/path_later.rs"]
+mod path_later;
 
 use std::sync::Arc;
 
@@ -380,4 +382,174 @@ async fn an_address_typed_in_another_conversation_is_refused() {
         .expect_err("another conversation");
     assert_eq!(refused.code, "unknown_recipient");
     assert!(transport.asked().is_empty());
+}
+
+/// A draft to Ana, with the given subject and body (the address book admits Ana).
+fn draft_with(subject: &str, body: &str) -> MailCall {
+    MailCall::DraftCreate(DraftFields {
+        account: "trabajo".into(),
+        to: vec!["ana@example.com".into()],
+        cc: Vec::new(),
+        subject: subject.into(),
+        body: body.into(),
+        format: BodyFormat::Text,
+    })
+}
+
+fn book_ana(chat: &ChatStore) {
+    chat.save_contact(
+        &actor(),
+        None,
+        ContactFields {
+            name: "Ana".to_string(),
+            aliases: None,
+            addresses: Some(vec!["ana@example.com".to_string()]),
+            notes: None,
+        },
+    )
+    .expect("contact");
+}
+
+#[tokio::test]
+async fn a_semicolon_in_the_body_refuses_the_draft_before_microsoft() {
+    let dir = TestDir::new("mail-style-semicolon");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = Arc::new(Scripted::new(Vec::new()));
+    let (tools, store) = tools(&dir, &transport, &chat, Some("app"));
+    sign_in(&store, "trabajo", OLD_REFRESH);
+    book_ana(&chat);
+
+    let refused = tools
+        .call(
+            &actor(),
+            draft_with("Presupuesto", "Hola; te escribo mañana."),
+        )
+        .await
+        .expect_err("a semicolon");
+    assert_eq!(refused.code, "style_rejected");
+    assert_eq!(refused.field, Some("body"));
+    assert!(refused.message.contains("«Hola;»"), "{}", refused.message);
+    assert!(
+        transport.asked().is_empty(),
+        "refused before any Graph call"
+    );
+}
+
+#[tokio::test]
+async fn a_semicolon_inside_a_url_or_a_code_block_is_allowed() {
+    let dir = TestDir::new("mail-style-url-code");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = Arc::new(Scripted::new(Vec::new()));
+    let (tools, store) = tools(&dir, &transport, &chat, Some("app"));
+    sign_in(&store, "trabajo", OLD_REFRESH);
+    book_ana(&chat);
+
+    for body in [
+        "Mira https://ejemplo.com/a;b y dime.",
+        "Código:\n```\nx;y\n```\nListo.",
+    ] {
+        let outcome = tools.call(&actor(), draft_with("Presupuesto", body)).await;
+        assert!(
+            !matches!(&outcome, Err(error) if error.code == "style_rejected"),
+            "allowed: {body}"
+        );
+    }
+    assert!(
+        !transport.asked().is_empty(),
+        "the drafts went on to Microsoft"
+    );
+}
+
+#[tokio::test]
+async fn a_listed_word_refuses_the_draft_whatever_its_case_or_accent() {
+    let dir = TestDir::new("mail-style-words");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = Arc::new(Scripted::new(Vec::new()));
+    let (tools, store) = tools(&dir, &transport, &chat, Some("app"));
+    sign_in(&store, "trabajo", OLD_REFRESH);
+    book_ana(&chat);
+
+    for (subject, body) in [
+        ("Commit", "Hola."),
+        ("Hola", "La REFACTORIZACIÓN sigue."),
+        ("Hola", "Esto es refactorizacion."),
+        ("Hola", "Usamos la rama Main."),
+    ] {
+        let refused = tools
+            .call(&actor(), draft_with(subject, body))
+            .await
+            .expect_err("a listed word");
+        assert_eq!(refused.code, "style_rejected", "{subject} / {body}");
+    }
+    assert!(
+        transport.asked().is_empty(),
+        "refused before any Graph call"
+    );
+}
+
+#[tokio::test]
+async fn a_word_that_only_looks_like_a_listed_one_is_allowed() {
+    let dir = TestDir::new("mail-style-similar");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = Arc::new(Scripted::new(Vec::new()));
+    let (tools, store) = tools(&dir, &transport, &chat, Some("app"));
+    sign_in(&store, "trabajo", OLD_REFRESH);
+    book_ana(&chat);
+
+    let outcome = tools
+        .call(
+            &actor(),
+            draft_with("Comité", "Nos vemos en el comité del jueves."),
+        )
+        .await;
+    assert!(
+        !matches!(&outcome, Err(error) if error.code == "style_rejected"),
+        "comité is not commit"
+    );
+    assert!(!transport.asked().is_empty());
+}
+
+#[tokio::test]
+async fn an_existing_word_list_is_never_overwritten() {
+    let dir = TestDir::new("mail-style-existing-list");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = Arc::new(Scripted::new(Vec::new()));
+    let data = dir.join("data");
+    std::fs::create_dir_all(data.join("estilo")).expect("estilo dir");
+    std::fs::write(data.join("estilo/tecnicas.txt"), "# mía\nzeta\n").expect("list");
+    let (tools, store) = tools(&dir, &transport, &chat, Some("app"));
+    sign_in(&store, "trabajo", OLD_REFRESH);
+    book_ana(&chat);
+
+    let kept = std::fs::read_to_string(data.join("estilo/tecnicas.txt")).expect("list");
+    assert_eq!(kept, "# mía\nzeta\n");
+    let refused = tools
+        .call(&actor(), draft_with("Presupuesto", "Hola zeta."))
+        .await
+        .expect_err("a word of the operator's list");
+    assert_eq!(refused.code, "style_rejected");
+    let outcome = tools.call(&actor(), draft_with("Commit", "Hola.")).await;
+    assert!(
+        !matches!(&outcome, Err(error) if error.code == "style_rejected"),
+        "commit is not in the operator's list"
+    );
+}
+
+#[tokio::test]
+async fn the_word_list_is_seeded_when_it_is_missing() {
+    let dir = TestDir::new("mail-style-seed");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = Arc::new(Scripted::new(Vec::new()));
+    let (_tools, _store) = tools(&dir, &transport, &chat, Some("app"));
+
+    let seeded = std::fs::read_to_string(dir.join("data/estilo/tecnicas.txt")).expect("seed");
+    for word in [
+        "commit",
+        "CI",
+        "refactorización",
+        "cargue masivo",
+        "rama main",
+    ] {
+        assert!(seeded.lines().any(|line| line == word), "seed has {word}");
+    }
 }

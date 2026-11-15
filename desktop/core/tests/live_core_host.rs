@@ -12,7 +12,8 @@ const OTHER_PIN: &str = "h=-vJhhaleo1vBJMuBCljszQq8G6n02H6P2dSWaWP2jKI";
 #[tokio::test]
 #[ignore = "needs a running core host; set EXCUBIA_LIVE_LINK"]
 async fn a_live_host_refuses_a_stranger_then_pairs_through_its_link() {
-    let live = std::env::var("EXCUBIA_LIVE_LINK").expect("set EXCUBIA_LIVE_LINK to a fresh pairing link");
+    let live =
+        std::env::var("EXCUBIA_LIVE_LINK").expect("set EXCUBIA_LIVE_LINK to a fresh pairing link");
     let identity = DeviceIdentity::generate("", "Escritorio en vivo");
     let key = identity.public_key_b64();
 

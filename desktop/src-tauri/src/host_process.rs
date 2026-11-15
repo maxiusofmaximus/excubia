@@ -191,7 +191,8 @@ fn append_log(path: &Path, line: &str) {
 /// the app binary, the bundled plain name, or the build output.
 pub fn host_binary_path(exe_dir: &Path) -> Option<PathBuf> {
     // legacy: HN_CORE_HOST was the override before the rename; still read for existing setups.
-    let override_path = std::env::var("EXCUBIA_CORE_HOST").or_else(|_| std::env::var("HN_CORE_HOST"));
+    let override_path =
+        std::env::var("EXCUBIA_CORE_HOST").or_else(|_| std::env::var("HN_CORE_HOST"));
     if let Ok(path) = override_path {
         let path = PathBuf::from(path);
         if path.is_file() {

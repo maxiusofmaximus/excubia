@@ -1,7 +1,8 @@
-//! `excubia-host mail login|accounts|logout|enable-send|disable-send` (MAIL1C §3, MAIL2A):
-//! signing mailboxes in and out of this host from the terminal, and granting or
-//! revoking the separate consent that lets an approved draft be sent. Nothing
-//! printed here carries a token.
+//! `excubia-host mail login|accounts|logout|enable-send|disable-send|enable-rules|disable-rules`
+//! (MAIL1C §3, MAIL2A, F3A): signing mailboxes in and out of this host from the
+//! terminal, granting or revoking the separate consent that lets an approved
+//! draft be sent, and granting or revoking the consent that lists and creates
+//! mailbox rules. Nothing printed here carries a token.
 //!
 //! The data directory holds `mail.toml` (the app registration's `client_id`)
 //! and the encrypted accounts under `mail/accounts`.
@@ -9,7 +10,9 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use excubia_mail::auth::{poll_device_login, start_device_login, start_send_consent, Tenant};
+use excubia_mail::auth::{
+    poll_device_login, start_device_login, start_rules_consent, start_send_consent, Tenant,
+};
 use excubia_mail::graph::fetch_upn;
 use excubia_mail::{
     Account, AccountStore, HttpTransport, MailConfig, MailError, Redacted, ReqwestTransport,
@@ -20,6 +23,7 @@ use crate::paths;
 pub(crate) const CONFIG_FILE: &str = "mail.toml";
 pub const ACCOUNTS_DIR: &str = "mail/accounts";
 pub(crate) const CLIENT_ID_ENV: &str = "EXCUBIA_MAIL_CLIENT_ID";
+const VERBS: &str = "mail needs one of: login, accounts, logout, enable-send, disable-send, enable-rules, disable-rules";
 
 #[derive(Debug)]
 pub enum MailAction {
@@ -36,6 +40,12 @@ pub enum MailAction {
         account: String,
     },
     DisableSend {
+        account: String,
+    },
+    EnableRules {
+        account: String,
+    },
+    DisableRules {
         account: String,
     },
 }
@@ -55,9 +65,7 @@ pub struct MailDeps<'a> {
 }
 
 pub fn parse(mut args: impl Iterator<Item = String>) -> Result<MailInvocation, String> {
-    let verb = args
-        .next()
-        .ok_or("mail needs one of: login, accounts, logout, enable-send, disable-send")?;
+    let verb = args.next().ok_or(VERBS)?;
     let mut flags = Flags::default();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -86,6 +94,12 @@ pub fn parse(mut args: impl Iterator<Item = String>) -> Result<MailInvocation, S
             account: required(flags.label.take().or(flags.account.take()), "a label")?,
         },
         "disable-send" => MailAction::DisableSend {
+            account: required(flags.label.take().or(flags.account.take()), "a label")?,
+        },
+        "enable-rules" => MailAction::EnableRules {
+            account: required(flags.label.take().or(flags.account.take()), "a label")?,
+        },
+        "disable-rules" => MailAction::DisableRules {
             account: required(flags.label.take().or(flags.account.take()), "a label")?,
         },
         other => return Err(format!("unknown mail command: {other}")),
@@ -130,6 +144,8 @@ pub async fn run(
         MailAction::Logout { account } => logout(deps.store, &account, out),
         MailAction::EnableSend { account } => enable_send(deps, &account, out).await,
         MailAction::DisableSend { account } => disable_send(deps.store, &account, out),
+        MailAction::EnableRules { account } => enable_rules(deps, &account, out).await,
+        MailAction::DisableRules { account } => disable_rules(deps.store, &account, out),
     }
 }
 
@@ -162,6 +178,41 @@ fn disable_send(store: &AccountStore, account: &str, out: &mut dyn Write) -> Res
     };
     store.save(&current.without_send())?;
     say(out, format!("Envío desactivado para {account}."))
+}
+
+/// The third device login: the owner signs in again with the rules scopes, and
+/// the rules tokens join the account. Login and send tokens are not touched.
+async fn enable_rules(
+    deps: &MailDeps<'_>,
+    account: &str,
+    out: &mut dyn Write,
+) -> Result<(), MailError> {
+    let client_id = deps.client_id.ok_or(MailError::NotConfigured)?;
+    let tenant = saved(deps.store, account)?.tenant;
+    let device = start_rules_consent(deps.transport, client_id, account, tenant).await?;
+    say(
+        out,
+        format!(
+            "Concede las reglas: abre {} e introduce el código {} (caduca en {} s).",
+            device.verification_uri, device.user_code, device.expires_in
+        ),
+    )?;
+    let tokens = poll_device_login(deps.transport, client_id, tenant, &device).await?;
+    let current = saved(deps.store, account)?;
+    deps.store.save(&current.with_rules(tokens))?;
+    say(out, format!("Reglas activadas para {account}."))
+}
+
+fn disable_rules(
+    store: &AccountStore,
+    account: &str,
+    out: &mut dyn Write,
+) -> Result<(), MailError> {
+    let Some(current) = store.load(account)? else {
+        return say(out, format!("No hay cuenta {account}."));
+    };
+    store.save(&current.without_rules())?;
+    say(out, format!("Reglas desactivadas para {account}."))
 }
 
 fn saved(store: &AccountStore, account: &str) -> Result<Account, MailError> {

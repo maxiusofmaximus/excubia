@@ -6,7 +6,8 @@ mod common;
 
 use common::{assert_for_the_operator_alone, assert_no_agent_decides, team, Team};
 use excubia_chat::{
-    action_digest, ApprovalKind, ApprovalStatus, Decision, NewApproval, DEFAULT_TTL_SECONDS,
+    action_digest, ApprovalKind, ApprovalStatus, Decision, HookScope, NewApproval,
+    DEFAULT_TTL_SECONDS,
 };
 use serde_json::json;
 
@@ -109,4 +110,47 @@ fn without_a_project_no_agent_lets_the_file_out_and_the_device_does() {
         .decide_approval(&approval.id, Decision::Approve, "device-1", "device-1")
         .expect("the device decides");
     assert_eq!(decided.status, ApprovalStatus::Approved);
+}
+
+/// Each attach is its own question: a card that expired unanswered, or one already
+/// spent on another draft, lets the same file be asked again. A denied one does not.
+#[test]
+fn the_same_file_is_asked_again_after_an_expired_or_spent_card_but_not_after_a_denial() {
+    let team = team("outside-reask");
+    let mut short = file_question(&team, Some(&team.specialist));
+    short.ttl_seconds = 1;
+    let expired = team
+        .store
+        .create_outside_approval(short)
+        .expect("first card");
+    std::thread::sleep(std::time::Duration::from_millis(1_200));
+
+    let again = team
+        .store
+        .create_outside_approval(file_question(&team, Some(&team.specialist)))
+        .expect("asked again after the card expired");
+    assert_ne!(again.id, expired.id);
+    team.store
+        .decide_approval(&again.id, Decision::Approve, "device-1", "device-1")
+        .expect("the device approves");
+    team.store
+        .consume_approval(&again.id, None, &HookScope::seat(&team.specialist))
+        .expect("spent on one draft");
+
+    let third = team
+        .store
+        .create_outside_approval(file_question(&team, Some(&team.specialist)))
+        .expect("asked again for another draft");
+    assert_eq!(third.status, ApprovalStatus::Pending);
+    team.store
+        .decide_approval(&third.id, Decision::Deny, "device-1", "device-1")
+        .expect("the device denies");
+    let refused = team
+        .store
+        .create_outside_approval(file_question(&team, Some(&team.specialist)))
+        .expect_err("a denied file is not asked again");
+    assert!(
+        matches!(refused, excubia_chat::ChatError::ApprovalDigestRefused),
+        "{refused}"
+    );
 }

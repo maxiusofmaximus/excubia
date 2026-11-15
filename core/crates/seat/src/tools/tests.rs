@@ -241,6 +241,9 @@ fn tool_definitions_list_the_team_tools() {
             "approval.decide",
             "approval.pending",
             "status.overview",
+            "style.get",
+            "style.propose_rule",
+            "style.learn_sent",
             "mail.accounts",
             "mail.draft_create",
             "mail.draft_update",
@@ -271,6 +274,8 @@ fn tool_definitions_list_the_team_tools() {
             "mail.move_apply",
             "mail.undo_list",
             "mail.undo",
+            "mail.rule_list",
+            "mail.rule_create",
             "doc.create",
             "doc.read",
         ]

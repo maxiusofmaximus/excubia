@@ -16,7 +16,10 @@ impl MailTools {
     /// Runs `on_decided` in the background, so the decision does not wait for Microsoft.
     pub fn decided_in_background(self: &Arc<Self>, approval: Approval) {
         let tools = Arc::clone(self);
-        tokio::spawn(async move { tools.on_decided(&approval).await });
+        tokio::spawn(async move {
+            tools.on_decided(&approval).await;
+            tools.attach_decided(&approval).await;
+        });
     }
 
     /// Applies a mail batch the operator just approved and tells its conversation how it

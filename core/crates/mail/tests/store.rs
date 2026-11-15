@@ -72,6 +72,55 @@ fn a_missing_account_is_none() {
 }
 
 #[test]
+fn an_account_saved_before_the_rules_consent_still_loads_without_it() {
+    let dir = TestDir::new("mail-store-old-rules");
+    let accounts = dir.join("accounts");
+    let key_path = dir.join("key");
+    let store = AccountStore::open(&accounts, &FileKey::new(&key_path)).expect("store");
+    let with_send = account("trabajo").with_send(Tokens::new("send-access", None, 3600));
+    store.save(&with_send).expect("save");
+
+    let reopened = AccountStore::open(&accounts, &FileKey::new(&key_path)).expect("reopen");
+    let loaded = reopened.load("trabajo").expect("load").expect("account");
+    assert!(!loaded.rules_enabled());
+    assert!(loaded.send_enabled());
+    assert_eq!(loaded.tokens.access_token(), ACCESS);
+    assert_eq!(
+        loaded.send.as_ref().expect("send").access_token(),
+        "send-access"
+    );
+}
+
+#[test]
+fn the_rules_consent_joins_an_account_without_touching_login_or_send() {
+    let original = account("trabajo").with_send(Tokens::new("send-access", None, 3600));
+    let consented = original
+        .clone()
+        .with_rules(Tokens::new("rules-access", None, 3600));
+
+    assert!(consented.rules_enabled());
+    assert!(consented.send_enabled());
+    assert_eq!(consented.tokens.access_token(), ACCESS);
+    assert_eq!(
+        consented.send.as_ref().expect("send").access_token(),
+        "send-access"
+    );
+    assert_eq!(
+        consented.rules.as_ref().expect("rules").access_token(),
+        "rules-access"
+    );
+
+    let revoked = consented.without_rules();
+    assert!(!revoked.rules_enabled());
+    assert!(revoked.send_enabled());
+    assert_eq!(revoked.tokens.access_token(), ACCESS);
+    assert_eq!(
+        revoked.send.as_ref().expect("send").access_token(),
+        "send-access"
+    );
+}
+
+#[test]
 fn a_tampered_account_file_is_refused() {
     let dir = TestDir::new("mail-store-tampered");
     let accounts = dir.join("accounts");

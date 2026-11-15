@@ -8,7 +8,10 @@
 //! (MAIL-LECTURA, [`inbox`] and [`received`]). The permission lists are closed in
 //! code: [`SCOPES`] for login, and [`SEND_SCOPES`] for a separate consent that
 //! lets a human send an approved draft (MAIL2A). Login never asks for
-//! `Mail.Send`, and the send path is not an agent tool.
+//! `Mail.Send`, and the send path is not an agent tool. A second separate
+//! consent, [`RULES_SCOPES`], lets the product list and create inbox rules
+//! ([`rules`], F3A) with a closed action vocabulary: no rule this crate creates
+//! can forward or redirect mail.
 //!
 //! Files reach a draft by local path ([`attach_file`]): [`PathPolicy`] decides
 //! which paths are allowed or need approval, files of 3 MiB or more go through
@@ -39,6 +42,7 @@ pub mod paths;
 mod private;
 pub mod received;
 pub mod redact;
+pub mod rules;
 pub mod sanitize;
 pub mod send;
 mod send_failure;
@@ -59,8 +63,9 @@ pub use audit::{
     SendResult,
 };
 pub use auth::{
-    assert_scopes_safe, assert_send_scopes_safe, poll_device_login, refresh, refresh_send,
-    start_device_login, start_send_consent, DeviceLogin, Tenant, Tokens, SCOPES, SEND_SCOPES,
+    assert_rules_scopes_safe, assert_scopes_safe, assert_send_scopes_safe, poll_device_login,
+    refresh, refresh_rules, refresh_send, start_device_login, start_rules_consent,
+    start_send_consent, DeviceLogin, Tenant, Tokens, RULES_SCOPES, SCOPES, SEND_SCOPES,
 };
 pub use config::{
     MailConfig, DEFAULT_MAX_ATTACHMENT_BYTES, DEFAULT_SENDS_PER_HOUR, HARD_MAX_ATTACHMENT_BYTES,
@@ -76,6 +81,10 @@ pub use ledger_send::SendRow;
 pub use mover::{batch_digest, MoveDest, Moved};
 pub use paths::{CheckedFile, PathApproval, PathDecision, PathPolicy};
 pub use redact::{redact, Redacted, Secret};
+pub use rules::{
+    ActionSummary, ConditionSummary, Rule, RuleActions, RuleConditions, RuleDestination, RuleSpec,
+    RulesClient,
+};
 pub use sanitize::{sanitize_html, sanitize_text, Policy, Sanitized};
 pub use send::{
     check_budget, DraftReview, SendAttachment, SendState, SendView, RATE_WINDOW_SECONDS,

@@ -361,6 +361,21 @@ pub(super) fn project_of_seat(
         .flatten())
 }
 
+/// The open questions of one `tool`, in the conversation (or in all of them, without one).
+pub(super) fn pending_of_tool(
+    connection: &Connection,
+    conversation_id: Option<&str>,
+    tool: &str,
+) -> Result<usize, ChatError> {
+    let count: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM approval
+          WHERE status = 'pending' AND tool = ?1 AND (?2 IS NULL OR conversation_id = ?2)",
+        params![tool, conversation_id],
+        |row| row.get(0),
+    )?;
+    Ok(count.max(0) as usize)
+}
+
 pub(super) fn pending_in_conversation(
     connection: &Connection,
     conversation_id: Option<&str>,

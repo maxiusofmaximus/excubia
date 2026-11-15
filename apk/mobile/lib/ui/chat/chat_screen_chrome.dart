@@ -5,12 +5,25 @@ class _JumpToEnd extends StatelessWidget {
   const _JumpToEnd({
     required this.away,
     required this.unseen,
+    required this.approvals,
     required this.onTap,
   });
 
   final ValueListenable<bool> away;
   final ValueListenable<int> unseen;
+
+  /// The user's pending approvals in this conversation: their cards wait at the end.
+  final int approvals;
   final VoidCallback onTap;
+
+  /// The approvals take the count while any is pending; messages otherwise.
+  static String _label(int approvals, int messages) {
+    if (approvals == 1) return 'Ir al final, 1 aprobación pendiente';
+    if (approvals > 1) return 'Ir al final, $approvals aprobaciones pendientes';
+    return messages == 1
+        ? 'Ir al final, 1 mensaje nuevo'
+        : 'Ir al final, $messages mensajes nuevos';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,30 +33,31 @@ class _JumpToEnd extends StatelessWidget {
         if (!isAway) return const SizedBox.shrink();
         return ValueListenableBuilder<int>(
           valueListenable: unseen,
-          builder: (context, count, _) => Semantics(
-            button: true,
-            label: count == 1
-                ? 'Ir al final, 1 mensaje nuevo'
-                : 'Ir al final, $count mensajes nuevos',
-            excludeSemantics: true,
-            child: FilledButton(
-              onPressed: onTap,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.arrow_downward, size: 18),
-                  if (count > 0) ...[
-                    const SizedBox(width: Spacing.xs),
-                    Text('$count'),
+          builder: (context, messages, _) {
+            final count = approvals > 0 ? approvals : messages;
+            return Semantics(
+              button: true,
+              label: _label(approvals, messages),
+              excludeSemantics: true,
+              child: FilledButton(
+                onPressed: onTap,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.arrow_downward, size: 18),
+                    if (count > 0) ...[
+                      const SizedBox(width: Spacing.xs),
+                      Text('$count'),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

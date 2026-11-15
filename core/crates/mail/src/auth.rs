@@ -27,6 +27,11 @@ pub const SCOPES: [&str; 3] = ["offline_access", "User.Read", "Mail.ReadWrite"];
 /// [`start_send_consent`], on its own device login, and never joins [`SCOPES`].
 pub const SEND_SCOPES: [&str; 2] = ["offline_access", "Mail.Send"];
 
+/// The permission list of the rules consent (F3A). Creating mailbox rules needs
+/// `MailboxSettings.ReadWrite`; it is requested only by [`start_rules_consent`],
+/// on its own device login, and never joins [`SCOPES`].
+pub const RULES_SCOPES: [&str; 2] = ["offline_access", "MailboxSettings.ReadWrite"];
+
 const FORBIDDEN_SCOPE: &str = "mail.send";
 const DEVICE_CODE_GRANT: &str = "urn:ietf:params:oauth:grant-type:device_code";
 const DEFAULT_INTERVAL_SECS: u64 = 5;
@@ -101,6 +106,20 @@ pub fn assert_send_scopes_safe() -> Result<(), MailError> {
     if !closed {
         return Err(MailError::InvalidConfig(Redacted::new(
             "the send permission list must be exactly offline_access and Mail.Send",
+        )));
+    }
+    Ok(())
+}
+
+/// The rules list must stay exactly the two scopes: enough to manage mailbox
+/// rules, and nothing that reads or sends mail.
+pub fn assert_rules_scopes_safe() -> Result<(), MailError> {
+    let closed = RULES_SCOPES.len() == 2
+        && RULES_SCOPES.contains(&"offline_access")
+        && RULES_SCOPES.contains(&"MailboxSettings.ReadWrite");
+    if !closed {
+        return Err(MailError::InvalidConfig(Redacted::new(
+            "the rules permission list must be exactly offline_access and MailboxSettings.ReadWrite",
         )));
     }
     Ok(())
@@ -257,6 +276,20 @@ pub async fn start_send_consent(
     device_code(transport, client_id, label, tenant, &SEND_SCOPES).await
 }
 
+/// The rules consent (F3A): a device login that asks for
+/// `MailboxSettings.ReadWrite` only. Its tokens are stored apart from the login
+/// and send ones (see `Account::rules`).
+pub async fn start_rules_consent(
+    transport: &dyn HttpTransport,
+    client_id: &str,
+    label: &str,
+    tenant: Tenant,
+) -> Result<DeviceLogin, MailError> {
+    assert_scopes_safe()?;
+    assert_rules_scopes_safe()?;
+    device_code(transport, client_id, label, tenant, &RULES_SCOPES).await
+}
+
 async fn device_code(
     transport: &dyn HttpTransport,
     client_id: &str,
@@ -351,6 +384,19 @@ pub async fn refresh_send(
     assert_scopes_safe()?;
     assert_send_scopes_safe()?;
     exchange_refresh(transport, client_id, tenant, refresh_token, &SEND_SCOPES).await
+}
+
+/// The access token for mailbox rules (F3A). Its refresh token is the rules
+/// consent's, so it can never be spent on a login- or send-scope request.
+pub async fn refresh_rules(
+    transport: &dyn HttpTransport,
+    client_id: &str,
+    tenant: Tenant,
+    refresh_token: &str,
+) -> Result<Tokens, MailError> {
+    assert_scopes_safe()?;
+    assert_rules_scopes_safe()?;
+    exchange_refresh(transport, client_id, tenant, refresh_token, &RULES_SCOPES).await
 }
 
 async fn exchange_refresh(

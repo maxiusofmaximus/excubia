@@ -7,7 +7,8 @@ use support::{
     TXT, XLSX,
 };
 
-const SHEETS: &str = r#"{"sheets":[{"name":"Hoja1"},{"name":"Resumen"}]}"#;
+const SHEETS: &str =
+    "Presupuesto.xlsx\n  Hoja1: used A1:B2, 4 cells\n  Resumen: used A1:C3, 9 cells\n";
 
 fn grid_reply(
     inv: &excubia_crafting::Invocation,
@@ -33,10 +34,7 @@ fn xlsx_lists_the_sheets_and_reads_the_first_one_in_200_rows() {
     assert_eq!(out.text, "a,b\n1,2\n");
     assert_eq!(out.pages_or_sheets, ["Hoja1", "Resumen"]);
     let calls = runner.calls();
-    assert_eq!(
-        shape(&calls[0]),
-        ["info", "<ws>/Presupuesto.xlsx", "--json"]
-    );
+    assert_eq!(shape(&calls[0]), ["info", "<ws>/Presupuesto.xlsx"]);
     assert_eq!(
         shape(&calls[1]),
         [
@@ -50,6 +48,36 @@ fn xlsx_lists_the_sheets_and_reads_the_first_one_in_200_rows() {
         ]
     );
     assert_eq!(calls[1].program, tools.path(App::GridCraft).unwrap());
+}
+
+#[test]
+fn the_active_sheet_is_read_by_default_and_hidden_sheets_are_listed() {
+    // The shape of the SENA bitácora: instructions first, the form active, two hidden.
+    let root = TestDir::new("craft-read-active");
+    let tools = fake_tools(&root, &[App::GridCraft]);
+    let runner = ScriptedRunner::new(|inv| {
+        if args(inv)[0] == "info" {
+            Ok(ok("b6.xlsx\n  Instrucciones: used B1:H76, 331 cells\n* Formato Bitácora Individual: used B1:AB243714, 489366 cells\n  Hoja1 (Hidden): used D1:D12, 12 cells\n  Instructivo (Hidden): used A1:X24, 454 cells\n"))
+        } else {
+            Ok(ok("a,b\n1,2\n"))
+        }
+    });
+    let doc = document(&root, "b6.xlsx", XLSX, &ooxml_zip());
+
+    let out = Driver::new(&tools, &runner, root.join("work"))
+        .read_text(&doc, &ReadOpts::default())
+        .unwrap();
+
+    assert_eq!(
+        out.pages_or_sheets,
+        [
+            "Instrucciones",
+            "Formato Bitácora Individual",
+            "Hoja1",
+            "Instructivo"
+        ]
+    );
+    assert_eq!(args(&runner.calls()[1])[3], "Formato Bitácora Individual");
 }
 
 #[test]

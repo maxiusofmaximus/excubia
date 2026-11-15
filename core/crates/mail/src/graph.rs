@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 use crate::draft::{validate_attachment, AttachmentMeta, DraftInput, DraftMeta, SmallAttachment};
 use crate::error::MailError;
 use crate::ledger::{digest_hex, Ledger};
+use crate::received::{clean_body, cut, MAX_BODY_CHARS};
 use crate::redact::Redacted;
 use crate::transport::{HttpResponse, HttpTransport};
 
@@ -107,6 +108,23 @@ impl<'a> GraphClient<'a> {
             Vec::new()
         };
         Ok(raw.into_meta(names))
+    }
+
+    /// The body of a draft this client created, as text cut like a received
+    /// message, and whether it was cut. One GET, of `body` only.
+    pub async fn get_draft_body(&self, draft_id: &str) -> Result<(String, bool), MailError> {
+        self.owned(draft_id)?;
+        let url = format!(
+            "{GRAPH_BASE}/me/messages/{}?$select=body",
+            encode_segment(draft_id)
+        );
+        let response = self.transport.get_json(&url, self.access_token).await?;
+        check_status(&response)?;
+        let raw: RawDraftBody = serde_json::from_str(&response.body).map_err(|_| {
+            MailError::BadResponse(Redacted::new("Graph answered with an incomplete message"))
+        })?;
+        let text = clean_body(&raw.body.content, &raw.body.content_type);
+        Ok(cut(&text, MAX_BODY_CHARS))
     }
 
     pub async fn add_small_attachment(
@@ -289,6 +307,21 @@ struct RawMessage {
     is_draft: bool,
     #[serde(default)]
     has_attachments: bool,
+}
+
+#[derive(Deserialize)]
+struct RawDraftBody {
+    #[serde(default)]
+    body: RawContent,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct RawContent {
+    #[serde(default)]
+    content_type: String,
+    #[serde(default)]
+    content: String,
 }
 
 impl RawMessage {

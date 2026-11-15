@@ -69,6 +69,8 @@ pub enum MailError {
     Store(Redacted),
     #[error("sending is not enabled for this account; the owner must grant it first")]
     SendNotEnabled,
+    #[error("mailbox rules are not enabled for this account; the owner must grant it first")]
+    RulesNotEnabled,
     #[error("the draft changed after it was approved, or the approval was already used; nothing was sent")]
     ApprovalStale,
     #[error("the owner refused this draft; change it to ask again")]
@@ -94,6 +96,10 @@ pub enum MailError {
     /// Several approved batches of the account wait to be applied: the caller names one.
     #[error("more than one approved batch waits; name one with approval_id")]
     AmbiguousApproval(Vec<String>),
+    #[error("the rule changed after the owner approved it; nothing was created")]
+    RuleStale,
+    #[error("the owner refused this rule; change it to ask again")]
+    RuleRefused,
 }
 
 impl MailError {
@@ -124,6 +130,7 @@ impl MailError {
             Self::UploadFailed(_) => "mail_upload_failed",
             Self::Store(_) => "mail_store_error",
             Self::SendNotEnabled => "mail_send_not_enabled",
+            Self::RulesNotEnabled => "mail_rules_not_enabled",
             Self::ApprovalStale => "mail_approval_stale",
             Self::DraftRefused => "mail_draft_refused",
             Self::ApprovalPending => "mail_approval_pending",
@@ -135,6 +142,8 @@ impl MailError {
             Self::MoveAlreadyApplied => "mail_move_already_applied",
             Self::MoveRefused => "mail_move_refused",
             Self::AmbiguousApproval(_) => "ambiguous_approval",
+            Self::RuleStale => "mail_rule_stale",
+            Self::RuleRefused => "mail_rule_refused",
         }
     }
 
@@ -155,6 +164,8 @@ impl MailError {
                 | "mail_move_refused"
                 | "mail_move_already_applied"
                 | "ambiguous_approval"
+                | "mail_rule_stale"
+                | "mail_rule_refused"
         )
     }
 }

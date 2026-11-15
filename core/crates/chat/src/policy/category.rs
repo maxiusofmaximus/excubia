@@ -19,10 +19,14 @@ pub enum Category {
     MailSend,
     /// A batch of mail moves (F2b-1): the operator's device only.
     MailOrganize,
+    /// Creating a mailbox rule (F3B): the operator's device only, one rule each time.
+    MailRule,
+    /// Adding a line to the operator's writing rules (RFC estilo-aprendido §3): the operator's device only.
+    StyleRule,
 }
 
 impl Category {
-    pub const ALL: [Category; 14] = [
+    pub const ALL: [Category; 16] = [
         Self::Read,
         Self::Edit,
         Self::Test,
@@ -37,6 +41,8 @@ impl Category {
         Self::OutsideWorkspace,
         Self::MailSend,
         Self::MailOrganize,
+        Self::MailRule,
+        Self::StyleRule,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -55,6 +61,8 @@ impl Category {
             Self::OutsideWorkspace => "outside_workspace",
             Self::MailSend => "mail_send",
             Self::MailOrganize => "mail_organize",
+            Self::MailRule => "mail_rule",
+            Self::StyleRule => "style_rule",
         }
     }
 
@@ -76,6 +84,8 @@ impl Category {
                 | Self::OutsideWorkspace
                 | Self::MailSend
                 | Self::MailOrganize
+                | Self::MailRule
+                | Self::StyleRule
         )
     }
 }
@@ -100,7 +110,9 @@ mod tests {
                 "publish",
                 "outside_workspace",
                 "mail_send",
-                "mail_organize"
+                "mail_organize",
+                "mail_rule",
+                "style_rule"
             ]
         );
     }

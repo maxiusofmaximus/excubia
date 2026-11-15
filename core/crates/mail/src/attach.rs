@@ -24,6 +24,9 @@ pub enum Approval {
     Denied,
     /// No answer before the deadline. Nothing was sent, as with a denial.
     Expired,
+    /// The question is open and the call does not wait for it: nothing is sent now, and
+    /// the caller attaches the file once the user answers.
+    Asked,
 }
 
 /// Asks the user. MAIL1C implements it over the UAC flow; tests use a fixed answer.
@@ -79,6 +82,7 @@ pub async fn attach_file(
             Approval::Approved => Decision::Approved,
             Approval::Denied => return refuse(ctx, draft_id, &file, Decision::Denied),
             Approval::Expired => return refuse(ctx, draft_id, &file, Decision::Expired),
+            Approval::Asked => return Err(MailError::ApprovalPending),
         },
     };
     send(ctx, draft_id, &file, &name, audited).await

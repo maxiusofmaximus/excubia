@@ -4,7 +4,7 @@ use excubia_chat::PlanStep;
 
 use super::{
     AlertCall, ApprovalDecide, ApprovalRequest, CalendarCall, ContactCall, DocCreate, DocRead,
-    MailCall, NoteCall,
+    MailCall, NoteCall, StyleLearnQuery, StyleProposal,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -26,6 +26,12 @@ pub enum ToolCall {
     ApprovalDecide(ApprovalDecide),
     ApprovalPending,
     StatusOverview,
+    /// `style.get`: the operator's writing rules, read-only. Alfred only.
+    StyleGet,
+    /// `style.learn_sent`: statistics and proposals from the sent mail, read-only. Alfred only.
+    StyleLearn(StyleLearnQuery),
+    /// `style.propose_rule`: one line for the writing rules, saved into estilo.md at once. Alfred only.
+    StylePropose(StyleProposal),
     Mail(MailCall),
     Note(NoteCall),
     Contact(ContactCall),

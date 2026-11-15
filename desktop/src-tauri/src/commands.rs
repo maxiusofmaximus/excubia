@@ -5,7 +5,9 @@ use excubia_desktop_core::client::pair_device;
 use excubia_desktop_core::state::{AgentRow, StateSnapshot};
 use excubia_desktop_core::stream::ConnectionStatus;
 use excubia_desktop_core::transport::is_loopback_url;
-use excubia_desktop_core::{validate_device_label, CatalogAgent, CoreError, Transport, WriteAction};
+use excubia_desktop_core::{
+    validate_device_label, CatalogAgent, CoreError, Transport, WriteAction,
+};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_dialog::DialogExt;

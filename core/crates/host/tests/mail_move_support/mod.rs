@@ -81,6 +81,22 @@ pub fn host(dir: &TestDir, transport: &Arc<Scripted>, chat: &Arc<ChatStore>) -> 
     tools
 }
 
+/// As [`host`], and `ACCOUNT` also has its rules consent (F3B).
+pub fn host_with_rules(
+    dir: &TestDir,
+    transport: &Arc<Scripted>,
+    chat: &Arc<ChatStore>,
+) -> MailTools {
+    let tools = host(dir, transport, chat);
+    let key = FileKey::new(dir.join("key"));
+    let store =
+        AccountStore::open(dir.join("data").join("mail").join("accounts"), &key).expect("store");
+    let account = store.load(ACCOUNT).expect("load").expect("account");
+    let rules = Tokens::new("REGLAS-ACCESO", Some(Secret::new("REGLAS-REFRESCO")), 3600);
+    store.save(&account.with_rules(rules)).expect("save");
+    tools
+}
+
 pub fn message(id: &str) -> Value {
     json!({
         "id": id,

@@ -53,6 +53,31 @@ async fn proposing_reads_each_message_and_asks_once_without_moving() {
 }
 
 #[tokio::test]
+async fn a_draft_can_be_proposed_for_the_deleted_items_and_nothing_moves() {
+    let dir = TestDir::new("mail-move-draft");
+    let chat = Arc::new(ChatStore::in_memory().expect("chat"));
+    let transport = scripted([vec![token_answer()], read("d1")].concat());
+    let tools = host(&dir, &transport, &chat);
+
+    let reply = tools
+        .call(&actor(), propose(&[("d1", MoveFolder::Deleted)]))
+        .await
+        .expect("propose");
+
+    assert_eq!(reply.result["status"], "pending");
+    let approval = chat
+        .approval(reply.result["approval_id"].as_str().expect("id"))
+        .expect("approval");
+    assert_eq!(approval.status, ApprovalStatus::Pending);
+    let payload = approval.payload_redacted.expect("payload");
+    assert_eq!(payload["items"][0]["dest"], "deleteditems");
+    assert!(
+        transport.posted().is_empty(),
+        "nothing moves before the decision"
+    );
+}
+
+#[tokio::test]
 async fn a_batch_whose_message_cannot_be_read_is_refused_and_asks_nothing() {
     let dir = TestDir::new("mail-move-unreadable");
     let chat = Arc::new(ChatStore::in_memory().expect("chat"));

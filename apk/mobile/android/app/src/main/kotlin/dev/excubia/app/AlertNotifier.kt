@@ -57,9 +57,12 @@ object AlertNotifier {
             .notify(PERMANENT_ID, permanent(ctx, AlertState.connected))
     }
 
-    /** False when the UI is in front: the screen already shows what the alert would say. */
+    /**
+     * False when the UI is in front: the screen already shows what the alert would say. An
+     * approval still sounds, because it expires and the user may not be looking at the phone.
+     */
     fun alert(ctx: Context, channel: String, title: String, body: String): Boolean {
-        if (AlertState.foreground) return false
+        if (AlertState.foreground && channel != CH_APPROVALS) return false
         ensureChannels(ctx)
         // The screen wakes long enough for the notice to show; the lock ends by itself.
         ctx.getSystemService(PowerManager::class.java)

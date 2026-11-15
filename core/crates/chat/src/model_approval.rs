@@ -18,19 +18,28 @@ pub const MAX_TTL_SECONDS: u32 = 300;
 /// The longest TTL of a batch of mail moves (F2b-1): the operator may take longer
 /// over a batch than over a single decision. Only `mail_organize` gets it.
 pub const MAIL_ORGANIZE_MAX_TTL_SECONDS: u32 = 1800;
+/// The longest TTL of a file outside the workspace: the draft is made at once and the
+/// file joins it whenever the operator answers, so the question waits for him.
+pub const ATTACH_PATH_MAX_TTL_SECONDS: u32 = 30 * 24 * 3600;
 /// How many approvals may wait for a decision in the same conversation.
 pub const MAX_PENDING_PER_CONVERSATION: usize = 4;
+/// The longest TTL of a writing-rule question (ESTILO3): the operator decides it when he can.
+pub const STYLE_RULE_MAX_TTL_SECONDS: u32 = 1800;
+/// How many writing-rule questions may wait at once. Alfred proposes four or five in a row.
+pub const MAX_PENDING_STYLE_RULES: usize = 8;
 /// The consumer recorded in the audit when the agent's own hook burns the
 /// approval: it is not a device.
 pub const HOOK_CONSUMER: &str = "hook";
 /// The actions the mail tools file. Their payload is what the owner reads before
-/// answering (the recipients, the file), so it is only ever shown to a device.
-pub const MAIL_ACTIONS: [&str; 3] = ["mail.send", "mail.attach_path", "mail.move"];
+/// answering (the recipients, the file, the rule), so it is only ever shown to a
+/// device.
+pub const MAIL_ACTIONS: [&str; 4] = ["mail.send", "mail.attach_path", "mail.move", "mail.rule"];
 
 /// The longest TTL a question of `category` may wait for its decision.
 pub fn max_ttl_seconds(category: Option<Category>) -> u32 {
     match category {
         Some(Category::MailOrganize) => MAIL_ORGANIZE_MAX_TTL_SECONDS,
+        Some(Category::StyleRule) => STYLE_RULE_MAX_TTL_SECONDS,
         _ => MAX_TTL_SECONDS,
     }
 }

@@ -117,10 +117,16 @@ mod tests {
         )
         .unwrap();
         assert!(!entries[0].runnable && entries[0].fixable);
-        assert_eq!(entries[0].problem.as_deref(), Some("Windows no puede ejecutarlo."));
+        assert_eq!(
+            entries[0].problem.as_deref(),
+            Some("Windows no puede ejecutarlo.")
+        );
         assert!(!entries[1].runnable && entries[1].problem.is_some());
         assert!(entries[2].runnable && entries[2].problem.is_none());
-        assert!(entries[3].runnable, "a host without the field is trusted as available");
+        assert!(
+            entries[3].runnable,
+            "a host without the field is trusted as available"
+        );
     }
 
     #[test]
