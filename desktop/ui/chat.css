@@ -803,3 +803,125 @@
     transition: none;
   }
 }
+
+/* «Proyectos» with its «+ Proyecto» button on one line. */
+.side-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.side-head-row h3 {
+  margin: 0;
+}
+
+.dialog-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.project-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.project-folder {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The state of a conversation, beside its title: amber when it waits for you. */
+.chat-row-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 16px;
+  vertical-align: 1px;
+}
+
+.chat-row-badge.is-approval {
+  background: color-mix(in srgb, #e0a030 22%, transparent);
+  color: #e0a030;
+}
+
+.chat-row-badge.is-working {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent-text);
+}
+
+/* Ctrl+K: one box near the top, a short list, the active row highlighted. */
+.palette-dialog {
+  width: min(560px, calc(100vw - 32px));
+  margin-top: 12vh;
+  padding: 0;
+  overflow: hidden;
+}
+
+.palette-dialog input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+}
+
+.palette-list {
+  max-height: 340px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.palette-item.is-active,
+.palette-item:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.palette-hint,
+.palette-empty,
+.palette-foot {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.palette-empty {
+  padding: 10px;
+}
+
+.palette-foot {
+  margin: 0;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+}

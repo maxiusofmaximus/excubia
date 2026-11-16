@@ -104,6 +104,31 @@ impl super::super::ChatStore {
             "UPDATE conversation SET last_message_at = ?1, updated_at = ?1 WHERE id = ?2",
             params![now, conversation_id],
         )?;
+        // A conversation still called «Nuevo chat» takes its title from this message;
+        // a title the user chose is never touched.
+        let titled = match crate::text::title_from(text) {
+            Some(title) => {
+                transaction.execute(
+                    "UPDATE conversation SET title = ?1 WHERE id = ?2 AND title = 'Nuevo chat'",
+                    params![title, conversation_id],
+                )? > 0
+            }
+            None => false,
+        };
+        let renamed = if titled {
+            Some(append_event(
+                &transaction,
+                "chat.conversation",
+                conversation_id,
+                serde_json::json!({
+                    "event": "chat.conversation",
+                    "conversation_id": conversation_id,
+                    "change": "updated",
+                }),
+            )?)
+        } else {
+            None
+        };
         self.reindex(&transaction, conversation_id)?;
 
         let agent_id = alfred_id(&transaction)?;
@@ -129,6 +154,9 @@ impl super::super::ChatStore {
             }),
         )?;
         transaction.commit()?;
+        if let Some(renamed) = renamed {
+            self.publish(renamed);
+        }
         self.publish(frame);
         Ok(AcceptedMessage {
             message: Message {

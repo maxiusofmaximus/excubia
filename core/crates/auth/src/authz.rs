@@ -115,6 +115,8 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         ("GET", "/v1/doc-tools") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/roles") => Ok(rule(Permission::ReadState, Budget::Read)),
         ("GET", "/v1/devices") => Ok(rule(Permission::Admin, Budget::Read)),
+        // A project names a folder of the PC its agents may write in: admin only.
+        ("POST", "/v1/chat/projects") => Ok(rule(Permission::Admin, Budget::Write)),
         // The mail logins create accounts on the host: an admin surface, and
         // the listing names the accounts, so it is not for ReadState devices.
         ("POST", "/v1/mail/login/start") => Ok(rule(Permission::Admin, Budget::Write)),

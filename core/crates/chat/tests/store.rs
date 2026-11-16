@@ -319,3 +319,44 @@ fn a_running_turn_is_interrupted_after_a_reopen() {
     assert_eq!(page.entries.len(), 1, "history survives the restart");
     assert_eq!(page.entries[0].seq, 1);
 }
+
+/// A conversation still called «Nuevo chat» takes its title from the first message;
+/// later messages and a title the user chose are left alone.
+#[test]
+fn a_new_chat_takes_its_title_from_the_first_message() {
+    let (store, _path, _dir) = store("auto-title");
+    let fresh = store
+        .create_conversation(NewConversation {
+            title: None,
+            project_id: None,
+        })
+        .expect("conversation")
+        .id;
+    store
+        .append_user_message(&fresh, "c-1", "creemos un proyecto web", None)
+        .expect("first");
+    store
+        .append_user_message(&fresh, "c-2", "con una página de contacto", None)
+        .expect("second");
+    assert_eq!(
+        store
+            .conversation(&fresh)
+            .expect("detail")
+            .conversation
+            .title,
+        "Creemos un proyecto web"
+    );
+
+    let named = conversation(&store, "Mi título");
+    store
+        .append_user_message(&named, "c-3", "otra cosa", None)
+        .expect("message");
+    assert_eq!(
+        store
+            .conversation(&named)
+            .expect("detail")
+            .conversation
+            .title,
+        "Mi título"
+    );
+}

@@ -31,6 +31,20 @@ fn mcp_rule(tool: &str) -> String {
 /// Print mode has no prompt to answer: an MCP tool missing from the list is
 /// refused, so the turn ends without `chat.reply` (CORE10 diagnosis).
 pub fn claude_settings(hook_command: &Path) -> Result<Vec<u8>, LaunchError> {
+    claude_settings_ttl(hook_command, None)
+}
+
+/// As [`claude_settings`], with the time the operator has to answer each card. A project
+/// seat gets the longest the host allows: nobody sits watching a lead's work.
+pub(super) fn claude_settings_ttl(
+    hook_command: &Path,
+    ttl_seconds: Option<u32>,
+) -> Result<Vec<u8>, LaunchError> {
+    let mut command = format!("\"{}\"", hook_command.to_string_lossy());
+    if let Some(ttl) = ttl_seconds {
+        command.push_str(&format!(" --ttl {ttl}"));
+    }
+    let timeout = ttl_seconds.map_or(CLAUDE_HOOK_TIMEOUT_SECONDS, |ttl| u64::from(ttl) + 30);
     let mut allow: Vec<String> = [
         "Bash",
         "Write",
@@ -63,8 +77,8 @@ pub fn claude_settings(hook_command: &Path) -> Result<Vec<u8>, LaunchError> {
                 "matcher": CLAUDE_HOOK_MATCHER,
                 "hooks": [{
                     "type": "command",
-                    "command": format!("\"{}\"", hook_command.to_string_lossy()),
-                    "timeout": CLAUDE_HOOK_TIMEOUT_SECONDS
+                    "command": command,
+                    "timeout": timeout
                 }]
             }]
         }

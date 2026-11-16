@@ -29,6 +29,18 @@ pub async fn team_summary(state: State<'_, Shared>) -> Result<TeamSummary, ChatF
 }
 
 #[tauri::command]
+pub async fn team_project_create(
+    state: State<'_, Shared>,
+    name: String,
+    root_path: String,
+) -> Result<serde_json::Value, ChatFailure> {
+    let shared = shared(&state);
+    client(&shared)?
+        .team_project_create(&name, &root_path)
+        .await
+}
+
+#[tauri::command]
 pub async fn team_hire(state: State<'_, Shared>, role: String) -> Result<Hire, ChatFailure> {
     let shared = shared(&state);
     client(&shared)?.team_hire(&role).await

@@ -51,6 +51,27 @@ impl TeamService {
         let to_agent_id = self
             .seat_of_target(&assign.to_agent_id, &conversation_id)
             .await?;
+        // Alfred runs several projects: assigning a lead puts the conversation on that
+        // lead's project, unless work the conversation delegated elsewhere is still open.
+        if actor.role_id == "alfred" {
+            let seat = self.chat.seat(&to_agent_id).map_err(tool_chat_error)?;
+            // A project the operator opened from a folder has a lead that never ran:
+            // it starts the first time work goes to it.
+            if seat.role_id == "lead" && seat.pane_id.is_none() {
+                self.spawn_panel(&seat).await?;
+            }
+            if let Some(project_id) = seat.project_id.as_deref() {
+                self.chat
+                    .set_conversation_project(&conversation_id, project_id)
+                    .map_err(|_| {
+                        ToolError::invalid(
+                            "project_busy",
+                            "to_agent_id",
+                            "this conversation still has open work in another project; wait for it or use a new conversation",
+                        )
+                    })?;
+            }
+        }
         let delegation = self
             .chat
             .create_delegation(NewDelegation {

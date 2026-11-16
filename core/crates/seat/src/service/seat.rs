@@ -62,6 +62,9 @@ pub struct SeatService {
     has_engines: bool,
     mcp_command: PathBuf,
     tool_url: String,
+    /// The UAC hook a project seat's CLI runs before each tool, and where it asks.
+    hook_url: String,
+    hook_command: PathBuf,
     sender: mpsc::Sender<Turn>,
     tokens: Arc<Mutex<HashMap<String, Arc<RunGrant>>>>,
     worker: Mutex<Option<JoinHandle<()>>>,
@@ -128,6 +131,8 @@ impl SeatService {
             has_engines: !config.engines.is_empty(),
             mcp_command: config.mcp_command.clone(),
             tool_url: config.tool_url.clone(),
+            hook_url: config.hook_url.clone(),
+            hook_command: config.hook_command.clone(),
             sender,
             tokens: Arc::clone(&tokens),
             worker: Mutex::new(None),
@@ -167,6 +172,14 @@ impl SeatService {
 
     pub fn tool_url(&self) -> &str {
         &self.tool_url
+    }
+
+    pub fn hook_url(&self) -> &str {
+        &self.hook_url
+    }
+
+    pub fn hook_command(&self) -> &std::path::Path {
+        &self.hook_command
     }
 
     pub fn is_available(&self) -> bool {

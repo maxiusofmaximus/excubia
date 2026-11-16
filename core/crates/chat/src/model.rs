@@ -84,6 +84,9 @@ pub struct Conversation {
     /// The progress line of the latest open turn (omitted when none).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub progress: Option<String>,
+    /// Approvals of this conversation waiting at the operator (omitted when 0).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub waiting_approvals: u32,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -113,6 +116,7 @@ impl Conversation {
             unread: 0,
             active_runs: 0,
             progress: None,
+            waiting_approvals: 0,
             created_at: created_at.clone(),
             updated_at: created_at,
         }

@@ -27,7 +27,10 @@ const SELECT: &str = "SELECT c.id, c.title, c.project_id, c.pinned, c.section_id
         (SELECT r.progress FROM run r JOIN message m ON m.id = r.message_id
           WHERE m.conversation_id = c.id AND r.state IN ('queued', 'running')
             AND r.progress IS NOT NULL
-          ORDER BY r.started_at DESC LIMIT 1) AS progress
+          ORDER BY r.started_at DESC LIMIT 1) AS progress,
+        (SELECT COUNT(*) FROM approval a
+          WHERE a.conversation_id = c.id AND a.status = 'pending' AND a.level = 'user')
+          AS waiting_approvals
    FROM conversation c";
 
 /// An unread agent reply, or an approval that waits at the operator (the
@@ -357,6 +360,7 @@ fn row_to_conversation(row: &Row<'_>) -> rusqlite::Result<Conversation> {
         unread: row.get::<_, i64>(11)?.max(0) as u64,
         active_runs: row.get::<_, i64>(12)?.max(0) as u32,
         progress: row.get(13)?,
+        waiting_approvals: row.get::<_, i64>(14)?.max(0) as u32,
     })
 }
 

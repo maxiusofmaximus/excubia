@@ -318,7 +318,10 @@
               <p id="side-company" class="side-company"></p>
             </div>
             <div class="side-section">
-              <h3>Proyectos</h3>
+              <div class="side-head-row">
+                <h3>Proyectos</h3>
+                <button id="btn-new-project" class="btn ghost btn-small" type="button">+ Proyecto</button>
+              </div>
               <div id="side-projects" class="side-list"></div>
             </div>
             <div id="side-team-section" class="side-section">
@@ -805,6 +808,31 @@
     </form>
   </dialog>
 
+  <dialog id="command-palette" class="dialog palette-dialog" aria-label="Órdenes">
+    <input id="command-palette-input" type="text" placeholder="Escribe una orden o el nombre de una conversación…" autocomplete="off" spellcheck="false" aria-controls="command-palette-list">
+    <ul id="command-palette-list" class="palette-list" role="listbox"></ul>
+    <p class="palette-foot">↑↓ para elegir · Enter para abrir · Esc para cerrar</p>
+  </dialog>
+
+  <dialog id="project-new" class="dialog chat-dialog">
+    <form id="project-new-form" method="dialog" novalidate>
+      <h2>Nuevo proyecto</h2>
+      <p class="dialog-hint">Elige una carpeta de este PC. El responsable del proyecto y su equipo trabajan ahí; lo que esté fuera de la carpeta te pide permiso.</p>
+      <label class="field-label">Carpeta</label>
+      <div class="project-folder-row">
+        <span id="project-new-folder" class="project-folder">Ninguna carpeta elegida</span>
+        <button id="project-new-pick" class="btn secondary btn-small" type="button">Elegir…</button>
+      </div>
+      <label class="field-label" for="project-new-name">Nombre</label>
+      <input id="project-new-name" type="text" maxlength="80" spellcheck="false" autocomplete="off">
+      <p id="project-new-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="project-new-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="project-new-save" class="btn primary" type="submit">Crear proyecto</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="chat-section" class="dialog chat-dialog">
     <form id="chat-section-form" method="dialog" novalidate>
       <h2>Mover a una sección</h2>
@@ -835,6 +863,17 @@
       <button id="delegation-detail-agent" class="btn secondary" type="button">Abrir agente</button>
       <button id="delegation-detail-close" class="btn primary" type="button">Cerrar</button>
     </div>
+  </dialog>
+
+  <dialog id="chat-delete" class="dialog chat-dialog">
+    <form id="chat-delete-form" method="dialog" novalidate>
+      <h2>Eliminar conversación</h2>
+      <p id="chat-delete-lede" class="dialog-lede">Se borra para siempre, con sus mensajes y adjuntos. No se puede deshacer.</p>
+      <div class="dialog-actions">
+        <button id="chat-delete-cancel" class="btn ghost" type="button">Volver</button>
+        <button id="chat-delete-confirm" class="btn destructive" type="submit">Eliminar</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="delegation-kill" class="dialog chat-dialog">

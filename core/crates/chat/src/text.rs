@@ -103,3 +103,67 @@ mod tests {
         );
     }
 }
+
+/// The title a conversation gets from its first message while it is still «Nuevo chat»:
+/// the first line, without Markdown marks, cut at a word near 48 characters. `None`
+/// when nothing readable is left (a message that is only an attachment).
+pub fn title_from(text: &str) -> Option<String> {
+    const MAX: usize = 48;
+    let line = text.lines().map(str::trim).find(|line| !line.is_empty())?;
+    let clean: String = line
+        .chars()
+        .filter(|c| !matches!(c, '*' | '_' | '`' | '#' | '>' | '[' | ']'))
+        .collect();
+    let words: Vec<&str> = clean.split_whitespace().collect();
+    let mut title = String::new();
+    for word in words {
+        let next = if title.is_empty() {
+            word.chars().count()
+        } else {
+            title.chars().count() + 1 + word.chars().count()
+        };
+        if next > MAX {
+            if title.is_empty() {
+                title = word.chars().take(MAX).collect();
+            }
+            title.push('…');
+            break;
+        }
+        if !title.is_empty() {
+            title.push(' ');
+        }
+        title.push_str(word);
+    }
+    let title = title
+        .trim_end_matches(['.', ',', ';', ':', '?', '!', '¿', '¡'])
+        .to_string();
+    let mut chars = title.chars();
+    let first = chars.next()?;
+    Some(first.to_uppercase().chain(chars).collect())
+}
+
+#[cfg(test)]
+mod title_tests {
+    use super::title_from;
+
+    #[test]
+    fn the_first_line_becomes_a_short_title() {
+        assert_eq!(
+            title_from("creemos un proyecto web").as_deref(),
+            Some("Creemos un proyecto web")
+        );
+        assert_eq!(
+            title_from("Cuáles son los trabajadores que podemos contratar para trabajar en un proyecto de software?").as_deref(),
+            Some("Cuáles son los trabajadores que podemos…")
+        );
+        assert_eq!(
+            title_from("\n\n**Hola**, Alfred.\nsegunda línea").as_deref(),
+            Some("Hola, Alfred")
+        );
+        assert_eq!(title_from("   \n "), None);
+        assert_eq!(
+            title_from("¿Qué día es hoy?").as_deref(),
+            Some("¿Qué día es hoy")
+        );
+    }
+}

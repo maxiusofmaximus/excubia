@@ -85,6 +85,21 @@ impl HostClient {
             .await
     }
 
+    /// Deletes the conversation for good. The host refuses while work in it is open.
+    pub async fn chat_delete_conversation(&self, id: &str) -> ChatResult<()> {
+        validate_prefixed_id(id, "cnv_", "conversación")?;
+        let _: serde_json::Value = self
+            .chat_call(
+                Method::DELETE,
+                &format!("/v1/chat/conversations/{id}"),
+                &[],
+                None,
+                true,
+            )
+            .await?;
+        Ok(())
+    }
+
     pub async fn chat_update_conversation(
         &self,
         id: &str,

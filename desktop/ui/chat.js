@@ -278,6 +278,7 @@ export const menu = createChatMenu({
   render: renderChat,
   patch: patchConversation,
   failure,
+  refresh: () => refreshHome(),
 });
 
 export async function chatBoot() {

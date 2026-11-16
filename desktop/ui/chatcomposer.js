@@ -35,7 +35,7 @@ export function renderComposer() {
     $("chat-hint").textContent = "La copia local es de solo lectura";
   } else {
     input.placeholder = "Mensaje a Alfred";
-    $("chat-hint").textContent = mode.hint || "Enter envía · Shift+Enter salto de línea · Ctrl+Mayús+M dicta";
+    $("chat-hint").textContent = mode.hint || "Enter envía · Shift+Enter salto de línea · Ctrl+Mayús+M dicta · Ctrl+K órdenes";
   }
 }
 

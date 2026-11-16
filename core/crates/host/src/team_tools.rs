@@ -217,28 +217,39 @@ impl TeamService {
                 root_path,
             })
             .map_err(tool_chat_error)?;
-        // The conversation that asked for the project belongs to it: the
-        // delegation tree is checked against the conversation's project.
-        if !actor.conversation_id.is_empty() {
-            self.chat
+        // The conversation moves to the new project unless it has open work elsewhere.
+        // The project exists from here on, so nothing below may answer as if it did not.
+        let focused = actor.conversation_id.is_empty()
+            || self
+                .chat
                 .set_conversation_project(&actor.conversation_id, &project.id)
-                .map_err(tool_chat_error)?;
-        }
+                .is_ok();
         let lead_id = project
             .lead
             .as_ref()
             .map(|lead| lead.agent_id.clone())
             .ok_or_else(|| ToolError::unavailable("the project has no lead seat"))?;
         let seat = self.chat.seat(&lead_id).map_err(tool_chat_error)?;
-        let pane_id = self.spawn_panel(&seat).await?;
-        if let Some(lead) = project.lead.as_mut() {
-            lead.pane_id = Some(pane_id.clone());
-            lead.status = "idle".to_string();
-        }
+        // The reply says whether the lead runs: Alfred reports what happened, not what he hoped.
+        let lead = match self.spawn_panel(&seat).await {
+            Ok(pane_id) => {
+                if let Some(lead) = project.lead.as_mut() {
+                    lead.pane_id = Some(pane_id.clone());
+                    lead.status = "idle".to_string();
+                }
+                json!({ "agent_id": lead_id, "running": true, "pane_id": pane_id })
+            }
+            Err(error) => json!({
+                "agent_id": lead_id,
+                "running": false,
+                "error": { "code": error.code, "message": error.message },
+            }),
+        };
         Ok(ToolReply {
             result: json!({
                 "project": project,
-                "lead": { "agent_id": lead_id, "pane_id": pane_id },
+                "lead": lead,
+                "conversation_on_project": focused,
             }),
         })
     }
@@ -335,6 +346,8 @@ impl TeamService {
             role: &role,
             tool_url: self.alfred.tool_url(),
             mcp_command: self.alfred.mcp_command(),
+            hook_url: self.alfred.hook_url(),
+            hook_command: self.alfred.hook_command(),
         })
         .map_err(|error| {
             ToolError::unavailable(format!(

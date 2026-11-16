@@ -53,6 +53,9 @@ pub struct Config {
     pub notifications: bool,
     /// The local core also listens on the LAN, so a phone can pair with its QR.
     pub lan_pairing: bool,
+    /// Which list of local permissions this device was last granted; a newer list
+    /// (approve was added later) is granted once on the next start.
+    pub local_grants: u32,
 }
 
 impl Default for Config {
@@ -66,6 +69,7 @@ impl Default for Config {
             paired: false,
             notifications: true,
             lan_pairing: false,
+            local_grants: 0,
         }
     }
 }

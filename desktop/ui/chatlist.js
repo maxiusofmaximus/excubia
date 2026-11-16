@@ -1,3 +1,4 @@
+import { rowBadge } from "./chat-row-model.js";
 import { $ } from "./core.js";
 import { setNavBadge } from "./nav.js";
 import { emptyState } from "./empty-state.js";
@@ -62,6 +63,14 @@ function row(conversation, view) {
   const step = progressText(view.progress, conversation.id);
   if (step) meta.textContent = `Alfred · ${step}`;
   else meta.textContent = parts.length ? `Alfred · ${parts.join(" · ")}` : "Sin mensajes";
+  const badge = rowBadge(conversation);
+  if (badge) {
+    const chip = document.createElement("span");
+    chip.className = `chat-row-badge is-${badge.kind}`;
+    chip.textContent = badge.text;
+    // In the meta line, never inside the title: a long title is cut with an ellipsis.
+    meta.prepend(chip);
+  }
   main.append(title, meta);
 
   if (conversation.unread) {

@@ -156,6 +156,9 @@ pub struct Conversation {
     /// The step of the open turn (`chat.progress`); absent when no turn shows one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub progress: Option<String>,
+    /// Approvals of the conversation waiting at the operator; absent is 0.
+    #[serde(default)]
+    pub waiting_approvals: u32,
     #[serde(default)]
     pub created_at: String,
     #[serde(default)]

@@ -57,6 +57,10 @@ pub struct ResidentInput<'a> {
     pub role: &'a str,
     pub tool_url: &'a str,
     pub mcp_command: &'a Path,
+    /// Where the UAC hook asks, and the hook itself: a project seat edits files
+    /// and runs commands, so every tool it uses goes through the approval gate.
+    pub hook_url: &'a str,
+    pub hook_command: &'a Path,
 }
 
 #[derive(Clone, Debug)]
@@ -246,6 +250,9 @@ pub fn prepare_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchE
             input.profile.id.as_str().to_string(),
         ));
     }
+    if input.profile.prompt == PromptDelivery::SystemPromptFile {
+        return claude_resident(input);
+    }
     if input.profile.prompt != PromptDelivery::TestStdin {
         return Err(LaunchError::Unsupported(format!(
             "{} has no resident panel mode yet",
@@ -276,6 +283,60 @@ pub fn prepare_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchE
         files: vec![
             (role_file, input.role.as_bytes().to_vec()),
             (mcp, test_mcp(&mcp_command, input.tool_url)?),
+        ],
+    })
+}
+
+/// Claude as a project seat. `excubia-mcp resident` reads each task from the panel
+/// and runs one `claude -p` per task in the project folder, with the team tools and
+/// the UAC hook; the task's result goes back through `delegation.complete`.
+fn claude_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchError> {
+    if !hook_ready(input.hook_command) {
+        return Err(LaunchError::HookMissing(input.hook_command.to_path_buf()));
+    }
+    let mcp_command = input.mcp_command.to_string_lossy().to_string();
+    let role = input.seat_dir.join("role.md");
+    let mcp = input.seat_dir.join("claude-mcp.json");
+    let settings = input.seat_dir.join("claude-settings.json");
+    let mut args = vec!["resident".to_string(), "--".to_string()];
+    args.push(input.profile.command.clone());
+    args.extend([
+        "-p".to_string(),
+        "--append-system-prompt-file".to_string(),
+        role.to_string_lossy().to_string(),
+        "--mcp-config".to_string(),
+        mcp.to_string_lossy().to_string(),
+        "--strict-mcp-config".to_string(),
+        "--setting-sources".to_string(),
+        "project".to_string(),
+        "--settings".to_string(),
+        settings.to_string_lossy().to_string(),
+    ]);
+    Ok(LaunchPlan {
+        program: mcp_command.clone(),
+        args,
+        env: vec![
+            ("EXCUBIA_ENV".to_string(), "1".to_string()),
+            (
+                "EXCUBIA_CHAT_AGENT_ID".to_string(),
+                input.agent_id.to_string(),
+            ),
+            ("EXCUBIA_SEAT_ROLE".to_string(), input.role_id.to_string()),
+            ("EXCUBIA_TOOL_URL".to_string(), input.tool_url.to_string()),
+            ("EXCUBIA_HOOK_URL".to_string(), input.hook_url.to_string()),
+        ],
+        cwd: input.seat_dir.to_path_buf(),
+        stdin: String::new(),
+        files: vec![
+            (role, input.role.as_bytes().to_vec()),
+            (mcp, claude_mcp(&mcp_command, input.tool_url)?),
+            (
+                settings,
+                render::claude_settings_ttl(
+                    input.hook_command,
+                    Some(excubia_chat::MAX_TTL_SECONDS),
+                )?,
+            ),
         ],
     })
 }

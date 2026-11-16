@@ -109,6 +109,17 @@ pub async fn chat_update(
 }
 
 #[tauri::command]
+pub async fn chat_delete_conversation(
+    state: State<'_, Shared>,
+    conversation_id: String,
+) -> Result<(), excubia_desktop_core::chat::ChatFailure> {
+    let shared = shared(&state);
+    client(&shared)?
+        .chat_delete_conversation(&conversation_id)
+        .await
+}
+
+#[tauri::command]
 pub async fn chat_save_section(
     state: State<'_, Shared>,
     id: Option<String>,

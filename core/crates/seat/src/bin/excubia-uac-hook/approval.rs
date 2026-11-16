@@ -35,13 +35,7 @@ pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
     let token = env::var_or_legacy("EXCUBIA_HOOK_TOKEN", "HN_HOOK_TOKEN")
         .ok_or_else(|| Refusal::NoDecision("EXCUBIA_HOOK_TOKEN is not set".to_string()))?;
     let host = LoopbackUrl::parse(&base).map_err(Refusal::NoDecision)?;
-    let digest = action_digest(
-        &request.kind,
-        &request.tool,
-        &request.args,
-        &request.cwd,
-        &request.paths,
-    );
+    let digest = digest_of(request);
     let body = json!({
         "kind": request.kind,
         "tool": request.tool,
@@ -169,4 +163,51 @@ async fn consume(
         )));
     }
     Ok(())
+}
+
+/// The identity of the action. The call id joins it, so a retry in a later task is a
+/// fresh question instead of a spent digest; without one the action alone is the identity.
+pub(super) fn digest_of(request: &Request) -> String {
+    let identity = match &request.call_id {
+        Some(call) => json!({ "args": request.args, "call": call }),
+        None => request.args.clone(),
+    };
+    action_digest(
+        &request.kind,
+        &request.tool,
+        &identity,
+        &request.cwd,
+        &request.paths,
+    )
+}
+
+#[cfg(test)]
+mod digest_tests {
+    use super::*;
+
+    fn write(call: Option<&str>) -> Request {
+        Request {
+            kind: "edit".to_string(),
+            tool: "Write".to_string(),
+            summary: "edit Write".to_string(),
+            args: json!({ "file_path": "notas.txt", "content": "hola" }),
+            cwd: "C:/proyecto".to_string(),
+            paths: vec!["C:/proyecto/notas.txt".to_string()],
+            ttl_seconds: 300,
+            call_id: call.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn the_same_write_in_two_calls_is_two_questions_and_one_call_is_one() {
+        assert_ne!(
+            digest_of(&write(Some("toolu_1"))),
+            digest_of(&write(Some("toolu_2")))
+        );
+        assert_eq!(
+            digest_of(&write(Some("toolu_1"))),
+            digest_of(&write(Some("toolu_1")))
+        );
+        assert_eq!(digest_of(&write(None)), digest_of(&write(None)));
+    }
 }

@@ -3,7 +3,7 @@
 
 import { $, invoke, toast } from "./core.js";
 
-export function createChatMenu({ chat, render, patch, failure }) {
+export function createChatMenu({ chat, render, patch, failure, refresh }) {
   function menuItem(label, action, options = {}) {
     const button = document.createElement("button");
     button.type = "button";
@@ -27,6 +27,7 @@ export function createChatMenu({ chat, render, patch, failure }) {
         danger: !conversation.archived,
       }),
       menuItem("⊘ Cancelar delegaciones activas", "cancel-delegations", { danger: true }),
+      menuItem("🗑 Eliminar…", "delete", { danger: true }),
     );
     chat.menuFor = conversation;
     menu.classList.remove("hidden");
@@ -66,6 +67,32 @@ export function createChatMenu({ chat, render, patch, failure }) {
       );
     } else if (action === "cancel-delegations") {
       $("delegation-kill").showModal();
+    } else if (action === "delete") {
+      $("chat-delete").dataset.id = conversation.id;
+      $("chat-delete-lede").textContent =
+        `«${conversation.title}» se borra para siempre, con sus mensajes y adjuntos. No se puede deshacer.`;
+      $("chat-delete").showModal();
+    }
+  }
+
+  async function confirmDelete(event) {
+    event.preventDefault();
+    const id = $("chat-delete").dataset.id;
+    $("chat-delete").close();
+    if (!id || !invoke) return;
+    try {
+      await invoke("chat_delete_conversation", { conversationId: id });
+      if (chat.conversation && chat.conversation.id === id) {
+        chat.conversation = null;
+        chat.entries = [];
+        chat.pending = [];
+      }
+      toast("Conversación eliminada");
+      await refresh();
+      render();
+    } catch (error) {
+      // Open work blocks a delete: the host says so and nothing is lost.
+      toast(failure(error).message);
     }
   }
 
@@ -148,5 +175,5 @@ export function createChatMenu({ chat, render, patch, failure }) {
     }
   }
 
-  return { openMenu, closeMenu, runMenuAction, saveRename, saveSection, openSection };
+  return { openMenu, closeMenu, runMenuAction, saveRename, saveSection, openSection, confirmDelete };
 }

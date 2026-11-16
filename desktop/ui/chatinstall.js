@@ -10,6 +10,8 @@ import { jumpToBottom, renderJump } from "./chatjump.js";
 import { createSender } from "./chatsend.js";
 import { hasPendingAttachments, installAttachments, readyAttachments } from "./chatattach.js";
 import { installVoice } from "./chatvoice.js";
+import { installNewProject } from "./newproject.js";
+import { installCommandPalette } from "./command-palette.js";
 import { openDraft } from "./mail-draft.js";
 import { installDraftCards } from "./chatdraft.js";
 import { createDelegations } from "./chatdelegations.js";
@@ -145,6 +147,11 @@ export function installChatHandlers() {
   installAttachments({ ensureConversation: () => sender.create(null) });
   installVoice();
   installDraftCards();
+  installNewProject(refreshHome);
+  installCommandPalette({
+    conversations: () => (chat.home ? [...chat.home.conversations, ...chat.home.archived] : []),
+    selectConversation,
+  });
   try {
     const collapsed = localStorage.getItem("hn-chat-side-collapsed") === "1";
     if (collapsed) {
@@ -291,6 +298,8 @@ export function installChatHandlers() {
 
   $("delegation-kill-form").addEventListener("submit", delegations.cancelAll);
   $("delegation-kill-cancel").addEventListener("click", () => $("delegation-kill").close());
+  $("chat-delete-form").addEventListener("submit", menu.confirmDelete);
+  $("chat-delete-cancel").addEventListener("click", () => $("chat-delete").close());
   installDelegationHandlers();
 
   $("chat-rename-form").addEventListener("submit", menu.saveRename);

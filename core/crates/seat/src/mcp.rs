@@ -151,7 +151,11 @@ async fn write_message(stdout: &mut tokio::io::Stdout, value: &Value) -> Result<
     stdout.flush().await.map_err(|error| error.to_string())
 }
 
-async fn post_tool(url: &str, token: &str, request: &ToolRequest) -> Result<ToolReply, ToolError> {
+pub(crate) async fn post_tool(
+    url: &str,
+    token: &str,
+    request: &ToolRequest,
+) -> Result<ToolReply, ToolError> {
     let endpoint = LoopbackUrl::parse(url).map_err(|error| transport_error(&error))?;
     let body = serde_json::to_vec(&json!({
         "tool": request.tool,

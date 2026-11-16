@@ -22,6 +22,7 @@ mod preflight;
 mod profile;
 mod prompt;
 mod quota;
+mod resident;
 mod role_seed;
 mod role_seed_apply;
 mod role_seed_auto;
@@ -48,6 +49,7 @@ pub use profile::{
     probe, select, shipped, test_profile, CliId, CliProfile, HookSupport, Isolation,
     McpDeclaration, PromptDelivery, SelectedProfile, TurnMode, Version,
 };
+pub use resident::run_resident;
 pub use service::{SeatConfig, SeatService, TurnEnv, CONTEXT_CHARS, CONTEXT_MESSAGES};
 pub use tools::{
     check_draft_fields, parse as parse_tool, AgentSpawn, AlertCall, ApprovalDecide,

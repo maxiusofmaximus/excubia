@@ -47,7 +47,7 @@ pub fn definitions() -> Value {
             },
             {
                 "name": "project.create",
-                "description": "Create a project under workspaces_root and start its lead panel. Alfred only.",
+                "description": "Alfred only. Create a project under workspaces_root and try to start its lead. The reply says whether the lead is running (lead.running) and gives the project id: report exactly that, never more. You run several projects; the conversation moves to the new one unless it has open work elsewhere.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -60,7 +60,7 @@ pub fn definitions() -> Value {
             },
             {
                 "name": "agent.spawn",
-                "description": "Create a project seat and start its CLI panel. Leads spawn specialists of their own project.",
+                "description": "Create a project seat and start its CLI panel; project_id comes from status.overview. Alfred creates leads; a lead spawns the specialists of its own project. To staff a project with someone the operator already hired, delegate to that hire id instead. Report only what the reply says.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -183,7 +183,7 @@ pub fn definitions() -> Value {
             },
             {
                 "name": "status.overview",
-                "description": "Alfred only. Read-only summary of the company in one call: panels by status and project, open delegations, approvals waiting at your level and the last activity. It takes no arguments and shows no paths, tokens or pane ids.",
+                "description": "Alfred only. Read-only summary of the company in one call: each project with its id, folder label and lead (and whether the lead is running), panels by status, open delegations, approvals waiting at your level, the hires (id, name, role) and the catalogue of roles the operator can hire. Each turn starts fresh: read this before naming a project or a person. It takes no arguments and shows no paths, tokens or pane ids.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {},

@@ -74,13 +74,15 @@ pub(super) fn slug(name: &str) -> Result<String, String> {
 pub(super) fn role_text(role_id: &str, name: &str) -> String {
     match role_id {
         "lead" => format!(
-            "Eres {name}, lead del proyecto. Recibes una tarea de Alfred, puedes crear \
-             especialistas con agent.spawn y repartirles trabajo con delegation.assign. \
-             Cuando termines, llama a delegation.complete con el resultado completo."
+            "Eres {name}, lead del proyecto. Trabajas en la carpeta del proyecto. Recibes una \
+             tarea de Alfred, puedes crear especialistas con agent.spawn y repartirles trabajo \
+             con delegation.assign. Tu respuesta final es el resultado de la tarea: escríbelo \
+             completo, en español."
         ),
         _ => format!(
-            "Eres {name}, especialista del proyecto. Ejecuta la tarea que recibes y \
-             termínala con delegation.complete; no delegues ni crees otros asientos."
+            "Eres {name}, especialista del proyecto. Trabajas en la carpeta del proyecto. \
+             Ejecuta la tarea que recibes; tu respuesta final es su resultado, completo y en \
+             español. No delegues ni crees otros asientos."
         ),
     }
 }

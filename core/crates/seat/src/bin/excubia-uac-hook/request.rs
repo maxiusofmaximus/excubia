@@ -17,6 +17,9 @@ pub(super) struct Request {
     pub(super) cwd: String,
     pub(super) paths: Vec<String>,
     pub(super) ttl_seconds: u64,
+    /// The CLI's id of this one tool call, when it gives one. It makes two identical
+    /// calls two questions, while one call can still never be approved twice.
+    pub(super) call_id: Option<String>,
 }
 
 impl Request {
@@ -67,6 +70,7 @@ impl Request {
             cwd,
             paths,
             ttl_seconds: flags.ttl_seconds,
+            call_id: payload.as_ref().and_then(|p| p.call_id.clone()),
         })
     }
 }
@@ -150,6 +154,7 @@ struct Payload {
     summary: Option<String>,
     args: Option<Value>,
     cwd: Option<String>,
+    call_id: Option<String>,
 }
 
 fn read_payload() -> Result<Option<Payload>, Refusal> {
@@ -177,6 +182,7 @@ fn read_payload() -> Result<Option<Payload>, Refusal> {
             .cloned()
             .or_else(|| value.get("args").cloned()),
         cwd: text("cwd"),
+        call_id: text("tool_use_id"),
     }))
 }
 

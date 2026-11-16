@@ -94,9 +94,10 @@ impl super::ChatStore {
         Ok(seat)
     }
 
-    /// Attach a conversation to a project. A conversation belongs to one
-    /// project: the delegation rules check the tree against it, so the host
-    /// links the conversation when Alfred creates the project.
+    /// Put a conversation on a project. A conversation is on one project at a
+    /// time: the delegation rules check the tree against it, so the host links
+    /// the conversation when Alfred creates or picks a project. It moves to
+    /// another project only while none of its delegations is open.
     pub fn set_conversation_project(
         &self,
         conversation_id: &str,
@@ -113,11 +114,21 @@ impl super::ChatStore {
             )
             .optional()?
             .flatten();
-        match current.as_deref() {
-            Some(existing) if existing != project_id => {
+        // Alfred runs several projects, so a conversation may change the project it is
+        // on; never while work it delegated there is still open, or the tree would mix.
+        if current
+            .as_deref()
+            .is_some_and(|existing| existing != project_id)
+        {
+            let open: i64 = transaction.query_row(
+                "SELECT COUNT(*) FROM delegation
+                  WHERE conversation_id = ?1 AND state IN ('queued', 'running', 'waiting')",
+                [conversation_id],
+                |row| row.get(0),
+            )?;
+            if open > 0 {
                 return Err(ChatError::ScopeDenied);
             }
-            _ => {}
         }
         transaction.execute(
             "UPDATE conversation SET project_id = ?1 WHERE id = ?2",

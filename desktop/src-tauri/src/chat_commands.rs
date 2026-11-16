@@ -17,6 +17,7 @@ pub mod attachments;
 pub mod conversations;
 pub mod delegation;
 pub mod documents;
+pub mod links;
 pub mod preview;
 pub mod writes;
 

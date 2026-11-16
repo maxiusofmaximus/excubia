@@ -1,5 +1,6 @@
-import { $ } from "./core.js";
+import { $, invoke } from "./core.js";
 import { paintAvatar } from "./avatar.js";
+import { installLinkOpener, renderMarkdown } from "./markdown.js";
 import { formatTime } from "./chatlist.js";
 import { renderApprovalEntry, renderApprovalLine } from "./approval-card.js";
 import { conversationContext, isOperatorLevel, supersededIndexes } from "./approval-model.js";
@@ -24,8 +25,8 @@ function messageNode(message, alfredName, line = null, detail = null) {
   if (message.id) wrapper.dataset.messageId = message.id;
 
   if (!user) {
-    const avatar = element("span", "msg-avatar", (alfredName || "A").slice(0, 1).toUpperCase());
-    avatar.setAttribute("aria-hidden", "true");
+    const avatar = element("span", "msg-avatar avatar");
+    paintAvatar(avatar, { name: alfredName, characterId: "alfred", px: 26 });
     wrapper.append(avatar);
   }
 
@@ -38,7 +39,9 @@ function messageNode(message, alfredName, line = null, detail = null) {
   }
 
   const body = stripTestMarkers(bubbleBody(message));
-  const bubble = element("div", "msg-bubble", body);
+  // The user's words stay as typed; a reply is read as Markdown, built node by node.
+  const bubble = user || !body ? element("div", "msg-bubble", body) : element("div", "msg-bubble is-md");
+  if (!user && body) bubble.append(renderMarkdown(body));
   if (!body) bubble.classList.add("is-empty");
   if (message.quote) {
     // The quoted line leads the bubble; a click scrolls to the original when it is loaded.
@@ -194,8 +197,14 @@ function suggestionNode(item) {
   return button;
 }
 
+let linksInstalled = false;
+
 export function renderThread(chat) {
   const timeline = $("chat-timeline");
+  if (!linksInstalled && invoke) {
+    installLinkOpener(timeline, (url) => invoke("open_link", { url }).catch(() => {}));
+    linksInstalled = true;
+  }
   const empty = $("chat-empty");
   paintChatSuggestions();
   const alfredName = chat.home && chat.home.bootstrap ? chat.home.bootstrap.alfred.name : "Alfred";

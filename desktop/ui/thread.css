@@ -59,6 +59,92 @@
   font-weight: 700;
 }
 
+/* Alfred's face, painted by avatar.js; the disc colour comes from his character. */
+.msg-avatar.avatar {
+  overflow: hidden;
+  background: var(--avatar-bg, var(--raised));
+  color: var(--avatar-fg, var(--text-2));
+}
+
+/* A reply read as Markdown: blocks set their own spacing, so no pre-wrap. */
+.msg-bubble.is-md {
+  white-space: normal;
+}
+
+.md > :first-child {
+  margin-top: 0;
+}
+
+.md > :last-child {
+  margin-bottom: 0;
+}
+
+.md p,
+.md ul,
+.md ol,
+.md pre,
+.md blockquote {
+  margin: 0 0 8px;
+}
+
+.md ul,
+.md ol {
+  padding-left: 20px;
+}
+
+.md li + li {
+  margin-top: 2px;
+}
+
+.md h3,
+.md h4,
+.md h5 {
+  margin: 4px 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.md code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--raised);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.md pre {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.md pre code {
+  padding: 0;
+  background: none;
+}
+
+.md blockquote {
+  padding-left: 10px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--text-2);
+}
+
+.md hr {
+  margin: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.md a.md-link {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
 .msg-column {
   display: flex;
   flex-direction: column;

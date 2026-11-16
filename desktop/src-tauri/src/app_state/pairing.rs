@@ -9,6 +9,8 @@ use super::{lock, AppState};
 /// The desktop owns its local host (same user, loopback), so it grants itself
 /// all of them; the "no ADMIN" policy is for phones only.
 const LOCAL_PERMISSIONS: &[&str] = &["read_state", "respond", "send_key", "approve", "admin"];
+/// Bump when `LOCAL_PERMISSIONS` grows, so devices paired before get the new one.
+const LOCAL_GRANTS: u32 = 2;
 
 impl AppState {
     /// Pairs this device against the managed host if it does not know it yet,
@@ -27,8 +29,9 @@ impl AppState {
             HostClient::new(base_url, identity.clone()).map_err(|error| error.to_string())?;
         let mut state = client.state().await;
         let paired = lock(&self.inner).config.paired;
-        if paired && matches!(state, Err(CoreError::Forbidden)) {
-            // A device paired before the grants existed: heal it once, then retry.
+        let stale = lock(&self.inner).config.local_grants < LOCAL_GRANTS;
+        if paired && (stale || matches!(state, Err(CoreError::Forbidden))) {
+            // A device paired before a grant existed (approve came later): heal it once.
             self.grant_local_permissions(identity.device_id()).await?;
             state = client.state().await;
         }
@@ -76,7 +79,8 @@ impl AppState {
             self.run_host_cli(&["devices", "grant", device_id, "--permission", permission])
                 .await?;
         }
-        Ok(())
+        lock(&self.inner).config.local_grants = LOCAL_GRANTS;
+        self.save_config()
     }
 
     /// Runs the host CLI against the same data dir the daemon uses.

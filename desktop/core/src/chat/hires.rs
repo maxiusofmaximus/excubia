@@ -122,6 +122,20 @@ impl HostClient {
         self.chat_get("/v1/roles", &[]).await
     }
 
+    /// Opens a folder of this PC as a project (`ADMIN`): its lead and specialists
+    /// work there. The answer is the project as the host stored it.
+    pub async fn team_project_create(
+        &self,
+        name: &str,
+        root_path: &str,
+    ) -> ChatResult<serde_json::Value> {
+        let body = json!({ "name": name, "root_path": root_path });
+        let envelope: serde_json::Value = self
+            .chat_send_json(Method::POST, "/v1/chat/projects", &[], &body, true)
+            .await?;
+        Ok(envelope["project"].clone())
+    }
+
     pub async fn team_hires(&self) -> ChatResult<TeamHires> {
         self.chat_get("/v1/hires", &[]).await
     }

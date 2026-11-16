@@ -12,6 +12,7 @@ mod bootstrap;
 mod conversations;
 mod delegations;
 mod messages;
+mod projects;
 mod sections;
 mod settings;
 mod stop;
@@ -32,6 +33,7 @@ pub use conversations::{
 };
 pub use delegations::{cancel as cancel_delegation, cancel_conversation, show as delegation};
 pub use messages::{messages, read, send, timeline};
+pub use projects::create as create_project;
 pub use sections::{list as sections, upsert};
 pub use settings::{change as change_approval_settings, show as approval_settings};
 pub use stop::stop_conversation;

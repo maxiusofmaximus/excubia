@@ -25,8 +25,33 @@ impl TeamService {
         let links = self.chat.hire_links().map_err(tool_chat_error)?;
         let mut answer = overview(&state, &facts);
         answer["team"] = team(&state, &links, SystemClock.now_ms());
+        answer["hires"] = hires(&links);
+        answer["catalog"] = catalog();
         Ok(ToolReply { result: answer })
     }
+}
+
+/// Who is hired, by the id `delegation.assign` takes: a hire gets its seat in the
+/// conversation's project the first time work goes to it.
+fn hires(links: &[HireLink]) -> Value {
+    json!(links
+        .iter()
+        .take(OVERVIEW_ITEMS)
+        .map(|link| json!({ "id": link.hire_id, "name": link.name, "role": link.catalog_role }))
+        .collect::<Vec<_>>())
+}
+
+/// The professions the operator can hire (Equipo → Contratar), so Alfred proposes real
+/// roles instead of inventing them. Compiled in; an unreadable catalogue is an empty list.
+fn catalog() -> Value {
+    let Ok(catalog) = excubia_api::role_catalog::RoleCatalog::embedded() else {
+        return json!([]);
+    };
+    json!(catalog
+        .roles
+        .iter()
+        .map(|role| json!({ "role": role.id, "title": role.title, "area": role.area }))
+        .collect::<Vec<_>>())
 }
 
 /// The hires per status, read with the same rules as `GET /v1/team/summary`:
@@ -100,9 +125,18 @@ fn panels(state: &StatePayload, facts: &StatusFacts) -> Value {
 }
 
 fn project_panels(project: &ProjectSummary, rows: &[&TriageRow]) -> Value {
+    // Each turn of Alfred is a new session: the id here is how he names the project
+    // to agent.spawn and delegation.assign, and the lead says whether anyone runs it.
     json!({
+        "id": project.id,
         "name": project.name,
         "root_label": project.root_label,
+        "lead": project.lead.as_ref().map(|lead| json!({
+            "agent_id": lead.agent_id,
+            "name": lead.name,
+            "status": lead.status,
+            "running": lead.pane_id.is_some(),
+        })),
         "counts": tally(rows.iter().copied()),
     })
 }

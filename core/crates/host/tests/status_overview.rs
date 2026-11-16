@@ -228,6 +228,19 @@ async fn the_overview_counts_what_the_state_and_the_bootstrap_count() {
 
     let projects = &overview["panels"]["projects"];
     assert_eq!(projects[0]["name"], "Demo");
+    assert_eq!(
+        projects[0]["id"],
+        json!(company.project_id),
+        "Alfred names projects by id"
+    );
+    assert_eq!(projects[0]["lead"]["agent_id"], json!(company.lead));
+    assert_eq!(projects[0]["lead"]["running"], json!(true));
+    let catalog = overview["catalog"].as_array().expect("catalog");
+    assert!(
+        catalog.iter().any(|role| role["role"] == "ernesto"),
+        "the roles the operator can hire: {catalog:?}"
+    );
+    assert!(overview["hires"].is_array());
     assert_eq!(projects[0]["counts"], json!({ "blocked": 1, "working": 1 }));
     assert_eq!(overview["panels"]["unassigned"], json!({ "idle": 1 }));
 
@@ -292,4 +305,53 @@ async fn only_alfred_reads_it_and_it_takes_no_arguments() {
     )
     .await;
     assert_eq!(status, 422, "{body}");
+}
+
+/// Alfred runs several projects: a second project from the same conversation is
+/// created whole, and the reply says whether its lead runs instead of claiming it.
+#[tokio::test(flavor = "multi_thread")]
+async fn alfred_creates_a_second_project_from_the_same_conversation() {
+    let host = start("status-overview-two-projects").await;
+    let alfred = host.chat.alfred_id().expect("alfred");
+    let conversation = host
+        .chat
+        .create_conversation(NewConversation {
+            title: Some("Proyectos".to_string()),
+            project_id: None,
+        })
+        .expect("conversation")
+        .id;
+    host.team.as_ref().expect("a team host").grant_for_tests(
+        "tok-alfred",
+        seat_actor(&alfred, "alfred", None, &conversation),
+        "pane_alfred",
+    );
+
+    for name in ["Proyecto web", "Portafolio"] {
+        let (status, body) = call(
+            &host,
+            "tok-alfred",
+            "project.create",
+            json!({ "name": name }),
+        )
+        .await;
+        assert_eq!(status, 200, "{name}: {body}");
+        let result = &body["result"];
+        assert_eq!(result["project"]["name"], name);
+        assert!(result["lead"]["running"].is_boolean(), "{body}");
+        assert_eq!(result["conversation_on_project"], true, "{body}");
+    }
+
+    let (_, body) = call(&host, "tok-alfred", "status.overview", json!({})).await;
+    let projects = body["result"]["panels"]["projects"]
+        .as_array()
+        .expect("projects")
+        .iter()
+        .map(|project| project["name"].as_str().unwrap_or_default().to_string())
+        .collect::<Vec<_>>();
+    assert!(
+        projects.contains(&"Proyecto web".to_string()),
+        "{projects:?}"
+    );
+    assert!(projects.contains(&"Portafolio".to_string()), "{projects:?}");
 }

@@ -254,6 +254,7 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route("/v1/team/summary", get(routes::team_summary))
         .route("/v1/workspaces", post(routes::create_workspace))
         .route("/v1/chat/bootstrap", get(routes::chat_bootstrap))
+        .route("/v1/chat/projects", post(routes::chat_create_project))
         .route(
             "/v1/chat/delegations/{delegation_id}",
             get(routes::chat_delegation),

@@ -141,7 +141,7 @@ fn a_running_delegation_is_interrupted_after_a_reopen() {
 }
 
 #[test]
-fn a_conversation_belongs_to_one_project() {
+fn a_conversation_is_on_one_project_and_moves_only_with_nothing_open() {
     let t = team("conversation-project");
     let scratch = temp_dir("conversation-project");
     let other = t
@@ -167,9 +167,37 @@ fn a_conversation_belongs_to_one_project() {
             .expect("project"),
         Some(t.project.clone())
     );
+    // Nothing open: the conversation moves to the other project.
+    t.store
+        .set_conversation_project(&conversation.id, &other.id)
+        .expect("moves while nothing is open");
+    assert_eq!(
+        t.store
+            .conversation_project(&conversation.id)
+            .expect("project"),
+        Some(other.id.clone())
+    );
+    // Open work in the other project pins the conversation there.
+    let alfred = t.store.alfred_id().expect("alfred");
+    let lead = other.lead.clone().expect("lead").agent_id;
+    t.store
+        .set_seat_pane(&lead, Some("pane_otro"))
+        .expect("pane");
+    t.store
+        .create_delegation(NewDelegation {
+            conversation_id: conversation.id.clone(),
+            from_agent_id: alfred,
+            to_agent_id: lead,
+            task: "Planifica".to_string(),
+            turn_key: "run_1".to_string(),
+            parent_id: None,
+            steps: 1,
+            plan_id: None,
+        })
+        .expect("delegation");
     let error = t
         .store
-        .set_conversation_project(&conversation.id, &other.id)
-        .expect_err("one project per conversation");
+        .set_conversation_project(&conversation.id, &t.project)
+        .expect_err("pinned while work is open");
     assert!(matches!(error, ChatError::ScopeDenied), "{error}");
 }

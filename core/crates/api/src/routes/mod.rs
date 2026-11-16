@@ -44,14 +44,14 @@ pub use chat::{
     complete_attachment as chat_complete_attachment, consume_approval as chat_consume_approval,
     conversation_counts as chat_conversation_counts, conversations as chat_conversations,
     create as chat_create_conversation, create_approval as chat_create_approval,
-    create_attachment as chat_create_attachment, decide_approval as chat_decide_approval,
-    delegation as chat_delegation, delete_attachment as chat_delete_attachment,
-    delete_conversation as chat_delete_conversation, list_approvals as chat_approvals,
-    messages as chat_messages, read as chat_read, sections as chat_sections,
-    send as chat_send_message, show as chat_conversation, show_attachment as chat_attachment,
-    stop_conversation as chat_stop_conversation, timeline as chat_timeline, tool as chat_tool,
-    update as chat_update_conversation, upload_chunk as chat_upload_chunk,
-    upsert as chat_upsert_section,
+    create_attachment as chat_create_attachment, create_project as chat_create_project,
+    decide_approval as chat_decide_approval, delegation as chat_delegation,
+    delete_attachment as chat_delete_attachment, delete_conversation as chat_delete_conversation,
+    list_approvals as chat_approvals, messages as chat_messages, read as chat_read,
+    sections as chat_sections, send as chat_send_message, show as chat_conversation,
+    show_attachment as chat_attachment, stop_conversation as chat_stop_conversation,
+    timeline as chat_timeline, tool as chat_tool, update as chat_update_conversation,
+    upload_chunk as chat_upload_chunk, upsert as chat_upsert_section,
 };
 pub use devices::{device_sas, grant_device, list_devices, revoke_device};
 pub use doc_tools::list as doc_tools;
