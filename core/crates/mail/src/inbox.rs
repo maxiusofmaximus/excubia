@@ -1,6 +1,7 @@
 //! Reading received mail (MAIL-LECTURA): list a folder and read one message. Both
-//! are GET requests and nothing else; no message is marked, moved or deleted, and
-//! an attachment's content is never asked for, only its name, type and size.
+//! are GET requests and nothing else; no message is marked, moved or deleted. An
+//! attachment is listed by its id, name, type and size only; its content is asked
+//! for by [`crate::attachment_read`] alone (TASK-ATT1), one attachment at a time.
 
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +16,7 @@ use crate::transport::HttpResponse;
 
 const LIST_SELECT: &str = "id,subject,from,receivedDateTime,isRead,hasAttachments,bodyPreview";
 const MESSAGE_SELECT: &str = "id,subject,from,sender,replyTo,toRecipients,ccRecipients,receivedDateTime,internetMessageId,hasAttachments,body,internetMessageHeaders";
-const ATTACHMENT_SELECT: &str = "name,contentType,size,isInline";
+const ATTACHMENT_SELECT: &str = "id,name,contentType,size,isInline";
 const MAX_NAME_CHARS: usize = 320;
 const MAX_PREVIEW_CHARS: usize = 200;
 const MAX_SUBJECT_CHARS: usize = 998;
@@ -189,6 +190,7 @@ impl GraphClient<'_> {
             .value
             .into_iter()
             .map(|item| AttachmentInfo {
+                id: attachment_id(item.id),
                 name: one_line(&item.name, MAX_NAME_CHARS),
                 content_type: one_line(&item.content_type, MAX_NAME_CHARS),
                 size: item.size,
@@ -329,9 +331,21 @@ struct RawAttachments {
     value: Vec<RawAttachment>,
 }
 
+/// The id is kept whole or not at all: a cut id would name another attachment, so an
+/// id past the name limit, or with a control character, is left empty.
+fn attachment_id(raw: String) -> String {
+    if raw.chars().count() <= MAX_NAME_CHARS && !raw.chars().any(char::is_control) {
+        raw
+    } else {
+        String::new()
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawAttachment {
+    #[serde(default)]
+    id: String,
     #[serde(default)]
     name: String,
     #[serde(default)]

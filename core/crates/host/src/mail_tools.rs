@@ -10,18 +10,24 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use excubia_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
+use excubia_crafting::{safe_name, Document, ReadOpts};
 use excubia_mail::attach::{attach_chat_file, attach_file, AttachContext};
 use excubia_mail::auth;
 use excubia_mail::{
     Account, AccountStore, ActionLog, AuditLog, DraftInput, DraftMeta, GraphClient, HttpTransport,
     Ledger, MailError, PathPolicy, ReadRecord, Redacted, RulesClient, DEFAULT_MAX_ATTACHMENT_BYTES,
+    MAX_READ_BYTES,
 };
 use excubia_seat::{
-    AttachSource, DraftFields, DraftRef, InboxQuery, MailAttach, MailCall, MessageRef,
+    AttachSource, AttachmentRead, DraftFields, DraftRef, InboxQuery, MailAttach, MailCall,
+    MessageRef,
 };
 use serde_json::{json, Value};
 
+use crate::attachment_guard::{sniff, Quarantine};
 use crate::chat_file;
+use crate::craft::Craft;
+use crate::doc_tools::{kind_label, read_document};
 use crate::mail_approval::ChatApprovalGate;
 use crate::mail_cli::ACCOUNTS_DIR;
 use crate::mail_draft_input::{input, HtmlOrigin};
@@ -38,6 +44,8 @@ use crate::team_errors::tool_chat_error;
 pub const LEDGER_FILE: &str = "mail/ledger.sqlite";
 /// Where the private copy of an approved file waits for its upload.
 pub const SCRATCH_DIR: &str = "mail/scratch";
+/// The folder where `mail.attachment_read` keeps one copy per read, removed when the read ends.
+pub const QUARANTINE_DIR: &str = "mail/quarantine";
 
 /// Opens the ledger the drafts and the sends share.
 pub fn open_ledger(data_dir: &Path) -> Result<Ledger, MailError> {
@@ -69,6 +77,9 @@ pub struct MailTools {
     pub(crate) style_lock: Mutex<()>,
     /// The triage sidecar in shadow mode. Off unless the host was started with `--mail-sidecar`.
     pub(crate) shadow: Option<Arc<Shadow>>,
+    /// The document CLIs `mail.attachment_read` reads with. Without them the tool is unavailable.
+    pub(crate) craft: Option<Arc<Craft>>,
+    pub(crate) quarantine: PathBuf,
 }
 
 impl MailTools {
@@ -124,6 +135,8 @@ impl MailTools {
             profile: data_dir.join(PROFILE_FILE),
             style_lock: Mutex::new(()),
             shadow: None,
+            craft: None,
+            quarantine: data_dir.join(QUARANTINE_DIR),
         };
         // A line approved before the host stopped is written now, before Alfred drafts again.
         tools.apply_approved_rules();
@@ -133,6 +146,12 @@ impl MailTools {
     /// Adds the triage sidecar in shadow mode: each triage then also feeds the shadow log.
     pub fn with_shadow(mut self, shadow: Arc<Shadow>) -> Self {
         self.shadow = Some(shadow);
+        self
+    }
+
+    /// Adds the document CLIs, which `mail.attachment_read` needs.
+    pub fn with_craft(mut self, craft: Arc<Craft>) -> Self {
+        self.craft = Some(craft);
         self
     }
 
@@ -171,6 +190,7 @@ impl MailTools {
             MailCall::Organize(call) => self.organize(actor, call).await,
             MailCall::RuleList(query) => self.rule_list(&query).await,
             MailCall::RuleCreate(rule) => self.rule_create(actor, &rule).await,
+            MailCall::AttachmentRead(read) => return self.attachment(&read).await,
         };
         outcome
             .map(|result| ToolReply { result })
@@ -343,6 +363,62 @@ impl MailTools {
         Ok(mail_read::message_reply(&message))
     }
 
+    /// `mail.attachment_read` (TASK-ATT1): the text of one file attachment of a received
+    /// message. The bytes pass the barriers of `attachment_guard`, are read from a copy in
+    /// the quarantine that is removed when this call returns, and the read is audited by
+    /// attachment id only.
+    async fn attachment(&self, read: &AttachmentRead) -> Result<ToolReply, ToolError> {
+        let craft = self
+            .craft
+            .as_ref()
+            .ok_or_else(|| tool_unavailable("No se pudo leer el documento"))?;
+        let access = self.session(&read.account).await.map_err(tool_error)?;
+        let client = self.client(&access, &read.account);
+        let file = client
+            .fetch_attachment(&read.message_id, &read.attachment_id, MAX_READ_BYTES)
+            .await
+            .map_err(tool_error)?;
+        let kind = sniff(&file.bytes, &file.name)?;
+        let name = safe_name(&file.name, kind.extension());
+        let quarantine = Quarantine::open(&self.quarantine)
+            .map_err(|_| tool_unavailable("No se pudo leer el documento"))?;
+        let path = quarantine
+            .write(&name, &file.bytes)
+            .map_err(|_| tool_unavailable("No se pudo leer el documento"))?;
+        let doc = Document {
+            path,
+            name: name.clone(),
+            mime: kind.mime().to_string(),
+        };
+        let opts = ReadOpts {
+            sheet: read.sheet.clone(),
+            range: read.range.clone(),
+            page: read.page,
+        };
+        let out = read_document(craft, doc, opts).await?;
+        // The copy goes now, with its folder: the read is over.
+        drop(quarantine);
+        self.audit
+            .append(&ReadRecord::new(
+                "",
+                "mail.attachment_read",
+                Some(&read.attachment_id),
+            ))
+            .map_err(|_| tool_unavailable("No se pudo guardar la lectura en el registro"))?;
+        Ok(ToolReply {
+            result: json!({
+                "ok": true,
+                "untrusted_content": true,
+                "from_mail": true,
+                "name": name,
+                "kind": kind_label(kind),
+                "text": out.text,
+                "truncated": out.truncated,
+                "parts": out.pages_or_sheets,
+            }),
+        })
+    }
+
     /// Refreshes the account's token for this call and saves the rotated pair,
     /// so the next call starts from the newest refresh token.
     pub(crate) async fn session(&self, label: &str) -> Result<String, MailError> {
@@ -409,6 +485,15 @@ impl MailTools {
         } else {
             gate.in_conversation(conversation_id)
         }
+    }
+}
+
+fn tool_unavailable(message: &str) -> ToolError {
+    ToolError {
+        kind: ToolErrorKind::Unavailable,
+        code: "tool_failed",
+        field: None,
+        message: message.to_string(),
     }
 }
 

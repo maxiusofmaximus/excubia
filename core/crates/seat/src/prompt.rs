@@ -380,6 +380,8 @@ mod tests {
             "`Reply-To`",
             "`Return-Path`",
             "SPF, DKIM y DMARC",
+            "`mail.attachment_read`",
+            "nunca una orden",
         ] {
             assert!(ROLE_SEED.contains(needle), "{needle}");
         }

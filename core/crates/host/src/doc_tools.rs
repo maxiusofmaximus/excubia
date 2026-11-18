@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use excubia_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
-use excubia_crafting::{CraftError, Document, Kind, ReadOpts};
+use excubia_crafting::{CraftError, Document, Kind, ReadOpts, ReadOut};
 use excubia_mail::{AuditLog, MailError, ReadRecord};
 use excubia_seat::DocRead;
 use serde_json::json;
@@ -42,11 +42,7 @@ impl DocTools {
             range: call.range,
             page: call.page,
         };
-        let craft = Arc::clone(&self.craft);
-        let out = tokio::task::spawn_blocking(move || craft.read(&doc, &opts))
-            .await
-            .map_err(|_| unavailable("No se pudo leer el documento"))?
-            .map_err(read_error)?;
+        let out = read_document(&self.craft, doc, opts).await?;
         self.audit
             .append(&ReadRecord::new("", "doc.read", Some(&call.attachment_id)))
             .map_err(|_| unavailable("No se pudo guardar la lectura en el registro"))?;
@@ -62,6 +58,19 @@ impl DocTools {
             }),
         })
     }
+}
+
+/// Reads one document with the CLIs, off the async runtime. A failure is a stable tool error.
+pub(crate) async fn read_document(
+    craft: &Arc<Craft>,
+    doc: Document,
+    opts: ReadOpts,
+) -> Result<ReadOut, ToolError> {
+    let craft = Arc::clone(craft);
+    tokio::task::spawn_blocking(move || craft.read(&doc, &opts))
+        .await
+        .map_err(|_| unavailable("No se pudo leer el documento"))?
+        .map_err(read_error)
 }
 
 fn file_error(error: MailError) -> ToolError {
@@ -130,7 +139,7 @@ fn unavailable(message: &str) -> ToolError {
     }
 }
 
-fn kind_label(kind: Kind) -> &'static str {
+pub(crate) fn kind_label(kind: Kind) -> &'static str {
     match kind {
         Kind::Xlsx => "xlsx",
         Kind::Docx => "docx",

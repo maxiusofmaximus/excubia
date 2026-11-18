@@ -13,6 +13,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
 mod attach;
+mod attachment;
 mod folder;
 mod folders;
 mod organize;
@@ -20,6 +21,7 @@ mod rules;
 mod triage;
 
 pub use attach::{AttachSource, MailAttach};
+pub use attachment::AttachmentRead;
 pub use folder::InboxFolder;
 pub use folders::FoldersQuery;
 pub use organize::{
@@ -47,6 +49,7 @@ pub enum MailCall {
     AttachFile(MailAttach),
     InboxList(InboxQuery),
     MessageGet(MessageRef),
+    AttachmentRead(AttachmentRead),
     Triage(TriageQuery),
     Folders(FoldersQuery),
     Organize(Organize),
@@ -224,6 +227,7 @@ pub fn parse(request: &ToolRequest) -> Result<MailCall, ToolError> {
             organize::parse(request)
         }
         "mail.rule_list" | "mail.rule_create" => rules::parse(request),
+        "mail.attachment_read" => attachment::parse(request).map(MailCall::AttachmentRead),
         "mail.message_get" => {
             let args: MessageArgs = arguments(request)?;
             Ok(MailCall::MessageGet(MessageRef {

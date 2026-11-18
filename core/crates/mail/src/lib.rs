@@ -23,6 +23,7 @@
 
 pub mod actions;
 pub mod attach;
+pub mod attachment_read;
 pub mod audit;
 pub mod auth;
 pub mod config;
@@ -58,6 +59,7 @@ pub use actions::{ActionLog, MailActionRecord};
 pub use attach::{
     attach_chat_file, attach_file, Approval, ApprovalGate, AttachContext, AttachedFile,
 };
+pub use attachment_read::{AttachmentFile, MAX_READ_BYTES};
 pub use audit::{
     domain_of, AuditLog, AuditRecord, CreateRecord, Decision, EditRecord, ReadRecord, SendRecord,
     SendResult,

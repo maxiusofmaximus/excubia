@@ -120,7 +120,7 @@ async fn a_message_is_read_with_its_checks_and_only_gets_are_sent() {
     assert!(calls[0].url.contains("/me/messages/AAMk-1?$select="));
     assert!(calls[1]
         .url
-        .contains("/me/messages/AAMk-1/attachments?$select=name,contentType,size,isInline"));
+        .contains("/me/messages/AAMk-1/attachments?$select=id,name,contentType,size,isInline"));
     assert!(calls.iter().all(|call| call.method == "GET"));
     assert!(calls.iter().all(|call| !call.url.contains("$value")));
 }

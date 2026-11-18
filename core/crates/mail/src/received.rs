@@ -40,6 +40,8 @@ pub struct Link {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AttachmentInfo {
+    /// Graph's opaque id, the key of `mail.attachment_read`. Empty when it is too long to use.
+    pub id: String,
     pub name: String,
     pub content_type: String,
     pub size: u64,

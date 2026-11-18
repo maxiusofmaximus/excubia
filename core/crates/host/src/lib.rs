@@ -35,6 +35,7 @@ pub(crate) mod mail_move_apply;
 pub(crate) mod mail_move_auto;
 pub(crate) mod mail_move_pick;
 pub(crate) mod mail_organize;
+pub(crate) mod attachment_guard;
 pub(crate) mod mail_read;
 pub mod mail_routes;
 pub(crate) mod mail_rules;

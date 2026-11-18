@@ -251,6 +251,7 @@ fn tool_definitions_list_the_team_tools() {
             "mail.attach_file",
             "mail.inbox_list",
             "mail.message_get",
+            "mail.attachment_read",
             "mail.triage",
             "mail.folders",
             "note.save",

@@ -41,7 +41,8 @@ pub use decide::ApprovalDecide;
 pub use definitions::definitions;
 pub use doc::{DocCreate, DocFormat, DocRead};
 pub use mail::{
-    check_draft_fields, AttachSource, BodyFormat, DraftFields, DraftRef, DraftUpdate, FoldersQuery,
+    check_draft_fields, AttachSource, AttachmentRead, BodyFormat, DraftFields, DraftRef, DraftUpdate,
+    FoldersQuery,
     InboxFolder, InboxQuery, MailAttach, MailCall, MailRuleDraft, MessageRef, MoveApply,
     MoveFolder, MoveProposal, MoveUndo, Organize, ProposedMove, RuleActionsDraft,
     RuleConditionsDraft, RuleFolder, RuleListQuery, TriageQuery, UndoList,

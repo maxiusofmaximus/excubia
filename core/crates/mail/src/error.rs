@@ -100,6 +100,12 @@ pub enum MailError {
     RuleStale,
     #[error("the owner refused this rule; change it to ask again")]
     RuleRefused,
+    #[error("only file attachments can be read; this one is not a file")]
+    AttachmentNotFile,
+    #[error("the attachment is larger than 10 MiB; nothing was read")]
+    AttachmentTooLarge,
+    #[error("the message has no attachment with that id")]
+    AttachmentMissing,
 }
 
 impl MailError {
@@ -144,6 +150,9 @@ impl MailError {
             Self::AmbiguousApproval(_) => "ambiguous_approval",
             Self::RuleStale => "mail_rule_stale",
             Self::RuleRefused => "mail_rule_refused",
+            Self::AttachmentNotFile => "mail_attachment_not_file",
+            Self::AttachmentTooLarge => "mail_attachment_too_large",
+            Self::AttachmentMissing => "mail_attachment_missing",
         }
     }
 
@@ -166,6 +175,9 @@ impl MailError {
                 | "ambiguous_approval"
                 | "mail_rule_stale"
                 | "mail_rule_refused"
+                | "mail_attachment_not_file"
+                | "mail_attachment_too_large"
+                | "mail_attachment_missing"
         )
     }
 }

@@ -12,6 +12,7 @@ fn auth(spf: &'static str, dkim: &'static str, dmarc: &'static str) -> AuthSumma
 
 fn file(name: &str, is_inline: bool) -> AttachmentInfo {
     AttachmentInfo {
+        id: format!("id-{name}"),
         name: name.to_owned(),
         content_type: "application/pdf".to_owned(),
         size: 10,

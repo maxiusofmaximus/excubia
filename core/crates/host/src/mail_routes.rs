@@ -279,6 +279,9 @@ pub(crate) fn message_of(code: &str) -> &'static str {
         "mail_move_stale" => "the moves changed after the owner approved them; nothing was moved",
         "mail_move_already_applied" => "the owner already applied this batch; nothing was moved again",
         "mail_move_refused" => "the owner refused this batch of moves; change it to ask again",
+        "mail_attachment_not_file" => "only file attachments can be read; this one is not a file",
+        "mail_attachment_too_large" => "the attachment is larger than 10 MiB; nothing was read",
+        "mail_attachment_missing" => "the message has no attachment with that attachment_id",
         _ => "the mail request failed on this host",
     }
 }

@@ -53,7 +53,7 @@ pub use resident::run_resident;
 pub use service::{SeatConfig, SeatService, TurnEnv, CONTEXT_CHARS, CONTEXT_MESSAGES};
 pub use tools::{
     check_draft_fields, parse as parse_tool, AgentSpawn, AlertCall, ApprovalDecide,
-    ApprovalRequest, AttachSource, BodyFormat, CalendarCall, ContactCall, DelegationAssign,
+    ApprovalRequest, AttachSource, AttachmentRead, BodyFormat, CalendarCall, ContactCall, DelegationAssign,
     DelegationComplete, DocCreate, DocFormat, DocRead, DraftFields, DraftRef, DraftUpdate,
     FoldersQuery, InboxFolder, InboxQuery, MailAttach, MailCall, MailRuleDraft, MessageRef,
     MoveApply, MoveFolder, MoveProposal, MoveUndo, NoteCall, Organize, ProjectCreate, ProposedMove,

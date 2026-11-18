@@ -198,6 +198,15 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     host_options.hook_url = format!("http://{local}");
     let host = AgentHost::new(Arc::clone(&store), host_options).await;
 
+    // The document CLIs (DOC5B). A configuration that cannot be read leaves them off; the host still starts.
+    let craft = Arc::new(match Craft::open(&options.data_dir, &options.tools_dir) {
+        Ok(craft) => craft,
+        Err(error) => {
+            println!("host: herramientas de documentos desactivadas: {error}");
+            Craft::without_tools(&options.data_dir)
+        }
+    });
+
     // The mail surface first: the sends own the ledger of drafts, and the mail
     // tools Alfred may call settle a send's question when its draft changes.
     let mail = mail_routes::open(&options.data_dir, Arc::clone(&chat))
@@ -213,6 +222,8 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         mail_sends,
     )
     .map_err(|error| anyhow::anyhow!("open the mail tools: {error}"))?;
+    // The attachment reader of `mail.attachment_read` reads with the same CLIs as `doc.read`.
+    let mail_tools = mail_tools.with_craft(Arc::clone(&craft));
     let mail_tools = match &options.mail_sidecar {
         Some(endpoint) => {
             mail_tools.with_shadow(Shadow::for_host(endpoint.clone(), &options.data_dir))
@@ -222,14 +233,6 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
     let mail_tools = Arc::new(mail_tools);
     mail.attach_tools(Arc::clone(&mail_tools));
 
-    // The document CLIs (DOC5B). A configuration that cannot be read leaves them off; the host still starts.
-    let craft = Arc::new(match Craft::open(&options.data_dir, &options.tools_dir) {
-        Ok(craft) => craft,
-        Err(error) => {
-            println!("host: herramientas de documentos desactivadas: {error}");
-            Craft::without_tools(&options.data_dir)
-        }
-    });
     let docs = Arc::new(DocTools::new(
         Arc::clone(&craft),
         Arc::clone(&chat),
