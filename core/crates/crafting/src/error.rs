@@ -23,6 +23,8 @@ pub enum CraftError {
     BadOutput(&'static str),
     #[error("No se pudo arrancar {}", .0.name())]
     Spawn(App, #[source] std::io::Error),
+    #[error("No se pudo aislar {} del sistema, no se ejecutó", .0.name())]
+    Isolation(App),
     #[error("crafting.json no es válido")]
     BadConfig,
     #[error("No se pudo usar la carpeta de trabajo: {0}")]

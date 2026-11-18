@@ -12,6 +12,8 @@ mod discover;
 mod driver;
 mod error;
 mod kind;
+#[cfg(windows)]
+mod job;
 pub mod ooxml;
 mod process;
 mod read;

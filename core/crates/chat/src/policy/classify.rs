@@ -185,6 +185,14 @@ fn link_category(command: &str, project_root: Option<&str>) -> Category {
         return Category::Command;
     };
     let program = program.as_str();
+    // A program named by a path is the file at that path, not the tool its name suggests:
+    // `./cat.exe` or `tools/rg` can be anything a repository ships. Only an absolute path
+    // outside the project (`/usr/bin/cargo`) keeps the name's meaning.
+    if words[0].contains(['/', '\\'])
+        && !(Path::new(&words[0]).has_root() && !inside_project(&words[0], project_root))
+    {
+        return Category::Command;
+    }
     if matches!(program, "cd" | "set-location" | "sl" | "pushd") {
         return change_dir_category(command, project_root);
     }
@@ -270,7 +278,11 @@ fn git_category(sub: Option<&str>, words: &[String]) -> Category {
 /// A flag that makes a read write a file or run a program (`git diff --output=x`,
 /// `rg --pre cmd`), so the command is no longer a read.
 fn runs_or_writes(word: &str) -> bool {
-    ["--output", "--ext-diff", "--pre"]
+    // `--hostname-bin` and `--search-zip` make ripgrep start other programs.
+    if word == "-z" {
+        return true;
+    }
+    ["--output", "--ext-diff", "--pre", "--hostname-bin", "--search-zip"]
         .iter()
         .any(|flag| word == *flag || word.starts_with(&format!("{flag}=")))
 }
@@ -316,11 +328,23 @@ fn names_outside(word: &str, project_root: Option<&str>) -> bool {
     if word == "/dev/null" || inside_project(word, project_root) {
         return false;
     }
+    // The shell expands `$HOME`, `$env:X` and `%X%` before the program sees them, so what
+    // they name is unknown; a git format such as `%h` has no closing `%`.
+    let variable = word.contains('$') || has_percent_variable(word);
     let parent_step = word.split(['/', '\\']).any(|part| part == "..");
     let absolute = word
         .split('=')
         .any(|part| part.starts_with(['/', '\\', '~']));
-    parent_step || absolute || has_drive_or_url(word)
+    variable || parent_step || absolute || has_drive_or_url(word)
+}
+
+/// `%NAME%` as `cmd` expands it: letters, digits or `_` between two percent signs.
+fn has_percent_variable(word: &str) -> bool {
+    let parts: Vec<&str> = word.split('%').collect();
+    parts.len() >= 3
+        && parts[1..parts.len() - 1]
+            .iter()
+            .any(|part| !part.is_empty() && part.chars().all(|c| c.is_alphanumeric() || c == '_'))
 }
 
 /// A colon that points somewhere else: after a lone drive letter (`c:`, `--x=C:/y`) or before `//`
@@ -505,6 +529,35 @@ rm a.txt", Category::DeleteUserData),
             command_category("git diff --output=/etc/hosts"),
             Category::Command
         );
+    }
+
+    // Audit D5: what the shell expands or resolves is not what the words say.
+    #[test]
+    fn a_variable_can_point_outside_the_project() {
+        for command in [
+            "cat $HOME/.ssh/id_rsa",
+            "echo $GITHUB_TOKEN",
+            r"type %USERPROFILE%\.ssh\id_rsa",
+            "Get-Content $env:APPDATA/x",
+        ] {
+            assert_eq!(command_category(command), Category::Command, "{command}");
+        }
+        // A git format is not a variable.
+        assert_eq!(command_category("git log --format=%h -3"), Category::Read);
+    }
+
+    #[test]
+    fn a_program_named_by_a_path_is_not_the_known_program() {
+        for command in ["./cat.exe notes.txt", r".\git.exe status", "tools/rg pattern"] {
+            assert_eq!(command_category(command), Category::Command, "{command}");
+        }
+        assert_eq!(command_category("/usr/bin/cargo test"), Category::Test);
+    }
+
+    #[test]
+    fn a_search_flag_that_runs_a_program_is_not_a_read() {
+        assert_eq!(command_category("rg --hostname-bin x foo"), Category::Command);
+        assert_eq!(command_category("rg -z foo"), Category::Command);
     }
 
     #[test]
