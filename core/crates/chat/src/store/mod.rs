@@ -62,6 +62,9 @@ mod mail_history;
 mod messages;
 mod notes;
 mod plans;
+#[cfg(test)]
+#[path = "protect_tests.rs"]
+mod protect_tests;
 mod recipe_run;
 mod schedule_brakes;
 mod schedule_check;
@@ -96,6 +99,7 @@ pub use status::{StatusApproval, StatusDelegation, StatusFacts};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
+use excubia_persist::vault::VaultKey;
 use rusqlite::{params, Connection};
 use tokio::sync::broadcast;
 
@@ -105,6 +109,7 @@ use crate::error::ChatError;
 use crate::model::ChatFrame;
 use crate::policy::PolicySource;
 use crate::schema::{self, SearchMode};
+use crate::vault_db::{db_state, migrate_plain_to_encrypted, DbState, Migration};
 
 const EVENT_CAPACITY: usize = 256;
 
@@ -119,14 +124,22 @@ pub struct ChatStore {
     attachment_files: Mutex<Option<AttachmentFiles>>,
     /// The clock of the approvals: the wall clock unless a test drives it.
     clock: Mutex<Arc<dyn Clock>>,
+    /// The file behind the connection; `None` for an in-memory store.
+    database: Option<PathBuf>,
 }
 
 impl ChatStore {
     /// Open `chat.db`; its `approvals.toml` is read from the same directory.
     /// Opening is a restart: the approvals that were waiting expire now.
     pub fn open(path: &Path) -> Result<Self, ChatError> {
-        let (connection, search) = schema::open(path)?;
-        let store = Self::new(connection, search, PolicySource::next_to(path));
+        Self::open_with_key(path, None)
+    }
+
+    /// As `open`, for a keyed `chat.db`: the key is applied and proved first (`schema::open_with_key`).
+    pub fn open_with_key(path: &Path, key: Option<&VaultKey>) -> Result<Self, ChatError> {
+        let (connection, search) = schema::open_with_key(path, key)?;
+        let mut store = Self::new(connection, search, PolicySource::next_to(path));
+        store.database = Some(path.to_path_buf());
         {
             let connection = store.lock();
             approval_settle::expire_at_start(&connection, store.now_ms())?;
@@ -150,7 +163,31 @@ impl ChatStore {
             workspaces_root: Mutex::new(None),
             attachment_files: Mutex::new(None),
             clock: Mutex::new(Arc::new(SystemClock)),
+            database: None,
         }
+    }
+
+    /// Moves the open database from plain to keyed while the host runs (`migrate_plain_to_encrypted`). The
+    /// mutex is held throughout, so no write of this store reaches the file during the move. The connection is
+    /// replaced by an in-memory one first, so the file can be checkpointed and renamed; it is reopened afterwards
+    /// whatever the outcome. Nothing restarted, so no turn is marked interrupted.
+    ///
+    /// Shortcut: if the reopen itself fails, the store keeps its in-memory connection and the error says so; the
+    /// host must then be restarted before it writes anything else.
+    pub fn protect(&self, key: &VaultKey, backup_dir: &Path) -> Result<Migration, ChatError> {
+        let path = self
+            .database
+            .as_deref()
+            .ok_or(ChatError::VaultMigration("the store has no database file"))?;
+        let mut connection = self.lock();
+        drop(std::mem::replace(
+            &mut *connection,
+            Connection::open_in_memory()?,
+        ));
+        let outcome = migrate_plain_to_encrypted(path, key, backup_dir);
+        let keyed = db_state(path)? == DbState::Encrypted;
+        *connection = schema::reopen_live(path, keyed.then_some(key))?;
+        outcome
     }
 
     /// Replace the clock of the approvals. Tests use it to move the escalation

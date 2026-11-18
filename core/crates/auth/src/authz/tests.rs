@@ -226,6 +226,43 @@ fn sending_needs_approve_and_consent_needs_admin() {
 }
 
 #[test]
+fn the_vault_is_admin_only_and_its_posts_are_writes() {
+    for (method, path) in [
+        ("GET", "/v1/vault/status"),
+        ("POST", "/v1/vault/init"),
+        ("POST", "/v1/vault/finish"),
+    ] {
+        let rule = classify(method, path).unwrap();
+        assert_eq!(rule.permission, Some(Permission::Admin), "{method} {path}");
+        assert!(authorize(
+            &[
+                Permission::ReadState,
+                Permission::Respond,
+                Permission::Approve
+            ],
+            &rule
+        )
+        .is_err());
+        assert!(authorize(&[Permission::Admin], &rule).is_ok());
+    }
+    assert_eq!(
+        classify("GET", "/v1/vault/status").unwrap().budget,
+        Budget::Read
+    );
+    assert_eq!(
+        classify("POST", "/v1/vault/init").unwrap().budget,
+        Budget::Write
+    );
+    assert_eq!(
+        classify("POST", "/v1/vault/finish").unwrap().budget,
+        Budget::Write
+    );
+    // The other verbs on the vault are not routes: they fail closed.
+    assert!(classify("GET", "/v1/vault/init").is_err());
+    assert!(classify("POST", "/v1/vault/status").is_err());
+}
+
+#[test]
 fn a_grant_is_required_for_protected_routes() {
     let respond = classify("POST", "/v1/agents/w1:p1/respond").unwrap();
     assert!(authorize(&[Permission::ReadState], &respond).is_err());

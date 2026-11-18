@@ -1,6 +1,6 @@
 //! The tailnet pairing policy (`tailnet_auto_accept`). By default a code-less
 //! `POST /v1/pair` from the host's own tailnet owner leaves the device pending;
-//! with the policy on, it gets READ_STATE, RESPOND and SEND_KEY and nothing more.
+//! with the policy on, it gets READ_STATE and RESPOND and nothing more.
 //! A stranger and a wrong code are refused either way.
 
 mod harness;
@@ -85,16 +85,12 @@ async fn with_the_policy_on_a_tailnet_pairing_gets_the_reader_set_and_nothing_mo
     let paired = pair_from_tailnet(&host, "Phone").await.expect("pair");
     assert_eq!(
         paired.permissions,
-        vec!["read_state", "respond", "send_key"]
+        vec!["read_state", "respond"]
     );
     let stored = host.devices.get(&paired.device_id).expect("the device");
     assert_eq!(
         stored.permissions,
-        vec![
-            Permission::ReadState,
-            Permission::Respond,
-            Permission::SendKey
-        ]
+        vec![Permission::ReadState, Permission::Respond]
     );
 
     let lines = lines_of(&host, PAIRING_AUDIT);
@@ -106,7 +102,7 @@ async fn with_the_policy_on_a_tailnet_pairing_gets_the_reader_set_and_nothing_mo
     assert_eq!(lines[1]["device_id"], paired.device_id.as_str());
     assert_eq!(
         lines[1]["permissions"],
-        json!(["read_state", "respond", "send_key"])
+        json!(["read_state", "respond"])
     );
 }
 

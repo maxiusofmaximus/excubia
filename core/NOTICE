@@ -48,6 +48,13 @@ Además, código adaptado del cliente de escritorio (MIT):
   workspace): usa `desktop/core` como dependencia para comprobar el cliente
   real contra el núcleo. No se copia código.
 
+Dependencias compiladas en el binario (sin modificar):
+
+- SQLCipher (Zetetic LLC), licencia BSD de 3 cláusulas: https://github.com/sqlcipher/sqlcipher
+    Base de datos cifrada de `chat.db`, vía `libsqlite3-sys` (`bundled-sqlcipher-vendored-openssl`) de `rusqlite`.
+- OpenSSL, licencia Apache-2.0: https://www.openssl.org/
+    Compilado estáticamente desde fuente por el mismo crate; lo usa SQLCipher.
+
 Modelo de voz (no se distribuye con el repo; el usuario lo descarga):
 
 - Dictado: NVIDIA Canary-1B-v2 (https://huggingface.co/nvidia/canary-1b-v2),

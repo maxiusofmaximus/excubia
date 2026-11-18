@@ -58,6 +58,7 @@ mod seat;
 mod store;
 mod text;
 mod timezone;
+mod vault_db;
 
 pub use attachments::AttachmentFiles;
 pub use clock::{Clock, ManualClock, SystemClock};
@@ -124,7 +125,7 @@ pub use model_team_status::{
 };
 pub use recurrence::{RecurrenceError, Rule};
 pub use schedule_launch::launch_schedule;
-pub use schema::SearchMode;
+pub use schema::{open_with_key, SearchMode};
 pub use seat::{
     ChatSeat, SeatActor, SeatError, SeatErrorCode, ToolError, ToolErrorKind, ToolReply, ToolRequest,
 };
@@ -138,3 +139,6 @@ pub use text::{
     TextError, MAX_HEADLINE_CHARS, MAX_MESSAGE_BYTES,
 };
 pub use timezone::EventTime;
+pub use vault_db::{
+    db_state, migrate_plain_to_encrypted, open_keyed, DbState, Migration, BACKUP_NAME,
+};

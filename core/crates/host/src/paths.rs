@@ -77,6 +77,11 @@ pub fn chat_db_path(data_dir: &Path) -> PathBuf {
     data_dir.join("chat.db")
 }
 
+/// Where the plain copy of `chat.db` waits after the vault moves it, until `vault finish` removes it.
+pub fn vault_backup_dir(data_dir: &Path) -> PathBuf {
+    data_dir.join("vault-backup")
+}
+
 /// The attachment files of the chat, one folder per conversation.
 pub fn attachments_dir(data_dir: &Path) -> PathBuf {
     data_dir.join("chat").join("attachments")

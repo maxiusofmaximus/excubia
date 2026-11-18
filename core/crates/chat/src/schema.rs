@@ -10,6 +10,8 @@ use std::time::Duration;
 
 use rusqlite::{params, Connection};
 
+use excubia_persist::vault::VaultKey;
+
 use crate::error::ChatError;
 use crate::id;
 use crate::schema_agenda::AGENDA_SCHEMA;
@@ -22,6 +24,7 @@ use crate::schema_mail::{MAIL_CARD_EXPIRY_SCHEMA, MAIL_DRAFT_SCHEMA, MAIL_SCHEMA
 use crate::schema_progress::RUN_PROGRESS_SCHEMA;
 use crate::schema_reply::MESSAGE_REPLY_SCHEMA;
 use crate::schema_team::TEAM_SCHEMA;
+use crate::vault_db::open_keyed;
 
 pub const SCHEMA_VERSION: i64 = 28;
 
@@ -40,9 +43,23 @@ impl SearchMode {
     }
 }
 
-/// Open a file database, apply migrations and mark interrupted turns.
+/// Open a plain file database, apply migrations and mark interrupted turns. The store opens through
+/// `open_with_key`; the migration tests open plain files with this.
+#[cfg(test)]
 pub fn open(path: &Path) -> Result<(Connection, SearchMode), ChatError> {
-    let connection = Connection::open(path)?;
+    open_with_key(path, None)
+}
+
+/// Open a file database, apply migrations and mark interrupted turns. With a key, the key is applied and proved
+/// before anything else touches the file (`vault_db::open_keyed`).
+pub fn open_with_key(
+    path: &Path,
+    key: Option<&VaultKey>,
+) -> Result<(Connection, SearchMode), ChatError> {
+    let connection = match key {
+        Some(key) => open_keyed(path, key)?,
+        None => Connection::open(path)?,
+    };
     initialise(connection)
 }
 
@@ -50,7 +67,23 @@ pub fn open_in_memory() -> Result<(Connection, SearchMode), ChatError> {
     initialise(Connection::open_in_memory()?)
 }
 
-fn initialise(mut connection: Connection) -> Result<(Connection, SearchMode), ChatError> {
+/// Reopens a keyed or plain file for a store that is already running, after the vault has moved it
+/// (`ChatStore::protect`). Same setup as `open`, minus the restart bookkeeping: nothing restarted.
+pub(crate) fn reopen_live(path: &Path, key: Option<&VaultKey>) -> Result<Connection, ChatError> {
+    let connection = match key {
+        Some(key) => open_keyed(path, key)?,
+        None => Connection::open(path)?,
+    };
+    Ok(prepare(connection)?.0)
+}
+
+fn initialise(connection: Connection) -> Result<(Connection, SearchMode), ChatError> {
+    let (mut connection, search) = prepare(connection)?;
+    mark_interrupted(&mut connection)?;
+    Ok((connection, search))
+}
+
+fn prepare(mut connection: Connection) -> Result<(Connection, SearchMode), ChatError> {
     connection.busy_timeout(Duration::from_millis(5_000))?;
     connection.pragma_update(None, "foreign_keys", "ON")?;
     // WAL is persistent per database; on an in-memory database SQLite answers
@@ -58,7 +91,6 @@ fn initialise(mut connection: Connection) -> Result<(Connection, SearchMode), Ch
     let _: String = connection.query_row("PRAGMA journal_mode=WAL", [], |row| row.get(0))?;
     migrate(&mut connection)?;
     let search = ensure_search(&connection)?;
-    mark_interrupted(&mut connection)?;
     Ok((connection, search))
 }
 

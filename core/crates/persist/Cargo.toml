@@ -6,7 +6,11 @@ license.workspace = true
 description = "Atomic file persistence, one implementation for the whole Excubia core"
 
 [dependencies]
+bip39.workspace = true
+hkdf.workspace = true
 rand_core.workspace = true
+sha2.workspace = true
+zeroize.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

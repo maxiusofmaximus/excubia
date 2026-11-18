@@ -36,6 +36,10 @@ pub fn parse(args: impl Iterator<Item = String>) -> Result<Command, String> {
             args.next();
             pairing_policy(args)
         }
+        Some("vault") => {
+            args.next();
+            super::vault::vault(args)
+        }
         Some("mail") => {
             args.next();
             crate::mail_cli::parse(args).map(Command::Mail)

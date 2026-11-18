@@ -403,3 +403,38 @@ pub struct SectionPage {
     #[serde(default)]
     pub sections: Vec<Section>,
 }
+
+/// Whether `chat.db` is encrypted (`GET /v1/vault/status`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+pub struct VaultStatus {
+    pub state: VaultState,
+    pub backup: bool,
+    pub samples_needed: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VaultState {
+    Protected,
+    Unprotected,
+}
+
+/// The recovery phrase, shown once. It is never printed: `Debug` hides it.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct VaultInit {
+    pub phrase: String,
+}
+
+impl std::fmt::Debug for VaultInit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VaultInit")
+            .field("phrase", &"<oculta>")
+            .finish()
+    }
+}
+
+/// The answer of `POST /v1/vault/init` and `finish`: `{"ok": true}`.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub struct VaultDone {
+    pub ok: bool,
+}

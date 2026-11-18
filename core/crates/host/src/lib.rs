@@ -72,6 +72,7 @@ mod team_status;
 mod team_tools;
 mod term_size;
 pub mod tls_slots;
+pub mod vault;
 
 pub use agents::{
     configured_profiles, default_catalog, engine_listing, load_or_create as load_agents,

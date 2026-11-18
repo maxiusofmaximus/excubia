@@ -17,6 +17,7 @@ pub mod acl;
 pub mod credential;
 pub mod migrate;
 mod random;
+pub mod vault;
 
 pub use random::{fill_random, RandomError};
 

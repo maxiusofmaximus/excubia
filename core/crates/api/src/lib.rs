@@ -162,6 +162,60 @@ impl TailnetOwners for TailscaleCli {
     }
 }
 
+/// The state of the chat database's vault, as the host reports it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct VaultStatus {
+    /// The file is encrypted.
+    pub protected: bool,
+    /// The plain copy kept by the migration is still on disk.
+    pub backup: bool,
+    /// Mouse samples a new key needs.
+    pub samples_needed: usize,
+}
+
+/// Why a vault call was refused. Each maps to one status and one stable code (`routes::vault`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VaultRefusal {
+    AlreadyProtected,
+    NotEnoughSamples,
+    BadSamples,
+    NoBackup,
+    KeyStoreFailed,
+    MigrationFailed,
+    Failed,
+    Unavailable,
+}
+
+/// The vault of the chat database. The host implements it: it owns the database and the Credential Manager,
+/// which this crate never sees. Its calls block on files and keys, so the routes run them off the async threads.
+pub trait VaultControl: Send + Sync + 'static {
+    fn status(&self) -> Result<VaultStatus, VaultRefusal>;
+
+    /// Makes the key from packed 16-byte mouse samples, protects the database with it and returns the recovery
+    /// phrase. The phrase is returned once and is kept nowhere.
+    fn init(&self, samples: Vec<u8>) -> Result<String, VaultRefusal>;
+
+    /// Removes the plain copy kept by the migration.
+    fn finish(&self) -> Result<(), VaultRefusal>;
+}
+
+/// The vault of a host that has none wired: every call is refused.
+struct NoVault;
+
+impl VaultControl for NoVault {
+    fn status(&self) -> Result<VaultStatus, VaultRefusal> {
+        Err(VaultRefusal::Unavailable)
+    }
+
+    fn init(&self, _samples: Vec<u8>) -> Result<String, VaultRefusal> {
+        Err(VaultRefusal::Unavailable)
+    }
+
+    fn finish(&self) -> Result<(), VaultRefusal> {
+        Err(VaultRefusal::Unavailable)
+    }
+}
+
 /// Everything a route needs.
 #[derive(Clone)]
 pub struct ApiContext {
@@ -202,6 +256,8 @@ pub struct ApiContext {
     pub pake_slot: Arc<PakeSlot>,
     /// Who owns a source address and the host, for the code-less pairing (`routes::pair`).
     pub tailnet: Arc<dyn TailnetOwners>,
+    /// The chat database's vault (`/v1/vault/*`). A host that does not wire one refuses every call.
+    pub vault: Arc<dyn VaultControl>,
 }
 
 /// The pieces the API is built from.
@@ -246,6 +302,7 @@ impl ApiContext {
             docs: config.docs,
             preview_locks: Arc::new(PreviewLocks::default()),
             tailnet: Arc::new(TailscaleCli),
+            vault: Arc::new(NoVault),
         }
     }
 
@@ -256,6 +313,11 @@ impl ApiContext {
 
     pub fn with_tailnet(mut self, tailnet: Arc<dyn TailnetOwners>) -> Self {
         self.tailnet = tailnet;
+        self
+    }
+
+    pub fn with_vault(mut self, vault: Arc<dyn VaultControl>) -> Self {
+        self.vault = vault;
         self
     }
 }
@@ -426,6 +488,9 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             "/v1/pairing/policy",
             get(routes::get_pairing_policy).put(routes::set_pairing_policy),
         )
+        .route("/v1/vault/status", get(routes::vault_status))
+        .route("/v1/vault/init", post(routes::vault_init))
+        .route("/v1/vault/finish", post(routes::vault_finish))
         .route("/v1/mail/login/start", post(routes::mail_login_start))
         .route("/v1/mail/login/status", get(routes::mail_login_status))
         .route("/v1/mail/accounts", get(routes::mail_accounts))

@@ -118,6 +118,11 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         // Whether a tailnet pairing is granted at once: the host's ADMIN choice, read and written alike.
         ("GET", "/v1/pairing/policy") => Ok(rule(Permission::Admin, Budget::Read)),
         ("PUT", "/v1/pairing/policy") => Ok(rule(Permission::Admin, Budget::Write)),
+        // The chat database's vault: reading its state is ADMIN, and so are the two calls that move its key and file.
+        ("GET", "/v1/vault/status") => Ok(rule(Permission::Admin, Budget::Read)),
+        ("POST", "/v1/vault/init" | "/v1/vault/finish") => {
+            Ok(rule(Permission::Admin, Budget::Write))
+        }
         // A project names a folder of the PC its agents may write in: admin only.
         ("POST", "/v1/chat/projects") => Ok(rule(Permission::Admin, Budget::Write)),
         // The mail logins create accounts on the host: an admin surface, and

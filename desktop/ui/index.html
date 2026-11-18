@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="devices.css">
   <link rel="stylesheet" href="shell.css">
   <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="vault.css">
   <script src="palette-data.js"></script>
   <script src="palette-boot.js"></script>
 </head>
@@ -423,6 +424,14 @@
         <div id="settings-appearance" class="settings-card"></div>
         <div id="settings-approvals" class="settings-card"></div>
         <div id="settings-mail" class="settings-card"></div>
+        <section id="settings-security" class="settings-card hidden" aria-labelledby="settings-security-title">
+          <h2 id="settings-security-title">Seguridad</h2>
+          <p class="vault-row-title">Historial cifrado</p>
+          <p id="vault-state" class="hint"></p>
+          <p id="vault-backup" class="hint hidden"></p>
+          <button id="btn-vault-protect" class="btn primary hidden" type="button">Proteger historial</button>
+          <button id="btn-vault-finish" class="btn secondary hidden" type="button">Borrar la copia sin cifrar</button>
+        </section>
         <section class="settings-card" aria-labelledby="settings-alerts-title">
           <h2 id="settings-alerts-title">Avisos</h2>
           <p class="hint">Qué te avisa Excubia cuando un agente pide algo o termina.</p>
@@ -1071,6 +1080,58 @@
       <div class="dialog-actions">
         <button id="hire-avatar-cancel" class="btn ghost" type="button">Cancelar</button>
         <button id="hire-avatar-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="vault-dialog" class="dialog vault-dialog" aria-labelledby="vault-title">
+    <h2 id="vault-title">Mueve el ratón</h2>
+
+    <div id="vault-step-move">
+      <p class="dialog-lede">Con tus movimientos creamos la clave de tu historial. Muévelo sin prisa por esta zona.</p>
+      <div id="vault-pad" class="vault-pad" tabindex="0" role="group" aria-label="Zona para mover el ratón"></div>
+      <progress id="vault-progress" class="vault-progress" max="1" value="0" aria-label="Movimiento recogido"></progress>
+      <p id="vault-move-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="vault-move-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="vault-create" class="btn primary" type="button" disabled>Crear clave</button>
+      </div>
+    </div>
+
+    <div id="vault-step-phrase" class="hidden">
+      <p class="dialog-lede">Guárdala fuera de este PC (papel). Sin ella, si reinstalas Windows o pierdes tu perfil, el historial no se puede recuperar. No se volverá a mostrar.</p>
+      <ol id="vault-words" class="vault-words" aria-label="Frase de recuperación, 24 palabras"></ol>
+      <div class="dialog-actions">
+        <button id="vault-saved" class="btn primary" type="button">La guardé</button>
+      </div>
+    </div>
+
+    <div id="vault-step-check" class="hidden">
+    <form id="vault-check-form" method="dialog" novalidate>
+      <p class="dialog-lede">Escribe estas palabras de la frase para comprobar que la guardaste.</p>
+      <label id="vault-answer-label-0" class="field-label" for="vault-answer-0">Palabra</label>
+      <input id="vault-answer-0" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <label id="vault-answer-label-1" class="field-label" for="vault-answer-1">Palabra</label>
+      <input id="vault-answer-1" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <label id="vault-answer-label-2" class="field-label" for="vault-answer-2">Palabra</label>
+      <input id="vault-answer-2" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <p id="vault-check-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="vault-check-back" class="btn ghost" type="button">Ver la frase otra vez</button>
+        <button id="vault-check-confirm" class="btn primary" type="submit">Confirmar</button>
+      </div>
+    </form>
+    </div>
+  </dialog>
+
+  <dialog id="vault-finish" class="dialog chat-dialog">
+    <form id="vault-finish-form" method="dialog" novalidate>
+      <h2>Borrar la copia sin cifrar</h2>
+      <p class="dialog-lede">Se borra para siempre la copia de tu historial sin cifrar. Tu historial cifrado no cambia. No se puede deshacer.</p>
+      <p id="vault-finish-error" class="form-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="vault-finish-cancel" class="btn ghost" type="button">Volver</button>
+        <button id="vault-finish-confirm" class="btn destructive" type="submit">Borrar</button>
       </div>
     </form>
   </dialog>

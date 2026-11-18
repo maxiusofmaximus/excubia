@@ -170,6 +170,16 @@ pub enum ChatError {
     StoredEvent(#[from] serde_json::Error),
     #[error(transparent)]
     Random(#[from] RandomError),
+    #[error("the chat database is not readable with the vault key")]
+    VaultKeyRejected,
+    #[error("the chat database is already encrypted")]
+    VaultAlreadyEncrypted,
+    #[error("there is no chat database to migrate")]
+    VaultMissing,
+    #[error("the vault migration stopped at {0}; chat.db was not replaced")]
+    VaultMigration(&'static str),
+    #[error("the vault file operation failed: {0}")]
+    VaultIo(#[from] std::io::Error),
 }
 
 impl From<AttachmentError> for ChatError {

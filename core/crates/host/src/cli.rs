@@ -10,6 +10,7 @@
 //! excubia-host devices grant <id> -p <perm>   grant one permission (host-side act)
 //! excubia-host devices recovery <id>          rotate and print a recovery code (once)
 //! excubia-host audit tail [--n 50]            the last events of the audit log
+//! excubia-host vault status|init|recover|finish  the vault of chat.db (see docs/contracts/auth.md)
 //! ```
 //!
 //! Every subcommand accepts `--data-dir DIR`; the daemon also accepts
@@ -25,15 +26,18 @@ mod run;
 mod strata;
 mod types;
 mod usage;
+mod vault;
 
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod tests_pairing;
+#[cfg(test)]
+mod tests_vault;
 
 pub use parse::parse;
 pub use types::{
     AlfredCommand, Command, DevicesCommand, PairingPolicyCommand, RunOptions, StrataCommand,
-    TlsCommand, DEFAULT_PORT,
+    TlsCommand, VaultCommand, DEFAULT_PORT,
 };
 pub use usage::{BIN, GRANT_HINT, USAGE};

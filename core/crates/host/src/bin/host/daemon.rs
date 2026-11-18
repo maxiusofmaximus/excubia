@@ -13,7 +13,7 @@ use excubia_api::{
     serve, serve_client, serve_internal, AgentActions, ApiConfig, ApiContext, TlsListener,
 };
 use excubia_auth::DeviceStore;
-use excubia_chat::{ChatSeat, ChatStore};
+use excubia_chat::ChatSeat;
 use excubia_host::alfred_backend;
 use excubia_host::alfred_switch::{Strata, Switch};
 use excubia_host::audit::AuditLog;
@@ -24,6 +24,7 @@ use excubia_host::doc_tools::DocTools;
 use excubia_host::local_mode;
 use excubia_host::mail_cli::ACCOUNTS_DIR;
 use excubia_host::mail_routes;
+use excubia_host::vault;
 use excubia_host::mail_shadow::Shadow;
 use excubia_host::mail_tools::MailTools;
 use excubia_host::mdns;
@@ -95,10 +96,16 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         env!("CARGO_PKG_VERSION"),
         Some(paths::counters_path(&options.data_dir)),
     );
-    let chat = ChatStore::open(&paths::chat_db_path(&options.data_dir))
+    let vault_keys = vault::keys();
+    let chat = vault::open_chat_store(&options.data_dir, &vault_keys)
         .context("open the chat database")?;
     chat.set_attachments_root(&paths::attachments_dir(&options.data_dir));
     let chat = Arc::new(chat);
+    let vault_control = Arc::new(vault::HostVault::new(
+        &options.data_dir,
+        vault_keys,
+        Arc::clone(&chat),
+    ));
     let alerts_task = spawn_alerts(Arc::clone(&store), Arc::clone(&chat));
     let catalog = Arc::new(load_agents(&options.data_dir)?);
     let token = Arc::new(load_hook_token(&options.data_dir)?);
@@ -330,6 +337,7 @@ pub(super) async fn run(options: RunOptions) -> Result<()> {
         audit: Arc::new(AuditLog::new(&options.data_dir)),
         docs: craft as Arc<dyn excubia_api::DocumentPages>,
     })
+    .with_vault(vault_control)
     // The active pin is the input of each pending device's SAS. A host that cannot
     // read it still serves; it only shows no verification string.
     .with_host_pin(match TlsSlots::open(&options.data_dir).active_pin() {

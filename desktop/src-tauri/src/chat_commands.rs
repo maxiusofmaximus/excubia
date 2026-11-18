@@ -19,6 +19,7 @@ pub mod delegation;
 pub mod documents;
 pub mod links;
 pub mod preview;
+pub mod vault;
 pub mod writes;
 
 pub(crate) type Shared = Arc<AppState>;

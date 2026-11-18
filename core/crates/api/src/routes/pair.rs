@@ -49,11 +49,8 @@ struct Granted {
 
 /// What a tailnet pairing gets when the owner chose `tailnet_auto_accept`. Never `approve` or `admin`:
 /// those stay the operator's act.
-const TAILNET_AUTO_GRANT: [Permission; 3] = [
-    Permission::ReadState,
-    Permission::Respond,
-    Permission::SendKey,
-];
+// No `send_key` either: typing into an agent's terminal stays an explicit grant.
+const TAILNET_AUTO_GRANT: [Permission; 2] = [Permission::ReadState, Permission::Respond];
 
 /// The granter the pairing audit names for a policy grant (not a device).
 const AUTO_GRANTER: &str = "auto-tailnet";

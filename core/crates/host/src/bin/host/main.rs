@@ -14,7 +14,8 @@ use anyhow::Result;
 use excubia_host::cli::{self, Command};
 
 use admin::{
-    claude_settings, devices, hook_token, mail, pair_code, pair_code_pake, pairing_policy, tls,
+    claude_settings, devices, hook_token, mail, pair_code, pair_code_pake, pairing_policy,
+    tls, vault_command,
 };
 use daemon::run;
 
@@ -43,6 +44,7 @@ async fn main() -> Result<()> {
         Command::ClaudeSettings { hook, out } => claude_settings(&hook, out.as_deref()),
         Command::Devices { command, data_dir } => devices(command, &data_dir),
         Command::PairingPolicy { command, data_dir } => pairing_policy(command, &data_dir),
+        Command::Vault { command, data_dir } => vault_command(command, &data_dir),
         Command::Mail(invocation) => mail(invocation).await,
         Command::Strata { command, data_dir } => excubia_host::strata::run(command, &data_dir),
         Command::Alfred { command, data_dir } => {

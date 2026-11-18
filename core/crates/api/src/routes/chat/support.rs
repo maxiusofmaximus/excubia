@@ -130,6 +130,12 @@ pub fn map_error(error: ChatError) -> ApiError {
         ChatError::Database(error) => ApiError::internal(error),
         ChatError::StoredEvent(error) => ApiError::internal(error),
         ChatError::Random(error) => ApiError::internal(error),
+        // The vault is driven by /v1/vault only; a chat route never reaches these.
+        ChatError::VaultKeyRejected
+        | ChatError::VaultAlreadyEncrypted
+        | ChatError::VaultMissing
+        | ChatError::VaultMigration(_)
+        | ChatError::VaultIo(_) => ApiError::internal("vault"),
     }
 }
 

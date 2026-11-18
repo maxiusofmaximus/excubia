@@ -127,6 +127,11 @@ pub enum ChatFailure {
         code: String,
         reason: Option<String>,
     },
+    /// A coded refusal of the vault routes (`vault_samples_insufficient`, `vault_unavailable`, …).
+    /// The screen words the code; the host's text is never shown.
+    VaultRefused {
+        code: String,
+    },
     Host {
         message: String,
         status: u16,
@@ -277,6 +282,9 @@ pub(super) fn status_failure(
     }
     if let Some(failure) = attachment_refusal(body) {
         return failure;
+    }
+    if let Some(code) = detail_code(body).filter(|code| code.starts_with("vault_")) {
+        return ChatFailure::VaultRefused { code };
     }
     let detail = detail_code(body);
     if status == StatusCode::FORBIDDEN {

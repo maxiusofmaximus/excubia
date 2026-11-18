@@ -43,8 +43,22 @@ pub enum PairingPolicyCommand {
     Show,
     /// A code-less tailnet pairing leaves the new device pending (the default).
     Confirm,
-    /// A code-less tailnet pairing grants READ_STATE, RESPOND and SEND_KEY at once.
+    /// A code-less tailnet pairing grants READ_STATE and RESPOND at once.
     Auto,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum VaultCommand {
+    Status,
+    /// Only with the host stopped; `no_mouse` is the one path the CLI has (no mouse samples).
+    Init {
+        no_mouse: bool,
+        host_stopped: bool,
+        port: u16,
+    },
+    /// The recovery phrase comes on stdin, never as an argument.
+    Recover,
+    Finish,
 }
 
 #[derive(Debug)]
@@ -104,6 +118,11 @@ pub enum Command {
     },
     Devices {
         command: DevicesCommand,
+        data_dir: PathBuf,
+    },
+    /// `excubia-host vault status|init|recover|finish`: the vault of `chat.db`.
+    Vault {
+        command: VaultCommand,
         data_dir: PathBuf,
     },
     /// `excubia-host pairing-policy show|confirm|auto`: what a code-less tailnet pairing gets.

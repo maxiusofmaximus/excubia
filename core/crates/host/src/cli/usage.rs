@@ -16,6 +16,10 @@ pub const USAGE: &str = "excubia-host [--port N] [--bind ADDR] [--rows R] [--col
        excubia-host strata start | stop | status | enable-agent [--data-dir DIR]\n\
        excubia-host alfred local | use local|claude | status [--data-dir DIR]\n\
        excubia-host audit tail [--n N, default 50] [--data-dir DIR]\n\
+       excubia-host vault status [--data-dir DIR]\n\
+       excubia-host vault init --no-mouse --host-stopped [--port N, default 8791] [--data-dir DIR]\n\
+       excubia-host vault recover [--data-dir DIR]   (the 24-word phrase on stdin)\n\
+       excubia-host vault finish [--data-dir DIR]\n\
        excubia-host devices list [--data-dir DIR]\n\
        excubia-host devices revoke <device_id> [--data-dir DIR]\n\
        excubia-host devices grant <device_id> --permission <read_state|respond|send_key|approve|admin> [--data-dir DIR]\n\

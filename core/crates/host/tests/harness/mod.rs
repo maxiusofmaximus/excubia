@@ -17,10 +17,12 @@ use tool_seat::{write_catalog, ToolSeat};
 pub mod mail_send_support;
 use mail_send_support::{seed_owner, Routed, BODY};
 
+use std::collections::HashMap;
+use std::io;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use excubia_api::voice::{EngineStarter, VoiceService};
@@ -40,8 +42,11 @@ use excubia_host::mail_tools::{MailTools, LEDGER_FILE};
 use excubia_host::pairing_notice::PairingNotice;
 use excubia_host::strata::State;
 use excubia_host::team::{TeamConfig, TeamService};
+use excubia_host::vault::{self, HostVault};
 use excubia_host::{paths, AgentHost, HostOptions, SpawnSpec, DEFAULT_HOOK_TTL};
 use excubia_mail::{AccountStore, FileKey, HttpTransport, Ledger, ReqwestTransport};
+use excubia_persist::credential::SecretStore;
+use excubia_persist::vault::VaultKeyStore;
 use excubia_pty::PtySize;
 use excubia_seat::{shipped, test_profile, CliId, CliProfile, SeatConfig, SeatService, TurnEnv};
 use excubia_state::StateStore;
@@ -301,6 +306,51 @@ pub enum SeatKind {
 /// The token the tool seat accepts. It is a test constant, never a secret.
 pub const TOOL_TOKEN: &str = "test-tool-token";
 
+/// The Credential Manager of the tests: one slot per data dir, in memory, so a restart in the same process finds the
+/// key it saved. Nothing reaches the real Credential Manager or a file.
+#[derive(Clone)]
+pub struct FakeSecret {
+    dir: PathBuf,
+}
+
+impl FakeSecret {
+    pub fn for_dir(dir: &Path) -> Self {
+        Self {
+            dir: dir.to_path_buf(),
+        }
+    }
+
+    fn slots() -> &'static Mutex<HashMap<PathBuf, Vec<u8>>> {
+        static SLOTS: OnceLock<Mutex<HashMap<PathBuf, Vec<u8>>>> = OnceLock::new();
+        SLOTS.get_or_init(|| Mutex::new(HashMap::new()))
+    }
+}
+
+impl SecretStore for FakeSecret {
+    fn read(&self) -> io::Result<Option<Vec<u8>>> {
+        let slots = Self::slots()
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        Ok(slots.get(&self.dir).cloned())
+    }
+
+    fn write(&self, value: &[u8]) -> io::Result<()> {
+        let mut slots = Self::slots()
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        slots.insert(self.dir.clone(), value.to_vec());
+        Ok(())
+    }
+
+    fn delete(&self) -> io::Result<()> {
+        let mut slots = Self::slots()
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        slots.remove(&self.dir);
+        Ok(())
+    }
+}
+
 pub struct TestHost {
     pub addr: SocketAddr,
     pub store: Arc<StateStore>,
@@ -510,8 +560,8 @@ impl TestHost {
         let store = StateStore::open("test", Some(paths::counters_path(&data_dir)));
         let catalog = Arc::new(excubia_host::load_agents(&data_dir).expect("catalog"));
         let hook_token = excubia_host::load_hook_token(&data_dir).expect("hook token");
-        let chat =
-            Arc::new(ChatStore::open(&paths::chat_db_path(&data_dir)).expect("chat database"));
+        let vault_keys = VaultKeyStore::new(FakeSecret::for_dir(&data_dir));
+        let chat = Arc::new(vault::open_chat_store(&data_dir, &vault_keys).expect("chat database"));
         chat.set_attachments_root(&paths::attachments_dir(&data_dir));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
@@ -727,7 +777,12 @@ impl TestHost {
             audit: Arc::new(AuditLog::new(&data_dir)),
             docs: craft as Arc<dyn excubia_api::DocumentPages>,
         })
-        .with_host_pin(Some(host_pin));
+        .with_host_pin(Some(host_pin))
+        .with_vault(Arc::new(HostVault::new(
+            &data_dir,
+            vault_keys,
+            Arc::clone(&chat),
+        )));
         let context = match tailnet {
             Some(owners) => context.with_tailnet(owners),
             None => context,

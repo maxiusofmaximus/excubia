@@ -3,7 +3,7 @@
 //! The plaintext only ever exists in the process the host launches; the
 //! database keeps the SHA-256, so a copy of `chat.db` cannot be replayed
 //! against the approval routes. A token is revoked when its run closes and
-//! every live token dies with the process that owned it (`schema::open`).
+//! every live token dies with the process that owned it (`schema::open_with_key`).
 
 use excubia_persist::{fill_random, RandomError};
 use rusqlite::{params, OptionalExtension};

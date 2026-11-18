@@ -3,6 +3,7 @@
 
 use std::time::Duration;
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use reqwest::Method;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::{json, Map, Value};
@@ -114,6 +115,31 @@ impl HostClient {
             true,
         )
         .await
+    }
+
+    /// Whether `chat.db` is encrypted and whether its plain backup is still kept.
+    pub async fn vault_status(&self) -> ChatResult<VaultStatus> {
+        self.chat_get("/v1/vault/status", &[]).await
+    }
+
+    /// Creates the key from the mouse samples (packed 16-byte records, base64) and returns the
+    /// phrase once. The samples are checked here so a bad pack never reaches the host.
+    pub async fn vault_init(&self, samples_b64: &str) -> ChatResult<VaultInit> {
+        vault_samples_check(samples_b64)?;
+        self.chat_send_json(
+            Method::POST,
+            "/v1/vault/init",
+            &[],
+            &json!({ "samples": samples_b64 }),
+            true,
+        )
+        .await
+    }
+
+    /// Removes the plain backup of the migration (the host overwrites it with zeros).
+    pub async fn vault_finish(&self) -> ChatResult<VaultDone> {
+        self.chat_call(Method::POST, "/v1/vault/finish", &[], None, true)
+            .await
     }
 
     pub async fn chat_update_conversation(
@@ -337,4 +363,77 @@ fn counts_unsupported(failure: &ChatFailure) -> bool {
         failure,
         ChatFailure::NotFound { .. } | ChatFailure::Host { status: 405, .. }
     )
+}
+
+/// The packed samples the host takes: whole 16-byte records, at least 2 048 of them, and at most
+/// 60 000 bytes (the screen keeps its pack under the host's 64 KiB route limit).
+const VAULT_RECORD_BYTES: usize = 16;
+const VAULT_MIN_BYTES: usize = 2048 * VAULT_RECORD_BYTES;
+const VAULT_MAX_BYTES: usize = 60_000;
+
+fn vault_samples_check(samples_b64: &str) -> ChatResult<()> {
+    let refused = |code: &str| ChatFailure::VaultRefused {
+        code: code.to_string(),
+    };
+    // Refuse before decoding: a longer text cannot be a legal pack.
+    if samples_b64.len() > VAULT_MAX_BYTES / 3 * 4 + 4 {
+        return Err(refused("vault_samples_invalid"));
+    }
+    let bytes = STANDARD
+        .decode(samples_b64)
+        .map_err(|_| refused("vault_samples_invalid"))?;
+    if bytes.len() % VAULT_RECORD_BYTES != 0 || bytes.len() > VAULT_MAX_BYTES {
+        return Err(refused("vault_samples_invalid"));
+    }
+    if bytes.len() < VAULT_MIN_BYTES {
+        return Err(refused("vault_samples_insufficient"));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod vault_tests {
+    use super::*;
+
+    fn refusal(result: ChatResult<()>) -> Option<String> {
+        match result {
+            Err(ChatFailure::VaultRefused { code }) => Some(code),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn vault_samples_are_checked_before_they_leave() {
+        let packed = |records: usize| STANDARD.encode(vec![0u8; records * VAULT_RECORD_BYTES]);
+        assert_eq!(vault_samples_check(&packed(2048)), Ok(()));
+        assert_eq!(vault_samples_check(&packed(3750)), Ok(()));
+        assert_eq!(
+            refusal(vault_samples_check(&packed(2047))).as_deref(),
+            Some("vault_samples_insufficient")
+        );
+        assert_eq!(
+            refusal(vault_samples_check(&packed(3751))).as_deref(),
+            Some("vault_samples_invalid")
+        );
+        assert_eq!(
+            refusal(vault_samples_check(
+                &STANDARD.encode(vec![0u8; 2048 * 16 + 1])
+            ))
+            .as_deref(),
+            Some("vault_samples_invalid")
+        );
+        assert_eq!(
+            refusal(vault_samples_check("no es base64!")).as_deref(),
+            Some("vault_samples_invalid")
+        );
+    }
+
+    #[test]
+    fn the_recovery_phrase_never_shows_in_debug() {
+        let init = VaultInit {
+            phrase: "alfa bravo charlie".to_string(),
+        };
+        let shown = format!("{init:?}");
+        assert!(!shown.contains("alfa"), "{shown}");
+    }
 }

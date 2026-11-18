@@ -27,6 +27,7 @@ mod recipes;
 mod restore;
 mod roles;
 mod schedules;
+mod vault;
 mod voice;
 mod workspaces;
 
@@ -75,6 +76,10 @@ pub use mail_send::{
 pub use onboarding::{complete as complete_onboarding, state as onboarding_state};
 pub use pair::pair;
 pub use pairing_policy::{get_pairing_policy, set_pairing_policy};
+pub use vault::{
+    finish as vault_finish, init as vault_init, status as vault_status, INIT_PATH as VAULT_INIT_PATH,
+    MAX_VAULT_BODY_BYTES,
+};
 pub use pake::{admin_routes as pake_admin_routes, routes as pake_routes};
 pub use plans::{
     approve as approve_plan, list as list_plans, reject as reject_plan,

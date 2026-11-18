@@ -19,7 +19,7 @@ use excubia_auth::{
 use excubia_chat::{HookScope, HookTokenUse};
 
 use crate::error::ApiError;
-use crate::routes::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
+use crate::routes::{IMPORT_PATH, MAX_ICS_BODY_BYTES, MAX_VAULT_BODY_BYTES, VAULT_INIT_PATH};
 use crate::voice::{self, MAX_VOICE_BODY_BYTES};
 use crate::{ApiContext, PeerAddr};
 
@@ -97,6 +97,8 @@ async fn authenticate_inner(ctx: &ApiContext, request: Request) -> Result<Reques
 fn body_limit(method: &Method, path: &str) -> usize {
     if *method == Method::POST && path == voice::TRANSCRIBE_PATH {
         MAX_VOICE_BODY_BYTES
+    } else if *method == Method::POST && path == VAULT_INIT_PATH {
+        MAX_VAULT_BODY_BYTES
     } else if *method == Method::POST && path == IMPORT_PATH {
         MAX_ICS_BODY_BYTES
     } else {
