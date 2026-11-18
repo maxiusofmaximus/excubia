@@ -33,12 +33,18 @@ export function noteTurn(turns, id, state) {
   if (id && state) turns[id] = advanceTurn(turns[id], state);
 }
 
-// The line under the operator's last message: every failure shows, the other
-// states only on the last one. No state means no line.
-export function turnStatusLine(turn, alfredName, isLast) {
+// Alfred answered after this message (`entries` index): its turn is closed, whatever it stored.
+export function answeredAfter(entries, index) {
+  return entries.slice(index + 1).some(isAgentMessage);
+}
+
+// The line under the operator's messages: every failure shows; «En cola» shows on each
+// message still waiting (answered = false); the other states only on the last one.
+// No state means no line.
+export function turnStatusLine(turn, alfredName, isLast, answered = false) {
   if (turn === "failed") return { text: "Falló", failed: true };
+  if (turn === "queued" && !answered) return { text: "En cola", failed: false };
   if (!turn || !isLast) return null;
-  if (turn === "queued") return { text: "Enviado", failed: false };
   if (turn === "running") {
     const text = alfredName ? `${alfredName} lo está atendiendo` : "Atendiendo";
     return { text, failed: false };
@@ -72,10 +78,11 @@ export function jumpLabel(count) {
   return `Ir al final, ${count === 1 ? "1 mensaje nuevo" : `${count} mensajes nuevos`}`;
 }
 
-// The send button turns into «Detener» while a turn is open. One stop request
-// is in flight at a time; a refused permission keeps the button off, with why.
-export function composerMode({ inFlight, offline, sent, denied }) {
-  if (!inFlight || offline) return { stop: false, disabled: false, hint: null };
+// The send button turns into «Detener» while a turn is open and the field is empty.
+// A draft (text or a picture) keeps it a send button, so a message sent mid-turn never stops it.
+// One stop request is in flight at a time; a refused permission keeps the button off, with why.
+export function composerMode({ inFlight, offline, sent, denied, hasDraft }) {
+  if (!inFlight || offline || hasDraft) return { stop: false, disabled: false, hint: null };
   return { stop: true, disabled: Boolean(denied) || sent, hint: denied || null };
 }
 

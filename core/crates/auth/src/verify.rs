@@ -14,7 +14,7 @@ use sha2::{Digest, Sha256};
 
 use crate::curve::{verify_signature, Curve};
 use crate::error::Unauthorized;
-use crate::store::{DeviceStore, Permission};
+use crate::store::{Device, DeviceStore, Permission};
 use crate::time::unix_seconds;
 
 pub const MAX_SIGNED_BODY_BYTES: usize = 256 * 1024;
@@ -40,6 +40,39 @@ fn header_or_legacy<'a>(
     legacy: &str,
 ) -> Option<&'a str> {
     headers.header(current).or_else(|| headers.header(legacy))
+}
+
+/// The signature fields of a request, read and decoded but not yet checked.
+struct Envelope<'a> {
+    device_id: &'a str,
+    timestamp: i64,
+    nonce: &'a str,
+    signature: Vec<u8>,
+}
+
+fn envelope(headers: &dyn HeaderSource) -> Result<Envelope<'_>, Unauthorized> {
+    let device_id = header_or_legacy(headers, HEADER_DEVICE, LEGACY_HEADER_DEVICE);
+    let timestamp_raw = header_or_legacy(headers, HEADER_TIMESTAMP, LEGACY_HEADER_TIMESTAMP);
+    let nonce = header_or_legacy(headers, HEADER_NONCE, LEGACY_HEADER_NONCE);
+    let signature_raw = header_or_legacy(headers, HEADER_SIGNATURE, LEGACY_HEADER_SIGNATURE);
+    let (Some(device_id), Some(timestamp_raw), Some(nonce), Some(signature_raw)) =
+        (device_id, timestamp_raw, nonce, signature_raw)
+    else {
+        return Err(Unauthorized::new(Rejection::NoHeaders));
+    };
+
+    let Ok(timestamp) = timestamp_raw.parse::<i64>() else {
+        return Err(Unauthorized::new(Rejection::Malformed));
+    };
+    let Ok(signature) = STANDARD.decode(signature_raw) else {
+        return Err(Unauthorized::new(Rejection::Malformed));
+    };
+    Ok(Envelope {
+        device_id,
+        timestamp,
+        nonce,
+        signature,
+    })
 }
 
 /// Why a signed request was refused. Logged; never sent verbatim.
@@ -200,53 +233,46 @@ impl RequestVerifier {
         }
     }
 
-    pub fn verify(&self, request: &SignedRequest<'_>) -> Result<VerifiedDevice, Unauthorized> {
-        let device_id = header_or_legacy(request.headers, HEADER_DEVICE, LEGACY_HEADER_DEVICE);
-        let timestamp_raw =
-            header_or_legacy(request.headers, HEADER_TIMESTAMP, LEGACY_HEADER_TIMESTAMP);
-        let nonce = header_or_legacy(request.headers, HEADER_NONCE, LEGACY_HEADER_NONCE);
-        let signature_raw =
-            header_or_legacy(request.headers, HEADER_SIGNATURE, LEGACY_HEADER_SIGNATURE);
-        let (Some(device_id), Some(timestamp_raw), Some(nonce), Some(signature_raw)) =
-            (device_id, timestamp_raw, nonce, signature_raw)
-        else {
-            return Err(Unauthorized::new(Rejection::NoHeaders));
-        };
+    /// The checks that need no body, in `verify`'s order and with its reasons: the headers are present and well
+    /// formed, the timestamp is fresh, the device is known and not revoked. A request refused here is refused by
+    /// `verify` with the same reason, so the caller can answer before it reads the body.
+    pub fn precheck(&self, headers: &dyn HeaderSource) -> Result<(), Unauthorized> {
+        let envelope = envelope(headers)?;
+        self.trusted_device(&envelope).map(|_| ())
+    }
 
-        let Ok(timestamp) = timestamp_raw.parse::<i64>() else {
-            return Err(Unauthorized::new(Rejection::Malformed));
-        };
-        let Ok(signature) = STANDARD.decode(signature_raw) else {
-            return Err(Unauthorized::new(Rejection::Malformed));
-        };
-
+    /// Freshness, then trust: both before any cryptography. A revoked device is refused before the signature runs.
+    fn trusted_device(&self, envelope: &Envelope<'_>) -> Result<Device, Unauthorized> {
         let now = unix_seconds() as i64;
         // abs_diff: a timestamp of i64::MIN must be refused, not overflow.
-        if now.abs_diff(timestamp) > self.skew_seconds.unsigned_abs() {
+        if now.abs_diff(envelope.timestamp) > self.skew_seconds.unsigned_abs() {
             return Err(Unauthorized::new(Rejection::BadTimestamp));
         }
-
-        // The device is checked before the signature, so a revoked device is
-        // refused before any cryptography runs.
-        let Some(device) = self.store.get(device_id) else {
+        let Some(device) = self.store.get(envelope.device_id) else {
             return Err(Unauthorized::new(Rejection::UnknownDevice));
         };
         if device.revoked {
             return Err(Unauthorized::new(Rejection::Revoked));
         }
+        Ok(device)
+    }
+
+    pub fn verify(&self, request: &SignedRequest<'_>) -> Result<VerifiedDevice, Unauthorized> {
+        let envelope = envelope(request.headers)?;
+        let device = self.trusted_device(&envelope)?;
 
         let message = canonical_string(
             request.method,
             request.target,
             request.body,
-            timestamp,
-            nonce,
+            envelope.timestamp,
+            envelope.nonce,
         )
         .map_err(Unauthorized::new)?;
         if !verify_signature(
             device.curve,
             &device.public_key,
-            &signature,
+            &envelope.signature,
             message.as_bytes(),
         ) {
             return Err(Unauthorized::new(Rejection::BadSignature));
@@ -258,17 +284,17 @@ impl RequestVerifier {
             .nonces
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .check_and_add(&device.device_id, nonce, unix_seconds());
+            .check_and_add(&device.device_id, envelope.nonce, unix_seconds());
         if !fresh {
             return Err(Unauthorized::new(Rejection::BadNonce));
         }
 
         Ok(VerifiedDevice {
-            device_id: device.device_id.clone(),
-            permissions: device.permissions.clone(),
+            device_id: device.device_id,
+            permissions: device.permissions,
             curve: device.curve,
-            timestamp,
-            nonce: nonce.to_string(),
+            timestamp: envelope.timestamp,
+            nonce: envelope.nonce.to_string(),
         })
     }
 }
@@ -448,7 +474,12 @@ mod tests {
         assert!(verifier.verify(&request).is_ok());
         // Far more bad-signature requests than the cache holds, each with its own nonce.
         for index in 0..(NONCE_CACHE_MAX_PER_DEVICE * 2) {
-            let flood = signed(&device_id, &timestamp.to_string(), &format!("f{index}"), "AAAA");
+            let flood = signed(
+                &device_id,
+                &timestamp.to_string(),
+                &format!("f{index}"),
+                "AAAA",
+            );
             let rejected = verifier
                 .verify(&SignedRequest {
                     method: "GET",
@@ -460,7 +491,10 @@ mod tests {
             assert_eq!(rejected.reason, Rejection::BadSignature);
         }
         // The captured request is still a replay.
-        assert_eq!(verifier.verify(&request).unwrap_err().reason, Rejection::BadNonce);
+        assert_eq!(
+            verifier.verify(&request).unwrap_err().reason,
+            Rejection::BadNonce
+        );
     }
 
     #[test]
@@ -476,6 +510,42 @@ mod tests {
             })
             .unwrap_err();
         assert_eq!(error.reason, Rejection::BadTimestamp);
+    }
+
+    #[test]
+    fn precheck_gives_verify_s_reason_for_each_body_free_refusal() {
+        use p256::ecdsa::SigningKey;
+        use p256::elliptic_curve::Generate;
+        let key = SigningKey::generate();
+        let public = STANDARD.encode(key.verifying_key().to_sec1_point(false).as_bytes());
+        let store = store_with_device(Curve::P256, &public);
+        let verifier = RequestVerifier::new(Arc::clone(&store));
+        let device_id = store.list()[0].device_id.clone();
+        let timestamp = unix_seconds() as i64;
+
+        // Known and fresh: the precheck passes (the signature is still unchecked).
+        let headers = signed(&device_id, &timestamp.to_string(), "bm9uY2U=", "AAAA");
+        assert!(verifier.precheck(&headers).is_ok());
+        let stale = signed(&device_id, "1000000000", "bm9uY2U=", "AAAA");
+        assert_eq!(
+            verifier.precheck(&stale).unwrap_err().reason,
+            Rejection::BadTimestamp
+        );
+        let unknown = signed("dev-x", &timestamp.to_string(), "bm9uY2U=", "AAAA");
+        assert_eq!(
+            verifier.precheck(&unknown).unwrap_err().reason,
+            Rejection::UnknownDevice
+        );
+        let missing = Headers(vec![]);
+        assert_eq!(
+            verifier.precheck(&missing).unwrap_err().reason,
+            Rejection::NoHeaders
+        );
+        store.revoke(&device_id).expect("revoke");
+        assert_eq!(
+            verifier.precheck(&headers).unwrap_err().reason,
+            Rejection::Revoked
+        );
     }
 
     #[test]

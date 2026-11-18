@@ -1,8 +1,20 @@
 import { $, invoke, toast } from "./core.js";
 import { composerMode, stopFailureText } from "./chat-turn-model.js";
 import { chat, failure, offline } from "./chatstate.js";
-import { hasPendingAttachments, renderAttachments } from "./chatattach.js";
+import { hasPendingAttachments, readyAttachments, renderAttachments } from "./chatattach.js";
 import { setVoiceBlocked } from "./chatvoice.js";
+
+// What the send button does now. The click and the drawing both ask here, so they agree.
+export function sendMode() {
+  const draft = Boolean($("chat-input").value.trim()) || hasPendingAttachments() || readyAttachments().length > 0;
+  return composerMode({
+    inFlight: chat.waiting,
+    offline: offline(),
+    sent: chat.stopSent,
+    denied: chat.stopDenied,
+    hasDraft: draft,
+  });
+}
 
 export function renderComposer() {
   const input = $("chat-input");
@@ -12,16 +24,11 @@ export function renderComposer() {
   input.disabled = blocked;
   $("chat-composer").classList.toggle("is-blocked", blocked);
   setVoiceBlocked(blocked);
-  const mode = composerMode({
-    inFlight: chat.waiting,
-    offline: offline(),
-    sent: chat.stopSent,
-    denied: chat.stopDenied,
-  });
+  const mode = sendMode();
   if (!chat.waiting) chat.stopSent = false;
-  // While a turn is open the send button is the stop button.
+  // While a turn is open and the field is empty the send button is the stop button.
+  // It stays a submit button: the click handler stops only in stop mode.
   const label = mode.stop ? "Detener" : "Enviar mensaje";
-  send.type = mode.stop ? "button" : "submit";
   send.classList.toggle("is-stop", mode.stop);
   send.disabled = mode.stop ? mode.disabled : blocked || hasPendingAttachments();
   send.title = label;

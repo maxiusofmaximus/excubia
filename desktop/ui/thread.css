@@ -555,9 +555,11 @@
 
 /* -- composer ------------------------------------------------------------ */
 
+/* Wrapping keeps the tray on a line of its own; the text field gives way before the buttons do. */
 .chat-composer {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 8px;
   flex: none;

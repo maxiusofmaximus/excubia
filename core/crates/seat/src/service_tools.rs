@@ -21,8 +21,9 @@ impl SeatService {
         let mut phase = lock(&grant.phase);
         Self::check_phase(&phase)?;
         let files: Vec<&str> = attachment_ids.iter().map(String::as_str).collect();
+        let runs: Vec<&str> = grant.run_ids.iter().map(String::as_str).collect();
         self.chat
-            .complete_run_with_files(&grant.run_id, &text, suggestions, &files)
+            .complete_runs_with_files(&runs, &text, suggestions, &files)
             .map_err(tool_chat_error)?;
         *phase = Phase::Replied;
         grant.notify.notify_one();

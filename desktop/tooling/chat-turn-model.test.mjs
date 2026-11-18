@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 
 import {
   advanceTurn,
+  answeredAfter,
   composerMode,
   delegationResultIndexes,
   jumpLabel,
@@ -53,7 +54,10 @@ test("a frame that arrives before its message is kept and applied on insert", ()
 });
 
 test("the line under the last message shows each state, the others only failures", () => {
-  assert.deepEqual(turnStatusLine("queued", "Alfred", true), { text: "Enviado", failed: false });
+  assert.deepEqual(turnStatusLine("queued", "Alfred", true), { text: "En cola", failed: false });
+  assert.deepEqual(turnStatusLine("queued", "Alfred", false), { text: "En cola", failed: false }, "each waiting message");
+  assert.equal(turnStatusLine("queued", "Alfred", true, true), null, "answered: no longer waiting");
+  assert.equal(turnStatusLine("queued", "Alfred", false, true), null);
   assert.deepEqual(turnStatusLine("running", "Alfred", true), {
     text: "Alfred lo está atendiendo",
     failed: false,
@@ -115,6 +119,35 @@ test("the stop gate: one request while flying, off without permission, off offli
     hint: denied,
   });
   assert.equal(composerMode({ inFlight: true, offline: true, sent: false, denied: null }).stop, false);
+});
+
+test("a draft keeps the send button while a turn is open", () => {
+  const base = { offline: false, sent: false, denied: null };
+  // Alfred working + text (or a picture ready): send, never stop.
+  assert.deepEqual(composerMode({ ...base, inFlight: true, hasDraft: true }), { stop: false, disabled: false, hint: null });
+  // Alfred working + empty field and no picture: stop, as before.
+  assert.equal(composerMode({ ...base, inFlight: true, hasDraft: false }).stop, true);
+  // No turn open: send whatever the draft is.
+  assert.equal(composerMode({ ...base, inFlight: false, hasDraft: false }).stop, false);
+  // Offline: as before, no stop.
+  assert.equal(composerMode({ ...base, offline: true, inFlight: true, hasDraft: false }).stop, false);
+  // A stop already sent or refused still holds while the field is empty.
+  assert.equal(composerMode({ ...base, inFlight: true, sent: true, hasDraft: false }).disabled, true);
+  const denied = "No tienes permiso para detener esto desde este dispositivo.";
+  assert.deepEqual(composerMode({ ...base, denied, inFlight: true, hasDraft: false }), {
+    stop: true,
+    disabled: true,
+    hint: denied,
+  });
+  // A refused stop with a draft: it is a send, so the refusal hint is not shown.
+  assert.equal(composerMode({ ...base, denied, inFlight: true, hasDraft: true }).hint, null);
+});
+
+test("an answer closes the waiting line of the messages before it", () => {
+  const entries = [own(1, "msg_1", "queued"), own(2, "msg_2", "queued"), agent(3, "msg_3"), own(4, "msg_4", "queued")];
+  assert.equal(answeredAfter(entries, 0), true);
+  assert.equal(answeredAfter(entries, 1), true);
+  assert.equal(answeredAfter(entries, 3), false, "the last message has no answer yet");
 });
 
 test("a failed stop says why in Spanish", () => {

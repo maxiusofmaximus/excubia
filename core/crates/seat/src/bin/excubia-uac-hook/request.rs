@@ -56,6 +56,7 @@ impl Request {
         let summary = flags
             .summary
             .or_else(|| payload.as_ref().and_then(|p| p.summary.clone()))
+            .or_else(|| mapped.as_ref().and_then(|action| action.summary.clone()))
             .unwrap_or_else(|| format!("{kind} {tool}"));
         let cwd = flags
             .cwd

@@ -31,7 +31,7 @@ fn a_closed_turn_refuses_a_late_reply() {
         message_id: "msg_1".to_string(),
         text: "hola".to_string(),
     };
-    let grant = RunGrant::new(&turn);
+    let grant = RunGrant::new(&turn, vec!["run_1".to_string()]);
     *lock(&grant.phase) = Phase::Closed;
     let error = SeatService::check_phase(&lock(&grant.phase)).expect_err("closed");
     assert_eq!(error.code, "run_closed");

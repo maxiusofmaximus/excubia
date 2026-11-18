@@ -27,10 +27,10 @@ $triple = (& rustc -vV | Select-String '^host: ').ToString().Split(' ')[1].Trim(
 if (-not $triple) { throw "no pude leer el target triple de rustc" }
 
 $env:CARGO_BUILD_JOBS = "4"
-Write-Output "compilando excubia-host + excubia-mcp ($Profile) desde $CoreDir"
+Write-Output "compilando excubia-host + excubia-mcp + excubia-media-worker ($Profile) desde $CoreDir"
 $buildArgs = @()
 if ($Profile -eq "release") { $buildArgs += "--release" }
-& cargo build @buildArgs -p excubia-host -p excubia-seat --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
+& cargo build @buildArgs -p excubia-host -p excubia-seat -p excubia-media --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
 if ($LASTEXITCODE -ne 0) { throw "cargo build falló con $LASTEXITCODE" }
 
 $built = Join-Path $targetDir "$Profile\excubia-host.exe"
@@ -39,6 +39,11 @@ if (-not (Test-Path $built)) { throw "no se generó $built" }
 # `409 seat_unavailable`.
 $mcp = Join-Path $targetDir "$Profile\excubia-mcp.exe"
 if (-not (Test-Path $mcp)) { throw "no se generó $mcp" }
+
+# Every image attachment is decoded in this child process, next to the host;
+# without it each upload fails with `500 internal error`.
+$worker = Join-Path $targetDir "$Profile\excubia-media-worker.exe"
+if (-not (Test-Path $worker)) { throw "no se generó $worker" }
 
 # The host refuses to start Alfred's seat without the approval hook next to it.
 $hook = Join-Path $targetDir "$Profile\excubia-uac-hook.exe"
@@ -53,6 +58,8 @@ Copy-Item $mcp (Join-Path $destDir "excubia-mcp-$triple.exe") -Force
 Copy-Item $mcp (Join-Path $destDir "excubia-mcp.exe") -Force
 Copy-Item $hook (Join-Path $destDir "excubia-uac-hook-$triple.exe") -Force
 Copy-Item $hook (Join-Path $destDir "excubia-uac-hook.exe") -Force
+Copy-Item $worker (Join-Path $destDir "excubia-media-worker-$triple.exe") -Force
+Copy-Item $worker (Join-Path $destDir "excubia-media-worker.exe") -Force
 
 # The OpenCode UAC plugin (plain JS, no dependencies) travels as a bundled
 # resource; the host verifies it with `--uac-plugin-dir`. Tests stay behind.
@@ -73,6 +80,7 @@ foreach ($appProfile in @("debug", "release")) {
     Copy-Item $mcp (Join-Path $appDir "excubia-mcp-$triple.exe") -Force
     Copy-Item $mcp (Join-Path $appDir "excubia-mcp.exe") -Force
     Copy-Item $hook (Join-Path $appDir "excubia-uac-hook.exe") -Force
+    Copy-Item $worker (Join-Path $appDir "excubia-media-worker.exe") -Force
   }
 }
 

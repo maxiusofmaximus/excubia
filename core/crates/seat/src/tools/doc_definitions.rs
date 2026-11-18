@@ -20,6 +20,38 @@ pub fn tools() -> Vec<Value> {
             }
         }),
         json!({
+            "name": "doc.edit",
+            "description": "Hace una copia editada de un documento Word (.docx) que el usuario adjuntó en el chat, con los cambios indicados; el original no se modifica. La copia queda en el chat como adjunto nuevo: ponla en attachment_ids de chat.reply. Solo cambia el texto y las celdas; el formato se conserva. Antes de editar, lee el documento con doc.read.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "attachment_id": { "type": "string", "minLength": 1, "maxLength": 200, "description": "The id of the .docx the user attached (att_…)." },
+                    "changes": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "description": "The changes, applied in order. replace_text changes every match in the document, also inside tables. set_cell writes one cell.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "op": { "type": "string", "enum": ["replace_text", "set_cell"] },
+                                "find": { "type": "string", "minLength": 1, "maxLength": 32768, "description": "replace_text: the text to find, as it reads in Word." },
+                                "replace": { "type": "string", "maxLength": 32768, "description": "replace_text: the new text." },
+                                "table": { "type": "integer", "minimum": 1, "description": "set_cell: the table, from 1, in the order it appears in the document." },
+                                "row": { "type": "integer", "minimum": 1, "description": "set_cell: the row of the table, from 1." },
+                                "col": { "type": "integer", "minimum": 1, "description": "set_cell: the column of the row, from 1." },
+                                "text": { "type": "string", "maxLength": 32768, "description": "set_cell: the new text of the cell." }
+                            },
+                            "required": ["op"],
+                            "additionalProperties": false
+                        }
+                    }
+                },
+                "required": ["attachment_id", "changes"],
+                "additionalProperties": false
+            }
+        }),
+        json!({
             "name": "doc.read",
             "description": "Lee el contenido de un documento que el usuario adjuntó en el chat (Excel, Word, PDF, CSV, texto). Devuelve el texto; no modifica nada.",
             "inputSchema": {

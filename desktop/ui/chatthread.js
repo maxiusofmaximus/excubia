@@ -8,7 +8,7 @@ import { setThreadApprovals } from "./approval-inbox.js";
 import { renderDelegationCard } from "./delegations.js";
 import { showInThread } from "./delegation-model.js";
 import { stripTestMarkers } from "./format.js";
-import { delegationResultIndexes, isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
+import { answeredAfter, delegationResultIndexes, isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
 import { quickRepliesDisabled, quoteLabel, suggestionsAt } from "./chat-reply-model.js";
 import { announcement, openStep } from "./chat-progress-model.js";
 import { action, element } from "./chatdom.js";
@@ -283,7 +283,7 @@ export function renderThread(chat) {
           messageNode(
             message,
             alfredName,
-            turnStatusLine(turn, alfredName, isLast),
+            turnStatusLine(turn, alfredName, isLast, answeredAfter(chat.entries, index)),
             isLast ? stepDetail(chat) : null,
           ),
         );

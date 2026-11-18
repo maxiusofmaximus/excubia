@@ -600,9 +600,10 @@ pub async fn serve(listener: TcpListener, ctx: ApiContext) -> std::io::Result<()
     serve_app(listener, router(ctx)).await
 }
 
-/// Serve the device routes only, on the LAN TLS listener.
+/// Serve the device routes only, on the LAN TLS listener. It runs its own
+/// serve loop (`tls::serve_connections`) for the header read timer.
 pub async fn serve_client(listener: TlsListener, ctx: ApiContext) -> std::io::Result<()> {
-    serve_app(listener, client_router(ctx)).await
+    tls::serve_connections(listener, client_router(ctx)).await
 }
 
 async fn serve_app<L>(listener: L, app: Router) -> std::io::Result<()>

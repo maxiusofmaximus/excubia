@@ -108,6 +108,20 @@ impl super::ChatStore {
         Ok(state.as_deref().and_then(RunState::from_db))
     }
 
+    /// Whether the message a turn answers was written by the user. Alfred's own
+    /// turns (a delegation's synthesis) answer a message of Alfred's.
+    pub fn is_user_turn(&self, message_id: &str) -> Result<bool, ChatError> {
+        let connection = self.lock();
+        let author: Option<String> = connection
+            .query_row(
+                "SELECT author_kind FROM message WHERE id = ?1",
+                [message_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(author.as_deref() == Some("user"))
+    }
+
     /// Dequeue one turn. Returns false when the run is already terminal (a
     /// restart or a duplicate delivery got there first).
     pub fn start_run(&self, run_id: &str) -> Result<bool, ChatError> {
@@ -150,7 +164,23 @@ impl super::ChatStore {
         suggestions: &[String],
         attachment_ids: &[&str],
     ) -> Result<Message, ChatError> {
+        self.complete_runs_with_files(&[run_id], text, suggestions, attachment_ids)
+    }
+
+    /// One reply closes a merged turn: every run of `run_ids` completes together, and
+    /// the first one names the conversation. If any run is already closed, nothing is
+    /// written and the reply is refused.
+    pub fn complete_runs_with_files(
+        &self,
+        run_ids: &[&str],
+        text: &str,
+        suggestions: &[String],
+        attachment_ids: &[&str],
+    ) -> Result<Message, ChatError> {
         validate_suggestions(suggestions)?;
+        let Some(&run_id) = run_ids.first() else {
+            return Err(ChatError::Inconsistent("a turn without runs"));
+        };
         let text = &crate::text::without_internal_ids(text);
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
@@ -162,12 +192,15 @@ impl super::ChatStore {
         let refused = operator_denied_since_user_message(&transaction, &info.conversation_id)?;
         let suggestions: &[String] = if refused { &[] } else { suggestions };
         let now = schema::now(&transaction)?;
-        let changed = transaction.execute(
-            "UPDATE run SET state = 'completed', finished_at = ?1, reason = NULL
-              WHERE id = ?2 AND state IN ('queued', 'running')",
-            params![now, run_id],
-        )?;
-        if changed != 1 {
+        let mut changed = 0;
+        for id in run_ids {
+            changed += transaction.execute(
+                "UPDATE run SET state = 'completed', finished_at = ?1, reason = NULL
+                  WHERE id = ?2 AND state IN ('queued', 'running')",
+                params![now, id],
+            )?;
+        }
+        if changed != run_ids.len() {
             return Err(ChatError::RunNotActive(run_id.to_string()));
         }
         let (message_id, seq, created_at) = self.insert_message(
@@ -199,7 +232,7 @@ impl super::ChatStore {
             &info.agent_id,
             run_id,
         )?);
-        let turn = journal_turns(&transaction, [run_id])?;
+        let turn = journal_turns(&transaction, run_ids.iter().copied())?;
         transaction.commit()?;
         self.publish_all(frames);
         self.publish_all(turn);
@@ -306,6 +339,15 @@ impl super::ChatStore {
     /// failed, empty agent message is the card: clients render it as "the
     /// agent ended without answering", never as invented text.
     pub fn fail_run_with_card(&self, run_id: &str, reason: &str) -> Result<bool, ChatError> {
+        self.fail_runs_with_card(&[run_id], reason)
+    }
+
+    /// A merged turn that failed: every run of `run_ids` fails and the conversation
+    /// gets one failed card. Runs closed earlier (a stop) keep their state.
+    pub fn fail_runs_with_card(&self, run_ids: &[&str], reason: &str) -> Result<bool, ChatError> {
+        let Some(&run_id) = run_ids.first() else {
+            return Ok(false);
+        };
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
         let info = match run_info(&transaction, run_id) {
@@ -314,12 +356,15 @@ impl super::ChatStore {
             Err(error) => return Err(error),
         };
         let now = schema::now(&transaction)?;
-        let changed = transaction.execute(
-            "UPDATE run SET state = 'failed', finished_at = ?1, reason = ?2
-              WHERE id = ?3 AND state IN ('queued', 'running')",
-            params![now, reason, run_id],
-        )?;
-        if changed != 1 {
+        let mut changed = 0;
+        for id in run_ids {
+            changed += transaction.execute(
+                "UPDATE run SET state = 'failed', finished_at = ?1, reason = ?2
+                  WHERE id = ?3 AND state IN ('queued', 'running')",
+                params![now, reason, id],
+            )?;
+        }
+        if changed == 0 {
             return Ok(false);
         }
         let (message_id, seq, _created_at) = self.insert_message(
@@ -359,7 +404,7 @@ impl super::ChatStore {
                 "preview": "",
             }),
         )?;
-        let turn = journal_turns(&transaction, [run_id])?;
+        let turn = journal_turns(&transaction, run_ids.iter().copied())?;
         transaction.commit()?;
         self.publish(created);
         self.publish(updated);

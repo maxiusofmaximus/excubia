@@ -87,7 +87,7 @@ fn create_error(error: CraftError) -> ToolError {
     }
 }
 
-fn store_error(error: AttachmentError) -> ToolError {
+pub(crate) fn store_error(error: AttachmentError) -> ToolError {
     match error {
         AttachmentError::ConversationQuota | AttachmentError::HostQuota => ToolError {
             kind: ToolErrorKind::Invalid,
@@ -99,7 +99,7 @@ fn store_error(error: AttachmentError) -> ToolError {
     }
 }
 
-fn tool_failed() -> ToolError {
+pub(crate) fn tool_failed() -> ToolError {
     ToolError {
         kind: ToolErrorKind::Unavailable,
         code: "tool_failed",

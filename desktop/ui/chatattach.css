@@ -21,7 +21,8 @@
 }
 
 .attach-btn:focus-visible,
-.attach-remove:focus-visible,
+.attach-action:focus-visible,
+.attach-open:focus-visible,
 .msg-attachment:focus-visible,
 .msg-document:focus-visible {
   outline: 2px solid var(--accent-text);
@@ -47,6 +48,10 @@
 }
 
 .attach-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
   flex: 0 0 100%;
   margin: 0;
   color: var(--blocked);
@@ -57,8 +62,21 @@
   display: none;
 }
 
+.attach-notice-close {
+  flex: none;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Narrow, the card breaks in two: the name with its ellipsis, the buttons on the line below. */
 .attach-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   max-width: 100%;
@@ -72,17 +90,43 @@
   border-color: var(--blocked);
 }
 
-.attach-thumb {
+.attach-picture,
+.attach-fallback {
   width: 44px;
   height: 44px;
   flex: none;
   border-radius: 8px;
-  object-fit: cover;
   background: var(--raised-2);
+  color: var(--muted);
+}
+
+.attach-picture {
+  display: block;
+  object-fit: cover;
+}
+
+.attach-fallback {
+  display: grid;
+  place-items: center;
+}
+
+.attach-fallback svg {
+  width: 20px;
+  height: 20px;
+}
+
+.attach-open {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: zoom-in;
 }
 
 .attach-text {
   display: grid;
+  flex: 1 1 140px;
   min-width: 0;
   gap: 2px;
 }
@@ -105,28 +149,32 @@
 }
 
 .attach-progress {
-  width: 140px;
+  flex: none;
+  width: 100%;
+  max-width: 140px;
   height: 5px;
   accent-color: var(--accent-text);
 }
 
-.attach-remove {
+.attach-actions {
+  display: flex;
   flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
 }
 
-.chat-composer.is-dragging {
-  outline: 2px dashed var(--accent-text);
-  outline-offset: 3px;
-}
-
-.chat-composer.is-dragging::after {
+/* A file dragged over the chat: a dashed layer over it, gone on drag-out or on drop. */
+.view-chat.is-dragging::after {
   content: "Suelta para adjuntar";
   position: absolute;
-  inset: 0;
+  inset: 8px;
+  z-index: 20;
   display: grid;
   place-items: center;
-  border-radius: 22px;
-  background: rgba(var(--accent-rgb), 0.12);
+  border: 2px dashed var(--accent-text);
+  border-radius: 18px;
+  background: rgba(var(--accent-rgb), 0.08);
   color: var(--accent-text);
   font-weight: 600;
   pointer-events: none;
@@ -147,20 +195,27 @@
   cursor: zoom-in;
 }
 
+/* The picture shows once its bytes are in; the neutral box with the icon holds the place until then, or instead of a failure. */
 .msg-attachment img {
-  display: block;
+  display: none;
   width: 120px;
   height: 120px;
   border-radius: 9px;
   object-fit: cover;
 }
 
-.msg-attachment:not(.is-loaded) img {
-  opacity: 0.35;
+.msg-attachment.is-loaded img {
+  display: block;
 }
 
-.msg-attachment.is-failed img {
-  opacity: 0.2;
+.msg-attachment .attach-fallback {
+  width: 120px;
+  height: 120px;
+  border-radius: 9px;
+}
+
+.msg-attachment.is-loaded .attach-fallback {
+  display: none;
 }
 
 .attach-viewer {

@@ -4,18 +4,18 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use excubia_chat::{ChatStore, Turn};
-use tokio::sync::mpsc;
 
 use crate::profile::{self, SelectedProfile};
 use crate::prompt::Role;
 
+use super::queue::{merged_text, Batch, Queue};
 use super::seat::TurnEnv;
 use super::turn::run_turn;
 use super::RunGrant;
 
 pub(super) struct Worker {
     pub(super) chat: Arc<ChatStore>,
-    pub(super) receiver: mpsc::Receiver<Turn>,
+    pub(super) queue: Arc<Queue>,
     pub(super) selected: Option<SelectedProfile>,
     pub(super) engines: Vec<SelectedProfile>,
     pub(super) turn_engine: Arc<dyn Fn() -> Option<String> + Send + Sync>,
@@ -33,30 +33,42 @@ pub(super) struct Worker {
     pub(super) on_quota_exhausted: Arc<dyn Fn() + Send + Sync>,
 }
 
-pub(super) async fn run_worker(mut worker: Worker) {
-    while let Some(turn) = worker.receiver.recv().await {
-        process_turn(&worker, turn).await;
+pub(super) async fn run_worker(worker: Worker) {
+    loop {
+        let batch = worker.queue.next().await;
+        process_batch(&worker, batch).await;
     }
 }
 
-async fn process_turn(worker: &Worker, turn: Turn) {
-    match worker.chat.start_run(&turn.id) {
-        Ok(true) => {}
-        Ok(false) => return,
-        Err(error) => {
-            eprintln!("seat: could not start run {}: {error}", turn.id);
-            return;
+/// One turn answers the batch: every run of it starts, closes or fails together.
+async fn process_batch(worker: &Worker, batch: Batch) {
+    // A run closed while it waited (a stop) does not start; the rest of the batch does.
+    let mut live = Vec::new();
+    for turn in batch.turns {
+        match worker.chat.start_run(&turn.id) {
+            Ok(true) => live.push(turn),
+            Ok(false) => {}
+            Err(error) => eprintln!("seat: could not start run {}: {error}", turn.id),
         }
     }
+    let Some(first) = live.first() else {
+        return;
+    };
+    let run_ids: Vec<String> = live.iter().map(|turn| turn.id.clone()).collect();
+    let turn = Turn {
+        text: merged_text(&live),
+        ..first.clone()
+    };
     let _ = worker.chat.set_seat_status(&worker.agent_id, "working");
     // Fails closed: an engine that is not ready ends the turn; it never falls back to the default.
     let outcome = match turn_profile(worker).await {
-        Ok(selected) => run_turn(worker, &selected, &turn).await,
+        Ok(selected) => run_turn(worker, &selected, &turn, &run_ids).await,
         Err(reason) => Err(reason),
     };
     if let Err(reason) = outcome {
         eprintln!("seat: run {} failed: {reason}", turn.id);
-        let _ = worker.chat.fail_run_with_card(&turn.id, &reason);
+        let ids: Vec<&str> = run_ids.iter().map(String::as_str).collect();
+        let _ = worker.chat.fail_runs_with_card(&ids, &reason);
     }
     let _ = worker.chat.set_seat_status(&worker.agent_id, "idle");
 }

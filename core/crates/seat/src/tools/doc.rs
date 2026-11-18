@@ -1,6 +1,7 @@
-//! The document tools (DOC5B, DOC8): `doc.read` reads a document the user sent in the
-//! chat, `doc.create` makes a new one. The parser bounds the fields; the host finds the
-//! files and writes them, and nothing here touches either.
+//! The document tools (DOC5B, DOC8, FIX2): `doc.read` reads a document the user sent in the
+//! chat, `doc.create` makes a new one, `doc.edit` makes an edited copy of a chat `.docx`.
+//! The parser bounds the fields; the host finds the files and writes them, and nothing
+//! here touches either.
 
 use excubia_chat::{ToolError, ToolRequest};
 use serde::Deserialize;
@@ -129,10 +130,172 @@ pub fn create(request: &ToolRequest) -> Result<DocCreate, ToolError> {
     })
 }
 
+/// The most changes one `doc.edit` makes.
+pub const MAX_EDIT_CHANGES: usize = 200;
+/// The longest text of one change, in bytes.
+pub const MAX_EDIT_TEXT_BYTES: usize = 32 * 1024;
+
+/// One change to a copy of a `.docx`. Tables, rows and columns count from 1.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DocChange {
+    ReplaceText {
+        find: String,
+        replace: String,
+    },
+    SetCell {
+        table: usize,
+        row: usize,
+        col: usize,
+        text: String,
+    },
+}
+
+/// A `doc.edit`: the changes to one chat `.docx`. The host keeps the result as a new file;
+/// the original is never changed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DocEdit {
+    pub attachment_id: String,
+    pub changes: Vec<DocChange>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EditArgs {
+    attachment_id: String,
+    changes: Vec<ChangeArgs>,
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
+enum ChangeArgs {
+    ReplaceText {
+        find: String,
+        replace: String,
+    },
+    SetCell {
+        table: usize,
+        row: usize,
+        col: usize,
+        text: String,
+    },
+}
+
+pub fn edit(request: &ToolRequest) -> Result<DocEdit, ToolError> {
+    let args: EditArgs = arguments(request, "changes")?;
+    let attachment_id = name_field("attachment_id", &args.attachment_id)?;
+    if args.changes.is_empty() || args.changes.len() > MAX_EDIT_CHANGES {
+        return Err(ToolError::invalid(
+            "invalid_arguments",
+            "changes",
+            "changes has between 1 and 200 items",
+        ));
+    }
+    let changes: Vec<DocChange> = args
+        .changes
+        .into_iter()
+        .map(change)
+        .collect::<Result<_, _>>()?;
+    Ok(DocEdit {
+        attachment_id,
+        changes,
+    })
+}
+
+fn change(arg: ChangeArgs) -> Result<DocChange, ToolError> {
+    match arg {
+        ChangeArgs::ReplaceText { find, replace } => {
+            if find.is_empty() {
+                return Err(ToolError::invalid(
+                    "invalid_arguments",
+                    "find",
+                    "find cannot be empty",
+                ));
+            }
+            bounded("find", &find)?;
+            bounded("replace", &replace)?;
+            Ok(DocChange::ReplaceText { find, replace })
+        }
+        ChangeArgs::SetCell {
+            table,
+            row,
+            col,
+            text,
+        } => {
+            if table == 0 || row == 0 || col == 0 {
+                return Err(ToolError::invalid(
+                    "invalid_arguments",
+                    "table",
+                    "table, row and col start at 1",
+                ));
+            }
+            bounded("text", &text)?;
+            Ok(DocChange::SetCell {
+                table,
+                row,
+                col,
+                text,
+            })
+        }
+    }
+}
+
+fn bounded(field: &'static str, text: &str) -> Result<(), ToolError> {
+    if text.len() > MAX_EDIT_TEXT_BYTES {
+        return Err(ToolError::invalid(
+            "invalid_arguments",
+            field,
+            "a change text is at most 32 KiB",
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::{json, Value};
+
+    fn edit_request(arguments: Value) -> ToolRequest {
+        ToolRequest {
+            tool: "doc.edit".to_string(),
+            arguments,
+        }
+    }
+
+    #[test]
+    fn doc_edit_parses_both_operations_and_refuses_the_rest() {
+        let parsed = edit(&edit_request(json!({
+            "attachment_id": "att_1",
+            "changes": [
+                {"op": "replace_text", "find": "Hola", "replace": "Adiós"},
+                {"op": "set_cell", "table": 1, "row": 2, "col": 1, "text": "42"}
+            ]
+        })))
+        .expect("edit");
+        assert_eq!(parsed.changes.len(), 2);
+        assert!(matches!(
+            parsed.changes[1],
+            DocChange::SetCell {
+                table: 1,
+                row: 2,
+                col: 1,
+                ..
+            }
+        ));
+        for bad in [
+            json!({"op": "set_checkbox", "table": 1, "row": 1, "col": 1, "checked": true}),
+            json!({"op": "set_cell", "table": 0, "row": 1, "col": 1, "text": "x"}),
+            json!({"op": "replace_text", "find": "", "replace": "x"}),
+        ] {
+            assert!(
+                edit(&edit_request(json!({"attachment_id": "att_1", "changes": [bad]}))).is_err()
+            );
+        }
+        let none: Vec<Value> = Vec::new();
+        assert!(edit(&edit_request(json!({"attachment_id": "att_1", "changes": none}))).is_err());
+        let too_many = vec![json!({"op": "replace_text", "find": "a", "replace": "b"}); 201];
+        assert!(edit(&edit_request(json!({"attachment_id": "att_1", "changes": too_many}))).is_err());
+    }
 
     fn request(arguments: Value) -> ToolRequest {
         ToolRequest {

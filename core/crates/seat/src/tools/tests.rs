@@ -278,9 +278,30 @@ fn tool_definitions_list_the_team_tools() {
             "mail.rule_list",
             "mail.rule_create",
             "doc.create",
+            "doc.edit",
             "doc.read",
         ]
     );
+}
+
+/// `doc.edit` parses to typed changes; the parser refuses a change it does not know.
+#[test]
+fn doc_edit_is_typed_and_its_changes_are_checked() {
+    let edit = parse(&request(
+        "doc.edit",
+        json!({"attachment_id": "att_1", "changes": [
+            {"op": "replace_text", "find": "Hola", "replace": "Adiós"},
+            {"op": "set_cell", "table": 1, "row": 2, "col": 1, "text": "42"}
+        ]}),
+    ))
+    .expect("edit");
+    assert!(matches!(edit, ToolCall::DocEdit(ref doc) if doc.changes.len() == 2));
+    let refused = parse(&request(
+        "doc.edit",
+        json!({"attachment_id": "att_1", "changes": [{"op": "set_checkbox"}]}),
+    ))
+    .expect_err("unknown op");
+    assert_eq!(refused.field, Some("changes"));
 }
 
 /// `doc.read` parses to a typed read, and the host decides what the file is.

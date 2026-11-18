@@ -12,7 +12,7 @@ export function hydratePairing(boot) {
   $("local-card").classList.toggle("hidden", !local);
   $("pair-form").classList.toggle("hidden", local);
   $("link-form").classList.toggle("hidden", local);
-  $("lan-card").classList.toggle("hidden", local);
+  $("lan-card").classList.toggle("hidden", !local);
   $("btn-use-local").classList.toggle("hidden", local);
   $("plain-warning").classList.toggle("hidden", !boot.unencrypted);
   hydrateLan(boot.lan_pairing === true);
@@ -101,7 +101,24 @@ export async function forgetPairing() {
   }
 }
 
+// Leaving the local host stops it and unpairs the phones it serves: the button asks twice.
+const REMOTE_CONFIRM = "Pulsa otra vez: este equipo dejará de servir a tus móviles";
+let remoteArmedTimer = null;
+
 async function useRemoteHost() {
+  const button = $("btn-use-remote");
+  if (!remoteArmedTimer) {
+    const label = button.textContent;
+    button.textContent = REMOTE_CONFIRM;
+    remoteArmedTimer = setTimeout(() => {
+      button.textContent = label;
+      remoteArmedTimer = null;
+    }, 6000);
+    return;
+  }
+  clearTimeout(remoteArmedTimer);
+  remoteArmedTimer = null;
+  button.textContent = "Vincular con otro equipo";
   try {
     await invoke("use_remote_host");
     app.boot = { ...(app.boot || {}), mode: "remote" };

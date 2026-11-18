@@ -236,12 +236,12 @@ pub fn definitions() -> Value {
             },
             {
                 "name": "mail.draft_create",
-                "description": "Create a draft in the mailbox of an account. The draft is only saved: nothing is sent, and no tool sends mail. El host rechaza `;` y palabras técnicas de la lista del operador: escribe en lenguaje sencillo. Antes de redactar, llama a `style.get` y sigue sus reglas.",
+                "description": "Create a draft in the mailbox of an account. The draft is only saved: nothing is sent, and no tool sends mail. El host rechaza `;` y palabras técnicas de la lista del operador: escribe en lenguaje sencillo. Antes de redactar, llama a `style.get` y sigue sus reglas. Los adjuntos de correos recibidos no se pueden reenviar con mail.attach_file (solo sirven archivos del chat o creados con doc.create): dilo al usuario y no lo prometas en el cuerpo.",
                 "inputSchema": draft_schema(&["account", "to", "subject", "body"])
             },
             {
                 "name": "mail.draft_update",
-                "description": "Replace the content of a draft this host created. The draft is only saved: nothing is sent. El host rechaza `;` y palabras técnicas de la lista del operador: escribe en lenguaje sencillo. Antes de redactar, llama a `style.get` y sigue sus reglas.",
+                "description": "Replace the content of a draft this host created. The draft is only saved: nothing is sent. El host rechaza `;` y palabras técnicas de la lista del operador: escribe en lenguaje sencillo. Antes de redactar, llama a `style.get` y sigue sus reglas. Los adjuntos de correos recibidos no se pueden reenviar con mail.attach_file (solo sirven archivos del chat o creados con doc.create): dilo al usuario y no lo prometas en el cuerpo.",
                 "inputSchema": draft_schema_with_id()
             },
             {

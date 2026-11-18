@@ -8,9 +8,11 @@ import {
   ACCEPT_ATTR,
   CHUNK_BYTES,
   MAX_BYTES,
+  NOTICE_MS,
   attachmentKind,
   blocksSend,
   bubbleBody,
+  canRetry,
   chooseUpload,
   chunkRetry,
   classifyFile,
@@ -18,10 +20,12 @@ import {
   documentCard,
   failureText,
   hasRoom,
+  isFolder,
   itemFailureText,
   itemStatus,
   keepOutside,
   outsideConversation,
+  planAdds,
   progressPercent,
   readyItems,
   reducedSize,
@@ -33,6 +37,21 @@ import {
 } from "../ui/chatattach-model.js";
 
 const DECODE = "No se pudo procesar la imagen. Prueba con otra";
+
+test("the unsupported-file notice names every type the picker admits, and the notice lasts six seconds", () => {
+  const family = {
+    png: "imágenes", jpg: "imágenes", jpeg: "imágenes", webp: "imágenes",
+    pdf: "PDF", docx: "Word", xlsx: "Excel", pptx: "PowerPoint", csv: "CSV", txt: "texto", md: "texto", json: "texto",
+  };
+  const text = failureText("unsupported_type");
+  assert.match(text, /^Ese tipo de archivo no se puede adjuntar\. Se admiten /);
+  for (const dotted of ACCEPT_ATTR.split(",")) {
+    const ext = dotted.slice(1);
+    assert.ok(text.includes(family[ext]), `${ext} is not named`);
+  }
+  assert.equal(classifyFile("nota.exe", 10).ok, false);
+  assert.equal(NOTICE_MS, 6000);
+});
 
 test("a message takes at most four pictures", () => {
   assert.equal(hasRoom(0), true);
@@ -172,7 +191,10 @@ test("a network or busy chunk is tried again, three times at most", () => {
 });
 
 test("each refusal has its words in Spanish, and an unknown one a plain fallback", () => {
-  assert.equal(failureText("unsupported_type"), "Ese tipo de archivo no se puede adjuntar");
+  assert.equal(
+    failureText("unsupported_type"),
+    "Ese tipo de archivo no se puede adjuntar. Se admiten imágenes, PDF, Word, Excel, PowerPoint, CSV y texto.",
+  );
   assert.equal(failureText("image_too_large"), "La imagen es demasiado grande");
   assert.equal(failureText("dimensions_too_large"), "La imagen es demasiado grande");
   assert.equal(failureText("conversation_quota"), "Se llenó el espacio de adjuntos de esta conversación");
@@ -182,7 +204,7 @@ test("each refusal has its words in Spanish, and an unknown one a plain fallback
 });
 
 test("a refused picture shows its code's words, other failures their message", () => {
-  assert.equal(itemFailureText(refusal("unsupported_type")), "Ese tipo de archivo no se puede adjuntar");
+  assert.equal(itemFailureText(refusal("unsupported_type")), failureText("unsupported_type"));
   assert.equal(itemFailureText({ kind: "offline", message: "Sin conexión" }), "Sin conexión");
   assert.equal(itemFailureText({}), "No se pudo adjuntar la imagen.");
 });
@@ -221,4 +243,52 @@ test("a picture-only message shows no placeholder text", () => {
   assert.equal(bubbleBody(withFiles), "");
   assert.equal(bubbleBody({ body_md: "Hola", attachments: [] }), "Hola");
   assert.equal(bubbleBody({ body_md: "(adjunto)" }), "(adjunto)");
+});
+
+test("a dropped folder is refused with its own words", () => {
+  assert.equal(isFolder({ name: "Fotos", size: 0, type: "" }), true);
+  assert.equal(isFolder({ name: "vacio.txt", size: 0, type: "" }), false);
+  assert.equal(isFolder({ name: "foto", size: 0, type: "image/png" }), false);
+  const plan = planAdds([{ name: "Fotos", size: 0, type: "" }], 0);
+  assert.deepEqual(plan.accepted, []);
+  assert.equal(plan.code, "folder");
+  assert.equal(failureText(plan.code), "Las carpetas no se pueden adjuntar");
+});
+
+test("a drop keeps the files that fit and names the last refusal", () => {
+  const dropped = [
+    { name: "a.png", size: 100, type: "image/png" },
+    { name: "b.exe", size: 10, type: "" },
+    { name: "c.pdf", size: 20, type: "application/pdf" },
+  ];
+  const plan = planAdds(dropped, 0);
+  assert.deepEqual(
+    plan.accepted.map((entry) => [entry.file.name, entry.kind]),
+    [
+      ["a.png", "image"],
+      ["c.pdf", "document"],
+    ],
+  );
+  assert.equal(plan.code, "unsupported_type");
+  assert.equal(planAdds([{ name: "big.pdf", size: MAX_BYTES + 1 }], 0).code, "file_too_large");
+});
+
+test("a drop past the limit of four takes only what is left of it", () => {
+  const six = Array.from({ length: 6 }, (_, index) => ({ name: `doc${index}.pdf`, size: 1 }));
+  const plan = planAdds(six, 2);
+  assert.equal(plan.accepted.length, 2);
+  assert.equal(plan.code, "too_many_attachments");
+  assert.deepEqual(planAdds([], 4), { accepted: [], code: null });
+});
+
+test("«Quitar» removes a row in every state, so a removed row is never sent", () => {
+  const other = { localId: "y", state: "ready", id: "att_2" };
+  for (const state of ["preparing", "uploading", "ready", "failed"]) {
+    const row = { localId: "x", state, id: state === "ready" ? "att_1" : null };
+    const kept = keepOutside([row, other], [row]);
+    assert.deepEqual(kept, [other], state);
+    assert.deepEqual(readyItems(kept), [other], state);
+    // «Reintentar» belongs to the failed rows only.
+    assert.equal(canRetry(row), state === "failed", state);
+  }
 });

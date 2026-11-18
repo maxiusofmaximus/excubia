@@ -86,7 +86,19 @@ pub async fn pair(
     }
 
     let ip = addr.ip().to_string();
-    match grant(&ctx, &ip, curve, &payload) {
+    // `grant` can run the Tailscale CLI (seconds) and touches files: keep it off the async workers.
+    let decision = {
+        let (ctx, ip) = (ctx.clone(), ip.clone());
+        tokio::task::spawn_blocking(move || {
+            let result = grant(&ctx, &ip, curve, &payload);
+            (result, payload)
+        })
+        .await
+    };
+    let Ok((decision, payload)) = decision else {
+        return ApiError::internal("pairing task failed").into_response();
+    };
+    match decision {
         Ok(granted) => {
             // Only a new device is shown its string: the Master checks it on the phone.
             let sas = match granted.outcome {

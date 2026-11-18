@@ -20,11 +20,22 @@ const NO_ATTACHMENTS: &str = r#"{"value":[]}"#;
 fn the_listing_url_names_the_folder_order_filter_and_fields() {
     let url = inbox_url("sentitems", 20, true, None);
     assert!(url.contains("/me/mailFolders/sentitems/messages?$top=20&$orderby="));
-    assert!(url.contains("&$filter=isRead%20eq%20false"));
+    assert!(url.contains(
+        "&$filter=receivedDateTime%20ge%201900-01-01T00%3A00%3A00Z%20and%20isRead%20eq%20false"
+    ));
     assert!(
         url.contains("&$select=id,subject,from,receivedDateTime,isRead,hasAttachments,bodyPreview")
     );
     assert!(!inbox_url("inbox", 10, false, None).contains("$filter"));
+}
+
+#[test]
+fn a_whole_address_is_filtered_by_graph_after_the_order_property() {
+    let url = inbox_url("inbox", 10, false, Some("ana@ejemplo.com"));
+    assert!(url.contains("$top=10&"), "{url}");
+    assert!(url.contains(
+        "&$filter=receivedDateTime%20ge%201900-01-01T00%3A00%3A00Z%20and%20from%2FemailAddress%2Faddress%20eq%20%27ana%40ejemplo.com%27"
+    ), "{url}");
 }
 
 #[tokio::test]
@@ -67,14 +78,43 @@ async fn a_sender_filter_cannot_break_out_of_its_quotes() {
     let client = GraphClient::new(&transport, ACCESS_TOKEN, &ledger, ACCOUNT);
 
     client
-        .list_inbox("junkemail", 5, true, Some("x' or isRead eq true"))
+        .list_inbox("junkemail", 5, true, Some("x'y@ejemplo.com"))
         .await
         .expect("list");
 
     let url = &transport.calls()[0].url;
     assert!(url.contains("/mailFolders/junkemail/messages"));
     assert!(!url.contains('\''), "a quote must be encoded: {url}");
-    assert!(url.contains("x%27%27%20or%20isRead%20eq%20true"), "{url}");
+    assert!(url.contains("x%27%27y%40ejemplo.com"), "{url}");
+}
+
+#[tokio::test]
+async fn a_bare_domain_is_filtered_here_and_cut_to_the_limit() {
+    let body = json!({"value": [
+        {"id": "m1", "from": {"emailAddress": {"address": "ana@ejemplo.com"}}},
+        {"id": "m2", "from": {"emailAddress": {"address": "otro@otro.com"}}},
+        {"id": "m3", "from": {"emailAddress": {"address": "Luis@EJEMPLO.com"}}},
+        {"id": "m4", "from": {"emailAddress": {"address": "x@ejemplo.com.evil.net"}}},
+        {"id": "m5", "from": {"emailAddress": {"address": "ejemplo.com"}}},
+    ]})
+    .to_string();
+    let transport = MockTransport::new(vec![MockResponse::ok(body)]);
+    let ledger = in_memory_ledger();
+    let client = GraphClient::new(&transport, ACCESS_TOKEN, &ledger, ACCOUNT);
+
+    let items = client
+        .list_inbox("inbox", 2, false, Some("ejemplo.com"))
+        .await
+        .expect("list");
+
+    let ids: Vec<&str> = items.iter().map(|item| item.id.as_str()).collect();
+    assert_eq!(ids, ["m1", "m3"]);
+    let url = &transport.calls()[0].url;
+    assert!(url.contains("$top=50&"), "{url}");
+    assert!(
+        !url.contains("$filter") && !url.contains("endswith"),
+        "{url}"
+    );
 }
 
 #[tokio::test]

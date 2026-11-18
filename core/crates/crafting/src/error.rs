@@ -15,6 +15,9 @@ pub enum CraftError {
     BadDocument(&'static str),
     #[error("Opción no válida: {0}")]
     Invalid(&'static str),
+    /// A change names a part of the document that is not there (a table, a row, a text).
+    #[error("{0}")]
+    Target(String),
     #[error("{} tardó demasiado y se detuvo", .0.name())]
     Timeout(App),
     #[error("{} falló: {}", .0.name(), .1)]

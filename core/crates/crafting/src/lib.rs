@@ -9,6 +9,7 @@
 mod app;
 mod create;
 mod discover;
+mod docx_edit;
 mod driver;
 mod error;
 mod kind;
@@ -23,6 +24,7 @@ mod workspace;
 
 pub use app::App;
 pub use discover::{Tools, CONFIG_FILE};
+pub use docx_edit::{edit_docx, Change};
 pub use driver::{Document, Driver, VersionReport};
 pub use error::CraftError;
 pub use kind::Kind;

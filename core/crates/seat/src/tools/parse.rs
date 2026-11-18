@@ -151,6 +151,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
         "alert.mode_set" => Ok(ToolCall::Alert(alert::mode_set(request)?)),
         "doc.read" => Ok(ToolCall::Doc(doc::read(request)?)),
         "doc.create" => Ok(ToolCall::DocCreate(doc::create(request)?)),
+        "doc.edit" => Ok(ToolCall::DocEdit(doc::edit(request)?)),
         other => Err(ToolError::invalid(
             "unknown_tool",
             "tool",
@@ -158,7 +159,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
                 "unknown MCP tool {other:?}; use chat.reply, chat.ask_user, chat.progress, \
                  project.create, agent.spawn, delegation.assign, delegation.complete, \n                 plan.propose, plan.status, \
                  approval.request, approval.decide, approval.pending, status.overview, style.get, style.learn_sent, style.propose_rule, \
-                 a mail.*, note.*, contact.*, calendar.*, alert.*, doc.read or doc.create tool"
+                 a mail.*, note.*, contact.*, calendar.*, alert.*, doc.read, doc.create or doc.edit tool"
             ),
         )),
     }

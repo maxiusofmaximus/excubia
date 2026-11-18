@@ -30,6 +30,8 @@ import {
   isOperatorLevel,
   isPendingHere,
   isPolicyLine,
+  isRunFolder,
+  projectFolder,
   levelChain,
   isWaitingLine,
   lineSummary,
@@ -495,8 +497,41 @@ test("the plain card shows only where the action lands; the rest is technical", 
   };
   const { shown, technical } = detailFacts(entry);
   assert.deepEqual(shown, [["Ruta", "C:/p/a.txt"]]);
-  assert.deepEqual(technical.map(([label]) => label), ["Carpeta", "Riesgo", "Nivel", "Código"]);
+  assert.deepEqual(technical.map(([label]) => label), ["Carpeta", "Riesgo", "Nivel"]);
   assert.deepEqual(detailFacts({ cwd: "" }).shown, []);
+});
+
+test("the technical level keeps no hash and no run folder: the host's ids are not the operator's words", () => {
+  const run = { cwd: "C:\\Users\\Max\\AppData\\excubia\\core\\runs\\run_01M7ABC", action_digest: "sha256:bcca0172345678901234" };
+  const { technical } = detailFacts(run);
+  assert.deepEqual(technical, []);
+  assert.equal(JSON.stringify(detailFacts(run)).includes("sha256"), false);
+});
+
+test("the card names a project folder, never a run's identifier or a folder under runs", () => {
+  assert.equal(isRunFolder("C:\\Users\\Max\\bench-proj"), false);
+  assert.equal(isRunFolder(""), false);
+  assert.equal(isRunFolder("C:\\x\\runs\\run_01M7ABC"), true);
+  assert.equal(isRunFolder("C:\\x\\run_01M7ABC\\sub"), true);
+  assert.equal(isRunFolder("C:\\x\\runs\\sub"), true);
+  assert.equal(projectFolder("C:\\Users\\Max\\bench-proj"), "bench-proj");
+  assert.equal(projectFolder("D:\\proyectos\\run-demo"), "run-demo");
+  assert.equal(projectFolder("C:\\x\\runs\\run_01M7ABC"), "");
+  assert.equal(projectFolder(""), "");
+});
+
+test("a web search says what it looks for, a page says its address; without the host's words, the generic phrase", () => {
+  const bob = { seat_id: "ag_bob", tool: "WebSearch" };
+  const search = { ...bob, summary: "Buscar en internet: Hi3D 1.0 qué es" };
+  assert.equal(humanHeadline(search), "Bob quiere buscar en internet: «Hi3D 1.0 qué es»");
+  assert.equal(settledLine("approved", { ...search, scope: "once" }), "✓ Permitido · buscar en internet: «Hi3D 1.0 qué es»");
+  assert.equal(humanHeadline({ ...bob }), "Bob quiere usar una herramienta");
+  assert.equal(humanHeadline({ ...bob, summary: "Hi3D 1.0 qué es" }), "Bob quiere usar una herramienta");
+  assert.equal(humanHeadline({ ...bob, summary: "Buscar en internet:   " }), "Bob quiere usar una herramienta");
+  const fetch = { ...bob, tool: "WebFetch", summary: "Abrir página: https://example.com/guia" };
+  assert.equal(humanHeadline(fetch), "Bob quiere abrir una página: https://example.com/guia");
+  assert.equal(humanHeadline({ ...bob, tool: "WebFetch" }), "Bob quiere usar una herramienta");
+  assert.equal(cardCommand(search), "");
 });
 
 test("the strip counts the open conversation's requests and those with none, never another's", () => {

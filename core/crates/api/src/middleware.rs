@@ -5,11 +5,17 @@
 //! received bytes: re-reading it downstream would be a second view of the
 //! request.
 
-use axum::body::{to_bytes, Body};
+use std::pin::Pin;
+use std::task::Poll;
+use std::time::Duration;
+
+use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{ConnectInfo, Request, State};
-use axum::http::{HeaderMap, Method};
+use axum::http::header::{CONNECTION, CONTENT_LENGTH};
+use axum::http::{HeaderMap, HeaderValue, Method};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
+use futures_core::Stream;
 use subtle::ConstantTimeEq;
 
 use excubia_auth::{
@@ -50,7 +56,15 @@ impl HeaderSource for Headers<'_> {
 pub async fn authenticate(State(ctx): State<ApiContext>, request: Request, next: Next) -> Response {
     match authenticate_inner(&ctx, request).await {
         Ok(request) => next.run(request).await,
-        Err(error) => error.into_response(),
+        Err(error) => {
+            // A refused request may leave its body unread, and nothing then
+            // bounds the wait for it: the connection closes after the answer.
+            let mut response = error.into_response();
+            response
+                .headers_mut()
+                .insert(CONNECTION, HeaderValue::from_static("close"));
+            response
+        }
     }
 }
 
@@ -61,12 +75,23 @@ async fn authenticate_inner(ctx: &ApiContext, request: Request) -> Result<Reques
         .path_and_query()
         .map(|path| path.as_str().to_string())
         .unwrap_or_else(|| parts.uri.path().to_string());
-    let bytes = to_bytes(body, body_limit(&parts.method, parts.uri.path()))
-        .await
-        .map_err(|_| ApiError::body_too_large())?;
+    let (limit, timeout) = body_policy(&parts.method, parts.uri.path());
 
     // The trust store can be rewritten by the CLI while this server runs.
     ctx.devices.reload_if_changed();
+
+    // Nothing is buffered for a request that cannot be trusted. The body-free
+    // checks run first (`401` without reading a byte); then a declared size
+    // over the cap is drained, not buffered, so the `413` reaches a client that
+    // is still sending; only a body within the cap is read.
+    ctx.verifier
+        .precheck(&Headers(&parts.headers))
+        .map_err(|error| ApiError::unauthorized(error.reason.label()))?;
+    if declared_length(&parts.headers).is_some_and(|length| length > limit) {
+        discard(body, timeout).await;
+        return Err(ApiError::body_too_large());
+    }
+    let bytes = read_body(body, limit, timeout).await?;
 
     let headers = Headers(&parts.headers);
     let verified = ctx
@@ -93,17 +118,51 @@ async fn authenticate_inner(ctx: &ApiContext, request: Request) -> Result<Reques
     Ok(Request::from_parts(parts, Body::from(bytes)))
 }
 
-/// The cap a signed body is read under. The voice note is the one route with a larger one.
-fn body_limit(method: &Method, path: &str) -> usize {
+/// How long a signed body may take to arrive. A body that stalls past it is
+/// answered `408` and never reaches the signature. The routes with a larger
+/// cap (voice, .ics, vault) get the longer time.
+const BODY_READ_TIMEOUT: Duration = Duration::from_secs(10);
+const LONG_BODY_READ_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// The cap and the read time a signed body is held to.
+fn body_policy(method: &Method, path: &str) -> (usize, Duration) {
     if *method == Method::POST && path == voice::TRANSCRIBE_PATH {
-        MAX_VOICE_BODY_BYTES
+        (MAX_VOICE_BODY_BYTES, LONG_BODY_READ_TIMEOUT)
     } else if *method == Method::POST && path == VAULT_INIT_PATH {
-        MAX_VAULT_BODY_BYTES
+        (MAX_VAULT_BODY_BYTES, LONG_BODY_READ_TIMEOUT)
     } else if *method == Method::POST && path == IMPORT_PATH {
-        MAX_ICS_BODY_BYTES
+        (MAX_ICS_BODY_BYTES, LONG_BODY_READ_TIMEOUT)
     } else {
-        MAX_SIGNED_BODY_BYTES
+        (MAX_SIGNED_BODY_BYTES, BODY_READ_TIMEOUT)
     }
+}
+
+/// The length the client declared, when it declared one that parses.
+fn declared_length(headers: &HeaderMap) -> Option<usize> {
+    headers.get(CONTENT_LENGTH)?.to_str().ok()?.parse().ok()
+}
+
+/// Buffers a body under its cap. Over the cap is `413`; too slow is `408`.
+async fn read_body(body: Body, limit: usize, timeout: Duration) -> Result<Bytes, ApiError> {
+    match tokio::time::timeout(timeout, to_bytes(body, limit)).await {
+        Ok(read) => read.map_err(|_| ApiError::body_too_large()),
+        Err(_) => Err(ApiError::request_timeout()),
+    }
+}
+
+/// Reads a body to nothing, under its time limit, without buffering it. A
+/// server that closes on unread input resets the connection, and the client
+/// then never sees the answer; this lets an over-cap body reach its `413`.
+async fn discard(body: Body, timeout: Duration) {
+    let mut chunks = body.into_data_stream();
+    let drain = std::future::poll_fn(|cx| loop {
+        match Pin::new(&mut chunks).poll_next(cx) {
+            Poll::Ready(Some(Ok(_))) => {}
+            Poll::Ready(Some(Err(_)) | None) => return Poll::Ready(()),
+            Poll::Pending => return Poll::Pending,
+        }
+    });
+    let _ = tokio::time::timeout(timeout, drain).await;
 }
 
 fn consume_budget(
@@ -171,7 +230,6 @@ fn presented_hook_token(headers: &HeaderMap) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::http::HeaderValue;
 
     #[test]
     fn a_hook_presenting_the_legacy_header_is_read_and_the_current_one_wins() {
@@ -180,5 +238,51 @@ mod tests {
         assert_eq!(presented_hook_token(&headers), "old");
         headers.insert(HEADER_HOOK_TOKEN, HeaderValue::from_static("new"));
         assert_eq!(presented_hook_token(&headers), "new");
+    }
+
+    /// A body whose bytes never come: the stall a slow or hostile client makes.
+    struct Stalled;
+
+    impl futures_core::Stream for Stalled {
+        type Item = Result<Bytes, std::io::Error>;
+
+        fn poll_next(
+            self: std::pin::Pin<&mut Self>,
+            _: &mut std::task::Context<'_>,
+        ) -> std::task::Poll<Option<Self::Item>> {
+            std::task::Poll::Pending
+        }
+    }
+
+    #[tokio::test]
+    async fn a_body_that_never_arrives_is_408_at_its_read_time() {
+        let started = std::time::Instant::now();
+        let error = read_body(Body::from_stream(Stalled), 1024, Duration::from_millis(50))
+            .await
+            .expect_err("stalled");
+        assert_eq!(error.status, axum::http::StatusCode::REQUEST_TIMEOUT);
+        assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[tokio::test]
+    async fn a_body_over_its_cap_is_413_and_one_at_the_cap_is_read_whole() {
+        let over = read_body(Body::from("abcde"), 4, Duration::from_secs(5))
+            .await
+            .expect_err("over the cap");
+        assert_eq!(over.status, axum::http::StatusCode::PAYLOAD_TOO_LARGE);
+        let whole = read_body(Body::from("abcd"), 4, Duration::from_secs(5))
+            .await
+            .expect("at the cap");
+        assert_eq!(&whole[..], b"abcd");
+    }
+
+    #[test]
+    fn a_declared_length_is_read_only_when_it_parses() {
+        let mut headers = HeaderMap::new();
+        assert_eq!(declared_length(&headers), None);
+        headers.insert(CONTENT_LENGTH, HeaderValue::from_static("300000"));
+        assert_eq!(declared_length(&headers), Some(300_000));
+        headers.insert(CONTENT_LENGTH, HeaderValue::from_static("many"));
+        assert_eq!(declared_length(&headers), None);
     }
 }

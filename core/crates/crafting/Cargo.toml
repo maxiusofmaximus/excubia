@@ -6,6 +6,7 @@ license.workspace = true
 description = "Runs the ArtCraft document CLIs (GridCraft, WordCraft, PdfCraft) with limits: reads and previews chat attachments (DOC5A)"
 
 [dependencies]
+flate2.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

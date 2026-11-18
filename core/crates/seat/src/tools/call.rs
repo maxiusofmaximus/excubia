@@ -3,7 +3,8 @@
 use excubia_chat::PlanStep;
 
 use super::{
-    AlertCall, ApprovalDecide, ApprovalRequest, CalendarCall, ContactCall, DocCreate, DocRead,
+    AlertCall, ApprovalDecide, ApprovalRequest, CalendarCall, ContactCall, DocCreate, DocEdit,
+    DocRead,
     MailCall, NoteCall, StyleLearnQuery, StyleProposal,
 };
 
@@ -39,6 +40,7 @@ pub enum ToolCall {
     Alert(AlertCall),
     Doc(DocRead),
     DocCreate(DocCreate),
+    DocEdit(DocEdit),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

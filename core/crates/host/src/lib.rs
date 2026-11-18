@@ -21,6 +21,7 @@ pub(crate) mod chat_file;
 pub mod cli;
 pub mod craft;
 pub mod doc_create;
+pub mod doc_edit;
 pub mod doc_tools;
 mod hook_token;
 pub mod local_mode;

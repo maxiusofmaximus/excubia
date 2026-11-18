@@ -26,6 +26,7 @@ mod resident;
 mod role_seed;
 mod role_seed_apply;
 mod role_seed_auto;
+mod role_seed_before_web;
 mod role_seed_folders;
 mod role_seed_inbox;
 mod role_seed_moves;
@@ -54,7 +55,8 @@ pub use service::{SeatConfig, SeatService, TurnEnv, CONTEXT_CHARS, CONTEXT_MESSA
 pub use tools::{
     check_draft_fields, parse as parse_tool, AgentSpawn, AlertCall, ApprovalDecide,
     ApprovalRequest, AttachSource, AttachmentRead, BodyFormat, CalendarCall, ContactCall, DelegationAssign,
-    DelegationComplete, DocCreate, DocFormat, DocRead, DraftFields, DraftRef, DraftUpdate,
+    DelegationComplete, DocChange, DocCreate, DocEdit, DocFormat, DocRead, DraftFields, DraftRef,
+    DraftUpdate,
     FoldersQuery, InboxFolder, InboxQuery, MailAttach, MailCall, MailRuleDraft, MessageRef,
     MoveApply, MoveFolder, MoveProposal, MoveUndo, NoteCall, Organize, ProjectCreate, ProposedMove,
     RuleActionsDraft, RuleConditionsDraft, RuleFolder, RuleListQuery, StyleLearnQuery,

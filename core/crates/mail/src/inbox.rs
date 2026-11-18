@@ -56,6 +56,11 @@ pub struct ReceivedMessage {
     pub checks: Checks,
 }
 
+/// How many of the newest messages a bare-domain filter reads before it filters them here.
+const DOMAIN_SCAN: u32 = 50;
+/// Graph answers `InefficientFilter` unless a `$filter` leads with the property `$orderby` sorts on.
+const FILTER_LEAD: &str = "receivedDateTime ge 1900-01-01T00:00:00Z";
+
 /// The request for a folder listing: newest first, with the optional filters.
 /// `from` is a whole address when it has an `@`, otherwise a domain.
 pub fn inbox_url(folder: &str, limit: u32, unread_only: bool, from: Option<&str>) -> String {
@@ -63,14 +68,19 @@ pub fn inbox_url(folder: &str, limit: u32, unread_only: bool, from: Option<&str>
     if unread_only {
         filters.push("isRead eq false".to_owned());
     }
-    if let Some(sender) = from {
-        filters.push(sender_filter(sender));
-    }
+    let domain_only = from.is_some_and(|sender| !sender.contains('@'));
+    let top = if domain_only {
+        limit.max(DOMAIN_SCAN)
+    } else {
+        limit
+    };
+    filters.extend(from.and_then(sender_filter));
     let mut url = format!(
-        "{GRAPH_BASE}/me/mailFolders/{folder}/messages?$top={limit}&$orderby={}&$select={LIST_SELECT}",
+        "{GRAPH_BASE}/me/mailFolders/{folder}/messages?$top={top}&$orderby={}&$select={LIST_SELECT}",
         encode_segment("receivedDateTime desc")
     );
     if !filters.is_empty() {
+        filters.insert(0, FILTER_LEAD.to_owned());
         url.push_str(&format!(
             "&$filter={}",
             encode_segment(&filters.join(" and "))
@@ -79,14 +89,14 @@ pub fn inbox_url(folder: &str, limit: u32, unread_only: bool, from: Option<&str>
     url
 }
 
-/// The sender filter. The value sits in single quotes, so each `'` is doubled.
-fn sender_filter(sender: &str) -> String {
-    let quoted = sender.replace('\'', "''");
-    if sender.contains('@') {
+/// The server filter of a whole address; the value sits in single quotes, so each `'` is
+/// doubled. A bare domain has none: Graph refuses `endswith` on messages
+/// (ErrorInvalidUrlQueryFilter), so `list_inbox` filters that domain itself.
+fn sender_filter(sender: &str) -> Option<String> {
+    sender.contains('@').then(|| {
+        let quoted = sender.replace('\'', "''");
         format!("from/emailAddress/address eq '{quoted}'")
-    } else {
-        format!("endswith(from/emailAddress/address,'@{quoted}')")
-    }
+    })
 }
 
 impl GraphClient<'_> {
@@ -102,7 +112,13 @@ impl GraphClient<'_> {
         let response = self.transport.get_json(&url, self.access_token).await?;
         check_status(&response)?;
         let raw: RawList = parse(&response, "the inbox list is incomplete")?;
-        Ok(raw.value.into_iter().map(RawListItem::into_item).collect())
+        let mut items: Vec<InboxItem> = raw.value.into_iter().map(RawListItem::into_item).collect();
+        if let Some(domain) = from.filter(|sender| !sender.contains('@')) {
+            let suffix = format!("@{}", domain.to_lowercase());
+            items.retain(|item| item.from_address.to_lowercase().ends_with(&suffix));
+            items.truncate(limit as usize);
+        }
+        Ok(items)
     }
 
     /// Reads one received message: its body as text, its headers and its checks.

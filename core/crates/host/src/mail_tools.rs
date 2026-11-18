@@ -30,7 +30,7 @@ use crate::craft::Craft;
 use crate::doc_tools::{kind_label, read_document};
 use crate::mail_approval::ChatApprovalGate;
 use crate::mail_cli::ACCOUNTS_DIR;
-use crate::mail_draft_input::{input, HtmlOrigin};
+use crate::mail_draft_input::{attachment_warning, input, HtmlOrigin};
 use crate::mail_move_pick::ambiguous_reply;
 use crate::mail_read;
 use crate::mail_routes::{message_of, parts, FALLBACK_MESSAGE};
@@ -237,7 +237,7 @@ impl MailTools {
         let client = self.client(&access, &fields.account);
         let meta = client.create_draft(&draft).await?;
         self.show(actor, &fields.account, &meta.id, &draft)?;
-        Ok(draft_json(&meta))
+        Ok(draft_reply(&meta, &fields.body))
     }
 
     async fn update(
@@ -252,7 +252,7 @@ impl MailTools {
         let meta = client.update_draft(draft_id, &draft).await?;
         self.sends.draft_changed(&fields.account, draft_id)?;
         self.show(actor, &fields.account, draft_id, &draft)?;
-        Ok(draft_json(&meta))
+        Ok(draft_reply(&meta, &fields.body))
     }
 
     /// The chat card of a draft the turn wrote (MAILUX-HOST §A). A turn outside a
@@ -500,6 +500,16 @@ fn tool_unavailable(message: &str) -> ToolError {
 fn create_dir(path: &Path) -> Result<(), MailError> {
     std::fs::create_dir_all(path)
         .map_err(|error| MailError::Store(Redacted::new(error.to_string())))
+}
+
+/// The reply of a draft create or update: the metadata, plus a warning when the body
+/// promises a file the draft does not carry.
+fn draft_reply(meta: &DraftMeta, body: &str) -> Value {
+    let mut reply = draft_json(meta);
+    if let Some(warning) = attachment_warning(body, &meta.attachment_names) {
+        reply["warnings"] = json!([warning]);
+    }
+    reply
 }
 
 /// The metadata the tools return: no body, the draft's own recipients and the

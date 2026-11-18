@@ -1,5 +1,6 @@
-//! Alfred's seat: a one-turn FIFO worker, a per-run MCP token registry and the
-//! only writer of `queued -> running -> completed|failed|interrupted`.
+//! Alfred's seat: a FIFO worker that answers one batch of waiting messages at a time,
+//! a per-run MCP token registry and the only writer of
+//! `queued -> running -> completed|failed|interrupted`.
 //!
 //! The HTTP route enqueues synchronously so a full queue or a missing CLI is a
 //! real `409`, not a late failure. The worker launches one isolated CLI process
@@ -8,6 +9,7 @@
 
 mod grant;
 mod output;
+mod queue;
 mod seat;
 mod turn;
 mod worker;

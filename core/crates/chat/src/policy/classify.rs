@@ -617,6 +617,17 @@ rm a.txt", Category::DeleteUserData),
     }
 
     #[test]
+    fn a_web_search_is_a_network_card_like_a_web_fetch() {
+        for location in [Location::Project, Location::Unknown] {
+            assert_eq!(
+                classify(ApprovalKind::Network, "WebSearch", None, location, None),
+                Some(Category::Network),
+                "{location:?}"
+            );
+        }
+    }
+
+    #[test]
     fn a_cd_into_the_project_is_a_read_and_elsewhere_a_command() {
         let root = Some("/work/project");
         let cases = [

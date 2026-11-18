@@ -181,6 +181,19 @@ export function folderName(cwd) {
   return parts.length ? parts[parts.length - 1] : "";
 }
 
+// A run's folder («…\runs\run_01M7…») is the host's, not the operator's project: it is never named.
+const RUN_ID = /^run_[0-9a-z]+$/i;
+export function isRunFolder(cwd) {
+  const parts = String(cwd || "").split(/[\\/]+/).filter(Boolean);
+  // shortcut: a project under a folder called runs is hidden too, upgrade when the host marks run folders apart
+  return parts.some((part) => RUN_ID.test(part)) || parts.slice(0, -1).some((part) => part.toLowerCase() === "runs");
+}
+
+// The folder name a card may show: none for a run folder.
+export function projectFolder(cwd) {
+  return isRunFolder(cwd) ? "" : folderName(cwd);
+}
+
 // `D:\proyectos\demo` reads as `demo/…`: the last folder is the label.
 export function cwdLabel(cwd) {
   const name = folderName(cwd);
@@ -489,6 +502,17 @@ function lookPhrase(entry) {
   return file ? `mirar «${file}»` : "mirar el proyecto";
 }
 
+// The host writes a search as «Buscar en internet: <consulta>»; a page's address is in its summary.
+function webQuery(entry) {
+  const said = /^buscar en internet:\s*(.+)$/i.exec(String(entry.summary || "").trim());
+  return said ? said[1].trim() : "";
+}
+
+function pageAddress(entry) {
+  const said = /https?:\/\/\S+/.exec(String(entry.summary || ""));
+  return said ? said[0] : "";
+}
+
 // What the agent wants to do, in words a non-programmer reads. The shell's
 // command is never shown here: a delete is named from its files, or as a delete.
 export function actionPhrase(entry) {
@@ -511,6 +535,9 @@ export function actionPhrase(entry) {
     return `${ENGLISH_ACTIONS.get(said.split(/\s+/)[0].toLowerCase()) || "ejecutar"} «${file}»`;
   }
   if (tool === "read") return name ? `leer «${name}»` : "leer un archivo";
+  // Without the words the host sent, the generic phrase stays.
+  if (tool === "websearch" && webQuery(entry)) return `buscar en internet: «${webQuery(entry)}»`;
+  if (tool === "webfetch" && pageAddress(entry)) return `abrir una página: ${pageAddress(entry)}`;
   return "usar una herramienta";
 }
 
@@ -548,11 +575,10 @@ export function detailFacts(entry) {
   const command = looksOnly(entry) ? commandText(entry) : "";
   const technical = [
     ["Comando", command],
-    ["Carpeta", entry.cwd || ""],
+    ["Carpeta", isRunFolder(entry.cwd) ? "" : entry.cwd || ""],
     ["Texto original del agente", isEnglish(said) ? said : ""],
     ["Riesgo", riskBadge(entry)],
     ["Nivel", entry.escalated_from ? "Lo pidió Alfred" : ""],
-    ["Código", shortDigest(entry.action_digest)],
   ];
   const keep = ([, value]) => Boolean(value);
   return { shown: shown.filter(keep), technical: technical.filter(keep) };

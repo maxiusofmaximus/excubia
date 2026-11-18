@@ -8,6 +8,8 @@ export const CHUNK_BYTES = 128 * 1024;
 export const MAX_SIDE = 2048;
 export const WEBP_QUALITY = 0.85;
 export const CHUNK_ATTEMPTS = 3;
+// A refusal line leaves on its own after this long (ms).
+export const NOTICE_MS = 6000;
 // Pictures are re-encoded; documents go up exactly as picked.
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
 const DOCUMENT_EXTENSIONS = ["xlsx", "docx", "pptx", "pdf", "csv", "txt", "md", "json"];
@@ -17,7 +19,8 @@ export const ATTACHMENT_BODY = "(adjunto)";
 
 const DECODE_FAILED = "No se pudo procesar la imagen. Prueba con otra";
 const ATTACHMENT_TEXT = {
-  unsupported_type: "Ese tipo de archivo no se puede adjuntar",
+  // Names the families IMAGE_EXTENSIONS and DOCUMENT_EXTENSIONS admit; the tests keep it in step.
+  unsupported_type: "Ese tipo de archivo no se puede adjuntar. Se admiten imágenes, PDF, Word, Excel, PowerPoint, CSV y texto.",
   invalid_image: DECODE_FAILED,
   timeout: DECODE_FAILED,
   worker_failed: DECODE_FAILED,
@@ -28,6 +31,7 @@ const ATTACHMENT_TEXT = {
   conversation_quota: "Se llenó el espacio de adjuntos de esta conversación",
   host_quota: "Se llenó el espacio de adjuntos del equipo",
   too_many_attachments: "Solo puedes adjuntar hasta 4 archivos",
+  folder: "Las carpetas no se pueden adjuntar",
   unknown_attachment: "Una imagen ya no está disponible. Quítala y vuelve a adjuntarla",
   no_such_attachment: "Esa subida ya no existe. Vuelve a adjuntar la imagen",
   not_uploading: "Esa subida ya no existe. Vuelve a adjuntar la imagen",
@@ -55,6 +59,35 @@ export function classifyFile(name, size) {
   if (!DOCUMENT_EXTENSIONS.includes(ext)) return { ok: false, code: "unsupported_type" };
   if (size > MAX_BYTES) return { ok: false, code: "file_too_large" };
   return { ok: true, kind: "document" };
+}
+
+// A folder comes through a drop as an empty entry with no type and no extension.
+export function isFolder(file) {
+  return file.size === 0 && !file.type && !extensionOf(file.name);
+}
+
+// What a set of picked or dropped files adds to a tray that already holds `count` rows: the
+// files that go up with their kind, and the last refusal to show (null when all of them fit).
+export function planAdds(files, count) {
+  const accepted = [];
+  let code = null;
+  for (const file of files) {
+    if (isFolder(file)) {
+      code = "folder";
+      continue;
+    }
+    const verdict = classifyFile(file.name, file.size);
+    if (!verdict.ok) {
+      code = verdict.code;
+      continue;
+    }
+    if (!hasRoom(count + accepted.length)) {
+      code = "too_many_attachments";
+      break;
+    }
+    accepted.push({ file, kind: verdict.kind });
+  }
+  return { accepted, code };
 }
 
 // A thread attachment without `kind` is a picture, as before documents existed.
@@ -189,6 +222,11 @@ export function itemStatus(item) {
   if (item.state === "uploading") return `Subiendo ${progressPercent(item.sent, item.size)} %`;
   if (item.state === "ready") return "Lista para enviar";
   return itemFailureText(item.failure || {});
+}
+
+// «Reintentar» is offered only after a failure; «Quitar» is offered in every state.
+export function canRetry(item) {
+  return item.state === "failed";
 }
 
 // The failure of a picture the browser itself refuses, shaped like the host's refusals.

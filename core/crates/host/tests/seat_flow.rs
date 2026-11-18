@@ -284,12 +284,21 @@ async fn a_full_queue_is_agent_busy_and_does_not_start_a_second_process() {
         .expect("the queue has a free slot");
     assert_eq!(second["turn"]["state"], "queued");
 
+    // A message of the same conversation joins the waiting batch: it takes no new place.
     let third = client
         .chat_send(&conversation_id, "client-busy-3", "tercero")
         .await
+        .expect("it joins the waiting batch");
+    assert_eq!(third["turn"]["state"], "queued");
+
+    // Another conversation needs a place of its own, and the queue has one place only.
+    let other = conversation(&client).await;
+    let refused = client
+        .chat_send(&other, "client-busy-4", "otra conversación")
+        .await
         .expect_err("the queue is full");
-    assert_eq!(third.status, 409);
-    assert_eq!(detail(&third.body), "agent_busy");
+    assert_eq!(refused.status, 409);
+    assert_eq!(detail(&refused.body), "agent_busy");
     host.seat.shutdown();
 }
 

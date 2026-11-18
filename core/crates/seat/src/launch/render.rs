@@ -52,6 +52,7 @@ pub(super) fn claude_settings_ttl(
         "MultiEdit",
         "NotebookEdit",
         "WebFetch",
+        "WebSearch",
     ]
     .map(String::from)
     .to_vec();
@@ -69,8 +70,7 @@ pub(super) fn claude_settings_ttl(
     }
     serde_json::to_vec_pretty(&json!({
         "permissions": {
-            "allow": allow,
-            "deny": ["WebSearch"]
+            "allow": allow
         },
         "hooks": {
             "PreToolUse": [{

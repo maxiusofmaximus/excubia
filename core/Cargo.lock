@@ -740,6 +740,8 @@ dependencies = [
  "excubia-test-dir",
  "futures-core",
  "hex",
+ "hyper",
+ "hyper-util",
  "rustls",
  "serde",
  "serde_json",
@@ -806,6 +808,7 @@ name = "excubia-crafting"
 version = "0.1.0"
 dependencies = [
  "excubia-test-dir",
+ "flate2",
  "serde",
  "serde_json",
  "thiserror 2.0.21",

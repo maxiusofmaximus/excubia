@@ -11,6 +11,8 @@ axum.workspace = true
 base64.workspace = true
 futures-core.workspace = true
 hex.workspace = true
+hyper = { version = "1", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["tokio", "service"] }
 excubia-asr = { path = "../asr" }
 excubia-auth = { path = "../auth" }
 excubia-chat = { path = "../chat" }

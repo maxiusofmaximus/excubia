@@ -73,7 +73,7 @@ pub(crate) async fn read_document(
         .map_err(read_error)
 }
 
-fn file_error(error: MailError) -> ToolError {
+pub(crate) fn file_error(error: MailError) -> ToolError {
     match error {
         MailError::AttachmentNotFound => ToolError {
             kind: ToolErrorKind::Invalid,

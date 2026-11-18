@@ -39,7 +39,7 @@ pub use call::{AgentSpawn, DelegationAssign, DelegationComplete, ProjectCreate, 
 pub use contact::ContactCall;
 pub use decide::ApprovalDecide;
 pub use definitions::definitions;
-pub use doc::{DocCreate, DocFormat, DocRead};
+pub use doc::{DocChange, DocCreate, DocEdit, DocFormat, DocRead};
 pub use mail::{
     check_draft_fields, AttachSource, AttachmentRead, BodyFormat, DraftFields, DraftRef, DraftUpdate,
     FoldersQuery,

@@ -19,17 +19,21 @@ use super::seat::TurnEnv;
 use super::worker::Worker;
 use super::{lock, Phase, RunGrant, CONTEXT_CHARS, CONTEXT_MESSAGES};
 
+/// Runs the CLI for a turn that answers `run_ids` (its first run is `turn.id`). When the
+/// turn merges several messages, `turn.text` holds them in order.
 pub(super) async fn run_turn(
     worker: &Worker,
     selected: &SelectedProfile,
     turn: &Turn,
+    run_ids: &[String],
 ) -> Result<(), String> {
     let context = worker
         .chat
         .context(&turn.conversation_id, CONTEXT_MESSAGES, CONTEXT_CHARS)
         .map_err(|error| format!("context_failed: {error}"))?;
     let boundary = format!("EXCUBIA-{}", new_ulid());
-    let prompt = prompt::build_turn_prompt(&context, &boundary);
+    let merged = (run_ids.len() > 1).then_some(turn.text.as_str());
+    let prompt = prompt::build_turn_prompt(&context, &boundary, merged);
     let attachment_dirs = prompt::attachment_dirs(&context);
     let run_dir = worker.seat_dir.join("runs").join(&turn.id);
 
@@ -45,7 +49,7 @@ pub(super) async fn run_turn(
         run_id: &turn.id,
     };
     let token = new_ulid();
-    let grant = Arc::new(RunGrant::new(turn));
+    let grant = Arc::new(RunGrant::new(turn, run_ids.to_vec()));
     lock(&worker.tokens).insert(token.clone(), Arc::clone(&grant));
     // A stop that landed before the grant existed already closed the run: no CLI
     // starts for it. From here on a stop finds the grant and wakes the wait.

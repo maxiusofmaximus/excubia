@@ -125,12 +125,14 @@ fn claude_settings_gate_every_edit_tool_with_the_blocking_hook() {
     let settings: serde_json::Value =
         serde_json::from_str(&file_text(&plan, "claude-settings.json")).expect("json");
     let allowed = settings["permissions"]["allow"].to_string();
-    for tool in ["Bash", "Write", "Edit", "WebFetch"] {
+    for tool in ["Bash", "Write", "Edit", "WebFetch", "WebSearch"] {
         assert!(
             allowed.contains(tool),
             "{tool} must be allowed: the hook decides"
         );
     }
+    // A web search is a card the operator answers, never a standing denial.
+    assert!(settings["permissions"].get("deny").is_none());
     let hook = &settings["hooks"]["PreToolUse"][0];
     assert_eq!(hook["matcher"], CLAUDE_HOOK_MATCHER);
     assert_eq!(hook["hooks"][0]["type"], "command");

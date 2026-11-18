@@ -5,7 +5,7 @@ import { openDetail } from "./detail.js";
 import { installDelegationHandlers } from "./delegations.js";
 import { messageById } from "./chat-reply-model.js";
 import { bubbleMenuOpen, closeBubbleMenu, openBubbleMenu } from "./chatreply.js";
-import { autoGrow, stopTurn } from "./chatcomposer.js";
+import { autoGrow, renderComposer, sendMode, stopTurn } from "./chatcomposer.js";
 import { jumpToBottom, renderJump } from "./chatjump.js";
 import { createSender } from "./chatsend.js";
 import { hasPendingAttachments, installAttachments, readyAttachments } from "./chatattach.js";
@@ -16,7 +16,7 @@ import { openDraft } from "./mail-draft.js";
 import { installDraftCards } from "./chatdraft.js";
 import { createDelegations } from "./chatdelegations.js";
 import { filterMenuOpen, setFilterMenu } from "./chatfilters.js";
-import { chat, applyFeed, failure, offline } from "./chatstate.js";
+import { chat, applyFeed, failure } from "./chatstate.js";
 import { teamPanelOpen } from "./team-panel-model.js";
 import { visibleOrder } from "./chatlist.js";
 import { clickRow, only, selectAll } from "./chat-select-model.js";
@@ -213,6 +213,7 @@ export function installChatHandlers() {
   $("chat-composer").addEventListener("submit", submitComposer);
   $("chat-input").addEventListener("keydown", composerKeydown);
   $("chat-input").addEventListener("input", autoGrow);
+  $("chat-input").addEventListener("input", renderComposer);
   $("btn-reply-cancel").addEventListener("click", clearReply);
   $("chat-filter-toggle").addEventListener("click", () => setFilterMenu(!filterMenuOpen()));
   $("chat-filter-menu").addEventListener("click", (event) => {
@@ -247,6 +248,7 @@ export function installChatHandlers() {
     const button = event.target.closest("[data-suggestion]");
     if (!button) return;
     $("chat-input").value = button.dataset.suggestion;
+    renderComposer();
     autoGrow();
     $("chat-input").focus();
   });
@@ -331,10 +333,9 @@ export function installChatHandlers() {
   $("chat-timeline").addEventListener("scroll", renderJump);
   $("chat-jump").addEventListener("click", jumpToBottom);
   $("btn-send").addEventListener("click", (event) => {
-    if (chat.waiting && !offline()) {
-      event.preventDefault();
-      stop();
-    }
+    if (!sendMode().stop) return;
+    event.preventDefault();
+    stop();
   });
 
   $("chat-timeline").addEventListener("click", (event) => {

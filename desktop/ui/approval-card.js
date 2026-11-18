@@ -11,7 +11,6 @@ import {
   currentDeviceId,
   cwdLabel,
   detailFacts,
-  folderName,
   grantCommand,
   humanHeadline,
   isChecking,
@@ -25,6 +24,7 @@ import {
   localFor,
   moveApproveLabel,
   moveTitle,
+  projectFolder,
   resultText,
   riskBadge,
   riskNote,
@@ -172,7 +172,7 @@ function renderPlainCard(entry, now) {
   // The command (unless it is a look's) and the folder's name stay on the card; the full path waits under «Detalles».
   const command = cardCommand(entry);
   if (command) card.append(element("pre", "approval-command", command));
-  const folder = folderName(entry.cwd);
+  const folder = projectFolder(entry.cwd);
   if (folder) {
     const where = element("p", "approval-where", `Carpeta: ${folder}`);
     where.title = entry.cwd;

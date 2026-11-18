@@ -11,7 +11,10 @@ pub(crate) enum Phase {
 }
 
 pub(crate) struct RunGrant {
+    /// The first run of the turn: its conversation and its progress line.
     pub(crate) run_id: String,
+    /// Every run the turn answers, in order: one reply or one failure closes them all.
+    pub(crate) run_ids: Vec<String>,
     pub(crate) actor: SeatActor,
     pub(crate) phase: Mutex<Phase>,
     pub(crate) notify: Notify,
@@ -20,9 +23,10 @@ pub(crate) struct RunGrant {
 }
 
 impl RunGrant {
-    pub(super) fn new(turn: &Turn) -> Self {
+    pub(super) fn new(turn: &Turn, run_ids: Vec<String>) -> Self {
         Self {
             run_id: turn.id.clone(),
+            run_ids,
             actor: SeatActor {
                 agent_id: turn.agent_id.clone(),
                 role_id: "alfred".to_string(),

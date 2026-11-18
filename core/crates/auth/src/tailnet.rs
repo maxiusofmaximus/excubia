@@ -7,12 +7,14 @@
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::sync::mpsc;
-use std::time::Duration;
+use std::sync::{mpsc, Mutex};
+use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
 const TIMEOUT: Duration = Duration::from_secs(5);
+/// How long the host's own owner id is trusted before asking Tailscale again.
+const OWNER_TTL: Duration = Duration::from_secs(30);
 
 /// The owner id of `ip` (`tailscale whois --json`), or `None` when Tailscale
 /// cannot say. Loopback has no tailnet owner by construction.
@@ -25,9 +27,20 @@ pub fn tailnet_owner_of(ip: &str) -> Option<String> {
 }
 
 /// The host's own tailnet owner (`tailscale status --json` → `Self.UserID`).
+/// Remembered for `OWNER_TTL`, so a burst of pairing requests runs one subprocess, not one each.
 pub fn host_tailnet_owner() -> Option<String> {
-    let output = run_tailscale(&["status", "--json"])?;
-    parse_status_owner(&output)
+    static CACHE: Mutex<Option<(Instant, Option<String>)>> = Mutex::new(None);
+    let mut cache = CACHE
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some((at, owner)) = cache.as_ref() {
+        if at.elapsed() < OWNER_TTL {
+            return owner.clone();
+        }
+    }
+    let owner = run_tailscale(&["status", "--json"]).and_then(|output| parse_status_owner(&output));
+    *cache = Some((Instant::now(), owner.clone()));
+    owner
 }
 
 /// True when `ip` belongs to the host's own tailnet owner.
@@ -91,17 +104,8 @@ fn run_tailscale(args: &[&str]) -> Option<Value> {
 }
 
 fn tailscale_binary() -> Option<PathBuf> {
-    // PATH first, so an override still wins; the well-known install paths are
-    // the fallback for a service account that has a short PATH.
-    let probe = Command::new("tailscale")
-        .arg("version")
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
-    if probe.is_ok() {
-        return Some(PathBuf::from("tailscale"));
-    }
+    // The well-known install paths come first: a `tailscale.exe` planted in the
+    // program directory or the PATH must not decide who the host's owner is.
     let candidates = [
         r"C:\Program Files\Tailscale\tailscale.exe",
         "/usr/bin/tailscale",

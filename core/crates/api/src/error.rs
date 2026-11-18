@@ -78,6 +78,15 @@ impl ApiError {
         }
     }
 
+    /// The body did not arrive within its read time (`errors.md`, `408`).
+    pub fn request_timeout() -> Self {
+        Self {
+            status: StatusCode::REQUEST_TIMEOUT,
+            body: json!({"detail": "request timeout"}),
+            retry_after: None,
+        }
+    }
+
     pub fn invalid_body() -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,

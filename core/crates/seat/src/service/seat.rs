@@ -8,7 +8,6 @@ use excubia_chat::{
     AttachmentError, ChatError, ChatSeat, ChatStore, SeatActor, SeatError, ToolError,
     ToolErrorKind, ToolReply, ToolRequest, Turn, MAX_ATTACHMENTS_PER_MESSAGE,
 };
-use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
 use crate::launch;
@@ -16,6 +15,7 @@ use crate::profile::{self, CliProfile, SelectedProfile};
 use crate::prompt;
 use crate::tools::{self, ToolCall};
 
+use super::queue::Queue;
 use super::worker::{run_worker, Worker};
 use super::RunGrant;
 
@@ -65,7 +65,7 @@ pub struct SeatService {
     /// The UAC hook a project seat's CLI runs before each tool, and where it asks.
     hook_url: String,
     hook_command: PathBuf,
-    sender: mpsc::Sender<Turn>,
+    queue: Arc<Queue>,
     tokens: Arc<Mutex<HashMap<String, Arc<RunGrant>>>>,
     worker: Mutex<Option<JoinHandle<()>>>,
     closed: AtomicBool,
@@ -122,7 +122,7 @@ impl SeatService {
             }
         }
 
-        let (sender, receiver) = mpsc::channel(config.queue_capacity.max(1));
+        let queue = Arc::new(Queue::new(config.queue_capacity));
         let tokens = Arc::new(Mutex::new(HashMap::new()));
         let service = Arc::new(Self {
             chat: Arc::clone(&config.chat),
@@ -133,7 +133,7 @@ impl SeatService {
             tool_url: config.tool_url.clone(),
             hook_url: config.hook_url.clone(),
             hook_command: config.hook_command.clone(),
-            sender,
+            queue: Arc::clone(&queue),
             tokens: Arc::clone(&tokens),
             worker: Mutex::new(None),
             closed: AtomicBool::new(false),
@@ -141,7 +141,7 @@ impl SeatService {
 
         let worker = runtime.spawn(run_worker(Worker {
             chat: config.chat,
-            receiver,
+            queue,
             selected,
             engines: config.engines,
             turn_engine: config.turn_engine,
@@ -196,17 +196,14 @@ impl ChatSeat for SeatService {
                 "no installed CLI matches the seat matrix",
             ));
         }
-        match self.sender.try_send(turn) {
-            Ok(()) => Ok(()),
-            Err(mpsc::error::TrySendError::Full(turn)) => {
-                let _ = self.chat.fail_run(&turn.id, "agent_busy");
-                Err(SeatError::busy("the seat queue is full"))
-            }
-            Err(mpsc::error::TrySendError::Closed(turn)) => {
-                let _ = self.chat.fail_run(&turn.id, "seat_unavailable");
-                Err(SeatError::unavailable("the seat worker is stopped"))
-            }
+        // Only a message the user wrote may join a waiting batch.
+        let user = self.chat.is_user_turn(&turn.message_id).unwrap_or(false);
+        let run_id = turn.id.clone();
+        if self.queue.push(turn, user) {
+            return Ok(());
         }
+        let _ = self.chat.fail_run(&run_id, "agent_busy");
+        Err(SeatError::busy("the seat queue is full"))
     }
 
     fn actor(&self, token: &str) -> Option<SeatActor> {
