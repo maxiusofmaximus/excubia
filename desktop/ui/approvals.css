@@ -132,6 +132,107 @@
   word-break: break-word;
 }
 
+/* The plain card: no frame, one sentence, one primary button. What the operator does
+   not need to decide sits under «Detalles» or «Más opciones». */
+.approval-card.plain {
+  margin: 12px 0;
+  padding: 14px 16px 12px;
+  border: 0;
+  background: var(--surface);
+}
+
+.approval-card.plain .approval-title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.approval-card.plain .approval-where {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.approval-note {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.approval-card.plain .approval-actions {
+  align-items: center;
+  margin-top: 14px;
+}
+
+.approval-card.plain .approval-ttl {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.approval-more {
+  position: relative;
+}
+
+.approval-more > summary {
+  list-style: none;
+}
+
+.approval-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.approval-more-menu {
+  position: absolute;
+  z-index: 5;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  display: grid;
+  gap: 4px;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+}
+
+.approval-more-menu .btn {
+  justify-content: flex-start;
+}
+
+.approval-details {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.approval-details > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.approval-details .approval-command,
+.approval-details .approval-facts {
+  margin-top: 8px;
+}
+
+.approval-tech {
+  margin-top: 8px;
+}
+
+.approval-tech > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.approval-settled {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .approval-line {
   margin: 6px 0;
   padding: 6px 10px;

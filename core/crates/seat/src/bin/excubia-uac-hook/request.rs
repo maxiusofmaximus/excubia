@@ -13,6 +13,9 @@ pub(super) struct Request {
     pub(super) kind: String,
     pub(super) tool: String,
     pub(super) summary: String,
+    /// The tool's own one-line description of the action (a shell command's
+    /// `description`). It is shown beside the summary and is not part of the digest.
+    pub(super) headline: Option<String>,
     pub(super) args: Value,
     pub(super) cwd: String,
     pub(super) paths: Vec<String>,
@@ -58,6 +61,10 @@ impl Request {
             .cwd
             .or_else(|| payload.as_ref().and_then(|p| p.cwd.clone()))
             .unwrap_or_default();
+        let headline = args
+            .get("description")
+            .and_then(Value::as_str)
+            .map(str::to_string);
         let paths = match (flags.paths.is_empty(), mapped) {
             (true, Some(action)) => action.paths,
             _ => flags.paths,
@@ -66,6 +73,7 @@ impl Request {
             kind,
             tool,
             summary,
+            headline,
             args,
             cwd,
             paths,

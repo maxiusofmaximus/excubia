@@ -164,7 +164,7 @@ async fn a_timeout_without_a_decision_exits_two() {
         said(&output)
     );
     assert!(
-        said(&output).contains("expired"),
+        said(&output).contains("caducó sin respuesta"),
         "the reason is the missing decision: {}",
         said(&output)
     );

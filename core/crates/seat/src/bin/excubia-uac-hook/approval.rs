@@ -16,6 +16,12 @@ const POLL_INTERVAL: Duration = Duration::from_millis(250);
 /// One request to the host may not hang the hook for longer than this.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// What the agent reads when nobody answered in time. The operator reads the agent's words, so
+/// it asks for one short sentence in plain Spanish and no second attempt.
+const EXPIRED: &str = "la aprobación caducó sin respuesta y no se ejecutó nada. No lo reintentes \
+     ni busques otra vía; di en una frase corta y en español sencillo que caducó y pregunta si se \
+     vuelve a pedir";
+
 /// What the host answered.
 pub(super) enum Outcome {
     Allowed,
@@ -40,6 +46,7 @@ pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
         "kind": request.kind,
         "tool": request.tool,
         "summary": request.summary,
+        "headline": request.headline,
         "action_digest": digest,
         "cwd": request.cwd,
         "paths": request.paths,
@@ -87,9 +94,7 @@ pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
             State::Pending => {}
         }
         if Instant::now() >= deadline {
-            return Ok(Outcome::Denied(
-                "the approval expired without an answer".to_string(),
-            ));
+            return Ok(Outcome::Denied(EXPIRED.to_string()));
         }
         tokio::time::sleep(POLL_INTERVAL).await;
     }
@@ -121,13 +126,15 @@ async fn poll(host: &LoopbackUrl, token: &str, approval_id: &str) -> Result<Stat
     match state.get("status").and_then(Value::as_str) {
         Some("pending") => Ok(State::Pending),
         Some("approved") => Ok(State::Approved),
-        Some("denied") => Ok(State::Refused("the operator denied the action".to_string())),
-        Some("expired") => Ok(State::Refused(
-            "the approval expired without an answer".to_string(),
+        // The operator's words, when he left some, tell the agent why and what to try.
+        Some("denied") => Ok(State::Refused(
+            match state.get("reason").and_then(Value::as_str) {
+                Some(reason) => format!("el operador denegó la acción y dijo: {reason}"),
+                None => "el operador denegó la acción".to_string(),
+            },
         )),
-        Some("consumed") => Ok(State::Refused(
-            "the approval was already consumed".to_string(),
-        )),
+        Some("expired") => Ok(State::Refused(EXPIRED.to_string())),
+        Some("consumed") => Ok(State::Refused("la aprobación ya se usó".to_string())),
         other => Err(Refusal::NoDecision(format!(
             "the host answered an unknown state: {}",
             other.unwrap_or("(none)")
@@ -190,6 +197,7 @@ mod digest_tests {
             kind: "edit".to_string(),
             tool: "Write".to_string(),
             summary: "edit Write".to_string(),
+            headline: None,
             args: json!({ "file_path": "notas.txt", "content": "hola" }),
             cwd: "C:/proyecto".to_string(),
             paths: vec!["C:/proyecto/notas.txt".to_string()],

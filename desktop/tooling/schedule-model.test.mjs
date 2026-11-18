@@ -220,7 +220,7 @@ test("cada refusal del host se dice en español, nunca como JSON", () => {
 test("la frase de PC encendido es la que pide el contrato, idéntica en cada pantalla", () => {
   assert.equal(
     PC_OFF_NOTE,
-    "Solo se ejecuta con tu PC encendido. Si estaba apagado a la hora, no se lanza al encenderlo: te avisamos aquí y puedes lanzarla tú.",
+    "Se ejecuta con tu PC encendido.",
   );
 });
 

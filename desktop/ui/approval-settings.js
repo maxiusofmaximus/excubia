@@ -10,10 +10,7 @@ import { grantCommand, setDeviceId } from "./approval-model.js";
 let settings = null;
 let notice = "";
 
-const LEVEL_HELP =
-  "Cada aviso lo decide una regla o una persona. Solo pasa a otro nivel si hace falta.";
-const DELEGATED_HELP =
-  "Con delegación, solo te llega lo que está en tu lista de cosas que nunca se delegan o lo que no tenga información suficiente.";
+const APPROVALS_HELP = "Las decide una regla o tu equipo; solo te llega lo que necesita tu OK.";
 
 export function mountApprovalSettings() {
   const section = element("section", "approval-settings");
@@ -71,7 +68,7 @@ function render() {
 function buildContent() {
   const title = element("h2", "approval-settings-title", "Aprobaciones");
   title.id = "approval-settings-title";
-  const content = [title, element("p", "hint", DELEGATED_HELP), element("p", "hint", LEVEL_HELP)];
+  const content = [title, element("p", "hint", APPROVALS_HELP)];
   if (!settings) {
     content.push(element("p", "hint", notice || "Cargando ajustes…"));
     return content;

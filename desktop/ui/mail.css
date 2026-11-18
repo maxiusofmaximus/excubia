@@ -17,6 +17,20 @@
   font-size: 1rem;
 }
 
+.mail-fold > summary,
+.mail-advanced > summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.mail-fold > .mail-settings {
+  margin-top: 12px;
+}
+
+.mail-advanced {
+  margin-top: 14px;
+}
+
 .mail-accounts,
 .mail-code {
   display: grid;

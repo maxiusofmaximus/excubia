@@ -1,6 +1,7 @@
 // Ctrl+K (or Ctrl+Mayús+P): one box to reach any action or conversation. The keys a
 // browser would use to print are taken here, so they never open the print dialog.
 import { $ } from "./core.js";
+import { goTo } from "./nav.js";
 import { paletteItems } from "./command-palette-model.js";
 
 export function installCommandPalette({ conversations, selectConversation }) {
@@ -64,7 +65,7 @@ export function installCommandPalette({ conversations, selectConversation }) {
       document.querySelector('[data-nav="chat"]')?.click();
       $("btn-new-project").click();
     } else if (item.id.startsWith("nav:")) {
-      document.querySelector(`[data-nav="${item.id.slice(4)}"]`)?.click();
+      goTo(item.id.slice(4));
     }
   }
 

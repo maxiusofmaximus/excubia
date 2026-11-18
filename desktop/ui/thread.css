@@ -350,7 +350,6 @@
   max-width: 94%;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--blocked) 40%, transparent);
-  border-left-width: 3px;
   border-radius: 11px;
   background: color-mix(in srgb, var(--blocked) 7%, var(--surface));
 }
@@ -691,6 +690,15 @@
   color: var(--muted);
   font-size: 9.5px;
   white-space: nowrap;
+}
+
+/* The key list shows only while the message box has the focus and text in it. */
+.chat-composer .composer-hint.is-keys {
+  display: none;
+}
+
+.chat-composer #chat-input:focus:not(:placeholder-shown) ~ .composer-hint.is-keys {
+  display: block;
 }
 
 .chat-composer.is-blocked textarea {

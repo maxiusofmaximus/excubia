@@ -4,8 +4,8 @@
 use std::path::PathBuf;
 
 use excubia_chat::{
-    ChatError, ChatStore, Conversation, ConversationFilter, NewConversation, RunState,
-    TimelineEntry,
+    action_digest, ApprovalKind, ChatError, ChatStore, Conversation, ConversationFilter, Decision,
+    NewApproval, NewConversation, RunState, TimelineEntry, DEFAULT_TTL_SECONDS,
 };
 use excubia_test_dir::TestDir;
 use serde_json::json;
@@ -321,6 +321,89 @@ fn suggestions_round_trip_and_an_invalid_list_is_refused_without_closing_the_tur
         .expect("the turn still closes");
 }
 
+/// The clock of the store has milliseconds: a step waits one so the order is strict.
+fn tick() {
+    std::thread::sleep(std::time::Duration::from_millis(5));
+}
+
+/// The operator denies one approval of the conversation.
+fn operator_denies(store: &ChatStore, conversation_id: &str, action: &str) {
+    let args = json!({ "command": action });
+    let approval = store
+        .create_approval(NewApproval {
+            conversation_id: Some(conversation_id.to_string()),
+            seat_id: None,
+            agent_label: Some("bob".to_string()),
+            run_id: None,
+            pane_id: None,
+            kind: ApprovalKind::Command,
+            tool: "bash".to_string(),
+            summary: format!("Ejecutar comando: {action}"),
+            cwd: Some("/work".to_string()),
+            paths: Vec::new(),
+            risk: None,
+            action_digest: action_digest("command", "bash", &args, "/work", &[]),
+            payload_redacted: Some(args),
+            ttl_seconds: DEFAULT_TTL_SECONDS,
+        })
+        .expect("approval");
+    store
+        .decide_approval(&approval.id, Decision::Deny, "device-1", "device-1")
+        .expect("deny");
+}
+
+#[test]
+fn a_denial_after_the_last_user_message_drops_the_quick_replies() {
+    let (store, _path, _dir) = store("chips-denied");
+    let id = conversation(&store);
+    let turn = store
+        .append_user_message(&id, "client-1", "bórralo", None)
+        .expect("message");
+    store.start_run(&turn.turn.id).expect("start");
+    tick();
+    operator_denies(&store, &id, "rm -rf");
+    tick();
+    let chips = vec!["Sí, bórralo igualmente".to_string(), "No".to_string()];
+    let reply = store
+        .complete_run_with_reply(&turn.turn.id, "No lo borro.", &chips)
+        .expect("reply");
+    let entries = timeline(&store, &id);
+    assert!(entry(&entries, &reply.id).suggestions.is_empty());
+}
+
+#[test]
+fn a_reply_keeps_its_quick_replies_without_a_denial_or_with_an_older_one() {
+    let (store, _path, _dir) = store("chips-kept");
+    let id = conversation(&store);
+    let chips = vec!["Sí".to_string(), "No".to_string()];
+
+    let plain = store
+        .append_user_message(&id, "client-1", "hola", None)
+        .expect("message");
+    store.start_run(&plain.turn.id).expect("start");
+    let reply = store
+        .complete_run_with_reply(&plain.turn.id, "¿Continúo?", &chips)
+        .expect("reply");
+    assert_eq!(entry(&timeline(&store, &id), &reply.id).suggestions, chips);
+
+    // A denial before the user's next message is history: the next reply keeps its chips.
+    let denied = store
+        .append_user_message(&id, "client-2", "borra el archivo", None)
+        .expect("message");
+    store.start_run(&denied.turn.id).expect("start");
+    tick();
+    operator_denies(&store, &id, "rm a.txt");
+    tick();
+    let next = store
+        .append_user_message(&id, "client-3", "gracias", None)
+        .expect("message");
+    store.start_run(&next.turn.id).expect("start");
+    let reply = store
+        .complete_run_with_reply(&next.turn.id, "De nada.", &chips)
+        .expect("reply");
+    assert_eq!(entry(&timeline(&store, &id), &reply.id).suggestions, chips);
+}
+
 #[test]
 fn active_runs_counts_the_open_turns_and_is_omitted_at_zero() {
     let (store, _path, _dir) = store("active-runs");
@@ -433,5 +516,5 @@ fn a_version_ten_database_gains_the_reply_columns_and_keeps_its_messages() {
         .expect("raw")
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .expect("version");
-    assert_eq!(version, 26);
+    assert_eq!(version, 28);
 }

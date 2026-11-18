@@ -19,6 +19,7 @@ use super::delegation_rules::{
     task_digest, update_card, NewCard, Requester,
 };
 use super::projects::seat_by_id;
+use super::synthesis::denied_by_operator;
 use super::{append_event, conversation_exists};
 
 pub const MAX_DEPTH: i64 = 2;
@@ -300,6 +301,7 @@ impl super::ChatStore {
         delegation_id: &str,
         result: &str,
     ) -> Result<String, ChatError> {
+        let result = &crate::text::without_internal_ids(result);
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
         let delegation = delegation_by_id(&transaction, delegation_id)?;
@@ -315,19 +317,57 @@ impl super::ChatStore {
             result,
             "complete",
         )?;
+        // A card of this task that expired unanswered means the work it asked for was not
+        // done: the task closes as failed, with the assignee's words kept. A denial is the
+        // operator's decision, so the task still counts as done, but its card says it was not.
+        let expired: i64 = transaction.query_row(
+            "SELECT COUNT(*) FROM approval WHERE delegation_id = ?1 AND status = 'expired'",
+            [delegation_id],
+            |row| row.get(0),
+        )?;
+        let (state, reason, title) = if expired > 0 {
+            (
+                DelegationState::Failed,
+                Some("approval_expired"),
+                format!(
+                    "{} no terminó: un permiso caducó sin respuesta",
+                    delegation.to_name
+                ),
+            )
+        } else if denied_by_operator(&transaction, delegation_id)? {
+            (
+                DelegationState::Done,
+                Some("operator_denied"),
+                format!(
+                    "{} no hizo{}",
+                    delegation.to_name,
+                    task_suffix(&delegation.task)
+                ),
+            )
+        } else {
+            (
+                DelegationState::Done,
+                None,
+                format!(
+                    "{} terminó{}",
+                    delegation.to_name,
+                    task_suffix(&delegation.task)
+                ),
+            )
+        };
         transaction.execute(
             "UPDATE delegation
-                SET state = 'done', result_message_id = ?1, finished_at = ?2, updated_at = ?2,
-                    reason = NULL
-              WHERE id = ?3",
-            params![message_id, now, delegation_id],
+                SET state = ?1, result_message_id = ?2, finished_at = ?3, updated_at = ?3,
+                    reason = ?4
+              WHERE id = ?5",
+            params![state.as_str(), message_id, now, reason, delegation_id],
         )?;
         update_card(
             &transaction,
             delegation_id,
-            &format!("{} terminó", delegation.to_name),
+            &title,
             &bounded(result, RESULT_CHARS),
-            DelegationState::Done,
+            state,
             0,
             &now,
         )?;
@@ -376,7 +416,7 @@ impl super::ChatStore {
                 "conversation_id": delegation.conversation_id,
                 "delegation_id": delegation_id,
                 "card_id": card_id(delegation_id),
-                "status": "done",
+                "status": state.as_str(),
                 "pane_id": delegation.pane_id,
                 "summary": bounded(result, RESULT_CHARS),
             }),
@@ -387,4 +427,9 @@ impl super::ChatStore {
         self.publish(activity);
         Ok(message_id)
     }
+}
+
+/// «: Crear redi.txt», the short title of the task, for a card title; empty when the task has none.
+fn task_suffix(task: &str) -> String {
+    crate::text::title_from(task).map_or_else(String::new, |title| format!(": {title}"))
 }

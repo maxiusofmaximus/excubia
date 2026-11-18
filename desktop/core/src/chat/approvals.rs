@@ -49,6 +49,9 @@ pub struct Approval {
     pub tool: String,
     #[serde(default)]
     pub summary: String,
+    /// One plain line the agent gave its command; the card's title when there is one.
+    #[serde(default)]
+    pub headline: Option<String>,
     #[serde(default)]
     pub cwd: Option<String>,
     #[serde(default)]
@@ -173,9 +176,18 @@ impl HostClient {
         decision: &str,
         client_id: &str,
         exclude: &[String],
+        choice: &DecisionChoice,
     ) -> ChatResult<Approval> {
         validate_prefixed_id(approval_id, "apr_", "aprobación")?;
-        let body = decision_body(decision, client_id, exclude)?;
+        let mut body = decision_body(decision, client_id, exclude)?;
+        if choice.whole_task && decision == "approve" {
+            body["scope"] = json!("task");
+        }
+        if let Some(reason) = choice.reason.as_deref().map(str::trim).filter(|r| !r.is_empty()) {
+            if decision == "deny" {
+                body["reason"] = json!(reason.chars().take(300).collect::<String>());
+            }
+        }
         let decided: ApprovalDecided = self
             .chat_send_json(
                 Method::POST,
@@ -232,6 +244,14 @@ impl HostClient {
         )
         .await
     }
+}
+
+/// What goes with a decision beyond «once»: the whole task, or the operator's words
+/// with a denial.
+#[derive(Debug, Clone, Default)]
+pub struct DecisionChoice {
+    pub whole_task: bool,
+    pub reason: Option<String>,
 }
 
 /// The host's limits on `exclude`: the same numbers, so a bad list fails here first.

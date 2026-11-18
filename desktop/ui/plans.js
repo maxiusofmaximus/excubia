@@ -4,7 +4,7 @@
 
 import { $, invoke } from "./core.js";
 import { element, loadingBlock } from "./chatdom.js";
-import { emptyState, errorState } from "./empty-state.js";
+import { errorState } from "./empty-state.js";
 import { friendlyError } from "./friendly-error.js";
 import { readStateText } from "./hires-model.js";
 import { planCard } from "./plan-card.js";
@@ -13,7 +13,6 @@ import { showView } from "./nav.js";
 import { waitingText } from "./team-summary-model.js";
 
 const COMMANDS = { approve: "plan_approve", reject: "plan_reject", request_changes: "plan_request_changes" };
-const EMPTY_TEXT = "Cuando un agente proponga un plan, lo verás aquí.";
 
 // `plans` is null until the first answer. `denied` is set when the host refused a decision.
 const state = { plans: null, denied: false, failure: "", inFlight: false, key: "", cards: new Map() };
@@ -74,21 +73,20 @@ function paintCards(plans) {
   }
 }
 
+// The section is drawn only while a plan waits: an empty Equipo has no «Planes propuestos».
 function paint() {
   if (!state.plans) return;
   paintNotice();
   const plans = sortPlans(state.plans);
-  if (plans.length === 0) {
-    showBody("empty", [emptyState({ icon: "plan", text: EMPTY_TEXT })]);
-  } else {
-    paintCards(plans);
-  }
+  $("team-plans").hidden = plans.length === 0;
+  paintCards(plans);
   paintCount(state.plans);
 }
 
 // A read the host refused: the wait is said, anything else can be read again. A list already on
-// screen stays, with the reason in the notice.
+// screen stays, with the reason in the notice. The section shows so the wait or the error is seen.
 function failed(error) {
+  $("team-plans").hidden = false;
   const waiting = readStateText(error);
   if (state.plans) {
     state.failure = waiting ?? friendlyError(error);

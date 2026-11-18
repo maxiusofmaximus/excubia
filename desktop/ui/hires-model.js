@@ -44,10 +44,19 @@ export function groupByArea(hires, areas) {
     .filter((group) => group.hires.length > 0);
 }
 
-// «3 en el equipo · 2 activos». `hired` counts the contracted people; `active`
-// counts the live agents on screen.
-export function teamCountLabel(hired, active) {
-  return `${hired} en el equipo · ${active === 1 ? "1 activo" : `${active} activos`}`;
+// A project lead is part of the team: each person once, however many projects they lead.
+export function leaderCount(projects) {
+  const leads = (projects || []).map((project) => project && project.lead).filter(Boolean);
+  return new Set(leads.map((lead) => lead.agent_id || lead.id || lead.name || JSON.stringify(lead))).size;
+}
+
+// Counts only what the view lists: the contracted ones and the agents running now. A project
+// lead that is not running is not a row, so it is not counted here (the sidebar lists the projects).
+export function teamSubtitle(hired, running = 0) {
+  const parts = [];
+  if (hired > 0) parts.push(hired === 1 ? "1 contratado" : `${hired} contratados`);
+  if (running > 0) parts.push(running === 1 ? "1 en marcha" : `${running} en marcha`);
+  return parts.length ? parts.join(" · ") : "Sin nadie contratado todavía";
 }
 
 // The failure a team read could not show. A read the host refuses with 403 means

@@ -11,6 +11,42 @@
   font-size: 13px;
 }
 
+/* The row's «⋯»: a native disclosure, so it opens from the keyboard with no script. */
+.agent-menu {
+  position: relative;
+}
+
+.agent-menu-toggle {
+  display: inline-block;
+  padding: 0 8px;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.agent-menu-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.agent-menu-panel {
+  position: absolute;
+  right: 0;
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+.agent-menu-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .restore-dialog {
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);

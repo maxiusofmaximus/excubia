@@ -7,6 +7,7 @@ export const ACTIONS = [
   { id: "new-project", label: "Nuevo proyecto con carpeta" },
   { id: "nav:chat", label: "Ir a Chat" },
   { id: "nav:agents", label: "Ir a Equipo" },
+  { id: "nav:agenda", label: "Ir a Agenda" },
   { id: "nav:calendar", label: "Ir a Calendario" },
   { id: "nav:notes", label: "Ir a Notas" },
   { id: "nav:contacts", label: "Ir a Contactos" },

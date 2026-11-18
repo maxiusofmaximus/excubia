@@ -5,8 +5,11 @@
 export const FILTERS = [
   { id: "all", label: "Todos" },
   { id: "attention", label: "Pendientes de ti" },
-  { id: "working", label: "Trabajando" },
+  { id: "working", label: "En curso" },
 ];
+
+// Only «Pendientes de ti» shows a number, and only while it is above zero.
+const COUNTED = new Set(["attention"]);
 
 export function chipCount(count) {
   if (!count) return "";
@@ -17,7 +20,7 @@ export function chipCount(count) {
 export function chipsFor(counts) {
   if (counts === null) return [];
   return FILTERS.map((filter) => {
-    const count = counts ? counts[filter.id] || 0 : 0;
+    const count = counts && COUNTED.has(filter.id) ? counts[filter.id] || 0 : 0;
     return { ...filter, count, text: chipCount(count) };
   });
 }

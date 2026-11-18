@@ -7,7 +7,7 @@ import { chat } from "./chatstate.js";
 import { element, loadingBlock } from "./chatdom.js";
 import { button, deleteConfirm } from "./agenda-ui.js";
 import { emptyState, errorState } from "./empty-state.js";
-import { statusMeta } from "./delegations.js";
+import { statusMeta } from "./delegation-model.js";
 import { installRecipeEditor, openRecipeEditor } from "./recipe-editor.js";
 import { PERMISSION_TEXT, recipeFailureText, sortRecipes, usesText } from "./recipe-model.js";
 

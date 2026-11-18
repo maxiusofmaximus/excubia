@@ -14,6 +14,7 @@ mod approval_mode;
 mod approval_policy;
 mod approval_rules;
 mod approval_settle;
+mod approval_task_scope;
 mod approval_timeline;
 mod approvals;
 mod attachments;
@@ -130,6 +131,7 @@ impl ChatStore {
             let connection = store.lock();
             approval_settle::expire_at_start(&connection, store.now_ms())?;
         }
+        store.retitle_untitled()?;
         Ok(store)
     }
 

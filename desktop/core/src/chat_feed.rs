@@ -177,12 +177,15 @@ impl ChatFeed {
     /// The inbox lists what still waits. An approval that left it was settled
     /// or expired on the host, and the host writes no timeline line for the
     /// operator's own decision, so its card stays until the conversation
-    /// changes. A row the inbox still lists is replaced by the fresh one.
+    /// changes. A row the inbox still lists is replaced by the fresh one. A held
+    /// row still `pending` that the inbox no longer lists was not decided here
+    /// (that answer would have replaced it): it expired or was decided elsewhere,
+    /// and the host's timeline line says so, so the stale card goes.
     pub fn set_approvals(&mut self, pending: Vec<Approval>) {
         let mut kept: Vec<Approval> = self
             .approvals
             .iter()
-            .filter(|held| !pending.iter().any(|row| row.id == held.id))
+            .filter(|held| held.status != "pending" && !pending.iter().any(|row| row.id == held.id))
             .cloned()
             .collect();
         kept.extend(pending);

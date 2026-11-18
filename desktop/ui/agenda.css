@@ -245,8 +245,28 @@
   gap: 6px;
 }
 
+/* The range select is as tall as the buttons beside it («Importar», «Exportar»). */
 .calendar-tools .agenda-select {
   width: auto;
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+@media (pointer: coarse) {
+  .calendar-tools .agenda-select {
+    min-height: 44px;
+  }
+}
+
+/* «Qué exportar» labels the select beside it: small, on the row's left, never a block of its own. */
+.calendar-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11.5px;
 }
 
 .calendar-ics {
@@ -285,6 +305,21 @@
   margin: 0;
 }
 
+.calendar-zone > summary,
+.calendar-more > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.calendar-zone > summary::-webkit-details-marker,
+.calendar-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.calendar-more[open] .calendar-tools {
+  margin-top: 6px;
+}
+
 .agenda-check {
   display: flex;
   align-items: center;
@@ -317,4 +352,40 @@
     overflow-y: auto;
     border-radius: 0;
   }
+}
+
+/* The three screens of the Agenda destination switch from this tab bar. */
+.agenda-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.agenda-tab {
+  margin-bottom: -1px;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.agenda-tab:hover {
+  color: var(--text);
+}
+
+.agenda-tab[aria-current="page"] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.agenda-tab:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+  border-radius: 4px;
 }

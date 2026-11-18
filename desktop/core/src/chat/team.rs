@@ -73,6 +73,8 @@ pub struct DelegationCard {
     pub pane_id: Option<String>,
     #[serde(default)]
     pub attention: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
     #[serde(default)]
     pub links: Option<CardLinks>,
 }

@@ -68,3 +68,26 @@ fn another_tools_payload_is_left_as_it_was_for_every_reader() {
         assert!(view.get("details").is_none(), "{view}");
     }
 }
+
+#[test]
+fn the_headline_is_kept_beside_the_summary_and_only_when_given() {
+    let chat = ChatStore::in_memory().expect("chat");
+    let with = chat
+        .create_approval_with_headline(
+            question("Bash", json!({"command": "ls"})),
+            Some("Listar la carpeta"),
+        )
+        .expect("the approval with a headline");
+    assert_eq!(with.headline.as_deref(), Some("Listar la carpeta"));
+    assert_eq!(
+        with.view(Reader::Other)["headline"],
+        "Listar la carpeta",
+        "the headline is the agent's words, shown like the summary"
+    );
+
+    let without = chat
+        .create_approval(question("Edit", json!({"file_path": "a.txt"})))
+        .expect("the approval without one");
+    assert_eq!(without.headline, None);
+    assert!(without.view(Reader::Other).get("headline").is_none());
+}

@@ -188,6 +188,7 @@ impl super::super::ChatStore {
         conversation_id: &str,
         text: &str,
     ) -> Result<Message, ChatError> {
+        let text = &crate::text::without_internal_ids(text);
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
         let agent_id = alfred_id(&transaction)?;

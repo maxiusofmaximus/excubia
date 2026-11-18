@@ -30,9 +30,10 @@ let ui = null;
 export function mountMailSettings() {
   const section = element("section", "mail-settings");
   section.id = "mail-settings";
-  section.setAttribute("aria-labelledby", "mail-settings-title");
-  const title = element("h2", null, "Correo");
-  title.id = "mail-settings-title";
+  section.setAttribute("aria-label", "Correo");
+  // Folded by default: the section reads as one line until the operator opens it.
+  const fold = element("details", "mail-fold");
+  fold.append(element("summary", "mail-fold-title", "Correo"));
   ui = {
     notice: element("p", "hint"),
     accounts: element("div", "mail-accounts"),
@@ -43,15 +44,15 @@ export function mountMailSettings() {
   ui.notice.setAttribute("role", "status");
   ui.notice.setAttribute("aria-live", "polite");
   section.append(
-    title,
     element("p", "hint", "Los agentes preparan borradores. Enviar lo apruebas tú, con 10 segundos para cancelar."),
     ui.notice,
     ui.accounts,
     ui.code,
     ui.connect.form,
-    ui.open.form,
+    ui.open.box,
   );
-  $("settings-mail").append(section);
+  fold.append(section);
+  $("settings-mail").append(fold);
   section.addEventListener("click", onClick);
   document.addEventListener("settings:open", loadAccounts);
   document.addEventListener("mail:refresh", loadAccounts);
@@ -124,7 +125,10 @@ function buildOpen() {
     }
     openDraft(account, draftId);
   });
-  return { form, select, id };
+  // The id is a technical way in: it sits under «Avanzado», closed.
+  const box = element("details", "mail-advanced");
+  box.append(element("summary", null, "Avanzado"), form);
+  return { form, select, id, box };
 }
 
 function actionButton(label, action, account, className) {

@@ -87,6 +87,7 @@ mod tests {
             kind: excubia_chat::ApprovalKind::Command,
             tool: "bash".to_string(),
             summary: "cargo test".to_string(),
+            headline: None,
             cwd: None,
             paths: Vec::new(),
             risk: excubia_chat::Risk::High,

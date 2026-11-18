@@ -3,11 +3,12 @@ import { paintAvatar } from "./avatar.js";
 import { installLinkOpener, renderMarkdown } from "./markdown.js";
 import { formatTime } from "./chatlist.js";
 import { renderApprovalEntry, renderApprovalLine } from "./approval-card.js";
-import { conversationContext, isOperatorLevel, supersededIndexes } from "./approval-model.js";
+import { conversationContext, isOperatorLevel, repeatsCard, rememberAction, supersededIndexes } from "./approval-model.js";
 import { setThreadApprovals } from "./approval-inbox.js";
 import { renderDelegationCard } from "./delegations.js";
+import { showInThread } from "./delegation-model.js";
 import { stripTestMarkers } from "./format.js";
-import { isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
+import { delegationResultIndexes, isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
 import { quickRepliesDisabled, quoteLabel, suggestionsAt } from "./chat-reply-model.js";
 import { announcement, openStep } from "./chat-progress-model.js";
 import { action, element } from "./chatdom.js";
@@ -17,6 +18,7 @@ import { attachmentsNode } from "./chatattach-view.js";
 import { draftCardNode } from "./chatdraft.js";
 import { chatSuggestions } from "./chat-suggestions.js";
 import { teamSnapshot } from "./hires.js";
+import { chat as chatState } from "./chatstate.js";
 
 function messageNode(message, alfredName, line = null, detail = null) {
   const user = message.author_kind === "user";
@@ -176,10 +178,13 @@ const DAY_MS = 86400000;
 
 // The suggestions of the empty chat follow the team contracted here; the day
 // changes which phrase of each trade comes up.
+// The starter prompts are for the first chat only; a returning operator sees none.
 export function paintChatSuggestions() {
+  const home = chatState.home;
+  const hasHistory = home ? (home.conversations || []).length + (home.archived || []).length > 0 : false;
   const hires = teamSnapshot().hires;
   $("chat-suggestions").replaceChildren(
-    ...chatSuggestions(hires, Math.floor(Date.now() / DAY_MS)).map(suggestionNode),
+    ...(hasHistory ? [] : chatSuggestions(hires, Math.floor(Date.now() / DAY_MS)).map(suggestionNode)),
   );
 }
 
@@ -208,7 +213,7 @@ export function renderThread(chat) {
   const empty = $("chat-empty");
   paintChatSuggestions();
   const alfredName = chat.home && chat.home.bootstrap ? chat.home.bootstrap.alfred.name : "Alfred";
-  paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 68 });
+  paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 52 });
   const previousScroll = timeline.scrollTop;
   const nearBottom =
     timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 140 || chat.forceScroll;
@@ -244,7 +249,10 @@ export function renderThread(chat) {
   }
 
   const cards = (chat.approvals || []).filter(isOperatorLevel);
-  const superseded = supersededIndexes(chat.entries, new Set(cards.map((approval) => approval.id)));
+  // Before the lines: a line names the action its card names, and the cards draw below them.
+  cards.forEach(rememberAction);
+  const cardIds = new Set(cards.map((approval) => approval.id));
+  const superseded = supersededIndexes(chat.entries, cardIds);
   // Only the operator's last message shows the step of its turn.
   let lastOwn = -1;
   chat.entries.forEach((entry, index) => {
@@ -252,8 +260,14 @@ export function renderThread(chat) {
   });
   const quick = suggestionsAt(chat.entries);
   const sending = quickRepliesDisabled(chat.pending);
+  // A finished delegation's report lives on its card; its quick replies stay in place.
+  const reported = delegationResultIndexes(chat.entries, chat.home?.bootstrap?.alfred?.agent_id);
   for (const [index, entry] of chat.entries.entries()) {
     if (superseded.has(index)) continue;
+    if (reported.has(index)) {
+      if (quick && quick.index === index) timeline.append(quickRepliesNode(quick.items, sending));
+      continue;
+    }
     if (entry.kind === "message") {
       const message = entry.message;
       if (
@@ -276,11 +290,13 @@ export function renderThread(chat) {
       }
       if (quick && quick.index === index) timeline.append(quickRepliesNode(quick.items, sending));
     } else if (entry.kind === "card") {
-      timeline.append(
-        renderDelegationCard(entry.entry, { cancelTarget: chat.cancelTarget }),
-      );
+      // A finished task is closed by Alfred's line; its card waits under Equipo.
+      if (showInThread(entry.entry)) {
+        timeline.append(renderDelegationCard(entry.entry, { cancelTarget: chat.cancelTarget }));
+      }
     } else if (entry.kind === "approval") {
-      const node = renderApprovalLine(entry.entry);
+      // A denial its card already settles («✕ Denegado») is not said twice.
+      const node = repeatsCard(entry.entry, cardIds) ? null : renderApprovalLine(entry.entry);
       if (node) timeline.append(node);
     } else if (entry.kind === "mailDraft") {
       timeline.append(draftCardNode(entry.entry));
@@ -291,7 +307,10 @@ export function renderThread(chat) {
 
   // Requests of the operator's level are cards below the conversation; the
   // strip above the thread leaves them out.
-  setThreadApprovals(cards.map((approval) => approval.id));
+  setThreadApprovals(
+    cards.map((approval) => approval.id),
+    chat.conversation.id,
+  );
   for (const approval of cards) {
     timeline.append(renderApprovalEntry(approval, Date.now(), conversationContext(chat.conversation.id)));
   }

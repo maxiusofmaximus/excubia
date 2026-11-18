@@ -3,8 +3,49 @@
 
 mod common;
 
-use common::team;
-use excubia_chat::{ChatError, DelegationState};
+use common::{actor, team};
+use excubia_chat::{
+    action_digest, ApprovalKind, ChatError, Decision, DelegationState, NewApproval,
+    DEFAULT_TTL_SECONDS,
+};
+
+#[test]
+fn the_status_reads_the_newest_delegation_of_each_seat() {
+    let t = team("latest");
+    let alfred = actor(&t.alfred, "alfred", None, &t);
+    let first = t
+        .assign(&t.alfred, &t.lead, "Planifica", "run_1", None)
+        .expect("alfred to lead");
+    t.store
+        .fail_delegation(&first.id, "pane_gone")
+        .expect("fail");
+    let facts = t.store.status_facts(&alfred).expect("facts");
+    let last = facts
+        .latest
+        .iter()
+        .find(|row| row.to_agent_id == t.lead)
+        .expect("the lead's last delegation");
+    assert_eq!(last.id, first.id);
+    assert_eq!(last.state, DelegationState::Failed);
+    assert!(facts.delegations.is_empty());
+
+    // A newer open delegation replaces the closed one, and it is open for the lead.
+    let second = t
+        .assign(&t.alfred, &t.lead, "Revisa", "run_2", None)
+        .expect("second");
+    let facts = t.store.status_facts(&alfred).expect("facts");
+    let last = facts
+        .latest
+        .iter()
+        .find(|row| row.to_agent_id == t.lead)
+        .expect("the lead's last delegation");
+    assert_eq!(last.id, second.id);
+    assert!(facts
+        .delegations
+        .iter()
+        .any(|row| row.id == second.id && row.to_agent_id == t.lead));
+}
+
 #[test]
 fn the_tree_is_alfred_lead_specialist() {
     let t = team("tree");
@@ -182,6 +223,164 @@ fn the_synthesis_of_a_batch_is_one_turn() {
         assert_eq!(synthesis.state, "queued");
         assert_eq!(synthesis.run_id.as_deref(), Some(turn.id.as_str()));
     }
+}
+
+#[test]
+fn a_close_written_by_the_host_is_alfreds_line_and_its_row_is_done() {
+    let t = team("host-close");
+    let delegation = t
+        .assign(&t.alfred, &t.lead, "Revisa contactos", "run_1", None)
+        .expect("assign");
+    t.store
+        .complete_delegation(&delegation.id, "listo")
+        .expect("complete");
+    let pending = t.store.pending_synthesis(8).expect("pending");
+    let text = "Ernesto terminó: Revisa contactos.";
+    let turn = t
+        .store
+        .enqueue_synthesis(&pending, &t.alfred, text)
+        .expect("turn");
+    let message = t
+        .store
+        .complete_run_with_reply(&turn.id, text, &[])
+        .expect("close");
+    t.store.mark_synthesis_done(&pending).expect("done");
+
+    assert_eq!(message.author_kind, "agent");
+    assert_eq!(message.author_agent_id.as_deref(), Some(t.alfred.as_str()));
+    assert_eq!(message.body_md, text);
+    assert!(t.store.pending_synthesis(8).expect("pending").is_empty());
+    let detail = t.store.delegation_detail(&delegation.id).expect("detail");
+    assert_eq!(detail.synthesis.expect("synthesis").state, "done");
+}
+
+#[test]
+fn an_operator_denial_of_an_approval_of_a_delegation_is_known_to_the_store() {
+    let t = team("denied-known");
+    let delegation = t
+        .assign(&t.alfred, &t.lead, "Borra notas", "run_1", None)
+        .expect("assign");
+    let args = serde_json::json!({ "command": "rm notas.txt" });
+    let cwd = t.root.to_string_lossy().to_string();
+    let approval = t
+        .store
+        .create_approval(NewApproval {
+            conversation_id: Some(t.conversation.clone()),
+            seat_id: Some(t.lead.clone()),
+            agent_label: Some("ernesto".to_string()),
+            run_id: None,
+            pane_id: None,
+            kind: ApprovalKind::Command,
+            tool: "bash".to_string(),
+            summary: "Ejecutar comando: rm notas.txt".to_string(),
+            cwd: Some(cwd.clone()),
+            paths: Vec::new(),
+            risk: None,
+            action_digest: action_digest("command", "bash", &args, &cwd, &[]),
+            payload_redacted: Some(args),
+            ttl_seconds: DEFAULT_TTL_SECONDS,
+        })
+        .expect("approval");
+    assert!(!t
+        .store
+        .delegation_denied_by_operator(&delegation.id)
+        .expect("before"));
+
+    t.store
+        .decide_approval(&approval.id, Decision::Deny, "device-1", "device-1")
+        .expect("deny");
+    assert!(t
+        .store
+        .delegation_denied_by_operator(&delegation.id)
+        .expect("after"));
+}
+
+#[test]
+fn a_task_the_operator_denied_closes_as_not_done_and_keeps_his_words() {
+    let t = team("denied-close");
+    let denied = t
+        .assign(&t.alfred, &t.lead, "Borra notas", "run_1", None)
+        .expect("assign");
+    let args = serde_json::json!({ "command": "rm notas.txt" });
+    let cwd = t.root.to_string_lossy().to_string();
+    let approval = t
+        .store
+        .create_approval(NewApproval {
+            conversation_id: Some(t.conversation.clone()),
+            seat_id: Some(t.lead.clone()),
+            agent_label: Some("ernesto".to_string()),
+            run_id: None,
+            pane_id: None,
+            kind: ApprovalKind::Command,
+            tool: "bash".to_string(),
+            summary: "Ejecutar comando: rm notas.txt".to_string(),
+            cwd: Some(cwd.clone()),
+            paths: Vec::new(),
+            risk: None,
+            action_digest: action_digest("command", "bash", &args, &cwd, &[]),
+            payload_redacted: Some(args),
+            ttl_seconds: DEFAULT_TTL_SECONDS,
+        })
+        .expect("approval");
+    t.store
+        .note_denial_reason(&approval.id, "No borres nada: lo necesito")
+        .expect("words");
+    t.store
+        .decide_approval(&approval.id, Decision::Deny, "device-1", "device-1")
+        .expect("deny");
+    t.store
+        .complete_delegation(&denied.id, "No he borrado notas.")
+        .expect("complete");
+
+    let detail = t.store.delegation_detail(&denied.id).expect("detail");
+    let card = detail.card.expect("card");
+    assert!(
+        card.title
+            .starts_with(&format!("{} no hizo", detail.delegation.to_name)),
+        "{}",
+        card.title
+    );
+    assert!(!card.title.contains("terminó"), "{}", card.title);
+    assert_eq!(
+        card.status, "done",
+        "the operator decided: the task is not a failure"
+    );
+    assert_eq!(card.reason.as_deref(), Some("operator_denied"));
+    let page = t
+        .store
+        .timeline(&detail.delegation.conversation_id, None, 50)
+        .expect("timeline");
+    let entry = page
+        .entries
+        .iter()
+        .find(|entry| entry.delegation_id.as_deref() == Some(denied.id.as_str()))
+        .expect("card entry");
+    assert_eq!(entry.reason.as_deref(), Some("operator_denied"));
+    assert_eq!(
+        t.store
+            .delegation_denial_reason(&denied.id)
+            .expect("reason")
+            .as_deref(),
+        Some("No borres nada: lo necesito")
+    );
+
+    let plain = t
+        .assign(&t.alfred, &t.lead, "Revisa contactos", "run_2", None)
+        .expect("assign");
+    t.store
+        .complete_delegation(&plain.id, "listo")
+        .expect("complete");
+    let card = t
+        .store
+        .delegation_detail(&plain.id)
+        .expect("detail")
+        .card
+        .expect("card");
+    assert_eq!(
+        card.title,
+        format!("{} terminó: Revisar contactos", detail.delegation.to_name)
+    );
+    assert_eq!(card.reason, None);
 }
 
 #[test]

@@ -26,7 +26,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
       menuItem(conversation.archived ? "↩ Desarchivar" : "⧉ Archivar", "archive", {
         danger: !conversation.archived,
       }),
-      menuItem("⊘ Cancelar delegaciones activas", "cancel-delegations", { danger: true }),
+      menuItem("⊘ Cancelar las tareas en curso", "cancel-delegations", { danger: true }),
       menuItem("🗑 Eliminar…", "delete", { danger: true }),
     );
     chat.menuFor = conversation;

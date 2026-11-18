@@ -273,7 +273,8 @@ pub(super) fn card_for(
     let card = connection
         .query_row(
             "SELECT id, conversation_id, delegation_id, seq, title, summary, status,
-                    agent_id, pane_id, attention, created_at, updated_at
+                    agent_id, pane_id, attention, created_at, updated_at,
+                    (SELECT reason FROM delegation WHERE id = timeline_card.delegation_id)
                FROM timeline_card WHERE delegation_id = ?1",
             [delegation_id],
             |row| {
@@ -289,6 +290,7 @@ pub(super) fn card_for(
                     agent_id: row.get(7)?,
                     pane_id: pane_id.clone(),
                     attention: row.get(9)?,
+                    reason: row.get(12)?,
                     links: CardLinks {
                         agent: pane_id.map(|pane| format!("/v1/agents/{pane}")),
                         delegation: format!("/v1/chat/delegations/{delegation_id}"),

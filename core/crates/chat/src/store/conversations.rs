@@ -287,6 +287,40 @@ impl super::ChatStore {
 }
 
 impl super::ChatStore {
+    /// Conversations still called «Nuevo chat» that already have a user message take the
+    /// rule's title from their first message (the same rule as a new conversation). Only
+    /// `title` changes: the order of the history stays. Returns how many were titled.
+    pub fn retitle_untitled(&self) -> Result<usize, ChatError> {
+        let mut connection = self.lock();
+        let transaction = connection.transaction()?;
+        let untitled: Vec<(String, String)> = {
+            let mut statement = transaction.prepare(
+                "SELECT c.id, m.body_md FROM conversation c
+                   JOIN message m ON m.conversation_id = c.id AND m.author_kind = 'user'
+                  WHERE c.title = 'Nuevo chat'
+                    AND m.seq = (SELECT MIN(f.seq) FROM message f
+                                  WHERE f.conversation_id = c.id AND f.author_kind = 'user')",
+            )?;
+            let rows = statement
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+                .collect::<Result<_, _>>()?;
+            rows
+        };
+        let mut titled = 0;
+        for (conversation_id, body) in untitled {
+            let Some(title) = crate::text::title_from(&body) else {
+                continue;
+            };
+            titled += transaction.execute(
+                "UPDATE conversation SET title = ?1 WHERE id = ?2 AND title = 'Nuevo chat'",
+                params![title, conversation_id],
+            )?;
+            self.reindex(&transaction, &conversation_id)?;
+        }
+        transaction.commit()?;
+        Ok(titled)
+    }
+
     pub(super) fn reindex(
         &self,
         connection: &Connection,

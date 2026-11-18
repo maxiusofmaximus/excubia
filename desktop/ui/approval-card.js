@@ -2,21 +2,34 @@
 // for what was decided below him. Everything the agent wrote goes in as text.
 
 import {
+  canAlwaysAllow,
   canApproveMove,
   CHECKING_TEXT,
+  cardCommand,
   commandText,
+  conversationProject,
   currentDeviceId,
   cwdLabel,
+  detailFacts,
+  folderName,
   grantCommand,
+  humanHeadline,
   isChecking,
+  isMailOrAgendaTool,
   isMailSend,
   isMoveBatch,
   isOperatorLevel,
+  isPolicyLine,
+  isWaitingLine,
+  lineSummary,
   localFor,
   moveApproveLabel,
   moveTitle,
-  riskLabel,
+  resultText,
+  riskBadge,
+  riskNote,
   seatName,
+  settledLine,
   shortDigest,
   statusMeta,
 } from "./approval-model.js";
@@ -63,12 +76,16 @@ function approveButton(entry, open, unchecked) {
 
 // A 403 keeps the buttons open: the operator may have just been granted APPROVE,
 // and a retry is the only way to find out. The note says what is missing.
+// «Siempre en esta tarea» and «Denegar con motivo…» sit beside the one-shot buttons.
 function actionsRow(entry, status, mine) {
   const row = element("div", "approval-actions");
   const open = status === "pending" && !mine.busy;
+  const ghost = "btn ghost btn-small approval-btn";
+  row.append(approveButton(entry, open, mine.unchecked));
+  if (canAlwaysAllow(entry)) row.append(actionButton("Siempre en esta tarea", "approve-task", entry.id, ghost, !open));
   row.append(
-    approveButton(entry, open, mine.unchecked),
-    actionButton("Denegar", "deny", entry.id, "btn ghost btn-small approval-btn", !open),
+    actionButton("Denegar", "deny", entry.id, ghost, !open),
+    actionButton("Denegar con motivo…", "deny-reason", entry.id, ghost, !open),
   );
   return row;
 }
@@ -92,13 +109,95 @@ function forbiddenNote() {
   return box;
 }
 
-// `context` is the conversation the request came from; it is kept with the card
-// so a redraw does not lose it.
+// A request for a plain action: the sentence, one primary button, and the rest
+// one click away. What the operator does not need to decide sits under «Detalles».
 export function renderApprovalCard(entry, now = Date.now(), context = "") {
+  return isMailOrAgendaTool(entry) ? renderMailCard(entry, now, context) : renderPlainCard(entry, now);
+}
+
+function plainActions(entry, open, ttl) {
+  const row = element("div", "approval-actions");
+  const ghost = "btn ghost approval-btn";
+  row.append(actionButton("Permitir", "approve", entry.id, "btn primary approval-btn", !open));
+  row.append(actionButton("Denegar", "deny", entry.id, ghost, !open));
+  const more = element("details", "approval-more");
+  more.append(element("summary", ghost, "Más opciones ▾"));
+  const menu = element("div", "approval-more-menu");
+  if (canAlwaysAllow(entry)) menu.append(actionButton("Siempre en esta tarea", "approve-task", entry.id, ghost, !open));
+  menu.append(actionButton("Denegar con motivo…", "deny-reason", entry.id, ghost, !open));
+  more.append(menu);
+  row.append(more, ttl);
+  return row;
+}
+
+// «Detalles» holds the file's path; «Detalles técnicos» is one level below it, or sits on the card when there is no path.
+function plainDetails(entry) {
+  const { shown, technical } = detailFacts(entry);
+  let tech = null;
+  if (technical.length) {
+    tech = element("details", "approval-tech");
+    tech.append(element("summary", null, "Detalles técnicos ▸"));
+    const techFacts = element("dl", "approval-facts");
+    for (const [label, value] of technical) fact(techFacts, label, value);
+    tech.append(techFacts);
+  }
+  if (!shown.length) return tech;
+  const box = element("details", "approval-details");
+  box.append(element("summary", null, "Detalles"));
+  const facts = element("dl", "approval-facts");
+  for (const [label, value] of shown) fact(facts, label, value);
+  box.append(facts);
+  if (tech) box.append(tech);
+  return box;
+}
+
+// Decided, the request is one quiet line; pending, it is the sentence and the buttons.
+function renderPlainCard(entry, now) {
   const id = entry.id;
   const mine = localFor(id);
   const status = resolvedStatus(entry, mine);
-  const meta = statusMeta(status);
+  const meta = statusMeta(status, entry);
+  const card = element("article", `approval-card plain tone-${meta.tone}`);
+  card.dataset.approval = id;
+  cardEntries.set(card, { entry, context: "" });
+
+  if (status !== "pending") {
+    card.append(element("p", "approval-settled", settledLine(status, entry)));
+    return card;
+  }
+  card.append(element("h3", "approval-title", humanHeadline(entry)));
+  const project = conversationProject(entry.conversation_id);
+  if (project) card.append(element("p", "approval-where", project));
+  if (entry.question) card.append(element("p", "approval-question", entry.question));
+  // The command (unless it is a look's) and the folder's name stay on the card; the full path waits under «Detalles».
+  const command = cardCommand(entry);
+  if (command) card.append(element("pre", "approval-command", command));
+  const folder = folderName(entry.cwd);
+  if (folder) {
+    const where = element("p", "approval-where", `Carpeta: ${folder}`);
+    where.title = entry.cwd;
+    card.append(where);
+  }
+  const risk = riskNote(entry);
+  if (risk) card.append(element("p", "approval-note", risk));
+
+  const ttl = element("span", "approval-ttl", isChecking(entry, now) ? CHECKING_TEXT : "");
+  ttl.dataset.expires = entry.expires_at || "";
+  card.append(plainActions(entry, !mine.busy && !isChecking(entry, now), ttl));
+  if (mine.forbidden) card.append(forbiddenNote());
+  const details = plainDetails(entry);
+  if (details) card.append(details);
+  return card;
+}
+
+// Mail and agenda cards keep their own layout: the checklist, the digest and the four buttons.
+// `context` is the conversation the request came from; it is kept with the card
+// so a redraw does not lose it.
+function renderMailCard(entry, now = Date.now(), context = "") {
+  const id = entry.id;
+  const mine = localFor(id);
+  const status = resolvedStatus(entry, mine);
+  const meta = statusMeta(status, entry);
   const card = element("article", `approval-card tone-${meta.tone}`);
   card.dataset.approval = id;
   cardEntries.set(card, { entry, context });
@@ -125,8 +224,9 @@ export function renderApprovalCard(entry, now = Date.now(), context = "") {
     cwd.title = entry.cwd;
     chips.append(cwd);
   }
-  chips.append(chip(riskLabel(entry.risk), `risk risk-${entry.risk || "unknown"}`));
-  if (entry.escalated_from) chips.append(chip("te lo pasa Alfred", "level"));
+  const badge = riskBadge(entry);
+  if (badge) chips.append(chip(badge, `risk risk-${entry.risk}`));
+  if (entry.escalated_from) chips.append(chip("Lo pidió Alfred", "level"));
   card.append(chips);
   if (isMailSend(entry) && entry.details) card.append(mailDigest(entry.details));
 
@@ -145,15 +245,9 @@ export function renderApprovalCard(entry, now = Date.now(), context = "") {
   if (mine.forbidden) card.append(forbiddenNote());
   if (status === "pending") card.append(actionsRow(entry, status, mine));
   else if (status === "expired") card.append(element("p", "approval-result", "Se agotó el tiempo: no se ejecutó."));
-  else card.append(element("p", "approval-result", resultText(status)));
+  else card.append(element("p", "approval-result", resultText(status, entry)));
 
   return card;
-}
-
-function resultText(status) {
-  if (status === "approved" || status === "consumed") return "Permitida una vez. Solo esta acción.";
-  if (status === "denied") return "Denegada. El agente no la ejecutó.";
-  return statusMeta(status).label;
 }
 
 // A host approval of the operator's level is a card. Anything decided below him
@@ -183,10 +277,12 @@ function lineDetail(entry, meta) {
 
 // One timeline row (`kind=approval`) for an approval decided below the operator.
 export function renderApprovalLine(entry) {
-  if (!entry || !entry.ref_id) return null;
+  // A policy decision needed no answer from the operator: it is not on his thread, folded or not.
+  if (!entry || !entry.ref_id || isPolicyLine(entry) || isWaitingLine(entry.summary)) return null;
   const meta = statusMeta(entry.status);
   const line = element("details", `approval-line tone-${meta.tone}`);
   line.dataset.approval = entry.ref_id;
-  line.append(element("summary", "approval-line-summary", entry.summary || meta.label), lineDetail(entry, meta));
+  const words = lineSummary(entry.summary, entry.ref_id) || meta.label;
+  line.append(element("summary", "approval-line-summary", words), lineDetail(entry, meta));
   return line;
 }

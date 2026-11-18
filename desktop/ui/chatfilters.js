@@ -1,32 +1,49 @@
 import { $, invoke, toast } from "./core.js";
 import { chipName, chipsFor, filterArgs } from "./chat-filter-model.js";
 
-// The chips above the history: one button per filter, pressed when it is the
-// one shown. The row is hidden when the host has no counts route.
+// The history filter: one discreet control that shows the filter in use, and a
+// small menu with the three choices and their counts. The row is hidden when the
+// host has no counts route. The menu is built once per render; its open state
+// lives in the DOM so a redraw never closes it by surprise.
 export function renderFilters(chat) {
   const bar = $("chat-filters");
   const chips = chipsFor(chat.counts);
   bar.classList.toggle("hidden", !chips.length);
-  bar.replaceChildren();
+  const current = chips.find((chip) => chip.id === chat.filter) || chips[0];
+  $("chat-filter-label").textContent = current ? current.label : "Todos";
+  $("chat-filter-toggle").classList.toggle("is-filtered", chat.filter !== "all");
+  const menu = $("chat-filter-menu");
+  menu.replaceChildren();
+  if (!chips.length) setFilterMenu(false);
   for (const chip of chips) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "chat-chip";
-    button.dataset.filter = chip.id;
-    button.setAttribute("aria-pressed", String(chat.filter === chip.id));
-    button.setAttribute("aria-label", chipName(chip));
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "chat-filter-item";
+    item.setAttribute("role", "menuitemradio");
+    item.setAttribute("aria-checked", String(chat.filter === chip.id));
+    item.dataset.filter = chip.id;
+    item.setAttribute("aria-label", chipName(chip));
     const label = document.createElement("span");
     label.textContent = chip.label;
-    button.append(label);
+    item.append(label);
     if (chip.text) {
       const count = document.createElement("span");
-      count.className = "chat-chip-count";
+      count.className = "chat-filter-count";
       count.setAttribute("aria-hidden", "true");
       count.textContent = chip.text;
-      button.append(count);
+      item.append(count);
     }
-    bar.append(button);
+    menu.append(item);
   }
+}
+
+export function setFilterMenu(open) {
+  $("chat-filter-menu").classList.toggle("hidden", !open);
+  $("chat-filter-toggle").setAttribute("aria-expanded", String(open));
+}
+
+export function filterMenuOpen() {
+  return !$("chat-filter-menu").classList.contains("hidden");
 }
 
 // The numbers of the chips and the rows of the chosen filter come from the

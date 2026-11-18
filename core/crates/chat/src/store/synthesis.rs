@@ -1,12 +1,49 @@
 //! Alfred's coalesced synthesis: one turn per batch of finished delegations.
 
-use rusqlite::params;
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::error::ChatError;
 use crate::id;
 use crate::model::{RunState, Turn};
 use crate::model_team::SynthesisRow;
 use crate::schema;
+
+/// The approvals the operator denied for this delegation or for one it delegated.
+const DENIED_BY_OPERATOR: &str = "FROM approval
+    WHERE status = 'denied' AND decider_kind = 'user'
+      AND (delegation_id = ?1 OR delegation_id IN (
+              SELECT id FROM delegation WHERE parent_id = ?1))";
+
+/// Whether the operator denied an approval of this delegation (see `DENIED_BY_OPERATOR`).
+pub(super) fn denied_by_operator(
+    connection: &Connection,
+    delegation_id: &str,
+) -> Result<bool, ChatError> {
+    let denied: i64 = connection.query_row(
+        &format!("SELECT COUNT(*) {DENIED_BY_OPERATOR}"),
+        [delegation_id],
+        |row| row.get(0),
+    )?;
+    Ok(denied > 0)
+}
+
+/// The words of the latest denial that has any (see `DENIED_BY_OPERATOR`).
+pub(super) fn operator_denial_reason(
+    connection: &Connection,
+    delegation_id: &str,
+) -> Result<Option<String>, ChatError> {
+    let reason = connection
+        .query_row(
+            &format!(
+                "SELECT operator_reason {DENIED_BY_OPERATOR} AND operator_reason IS NOT NULL
+                 ORDER BY decided_at DESC LIMIT 1"
+            ),
+            [delegation_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(reason)
+}
 
 impl super::ChatStore {
     pub fn pending_synthesis(&self, limit: usize) -> Result<Vec<SynthesisRow>, ChatError> {
@@ -70,6 +107,32 @@ impl super::ChatStore {
             message_id: first.result_message_id.clone(),
             text: text.to_string(),
         })
+    }
+
+    /// Whether the operator denied an approval of this delegation or of one it delegated.
+    pub fn delegation_denied_by_operator(&self, delegation_id: &str) -> Result<bool, ChatError> {
+        denied_by_operator(&self.lock(), delegation_id)
+    }
+
+    /// The words the operator wrote with his latest denial in this delegation, if he wrote any.
+    pub fn delegation_denial_reason(
+        &self,
+        delegation_id: &str,
+    ) -> Result<Option<String>, ChatError> {
+        operator_denial_reason(&self.lock(), delegation_id)
+    }
+
+    /// The host wrote the close of these rows itself: they are done, no turn is left.
+    pub fn mark_synthesis_done(&self, rows: &[SynthesisRow]) -> Result<(), ChatError> {
+        let connection = self.lock();
+        for row in rows {
+            connection.execute(
+                "UPDATE delegation_synthesis SET state = 'done', updated_at = ?1
+                  WHERE delegation_id = ?2 AND state = 'queued'",
+                params![schema::now(&connection)?, row.delegation_id],
+            )?;
+        }
+        Ok(())
     }
 
     pub fn skip_synthesis(&self, rows: &[SynthesisRow], reason: &str) -> Result<(), ChatError> {

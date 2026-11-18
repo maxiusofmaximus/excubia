@@ -5,16 +5,17 @@ import { $, app, invoke, toast } from "./core.js";
 import { errorMessage, stripTestMarkers } from "./format.js";
 import { formatWhen } from "./chatlist.js";
 import { openDetail } from "./detail.js";
-
-const STATUS = {
-  queued: { label: "En cola", tone: "queued" },
-  running: { label: "En curso", tone: "running" },
-  waiting: { label: "Esperando", tone: "waiting" },
-  done: { label: "Hecho", tone: "done" },
-  failed: { label: "Falló", tone: "failed" },
-  cancelled: { label: "Cancelado", tone: "cancelled" },
-  interrupted: { label: "Interrumpido", tone: "interrupted" },
-};
+import { saveRecipeFromDelegation } from "./recipes.js";
+import { chat } from "./chatstate.js";
+import {
+  cardState,
+  cardTask,
+  detailKicker,
+  finishedTasks,
+  projectName,
+  statusMeta,
+  taskRepeatsTitle,
+} from "./delegation-model.js";
 
 const REASON_TEXT = {
   delegation_timeout: "El turno de la delegación agotó el tiempo de espera.",
@@ -46,10 +47,6 @@ function cleanText(text) {
     .replace(/Ã/g, "");
 }
 
-export function statusMeta(status) {
-  return STATUS[status] || { label: status || "Sin estado", tone: "unknown" };
-}
-
 export function reasonText(reason) {
   if (!reason) return "";
   return REASON_TEXT[reason] || reason;
@@ -70,8 +67,7 @@ function shortId(id) {
   return id && id.length > 14 ? `${id.slice(0, 11)}…` : id || "sin id";
 }
 
-function statusChip(status) {
-  const meta = statusMeta(status);
+function statusChip(meta) {
   const chip = element("span", `delegation-status tone-${meta.tone}`);
   const dot = element("span", "delegation-dot");
   dot.setAttribute("aria-hidden", "true");
@@ -90,62 +86,31 @@ function action(label, kind, data, className = "btn ghost btn-small") {
 export function renderDelegationCard(entry, options = {}) {
   const id = delegationId(entry);
   const status = entry.status || "queued";
-  const meta = statusMeta(status);
-  const card = element("article", `delegation-card tone-${meta.tone}`);
+  const state = cardState(entry);
+  const active = ["queued", "running", "waiting"].includes(status);
+  const card = element("article", `delegation-card tone-${state.tone}`);
   card.dataset.delegation = id;
 
-  const head = element("div", "delegation-head");
-  const titleWrap = element("div", "delegation-title-wrap");
-  titleWrap.append(
-    element("p", "delegation-kicker", "DELEGACIÓN"),
-    element("h3", "delegation-title", cleanText(entry.title) || "Delegación del equipo"),
-  );
-  head.append(titleWrap, statusChip(status));
-  card.append(head);
-
-  const summary = element("p", "delegation-summary");
-  const text = ["failed", "cancelled", "interrupted"].includes(status)
-    ? reasonText(entry.summary)
-    : cleanText(entry.summary);
-  summary.textContent = text || "Sin resumen todavía.";
-  card.append(summary);
-
-  if (status === "running" || status === "queued") {
-    const progress = element("div", "delegation-progress");
-    progress.setAttribute("aria-hidden", "true");
-    progress.append(element("span"));
-    card.append(progress);
+  // One line: who, the short task, the state and «Ver detalle». The report, the ids and
+  // «Guardar como receta» wait in the detail, never on the card.
+  const line = element("div", "delegation-line");
+  const title = cleanText(entry.title) || "Delegación del equipo";
+  const titleNode = element("span", "delegation-title", title);
+  titleNode.title = title;
+  line.append(titleNode);
+  const task = active ? cardTask(cleanText(entry.summary)) : "";
+  if (task && !taskRepeatsTitle(task, title)) {
+    const what = element("span", "delegation-what", task);
+    what.title = task;
+    line.append(what);
   }
-
-  const metaLine = element("div", "delegation-meta");
-  metaLine.append(element("code", null, shortId(id)));
-  if (entry.pane_id) metaLine.append(element("span", null, entry.pane_id));
-  if (entry.attention >= 3) metaLine.append(element("span", "delegation-attention", "requiere atención"));
-  metaLine.append(element("span", null, formatWhen(entry.created_at)));
-  card.append(metaLine);
-
-  const actions = element("div", "delegation-actions");
-  if (entry.pane_id) {
-    actions.append(action("Abrir agente", "agent", { pane: entry.pane_id }));
-  }
-  actions.append(
-    action(
-      status === "done" ? "Ver resultado completo" : "Ver detalle",
-      "detail",
-      { delegation: id },
-      "delegation-link",
-    ),
-  );
-  if (status === "done") {
-    actions.append(action("Guardar como receta", "save-recipe", { delegation: id }, "btn ghost btn-small"));
-  }
-  const active = ["queued", "running", "waiting"].includes(status);
+  line.append(statusChip(state));
+  line.append(action("Ver detalle", "detail", { delegation: id }, "delegation-link"));
   if (active) {
-    actions.append(
-      action("Cancelar", "cancel", { delegation: id }, "btn ghost btn-small delegation-cancel"),
-    );
+    line.append(action("Cancelar", "cancel", { delegation: id }, "delegation-link delegation-cancel"));
   }
-  card.append(actions);
+  if (entry.attention >= 3) line.append(element("span", "delegation-attention", "Requiere atención"));
+  card.append(line);
 
   if (options.cancelTarget === id) {
     const confirm = element("div", "delegation-confirm");
@@ -181,6 +146,17 @@ function detailSection(title, body) {
   return section;
 }
 
+// The project, pane and id are for a support question, not for reading the task: they stay folded.
+function internalDetails(delegation) {
+  const box = element("details", "delegation-internal");
+  box.append(element("summary", null, "Datos internos ▸"));
+  const home = chat.home && chat.home.bootstrap ? chat.home.bootstrap : null;
+  const project = projectName(home ? home.projects : [], delegation.project_id);
+  if (project) box.append(detailRow("Proyecto", project));
+  box.append(detailRow("Panel", delegation.pane_id || "sin panel"), detailRow("Identificador", delegation.id));
+  return box;
+}
+
 function renderDetail(view) {
   const detail = view.detail;
   const delegation = detail.delegation;
@@ -188,9 +164,9 @@ function renderDetail(view) {
     ? cleanText(detail.card.title)
     : `${delegation.from_name} pidió a ${delegation.to_name}`;
   $("delegation-detail-title").textContent = title;
-  $("delegation-detail-kicker").textContent = `Delegación · profundidad ${delegation.depth}`;
+  $("delegation-detail-kicker").textContent = detailKicker();
   const status = $("delegation-detail-status");
-  const chip = statusChip(delegation.state);
+  const chip = statusChip(statusMeta(delegation.state));
   chip.id = "delegation-detail-status";
   status.replaceWith(chip);
 
@@ -200,9 +176,6 @@ function renderDetail(view) {
     detailRow("De", delegation.from_name),
     detailRow("A", delegation.to_name),
     detailRow("Estado", statusMeta(delegation.state).label),
-    detailRow("Proyecto", delegation.project_id || "sin proyecto"),
-    detailRow("Panel", delegation.pane_id || "sin panel"),
-    detailRow("Identificador", delegation.id),
   );
   const reason = view.reason_text || reasonText(delegation.reason);
   if (reason) {
@@ -218,17 +191,17 @@ function renderDetail(view) {
   const result = detail.result_message ? cleanText(detail.result_message.body_md) : "";
   body.append(
     detailSection(
-      "Resultado completo",
+      "Resultado",
       result
         ? element("pre", "delegation-result", result)
-        : element("p", "delegation-muted", "El PC no guardó un resultado para esta delegación."),
+        : element("p", "delegation-muted", "Sin resultado guardado todavía."),
     ),
   );
 
   if (detail.children.length) {
     const list = element("div", "delegation-children");
     for (const child of detail.children) {
-      const button = element("button", "delegation-child", `Delegación hija · profundidad ${child.depth}`);
+      const button = element("button", "delegation-child", "Subtarea");
       button.type = "button";
       button.dataset.openDelegation = child.id;
       button.append(element("code", null, shortId(child.id)));
@@ -244,11 +217,16 @@ function renderDetail(view) {
       ] || detail.synthesis.state;
     body.append(detailSection("Resumen de Alfred", element("p", null, synthesis)));
   }
+  body.append(internalDetails(delegation));
 
   const pane = delegation.pane_id || (detail.card ? detail.card.pane_id : null);
   const agentButton = $("delegation-detail-agent");
   agentButton.classList.toggle("hidden", !pane);
   agentButton.dataset.pane = pane || "";
+  // «Guardar como receta» lives here, not on the card, and only a finished job can become one.
+  const recipe = $("delegation-detail-recipe");
+  recipe.classList.toggle("hidden", delegation.state !== "done");
+  recipe.dataset.delegation = delegation.id;
   $("delegation-detail").dataset.delegation = delegation.id;
 }
 
@@ -278,8 +256,33 @@ export function installDelegationHandlers() {
       openDetail(pane);
     }
   });
+  $("delegation-detail-recipe").addEventListener("click", () => {
+    const id = $("delegation-detail-recipe").dataset.delegation;
+    $("delegation-detail").close();
+    if (id) saveRecipeFromDelegation(id);
+  });
   $("delegation-detail-body").addEventListener("click", (event) => {
     const button = event.target.closest("[data-open-delegation]");
     if (button) openDelegationDetail(button.dataset.openDelegation);
   });
+}
+// The Equipo panel's finished tasks: each row is its title, its state (a denial reads «No se hizo»)
+// and «Ver detalle», which the thread no longer shows once a task is done.
+export function paintFinishedTasks(entries) {
+  const items = finishedTasks(entries);
+  $("side-finished").classList.toggle("hidden", !items.length);
+  $("side-finished-list").replaceChildren(...items.map(finishedRow));
+}
+
+function finishedRow(entry) {
+  const row = element("div", "side-finished-row");
+  const title = cleanText(entry.title) || "Delegación del equipo";
+  const name = element("span", "side-finished-title", title);
+  name.title = title;
+  row.append(
+    name,
+    statusChip(cardState(entry)),
+    action("Ver detalle", "detail", { delegation: delegationId(entry) }, "delegation-link"),
+  );
+  return row;
 }

@@ -321,6 +321,10 @@
   flex: 1;
 }
 
+.thread-title > div {
+  min-width: 0;
+}
+
 .thread-title h1 {
   overflow: hidden;
   font-size: 17px;
@@ -341,11 +345,8 @@
 
 .thread-actions {
   display: flex;
+  flex: none;
   gap: 8px;
-}
-
-.narrow-only {
-  display: none;
 }
 
 .chat-banner {
@@ -463,12 +464,6 @@
   font-size: 11px;
 }
 
-.side-company {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .side-section h3 {
   margin: 0 0 8px;
   color: var(--muted);
@@ -533,12 +528,26 @@
   grid-template-columns: 264px minmax(0, 1fr) 52px;
 }
 
+/* ☰ folds the history on wide windows: its column goes, the thread takes the room. */
+.chat-shell.history-off .history {
+  display: none;
+}
+
+.chat-shell.history-off {
+  grid-template-columns: minmax(0, 1fr) 304px;
+}
+
+.chat-shell.history-off.side-collapsed {
+  grid-template-columns: minmax(0, 1fr) 52px;
+}
+
 .side-collapsed .side-body {
   display: none;
 }
 
 .side-collapsed .side {
   align-items: center;
+  overflow: hidden;
 }
 
 .side-collapsed .side-head {
@@ -546,17 +555,23 @@
   gap: 10px;
   padding: 12px 0;
   border-bottom: 0;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
 }
 
-.side-collapsed .side-toggle {
-  transform: rotate(180deg);
-  writing-mode: initial;
-}
-
+/* Folded, the team is one icon button named «Equipo»; the title is not drawn sideways. */
 .side-collapsed .side-head h2 {
-  letter-spacing: 0.16em;
+  display: none;
+}
+
+.side-toggle-icon {
+  display: none;
+}
+
+.side-collapsed .side-toggle-icon {
+  display: block;
+}
+
+.side-collapsed .side-toggle-arrow {
+  display: none;
 }
 
 /* -- menu ---------------------------------------------------------------- */
@@ -609,6 +624,10 @@
     grid-template-columns: 248px minmax(0, 1fr);
   }
 
+  .chat-shell.history-off {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .side {
     display: none;
   }
@@ -642,12 +661,12 @@
     transform: none;
   }
 
-  .thread {
-    flex: 1;
+  .chat-shell.history-off .history {
+    display: flex;
   }
 
-  .narrow-only {
-    display: inline-grid;
+  .thread {
+    flex: 1;
   }
 
   .thread-head {
@@ -659,43 +678,87 @@
   }
 }
 
-/* History chips: the host filters, the counts are its own. */
+/* The history filter: one control that names the filter in use, and its menu. */
 .chat-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 12px 8px;
+  position: relative;
+  padding: 0 6px 10px;
 }
 
-.chat-chip {
+.chat-filter-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text-2);
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
 }
 
-.chat-chip[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+.chat-filter-toggle:hover,
+.chat-filter-toggle[aria-expanded="true"] {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.chat-filter-toggle.is-filtered {
   color: var(--accent-text);
 }
 
-.chat-chip-count {
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--raised-2);
+.chat-filter-caret {
+  font-size: 10px;
+}
+
+.chat-filter-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% - 4px);
+  left: 6px;
+  min-width: 200px;
+  padding: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.chat-filter-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-filter-item:hover,
+.chat-filter-item:focus-visible {
+  background: var(--raised);
+  color: var(--text);
+  outline: none;
+}
+
+.chat-filter-item[aria-checked="true"] {
+  color: var(--accent-text);
+}
+
+.chat-filter-count {
+  color: var(--muted);
   font-family: var(--mono);
   font-size: 10.5px;
-  text-align: center;
 }
 
 /* The bar over the composer names the message the next send answers. */
@@ -759,7 +822,6 @@
   cursor: default;
 }
 
-.chat-chip:focus-visible,
 .chat-reply-cancel:focus-visible,
 .quick-reply:focus-visible,
 .bubble-menu button:focus-visible {

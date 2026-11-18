@@ -1,5 +1,6 @@
 import { app, $, invoke, toast } from "./core.js";
 import { renderHistory, renderSide } from "./chatlist.js";
+import { paintFinishedTasks } from "./delegations.js";
 import { busySeconds, renderThread } from "./chatthread.js";
 import { setBootstrap } from "./approval-model.js";
 import { LAST_KEY, loadCache, saveCache } from "./chatcache.js";
@@ -57,13 +58,17 @@ export function renderChat() {
   renderThread(chat);
   hydrateAttachments();
   renderSide(chat, app.state ? app.state.agents : []);
+  paintFinishedTasks(chat.entries);
   renderBanner();
   renderComposer();
   renderJump();
   renderFilters(chat);
   renderReplyBar(chat, alfredName());
   ensureBusyTicker();
-  $("btn-archived").textContent = `Archivados (${chat.home ? chat.home.archived.length : 0})`;
+  // The archive link is there only when something is archived (or the list shows it).
+  const archived = chat.home ? chat.home.archived.length : 0;
+  $("btn-archived").textContent = `Archivados (${archived})`;
+  $("btn-archived").classList.toggle("hidden", archived === 0 && !chat.showArchived);
   $("btn-archived").classList.toggle("is-active", chat.showArchived);
 }
 

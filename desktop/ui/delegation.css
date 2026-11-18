@@ -37,11 +37,10 @@
   --delegation-tone: var(--accent);
   align-self: stretch;
   max-width: 94%;
-  padding: 12px 14px 10px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--delegation-tone);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--delegation-tone) 5%, var(--surface));
+  padding: 9px 12px;
+  border-left: 2px solid var(--delegation-tone);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
 }
 
 .delegation-card.tone-queued {
@@ -76,32 +75,45 @@
   --delegation-tone: var(--unknown);
 }
 
-.delegation-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.delegation-title-wrap {
-  min-width: 0;
-}
-
-.delegation-kicker {
-  margin: 0 0 3px;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-
+/* The title and the task keep their whole words on up to two lines; the full text is in the title attribute. */
 .delegation-title {
-  margin: 0;
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
   color: var(--text);
-  font-size: 13.5px;
-  font-weight: 650;
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* The title, then the task, then the state and «Ver detalle». */
+.delegation-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.delegation-what {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.delegation-line > .delegation-link,
+.delegation-line > .delegation-attention {
+  flex: none;
+  white-space: nowrap;
 }
 
 .delegation-status {
@@ -146,61 +158,12 @@
   background: var(--done);
 }
 
-.delegation-summary {
-  margin: 7px 0 0;
-  color: var(--text-2);
-  font-size: 12.5px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.delegation-progress {
-  position: relative;
-  height: 3px;
-  margin-top: 10px;
-  overflow: hidden;
-  border-radius: 99px;
-  background: var(--line);
-}
-
-.delegation-progress span {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 42%;
-  border-radius: inherit;
-  background: var(--delegation-tone);
-  animation: delegation-progress 1.8s ease-in-out infinite;
-}
-
-.delegation-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.delegation-meta code {
-  font-family: var(--mono);
-  font-size: 9.5px;
-}
-
-.delegation-attention {
-  color: var(--warning);
-  font-weight: 600;
-}
-
 .delegation-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  gap: 12px;
+  margin-top: 4px;
 }
 
 .delegation-actions .btn {
@@ -208,20 +171,29 @@
 }
 
 .delegation-link {
-  margin-left: auto;
-  border-color: transparent;
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: var(--accent-text);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
   text-decoration: underline;
   text-underline-offset: 3px;
+  cursor: pointer;
 }
 
 .delegation-link:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: var(--accent-text);
+  color: var(--text);
 }
 
-.delegation-cancel {
+.delegation-link:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Quiet like «Ver detalle»: a click only asks to confirm, and red on a look made it read as a danger. */
+.delegation-cancel:hover {
   color: var(--blocked);
 }
 
@@ -274,6 +246,21 @@
   margin-top: 14px;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+.delegation-internal {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.delegation-internal > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.delegation-internal .delegation-detail-row {
+  margin-top: 6px;
 }
 
 .delegation-detail-row {
@@ -410,21 +397,6 @@
   white-space: nowrap;
 }
 
-.project-state {
-  flex: none;
-  color: var(--muted);
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.project-root {
-  margin: 2px 0 7px;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 9.5px;
-}
-
 .project-team {
   display: flex;
   flex-direction: column;
@@ -436,28 +408,62 @@
   padding: 3px 4px;
 }
 
-.role-badge {
-  flex: none;
-  padding: 1px 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 8.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .side-empty-project {
   margin: 0 2px 6px;
   color: var(--muted);
   font-size: 11px;
 }
+/* «Tareas terminadas ▸» under the Equipo panel: folded; each row is a title, a state and «Ver detalle». */
+.side-finished > summary {
+  width: fit-content;
+  margin-bottom: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  list-style: none;
+  text-transform: uppercase;
+}
 
-@keyframes delegation-progress {
-  0% {
-    left: -42%;
-  }
-  100% {
-    left: 100%;
-  }
+.side-finished > summary::-webkit-details-marker {
+  display: none;
+}
+
+.side-finished > summary::after {
+  display: inline-block;
+  margin-left: 6px;
+  content: "▸";
+  transition: transform 150ms ease;
+}
+
+.side-finished[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.side-finished[open] > summary {
+  margin-bottom: 8px;
+}
+
+.side-finished > summary:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.side-finished-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.side-finished-title {
+  flex: 1 1 100px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

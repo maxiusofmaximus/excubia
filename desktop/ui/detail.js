@@ -1,6 +1,7 @@
 import { app, $, invoke, toast } from "./core.js";
 import { showView } from "./nav.js";
-import { agentTitle, errorMessage, statusLabel, stripAnsi } from "./format.js";
+import { agentTitle, displayPath, errorMessage, statusLabel, stripAnsi } from "./format.js";
+import { plainOutput } from "./output-model.js";
 
 let stopping = false;
 
@@ -11,19 +12,24 @@ function setResult(text, ok) {
   element.classList.toggle("is-error", ok === false);
 }
 
+const ARROW_KEYS = new Set(["up", "down", "left", "right"]);
+
 export function renderComposer(agent) {
   const restored = Boolean(agent.restored);
   const ready = agent.status === "blocked" && !restored;
   $("composer").classList.toggle("is-ready", ready);
+  // The line and the arrow keys exist only while the agent waits for an answer.
   $("composer-hint").textContent = restored
     ? "El agente terminó; inicia una nueva conversación."
     : ready
       ? "El agente está esperando; tu respuesta llega al terminal."
-      : `Disponible cuando el agente está bloqueado (ahora: ${statusLabel(agent.status).toLowerCase()}).`;
+      : "";
+  $("composer-hint").classList.toggle("hidden", !restored && !ready);
   $("respond-text").disabled = !ready;
   $("btn-respond").disabled = !ready;
   for (const button of document.querySelectorAll(".quick-keys .key")) {
     button.disabled = !ready;
+    if (ARROW_KEYS.has(button.dataset.key)) button.classList.toggle("hidden", !ready);
   }
 }
 
@@ -93,14 +99,22 @@ function hydrateDetailHeader(agent) {
   $("detail-dot").className = `status-dot status-${agent.status}`;
   $("detail-status").className = `status-label status-${agent.status}`;
   $("detail-status").textContent = statusLabel(agent.status);
+  // «Restaurado» waits in the ⋯ menu, not the header. A state the host could not classify shows
+  // there only while the agent waits on the operator, which an unclassified state never is.
+  const known = statusLabel(agent.status) !== statusLabel("unknown");
+  const waiting = agent.status === "blocked" && !agent.restored;
+  $("detail-status").classList.toggle("hidden", !known);
+  $("detail-unknown").textContent = known ? "" : statusLabel(agent.status);
+  $("detail-unknown").classList.toggle("hidden", known || !waiting);
   $("detail-restored").classList.toggle("hidden", !agent.restored);
+  $("detail-menu").classList.toggle("hidden", !agent.restored);
   $("btn-new-here").classList.toggle("hidden", !agent.restored);
   $("btn-stop").classList.toggle("hidden", Boolean(agent.restored));
+  // What the operator can use: the CLI when it is known and the folder. The panel and
+  // workspace ids are the host's own names, not something a person reads.
   const meta = [
-    agent.agent,
-    agent.pane_id,
-    agent.workspace_id,
-    agent.cwd,
+    agent.agent && agent.agent !== "unknown" ? agent.agent : null,
+    displayPath(agent.cwd),
     agent.can_resume ? "reanudable" : null,
   ]
     .filter(Boolean)
@@ -144,7 +158,7 @@ async function loadOutput() {
     app.current = detail.agent;
     hydrateDetailHeader(detail.agent);
     renderComposer(detail.agent);
-    const clean = stripAnsi(detail.output || "").trimEnd();
+    const clean = plainOutput(stripAnsi(detail.output || "")).trimEnd();
     $("detail-output").classList.remove("is-loading");
     $("detail-output").textContent = clean || "El agente no ha producido salida todavía.";
     const time = new Date(detail.fetched_at * 1000).toLocaleTimeString("es-ES", {

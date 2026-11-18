@@ -27,7 +27,7 @@ const rowKey = (event) => `${event.id}@${occurrenceOf(event)}`;
 export function createCalendarList({ onOpen }) {
   const list = $("calendar-list");
   const status = $("calendar-status");
-  const more = $("calendar-more");
+  const more = $("calendar-load-more");
   let zone = null;
   let range = "thirty";
   let anchor = null;

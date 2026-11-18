@@ -12,8 +12,9 @@ import {
   hiredIn,
   isHired,
   joinLabels,
+  leaderCount,
   readStateText,
-  teamCountLabel,
+  teamSubtitle,
 } from "../ui/hires-model.js";
 
 const areas = [
@@ -76,10 +77,19 @@ test("una contratación en un área que el catálogo no conoce conserva su grupo
   assert.equal(groups[0].label, "legal");
 });
 
-test("el contador dice «N en el equipo · M activos» con singular y plural", () => {
-  assert.equal(teamCountLabel(12, 0), "12 en el equipo · 0 activos");
-  assert.equal(teamCountLabel(3, 1), "3 en el equipo · 1 activo");
-  assert.equal(teamCountLabel(3, 2), "3 en el equipo · 2 activos");
+test("el subtítulo cuenta lo que lista la vista: contratados y agentes en marcha", () => {
+  assert.equal(teamSubtitle(0, 1), "1 en marcha");
+  assert.equal(teamSubtitle(1, 0), "1 contratado");
+  assert.equal(teamSubtitle(2, 0), "2 contratados");
+  assert.equal(teamSubtitle(0, 3), "3 en marcha");
+  assert.equal(teamSubtitle(2, 1), "2 contratados · 1 en marcha");
+  assert.equal(teamSubtitle(0, 0), "Sin nadie contratado todavía");
+});
+
+test("un proyecto con líder cuenta como equipo; sin líder no cuenta", () => {
+  assert.equal(leaderCount([{ lead: { agent_id: "ag_lead" } }, { lead: null }, {}]), 1);
+  assert.equal(leaderCount(undefined), 0);
+  assert.equal(leaderCount([{ lead: { agent_id: "a" } }, { lead: { agent_id: "a" } }, { lead: { agent_id: "b" } }]), 2);
 });
 
 test("una lectura que el host rechaza con 403 es esperar aprobación, no un fallo de conexión", () => {

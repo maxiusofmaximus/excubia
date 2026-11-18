@@ -34,7 +34,7 @@ export function createDelegations({ render, refresh }) {
       toast(
         outcome.cancelled.length
           ? `${outcome.cancelled.length} delegación(es) cancelada(s)`
-          : "No había delegaciones activas",
+          : "No había tareas en curso",
       );
       await refresh();
     } catch (error) {

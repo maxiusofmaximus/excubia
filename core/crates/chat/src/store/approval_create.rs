@@ -92,11 +92,22 @@ impl super::ChatStore {
     /// is the identity of the action: a digest that already exists is never
     /// approved twice.
     pub fn create_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.create_approval_with_headline(new, None)
+    }
+
+    /// The same creation, with the tool's one-line description of the action, which
+    /// is stored with the row. The caller bounds it (`headline_of`).
+    pub fn create_approval_with_headline(
+        &self,
+        new: NewApproval,
+        headline: Option<&str>,
+    ) -> Result<Approval, ChatError> {
         // A mail action is placed by the host with its own category; a caller cannot file one.
         if MAIL_ACTIONS.contains(&new.tool.as_str()) {
             return Err(ChatError::ApprovalScopeDenied);
         }
-        self.create_placed(new, None)
+        let approval = self.create_placed(new, None, headline)?;
+        self.apply_task_grant(approval)
     }
 
     /// Create an approval that reaches outside the workspace (MAIL1D §0). Its
@@ -107,7 +118,7 @@ impl super::ChatStore {
         // Each attach is its own question: the same file may go to another draft, or be
         // asked again after the card expired unanswered.
         self.hold_mail_digest(&new.action_digest, true)?;
-        self.create_placed(new, Some(Category::OutsideWorkspace))
+        self.create_placed(new, Some(Category::OutsideWorkspace), None)
     }
 
     /// Create the question for deleting user data, such as a note (F2). Forced to
@@ -115,7 +126,7 @@ impl super::ChatStore {
     /// never the lead.
     pub fn create_delete_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
         self.expire_now()?;
-        self.create_placed(new, Some(Category::DeleteUserData))
+        self.create_placed(new, Some(Category::DeleteUserData), None)
     }
 
     /// Create the question for sending one mail (MAIL2A). Forced to `MailSend`,
@@ -142,7 +153,7 @@ impl super::ChatStore {
     /// Forced to `StyleRule`: only a device with APPROVE can let it through.
     pub fn create_style_rule_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
         self.expire_now()?;
-        self.create_placed(new, Some(Category::StyleRule))
+        self.create_placed(new, Some(Category::StyleRule), None)
     }
 
     fn create_mail_approval(
@@ -152,7 +163,7 @@ impl super::ChatStore {
     ) -> Result<Approval, ChatError> {
         self.expire_now()?;
         self.hold_mail_digest(&new.action_digest, false)?;
-        self.create_placed(new, Some(category))
+        self.create_placed(new, Some(category), None)
     }
 
     /// Decides what an earlier mail question on the same content leaves behind
@@ -188,6 +199,7 @@ impl super::ChatStore {
         &self,
         new: NewApproval,
         reach: Option<Category>,
+        headline: Option<&str>,
     ) -> Result<Approval, ChatError> {
         self.expire_now()?;
         for _ in 0..MAX_JUDGEMENTS {
@@ -196,7 +208,7 @@ impl super::ChatStore {
                 Admission::Open(basis) => basis,
             };
             let judged = self.judge(&basis.assessment, &new);
-            if let Some(approval_id) = self.place(&new, &basis, judged, reach)? {
+            if let Some(approval_id) = self.place(&new, &basis, judged, reach, headline)? {
                 return self.approval(&approval_id);
             }
         }
@@ -271,6 +283,7 @@ impl super::ChatStore {
         basis: &Basis,
         judged: Option<(Judgement, bool)>,
         reach: Option<Category>,
+        headline: Option<&str>,
     ) -> Result<Option<String>, ChatError> {
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
@@ -310,8 +323,8 @@ impl super::ChatStore {
             new,
             &basis.context,
             &placement,
-            &iso(expires_ms),
-            &now,
+            (&iso(expires_ms), &now),
+            headline,
         )?;
         if let Some(rule) = &placement.rule {
             let decider = Decider {
@@ -380,8 +393,8 @@ fn insert_approval(
     new: &NewApproval,
     context: &ApprovalContext,
     placement: &Placement,
-    deadline: &str,
-    now: &str,
+    (deadline, now): (&str, &str),
+    headline: Option<&str>,
 ) -> Result<(), ChatError> {
     let paths = serde_json::to_string(&new.paths).map_err(ChatError::from)?;
     let payload = new.payload_redacted.as_ref().map(|value| value.to_string());
@@ -397,9 +410,9 @@ fn insert_approval(
              pane_id, kind, tool, summary, cwd, paths_json, risk, action_digest,
              payload_redacted, status, scope, expires_at, decided_at, decider_kind,
              decider_id, level, escalated_from, reason, level_expires_at, risk_score,
-             scorer_version, created_at, updated_at)
+             scorer_version, created_at, updated_at, headline)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-                 'once', ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?28)",
+                 'once', ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?28, ?29)",
         params![
             approval_id,
             company_id(transaction)?,
@@ -428,7 +441,8 @@ fn insert_approval(
             placement.level_expires_at,
             risk_score,
             scorer_version,
-            now
+            now,
+            headline
         ],
     )?;
     Ok(())

@@ -18,10 +18,10 @@ export function renderHeader() {
   });
   $("btn-chat-more").disabled = !chat.conversation;
   const state = connection();
-  let subtitle = `${alfred} · CTO`;
+  // The subtitle names the agent; it says more only while something is off or running.
+  let subtitle = alfred;
   if (chat.conversation && chat.conversation.archived) subtitle = `${alfred} · archivada`;
   else if (chat.waiting) subtitle = `${alfred} · ${openStep(chat) || "trabajando"}`;
-  else if (state.kind === "connected") subtitle = `${alfred} · en vivo`;
   else if (state.kind === "offline" || state.kind === "fatal") subtitle = `${alfred} · sin conexión`;
   else if (state.kind === "connecting") subtitle = `${alfred} · conectando…`;
   $("chat-subtitle").textContent = subtitle;
@@ -113,11 +113,6 @@ export function renderBanner() {
     element.classList.remove("hidden");
     return;
   }
-  if (chat.cacheOnly) {
-    const { element, text } = banner([]);
-    text.textContent = "Mostrando la última copia legible; aún no hay conexión con el PC.";
-    element.classList.remove("hidden");
-    return;
-  }
+  // The cached copy is not a reason for a banner: the offline banner above says when the PC is gone.
   $("chat-banner").classList.add("hidden");
 }

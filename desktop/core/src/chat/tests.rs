@@ -235,6 +235,24 @@ fn suggestions_quote_and_the_filter_flags_are_optional_on_the_wire() {
 }
 
 #[test]
+fn a_card_keeps_its_reason_on_the_way_to_the_shell() {
+    let denied: TimelineEntry = serde_json::from_value(serde_json::json!({
+        "seq": 3, "kind": "card", "status": "done", "reason": "operator_denied"
+    }))
+    .unwrap();
+    assert_eq!(denied.reason.as_deref(), Some("operator_denied"));
+    let sent = serde_json::to_value(&denied).unwrap();
+    assert_eq!(sent["reason"], "operator_denied");
+
+    let plain: TimelineEntry =
+        serde_json::from_value(serde_json::json!({"seq": 4, "kind": "card"})).unwrap();
+    assert!(serde_json::to_value(&plain)
+        .unwrap()
+        .get("reason")
+        .is_none());
+}
+
+#[test]
 fn the_progress_line_is_optional_on_the_conversation_and_absent_when_unset() {
     let plain: Conversation =
         serde_json::from_value(serde_json::json!({"id": "cnv_1", "title": "Plan"})).unwrap();

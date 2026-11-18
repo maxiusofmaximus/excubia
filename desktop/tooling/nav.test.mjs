@@ -35,14 +35,22 @@ test("child screens highlight their parent destination", () => {
   assert.equal(ownerOf("detail"), "agents");
 });
 
-test("the sidebar lists the eight destinations, once each, in order", () => {
+test("the sidebar lists the four destinations, once each, in order", () => {
   const block = html.match(/<nav id="app-nav"[\s\S]*?<\/nav>/)?.[0] ?? "";
   const listed = [...block.matchAll(/data-nav="([a-z]+)"/g)].map((match) => match[1]);
   assert.deepEqual(listed, DESTINATIONS);
-  assert.deepEqual(DESTINATIONS, [
-    "chat", "agents", "calendar", "notes", "contacts", "alerts", "devices", "settings",
-  ]);
+  assert.deepEqual(DESTINATIONS, ["chat", "agents", "agenda", "settings"]);
 });
+
+test("Agenda, Avisos and Dispositivos are reached from inside their destinations", () => {
+  for (const view of ["calendar", "notes", "contacts"]) assert.equal(ownerOf(view), "agenda");
+  for (const view of ["alerts", "devices"]) assert.equal(ownerOf(view), "settings");
+  assert.doesNotMatch(block(), /data-nav="(calendar|notes|contacts|alerts|devices)"/);
+});
+
+function block() {
+  return html.match(/<nav id="app-nav"[\s\S]*?<\/nav>/)?.[0] ?? "";
+}
 
 test("the duplicated per-view tab bars are gone", () => {
   assert.doesNotMatch(html, /class="nav-tabs"/);

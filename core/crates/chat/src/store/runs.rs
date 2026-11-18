@@ -3,7 +3,7 @@
 //! `failed` when the process ends without replying (or times out) and the host
 //! marks a surviving `queued`/`running` row `interrupted` at startup.
 
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::clock;
 use crate::error::ChatError;
@@ -18,6 +18,8 @@ const MAX_SUGGESTIONS: usize = 4;
 const MAX_SUGGESTION_CHARS: usize = 60;
 /// A progress line that arrives this soon after the accepted one is held back.
 const PROGRESS_WINDOW_MS: i64 = 5_000;
+/// The longest reply that the host's assignment line replaces.
+const MAX_ASSIGNMENT_REPLY_CHARS: usize = 600;
 
 /// What the store did with a progress line: kept, or held back by the window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,6 +47,54 @@ pub fn validate_suggestions(suggestions: &[String]) -> Result<(), ChatError> {
         }
     }
     Ok(())
+}
+
+/// Whether the operator denied an approval of the conversation after its last message
+/// from the user (the turn's own denials included, since the turn opens with that message).
+fn operator_denied_since_user_message(
+    connection: &Connection,
+    conversation_id: &str,
+) -> Result<bool, ChatError> {
+    let denied: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM approval
+          WHERE conversation_id = ?1 AND status = 'denied' AND decider_kind = 'user'
+            AND decided_at > COALESCE((
+                SELECT MAX(created_at) FROM message
+                 WHERE conversation_id = ?1 AND author_kind = 'user'), '')",
+        [conversation_id],
+        |row| row.get(0),
+    )?;
+    Ok(denied > 0)
+}
+
+/// The host's line for an Alfred turn that assigned work: «Pedido a {Nombre}: {título}.»,
+/// one line per delegation. `None` when nothing was assigned, the reply asks a question
+/// or it is longer than the line the host writes.
+fn assignment_reply(
+    connection: &Connection,
+    run_id: &str,
+    agent_id: &str,
+    reply: &str,
+) -> Result<Option<String>, ChatError> {
+    if reply.contains('?') || reply.chars().count() > MAX_ASSIGNMENT_REPLY_CHARS {
+        return Ok(None);
+    }
+    let mut statement = connection.prepare(
+        "SELECT t.name, d.task FROM delegation d
+           JOIN agent_seat t ON t.id = d.to_agent_id
+          WHERE d.turn_key = ?1 AND d.from_agent_id = ?2
+          ORDER BY d.rowid",
+    )?;
+    let lines = statement
+        .query_map(params![run_id, agent_id], |row| {
+            let name: String = row.get(0)?;
+            let task: String = row.get(1)?;
+            let title = crate::text::close_title(&task);
+            let stop = if title.ends_with('…') { "" } else { "." };
+            Ok(format!("Pedido a {name}: {title}{stop}"))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok((!lines.is_empty()).then(|| lines.join("\n")))
 }
 
 impl super::ChatStore {
@@ -101,9 +151,16 @@ impl super::ChatStore {
         attachment_ids: &[&str],
     ) -> Result<Message, ChatError> {
         validate_suggestions(suggestions)?;
+        let text = &crate::text::without_internal_ids(text);
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
         let info = run_info(&transaction, run_id)?;
+        // A turn that only assigned work is closed with the host's line, not the model's.
+        let host_line = assignment_reply(&transaction, run_id, &info.agent_id, text)?;
+        let text: &str = host_line.as_deref().unwrap_or(text.as_str());
+        // The operator refused an action here: the quick replies would offer it again.
+        let refused = operator_denied_since_user_message(&transaction, &info.conversation_id)?;
+        let suggestions: &[String] = if refused { &[] } else { suggestions };
         let now = schema::now(&transaction)?;
         let changed = transaction.execute(
             "UPDATE run SET state = 'completed', finished_at = ?1, reason = NULL
@@ -161,6 +218,7 @@ impl super::ChatStore {
     /// A question from `chat.ask_user`: it enters the timeline as agent data,
     /// but it is not a reply and does not close the run.
     pub fn append_agent_question(&self, run_id: &str, text: &str) -> Result<Message, ChatError> {
+        let text = &crate::text::without_internal_ids(text);
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
         let info = run_info(&transaction, run_id)?;

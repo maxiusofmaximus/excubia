@@ -6,6 +6,10 @@ use serde_json::Value;
 pub(super) struct CreateBody {
     pub(super) kind: String,
     pub(super) summary: String,
+    /// The tool's one-line description of the action (a shell command's `description`).
+    /// Optional and never a reason to refuse the approval: it is bounded, not checked.
+    #[serde(default)]
+    pub(super) headline: Option<String>,
     pub(super) action_digest: String,
     #[serde(default)]
     pub(super) tool: Option<String>,
@@ -37,6 +41,9 @@ pub(super) struct DecisionBody {
     pub(super) client_id: String,
     #[serde(default)]
     pub(super) scope: Option<String>,
+    /// The operator's words with a denial, passed on to the agent.
+    #[serde(default)]
+    pub(super) reason: Option<String>,
     /// The messages of a mail batch the owner leaves out (F2C1).
     #[serde(default)]
     pub(super) exclude: Vec<String>,

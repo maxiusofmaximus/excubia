@@ -7,15 +7,21 @@ import { avatarElement } from "./avatar.js";
 import { friendlyError } from "./friendly-error.js";
 import { errorState } from "./empty-state.js";
 import { currentDeviceId, grantCommand } from "./approval-model.js";
-import { activeHires, groupByArea, readStateText } from "./hires-model.js";
+import { activeHires, groupByArea, leaderCount, readStateText } from "./hires-model.js";
 import { installHireDialogs, openHireActions } from "./hire-dialogs.js";
 import { installHireSheet, renderHireSheet } from "./hire-sheet.js";
+import { chat } from "./chatstate.js";
 
 const team = { catalog: null, hires: [], canHire: false, readError: null };
 let afterChange = () => {};
 
 export function teamHired() {
   return activeHires(team.hires).length;
+}
+
+// The project leads of the bootstrap: they count as the team when nobody is hired.
+export function teamLeaders() {
+  return leaderCount(chat.home?.bootstrap?.projects);
 }
 
 export function teamSnapshot() {
@@ -113,16 +119,8 @@ function bodyBlocks() {
   if (team.readError) return [readErrorBlock(team.readError)];
   const blocks = [];
   if (!team.canHire) blocks.push(grantNote());
-  const groups = groupByArea(team.hires, team.catalog?.areas || []);
-  if (groups.length) {
-    blocks.push(...groups.map(groupBlock));
-  } else {
-    const empty = document.createElement("p");
-    empty.className = "hint";
-    empty.textContent =
-      "Todavía no has contratado a nadie. Alfred siempre está en tu equipo; contrata a quien necesites.";
-    blocks.push(empty);
-  }
+  // Nobody hired: the one empty sentence lives in «Tu equipo», so this list stays quiet.
+  blocks.push(...groupByArea(team.hires, team.catalog?.areas || []).map(groupBlock));
   return blocks;
 }
 

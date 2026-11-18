@@ -159,8 +159,15 @@ impl ChatStore {
             None => None,
         };
         let location = locate(project_root.as_deref(), new.cwd.as_deref(), &new.paths);
-        let category = reach
-            .or_else(|| classify(new.kind, &new.tool, new.payload_redacted.as_ref(), location));
+        let category = reach.or_else(|| {
+            classify(
+                new.kind,
+                &new.tool,
+                new.payload_redacted.as_ref(),
+                location,
+                project_root.as_deref(),
+            )
+        });
         let assessed = assess_risk(category, location);
         // A caller may ask for more risk than the host sees, never for less.
         let risk = new.risk.map_or(assessed, |asked| asked.max(assessed));

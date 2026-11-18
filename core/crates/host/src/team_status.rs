@@ -5,8 +5,8 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use excubia_chat::{
-    activity_of, status_of, Clock, HireLink, ProjectSummary, SeatActor, StatusApproval,
-    StatusDelegation, StatusFacts, SystemClock, TeamStatus, ToolError, ToolReply,
+    activity_of, status_of, Clock, DelegationState, HireLink, ProjectSummary, SeatActor,
+    StatusApproval, StatusDelegation, StatusFacts, SystemClock, TeamStatus, ToolError, ToolReply,
 };
 use excubia_state::{StatePayload, Status, TriageRow};
 use serde_json::{json, Value};
@@ -90,6 +90,16 @@ pub(super) fn overview(state: &StatePayload, facts: &StatusFacts) -> Value {
 
 fn panels(state: &StatePayload, facts: &StatusFacts) -> Value {
     let shown = &facts.projects[..facts.projects.len().min(OVERVIEW_ITEMS)];
+    let open: HashSet<&str> = facts
+        .delegations
+        .iter()
+        .map(|delegation| delegation.to_agent_id.as_str())
+        .collect();
+    let last: HashMap<&str, DelegationState> = facts
+        .latest
+        .iter()
+        .map(|delegation| (delegation.to_agent_id.as_str(), delegation.state))
+        .collect();
     let project_of: HashMap<&str, &str> = facts
         .panes
         .iter()
@@ -110,7 +120,7 @@ fn panels(state: &StatePayload, facts: &StatusFacts) -> Value {
         .iter()
         .map(|project| {
             let rows = by_project.get(project.id.as_str());
-            project_panels(project, rows.map_or(&[][..], Vec::as_slice))
+            project_panels(project, rows.map_or(&[][..], Vec::as_slice), &open, &last)
         })
         .collect();
     json!({
@@ -124,7 +134,12 @@ fn panels(state: &StatePayload, facts: &StatusFacts) -> Value {
     })
 }
 
-fn project_panels(project: &ProjectSummary, rows: &[&TriageRow]) -> Value {
+fn project_panels(
+    project: &ProjectSummary,
+    rows: &[&TriageRow],
+    open: &HashSet<&str>,
+    last: &HashMap<&str, DelegationState>,
+) -> Value {
     // Each turn of Alfred is a new session: the id here is how he names the project
     // to agent.spawn and delegation.assign, and the lead says whether anyone runs it.
     json!({
@@ -136,9 +151,38 @@ fn project_panels(project: &ProjectSummary, rows: &[&TriageRow]) -> Value {
             "name": lead.name,
             "status": lead.status,
             "running": lead.pane_id.is_some(),
+            "summary": lead_summary(
+                &lead.name,
+                open.contains(lead.agent_id.as_str()),
+                last.get(lead.agent_id.as_str()).copied(),
+            ),
         })),
         "counts": tally(rows.iter().copied()),
     })
+}
+
+/// The sentence Alfred repeats about a lead. It reads the lead's work, not its panel: a
+/// finished task closes the panel, and that must not read as «detenido».
+fn lead_summary(name: &str, open: bool, last: Option<DelegationState>) -> String {
+    if open {
+        return format!("{name} está trabajando en una tarea.");
+    }
+    match last {
+        Some(DelegationState::Done) => format!("{name} terminó la última tarea."),
+        Some(DelegationState::Failed) => format!("{name} no pudo terminar la última tarea."),
+        _ => format!("{name} no tiene tareas abiertas."),
+    }
+}
+
+/// The sentence a tool reply gives about one delegation, with the seat's name and no id.
+pub(super) fn delegation_sentence(name: &str, state: DelegationState) -> String {
+    match state {
+        DelegationState::Done => format!("{name} terminó."),
+        DelegationState::Queued | DelegationState::Running | DelegationState::Waiting => {
+            format!("{name} aún está con ello.")
+        }
+        _ => format!("{name} no pudo terminar."),
+    }
 }
 
 /// Panels per status, under the same keys `/v1/state` counts them with.
@@ -159,6 +203,7 @@ fn delegations(items: &[StatusDelegation]) -> Value {
             .map(|delegation| json!({
                 "id": delegation.id,
                 "state": delegation.state.as_str(),
+                "summary": delegation_sentence(&delegation.to_name, delegation.state),
                 "task": delegation.task,
                 "to": delegation.to_name,
             }))
@@ -185,7 +230,7 @@ fn approvals(items: &[StatusApproval]) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use excubia_chat::{ApprovalKind, DelegationState, PendingApproval};
+    use excubia_chat::{ApprovalKind, PendingApproval, SeatSummary};
 
     use super::*;
 
@@ -238,6 +283,7 @@ mod tests {
                 .map(|(pane, project)| (pane.to_string(), project.to_string()))
                 .collect(),
             delegations: Vec::new(),
+            latest: Vec::new(),
             approvals: Vec::new(),
             last_activity: None,
         }
@@ -314,6 +360,7 @@ mod tests {
             id: "dlg_1".to_string(),
             state: DelegationState::Running,
             task: "Revisa el informe".to_string(),
+            to_agent_id: "ag_ana".to_string(),
             to_name: "Ana".to_string(),
         });
         chat.approvals.push(approval(1));
@@ -363,6 +410,7 @@ mod tests {
                 id: format!("dlg_{index}"),
                 state: DelegationState::Queued,
                 task: "t".repeat(120),
+                to_agent_id: format!("ag_{index}"),
                 to_name: label.clone(),
             })
             .collect();
@@ -386,6 +434,110 @@ mod tests {
             finished_at: None,
             plan: None,
         }
+    }
+
+    /// A project whose lead is `name`, with or without a panel.
+    fn led(name: &str, pane: Option<&str>) -> ProjectSummary {
+        ProjectSummary {
+            lead: Some(SeatSummary {
+                agent_id: "ag_lead".to_string(),
+                name: name.to_string(),
+                status: "idle".to_string(),
+                uac_state: "unchecked".to_string(),
+                pane_id: pane.map(str::to_string),
+            }),
+            ..project("prj_a", "demo")
+        }
+    }
+
+    /// A delegation to the lead of `led`.
+    fn to_lead(id: &str, state: DelegationState) -> StatusDelegation {
+        StatusDelegation {
+            id: id.to_string(),
+            state,
+            task: "Revisa el informe".to_string(),
+            to_agent_id: "ag_lead".to_string(),
+            to_name: "Ernesto".to_string(),
+        }
+    }
+
+    fn lead_sentence(answer: &Value) -> String {
+        answer["panels"]["projects"][0]["lead"]["summary"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    }
+
+    #[test]
+    fn a_lead_sentence_reads_the_work_not_the_panel() {
+        let read = state(Vec::new());
+        // Open work, with or without a panel: he is working.
+        let mut open = facts(vec![led("Ernesto", None)], &[]);
+        open.delegations
+            .push(to_lead("dlg_1", DelegationState::Running));
+        assert_eq!(
+            lead_sentence(&overview(&read, &open)),
+            "Ernesto está trabajando en una tarea."
+        );
+        // The last task done and the panel closed: finished, never «detenido».
+        let mut done = facts(vec![led("Ernesto", None)], &[]);
+        done.latest.push(to_lead("dlg_0", DelegationState::Done));
+        assert_eq!(
+            lead_sentence(&overview(&read, &done)),
+            "Ernesto terminó la última tarea."
+        );
+        let mut failed = facts(vec![led("Ernesto", Some("pane_e"))], &[("pane_e", "prj_a")]);
+        failed
+            .latest
+            .push(to_lead("dlg_0", DelegationState::Failed));
+        assert_eq!(
+            lead_sentence(&overview(&read, &failed)),
+            "Ernesto no pudo terminar la última tarea."
+        );
+        // No delegation at all: no open task, whether the panel is open or not.
+        for pane in [None, Some("pane_e")] {
+            let none = facts(vec![led("Ernesto", pane)], &[("pane_e", "prj_a")]);
+            let answer = overview(&read, &none);
+            assert_eq!(lead_sentence(&answer), "Ernesto no tiene tareas abiertas.");
+            assert!(!answer.to_string().contains("detenido"));
+        }
+    }
+
+    #[test]
+    fn a_delegation_sentence_names_the_seat_and_no_id() {
+        assert_eq!(
+            delegation_sentence("Ernesto", DelegationState::Queued),
+            "Ernesto aún está con ello."
+        );
+        assert_eq!(
+            delegation_sentence("Ernesto", DelegationState::Done),
+            "Ernesto terminó."
+        );
+        assert_eq!(
+            delegation_sentence("Ernesto", DelegationState::Failed),
+            "Ernesto no pudo terminar."
+        );
+    }
+
+    #[test]
+    fn each_delegation_item_carries_its_sentence() {
+        let mut chat = facts(Vec::new(), &[]);
+        chat.delegations = vec![
+            to_lead("dlg_1", DelegationState::Running),
+            to_lead("dlg_2", DelegationState::Done),
+        ];
+        let answer = overview(&state(Vec::new()), &chat);
+        assert_eq!(
+            answer["delegations"]["items"][0]["summary"],
+            "Ernesto aún está con ello."
+        );
+        assert_eq!(
+            answer["delegations"]["items"][1]["summary"],
+            "Ernesto terminó."
+        );
+        assert!(!answer["delegations"]["items"][0]["summary"]
+            .to_string()
+            .contains("dlg_"));
     }
 
     #[test]

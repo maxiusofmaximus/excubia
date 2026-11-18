@@ -68,6 +68,9 @@ pub struct TimelineEntry {
     /// An agent message: the quick replies it offers. Omitted when empty.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub suggestions: Vec<String>,
+    /// A card of a task that did not end as a plain success (`operator_denied`, ...); omitted otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
     /// A user message that answers another message of the conversation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quote: Option<Quote>,
@@ -185,6 +188,7 @@ impl TimelineEntry {
             subject: None,
             turn_state: None,
             suggestions: Vec::new(),
+            reason: None,
             attachments: Vec::new(),
             quote: None,
             created_at: message.created_at.clone(),
@@ -223,6 +227,7 @@ impl TimelineEntry {
             subject: None,
             turn_state: None,
             suggestions: Vec::new(),
+            reason: None,
             attachments: Vec::new(),
             quote: None,
             created_at: line.created_at,
@@ -260,6 +265,7 @@ impl TimelineEntry {
             subject: None,
             turn_state: None,
             suggestions: Vec::new(),
+            reason: None,
             attachments: Vec::new(),
             quote: None,
             created_at: line.created_at,
@@ -298,6 +304,7 @@ impl TimelineEntry {
             subject: Some(line.subject),
             turn_state: None,
             suggestions: Vec::new(),
+            reason: None,
             attachments: Vec::new(),
             quote: None,
             created_at: line.created_at,
@@ -336,6 +343,7 @@ impl TimelineEntry {
             subject: None,
             turn_state: None,
             suggestions: Vec::new(),
+            reason: None,
             attachments: Vec::new(),
             quote: None,
             created_at: line.created_at,
@@ -372,6 +380,7 @@ impl TimelineEntry {
             subject: None,
             turn_state: None,
             suggestions: Vec::new(),
+            reason: None,
             attachments: Vec::new(),
             quote: None,
             created_at: line.created_at,

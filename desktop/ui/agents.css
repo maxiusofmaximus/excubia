@@ -127,11 +127,6 @@
   color: var(--text-2);
 }
 
-.team-group-count {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-
 .agent-row {
   display: flex;
   align-items: center;

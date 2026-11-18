@@ -49,6 +49,7 @@ fn timeline(seq: i64, kind: &str, state: Option<&str>) -> TimelineEntry {
         agent_id: None,
         pane_id: None,
         attention: None,
+        reason: None,
         links: None,
         account: None,
         draft_id: None,
@@ -228,6 +229,7 @@ fn an_approval_line_is_its_own_entry_and_pending_approvals_ride_along() {
     feed.set_approvals(vec![Approval {
         id: "apr_01J1".to_string(),
         level: Some("user".to_string()),
+        status: "approved".to_string(),
         ..Approval::default()
     }]);
     let snapshot = feed.snapshot();
@@ -242,8 +244,22 @@ fn an_approval_line_is_its_own_entry_and_pending_approvals_ride_along() {
     assert_eq!(
         feed.snapshot().approvals.len(),
         1,
-        "an approval that left the inbox keeps its card"
+        "an approval settled here keeps its card"
     );
+}
+
+#[test]
+fn a_pending_card_the_inbox_no_longer_lists_is_dropped() {
+    let mut feed = ChatFeed::default();
+    feed.reset("cnv_1");
+    feed.set_approvals(vec![Approval {
+        id: "apr_01J4".to_string(),
+        status: "pending".to_string(),
+        ..Approval::default()
+    }]);
+    // It expired on the host: nobody decided it here, so no stale «pending» card stays.
+    feed.set_approvals(Vec::new());
+    assert!(feed.snapshot().approvals.is_empty());
 }
 
 #[test]

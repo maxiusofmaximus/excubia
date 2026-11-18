@@ -87,3 +87,24 @@ export function stopFailureText(failure) {
   }
   return "No se pudo detener. Inténtalo de nuevo.";
 }
+
+// A finished delegation's report stays on its card («Ver detalle» holds it whole), so
+// the thread skips the reply that carries it. The reply is complete, not Alfred's, and
+// a done card of this conversation names the same agent. Indexes into `entries`.
+export function delegationResultIndexes(entries, alfredId) {
+  const done = new Set(
+    entries
+      .filter((entry) => entry.kind === "card" && entry.entry && entry.entry.status === "done")
+      .map((entry) => entry.entry.agent_id)
+      .filter(Boolean),
+  );
+  const skip = new Set();
+  entries.forEach((entry, index) => {
+    if (entry.kind !== "message") return;
+    const { message } = entry;
+    const agentId = message.author_agent_id;
+    if (message.author_kind !== "agent" || message.state !== "complete") return;
+    if (agentId && agentId !== alfredId && done.has(agentId)) skip.add(index);
+  });
+  return skip;
+}

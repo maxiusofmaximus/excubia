@@ -11,7 +11,8 @@ export function agentTitle(agent) {
   if (/[\\/]/.test(title) && /\.(exe|cmd|bat)$/i.test(title)) {
     return title.split(/[\\/]/).pop();
   }
-  return title;
+  // The host titles a lead «Nombre — lead»; the operator reads «Nombre, líder».
+  return title.replace(/\s—\slead\b/, ", líder");
 }
 
 export function statusLabel(status) {
@@ -60,27 +61,15 @@ export function svgDataUrl(svg) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-export function subtitle(state) {
-  const agents = state.agents || [];
-  if (!agents.length) return "Sin agentes en marcha";
-  const blocked = agents.filter((agent) => agent.status === "blocked").length;
-  const working = agents.filter((agent) => agent.status === "working").length;
-  const done = agents.filter((agent) => agent.status === "done").length;
-  const idle = agents.filter((agent) => agent.status === "idle").length;
-  const unknown = agents.length - blocked - working - done - idle;
-  const parts = [];
-  if (blocked) parts.push(`${blocked} ${blocked === 1 ? "bloqueado" : "bloqueados"}`);
-  if (working) parts.push(`${working} trabajando`);
-  if (done) parts.push(`${done} ${done === 1 ? "terminado" : "terminados"}`);
-  if (idle) parts.push(`${idle} ${idle === 1 ? "listo" : "listos"}`);
-  if (unknown) parts.push(`${unknown} sin clasificar`);
-  return `${agents.length} ${agents.length === 1 ? "agente" : "agentes"} · ${parts.join(" · ")}`;
-}
-
 /// Test adapters put scenario markers in the prompt. They are not operator
 /// text, so they never reach the screen even though they stay in the journal.
 export function stripTestMarkers(text) {
   return String(text || "").replace(/\[\[fake:[^\]]*\]\]\s*/g, "");
+}
+
+/// The host writes Windows folders with the verbatim prefix `\\?\`. The operator sees the folder.
+export function displayPath(path) {
+  return String(path || "").replace(/^\\\\\?\\/, "");
 }
 
 export function stripAnsi(text) {

@@ -116,6 +116,9 @@ pub struct Card {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pane_id: Option<String>,
     pub attention: i64,
+    /// The task's reason when it is not a plain success: `operator_denied`, `approval_expired`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
     pub links: CardLinks,
     pub created_at: String,
     pub updated_at: String,
@@ -152,6 +155,7 @@ impl Card {
             subject: None,
             turn_state: None,
             suggestions: Vec::new(),
+            reason: self.reason.clone(),
             attachments: Vec::new(),
             quote: None,
             created_at: self.created_at.clone(),

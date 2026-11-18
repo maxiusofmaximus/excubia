@@ -1,7 +1,9 @@
 //! The operator's approvals: the inbox, resolved history, decisions and the
 //! approval mode settings.
 
-use excubia_desktop_core::chat::{Approval, ApprovalModeChange, ApprovalSettings, ChatFailure};
+use excubia_desktop_core::chat::{
+    Approval, ApprovalModeChange, ApprovalSettings, ChatFailure, DecisionChoice,
+};
 use tauri::State;
 
 use super::{client, shared, Shared};
@@ -9,7 +11,9 @@ use crate::app_state::lock;
 
 /// The operator's answer to one approval. The feed takes the host's record at
 /// once, so the card shows the settled state before the next refresh. `exclude`
-/// leaves mails out of a `mail.move` batch; without it the decision is the same as before.
+/// leaves mails out of a `mail.move` batch. `whole_task` makes an approve cover
+/// the whole task, and `reason` goes with a denial; without them the decision is
+/// «once», as before.
 #[tauri::command]
 pub async fn chat_approval_decision(
     state: State<'_, Shared>,
@@ -17,15 +21,22 @@ pub async fn chat_approval_decision(
     decision: String,
     client_id: String,
     exclude: Option<Vec<String>>,
+    whole_task: Option<bool>,
+    reason: Option<String>,
 ) -> Result<Approval, ChatFailure> {
     let shared = shared(&state);
     let client = client(&shared)?;
+    let choice = DecisionChoice {
+        whole_task: whole_task.unwrap_or(false),
+        reason,
+    };
     let approval = client
         .chat_approval_decide(
             &approval_id,
             &decision,
             &client_id,
             &exclude.unwrap_or_default(),
+            &choice,
         )
         .await?;
     lock(&shared.chat).replace_approval(approval.clone());

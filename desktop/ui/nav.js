@@ -3,7 +3,9 @@
 // data (contacts, calendar…) are passed in by app.js through installNav.
 // No imports: tooling/nav.test.mjs loads this module in node.
 
-export const DESTINATIONS = ["chat", "agents", "calendar", "notes", "contacts", "alerts", "devices", "settings"];
+// Four sidebar entries. Agenda holds calendar, notes and contacts; Ajustes holds
+// alerts and devices as sections of its own screens.
+export const DESTINATIONS = ["chat", "agents", "agenda", "settings"];
 
 // Start screens (first run, pairing, palette, onboarding) show no sidebar.
 const START_VIEWS = new Set(["pair", "recovery", "lan", "palette", "onboarding"]);
@@ -12,11 +14,11 @@ const START_VIEWS = new Set(["pair", "recovery", "lan", "palette", "onboarding"]
 const OWNER = {
   chat: "chat",
   agents: "agents",
-  calendar: "calendar",
-  notes: "notes",
-  contacts: "contacts",
-  alerts: "alerts",
-  devices: "devices",
+  calendar: "agenda",
+  notes: "agenda",
+  contacts: "agenda",
+  alerts: "settings",
+  devices: "settings",
   settings: "settings",
   mail: "chat",
   detail: "agents",
@@ -46,12 +48,20 @@ export function showView(name, owner = ownerOf(name)) {
   }
 }
 
-// Each destination gets its opener: the one place that says what a click does.
-export function installNav(openers) {
+// Every screen that a click or Ctrl+K can open, by its name. The sidebar shows
+// only DESTINATIONS; the rest are reached from inside them.
+let openers = {};
+
+export function installNav(map) {
+  openers = map;
   for (const item of document.querySelectorAll("#app-nav [data-nav]")) {
     const open = openers[item.dataset.nav];
     item.addEventListener("click", () => open());
   }
+}
+
+export function goTo(name) {
+  openers[name]?.();
 }
 
 // The chat badge: the unread count the chat home already holds.

@@ -318,6 +318,10 @@ pub struct TimelineEntry {
     pub pane_id: Option<String>,
     #[serde(default)]
     pub attention: Option<i64>,
+    /// Card rows: why the task did not end as a plain success (`operator_denied`, ...). The
+    /// shell reads it to say «No se hizo»; dropping it here once left a denied task on «Hecho».
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
     #[serde(default)]
     pub links: Option<CardLinks>,
     /// `mail_draft` rows: the account and the draft the card opens.

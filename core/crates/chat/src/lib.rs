@@ -133,5 +133,8 @@ pub use store::{
     EventOrigin, HireLink, Launch, MailDraftCard, NewMailCard, NextEvent, PendingApproval,
     PendingPlan, ProgressOutcome, SenderHistory, StatusApproval, StatusDelegation, StatusFacts,
 };
-pub use text::{message_text, NameError, TextError, MAX_MESSAGE_BYTES};
+pub use text::{
+    close_title, headline_of, message_text, title_from, without_internal_ids, NameError,
+    TextError, MAX_HEADLINE_CHARS, MAX_MESSAGE_BYTES,
+};
 pub use timezone::EventTime;

@@ -32,7 +32,7 @@ import { checkOnboarding, installOnboarding } from "./onboarding.js";
 import { installPalette } from "./palette.js";
 import { chatBoot, chatOnConnection, chatOnEvent, chatOnStateChange } from "./chat.js";
 import { installChatHandlers } from "./chatinstall.js";
-import { installAgenda } from "./agenda.js";
+import { installAgenda, openAgenda } from "./agenda.js";
 import { openDevices } from "./devices.js";
 import { openContacts } from "./agenda-contacts.js";
 import { openNotes } from "./agenda-notes.js";
@@ -69,12 +69,13 @@ async function boot() {
   installNav({
     chat: () => showView("chat"),
     agents: () => showView("agents"),
+    agenda: () => openAgenda(),
+    settings: openSettings,
     calendar: openCalendar,
     notes: openNotes,
     contacts: openContacts,
     alerts: openAlerts,
     devices: openDevices,
-    settings: openSettings,
   });
   $("btn-stale-pair").addEventListener("click", forgetPairing);
   $("btn-empty-pair").addEventListener("click", forgetPairing);

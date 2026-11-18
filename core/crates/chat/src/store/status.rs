@@ -22,6 +22,7 @@ pub struct StatusDelegation {
     pub id: String,
     pub state: DelegationState,
     pub task: String,
+    pub to_agent_id: String,
     pub to_name: String,
 }
 
@@ -42,6 +43,8 @@ pub struct StatusFacts {
     /// `(pane_id, project_id)` of every seat that owns a pane.
     pub panes: Vec<(String, String)>,
     pub delegations: Vec<StatusDelegation>,
+    /// The newest delegation of each seat, open or closed: what a lead's last task was.
+    pub latest: Vec<StatusDelegation>,
     pub approvals: Vec<StatusApproval>,
     pub last_activity: Option<String>,
 }
@@ -51,6 +54,7 @@ impl super::ChatStore {
     pub fn status_facts(&self, approver: &SeatActor) -> Result<StatusFacts, ChatError> {
         let bootstrap = self.bootstrap()?;
         let delegations = self.open_delegations()?;
+        let latest = self.latest_delegations()?;
         let approvals = self.pending_for_approver(approver)?;
         Ok(StatusFacts {
             chat_revision: bootstrap.chat.revision,
@@ -68,6 +72,10 @@ impl super::ChatStore {
                 .into_iter()
                 .map(|delegation| self.status_delegation(delegation))
                 .collect(),
+            latest: latest
+                .into_iter()
+                .map(|delegation| self.status_delegation(delegation))
+                .collect(),
             approvals: approvals
                 .into_iter()
                 .map(|approval| self.status_approval(approval))
@@ -81,6 +89,7 @@ impl super::ChatStore {
             id: delegation.id,
             state: delegation.state,
             task: bounded(&delegation.task, TASK_CHARS),
+            to_agent_id: delegation.to_agent_id,
             to_name: bounded(&delegation.to_name, LABEL_CHARS),
         }
     }
@@ -104,6 +113,22 @@ impl super::ChatStore {
             "{DELEGATION_SELECT}
               WHERE d.state IN ('queued', 'running', 'waiting')
               ORDER BY d.created_at ASC, d.id ASC"
+        ))?;
+        let rows = statement
+            .query_map([], delegation_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
+    /// The newest delegation each seat was given, whatever its state.
+    fn latest_delegations(&self) -> Result<Vec<Delegation>, ChatError> {
+        let connection = self.lock();
+        let mut statement = connection.prepare(&format!(
+            "{DELEGATION_SELECT}
+              WHERE d.id IN (
+                SELECT (SELECT x.id FROM delegation x WHERE x.to_agent_id = g.to_agent_id
+                         ORDER BY x.created_at DESC, x.id DESC LIMIT 1)
+                  FROM (SELECT DISTINCT to_agent_id FROM delegation) g)"
         ))?;
         let rows = statement
             .query_map([], delegation_row)?

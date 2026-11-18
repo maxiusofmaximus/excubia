@@ -6,9 +6,9 @@ import assert from "node:assert/strict";
 
 import { EMPTY_TEXT, chipCount, chipName, chipsFor, filterArgs } from "../ui/chat-filter-model.js";
 
-test("the chips keep their order: Todos, Pendientes de ti, Trabajando", () => {
+test("the chips keep their order: Todos, Pendientes de ti, En curso", () => {
   const labels = chipsFor({ all: 0, attention: 0, working: 0 }).map((chip) => chip.label);
-  assert.deepEqual(labels, ["Todos", "Pendientes de ti", "Trabajando"]);
+  assert.deepEqual(labels, ["Todos", "Pendientes de ti", "En curso"]);
 });
 
 test("a count shows only above zero, and 99+ above ninety-nine", () => {
@@ -30,7 +30,7 @@ test("before the counts load, or when they fail, the chips show without numbers"
   const loading = chipsFor(undefined);
   assert.equal(loading.length, 3);
   assert.ok(loading.every((chip) => chip.text === ""));
-  assert.equal(chipName(loading[2]), "Trabajando");
+  assert.equal(chipName(loading[2]), "En curso");
 });
 
 test("each chip asks for its own filter; Todos reads the home list", () => {
@@ -42,4 +42,15 @@ test("each chip asks for its own filter; Todos reads the home list", () => {
 test("each filter has its own empty words", () => {
   assert.equal(EMPTY_TEXT.attention, "Nada pendiente de ti.");
   assert.equal(EMPTY_TEXT.working, "Ningún agente está trabajando ahora.");
+});
+
+test("only Pendientes de ti shows a number, and none at zero", () => {
+  const [all, attention, working] = chipsFor({ all: 66, attention: 2, working: 5 });
+  assert.equal(chipName(all), "Todos");
+  assert.equal(all.text, "");
+  assert.equal(working.text, "");
+  assert.equal(chipName(attention), "Pendientes de ti, 2");
+  const [, none] = chipsFor({ all: 66, attention: 0, working: 0 });
+  assert.equal(none.text, "");
+  assert.equal(chipName(none), "Pendientes de ti");
 });

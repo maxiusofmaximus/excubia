@@ -208,6 +208,10 @@ pub struct Approval {
     pub kind: ApprovalKind,
     pub tool: String,
     pub summary: String,
+    /// The one-line description the tool gave the action, when it gave one. It is the
+    /// agent's own words, shown beside the summary; it is not part of the digest.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub headline: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cwd: Option<String>,
     pub paths: Vec<String>,
@@ -283,6 +287,9 @@ pub struct ApprovalState {
     pub approval_id: String,
     pub status: ApprovalStatus,
     pub expires_at: String,
+    /// The operator's words with a denial, for the agent; absent otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }
 
 /// What the caller asks for. The host fills in the conversation, the seat and

@@ -27,15 +27,19 @@ export function renderComposer() {
   send.title = label;
   send.setAttribute("aria-label", label);
   renderAttachments(blocked);
+  // The key list is for the one who is typing: it shows only while the composer has focus.
+  // Any sentence that explains a block or a turn stays on screen.
+  const hint = $("chat-hint");
+  hint.classList.toggle("is-keys", !archived && !offline() && !mode.hint);
   if (archived) {
     input.placeholder = "Conversación archivada";
-    $("chat-hint").textContent = "Desarchívala para escribir a Alfred";
+    hint.textContent = "Desarchívala para escribir a Alfred";
   } else if (offline()) {
     input.placeholder = "Reconecta para escribir a Alfred";
-    $("chat-hint").textContent = "La copia local es de solo lectura";
+    hint.textContent = "La copia local es de solo lectura";
   } else {
     input.placeholder = "Mensaje a Alfred";
-    $("chat-hint").textContent = mode.hint || "Enter envía · Shift+Enter salto de línea · Ctrl+Mayús+M dicta · Ctrl+K órdenes";
+    hint.textContent = mode.hint || "Enter envía · Shift+Enter salto de línea · Ctrl+Mayús+M dicta · Ctrl+K órdenes";
   }
 }
 

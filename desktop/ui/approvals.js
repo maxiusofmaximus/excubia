@@ -7,12 +7,14 @@ import { errorMessage } from "./format.js";
 import {
   CHECKING_TEXT,
   countdownText,
+  decisionArgs,
+  denyReason,
   excludeFor,
   isMailMove,
   localFor,
   patchLocal,
   remainingSeconds,
-  sameIds,
+  sameDecision,
   setDeviceId,
 } from "./approval-model.js";
 import { cardEntries, renderApprovalCard } from "./approval-card.js";
@@ -57,24 +59,20 @@ function excludeOf(card, decision, unchecked) {
   return excludeFor(held.entry, unchecked);
 }
 
-async function decide(id, decision, card) {
+// `extra` carries the choice beyond «once»: `wholeTask` for the task, `reason` for a denial.
+async function decide(id, decision, card, extra = {}) {
   const mine = localFor(id);
   if (mine.busy || mine.decided) return;
   const exclude = excludeOf(card, decision, mine.unchecked);
-  // A retry reuses its id only for the same decision with the same mails left out.
-  const sameAsk = mine.decision === decision && sameIds(mine.exclude, exclude);
-  const clientId = sameAsk && mine.clientId ? mine.clientId : newClientId();
+  const ask = { decision, exclude, wholeTask: extra.wholeTask, reason: extra.reason };
+  // A retry reuses its id only for the same decision, mails left out and choice.
+  const clientId = sameDecision(mine, ask) && mine.clientId ? mine.clientId : newClientId();
   let current = redraw(card);
-  patchLocal(id, { busy: true, clientId, decision, exclude, forbidden: false });
+  patchLocal(id, { busy: true, clientId, ...ask, forbidden: false });
   current = redraw(current);
 
   try {
-    const record = await invoke("chat_approval_decision", {
-      approvalId: id,
-      decision,
-      clientId,
-      exclude,
-    });
+    const record = await invoke("chat_approval_decision", decisionArgs(id, decision, clientId, exclude, extra));
     // Only the host's own status counts as decided; the time keeps the card on the strip a while.
     patchLocal(id, { busy: false, decided: (record && record.status) || "", settledAt: Date.now() });
     refreshInbox();
@@ -107,14 +105,20 @@ function tickCountdowns() {
       continue;
     }
     ttl.textContent = CHECKING_TEXT;
-    askHostOnce(ttl.closest(".approval-card"));
+    const card = ttl.closest(".approval-card");
+    // An expired approval cannot be decided: no button until the host answers.
+    for (const button of card.querySelectorAll("button")) button.disabled = true;
+    askHostAgain(card, now);
   }
 }
 
-function askHostOnce(card) {
+// The host may write the expiry a moment after our clock hits zero, so ask again every
+// few seconds until it answers; one question could land too early and leave the card stuck.
+const ASK_EVERY_MS = 3000;
+function askHostAgain(card, now) {
   const id = card.dataset.approval;
-  if (localFor(id).asked) return;
-  patchLocal(id, { asked: true });
+  if (now - (localFor(id).asked || 0) < ASK_EVERY_MS) return;
+  patchLocal(id, { asked: now });
   readHostAgain();
 }
 
@@ -132,6 +136,30 @@ function toggleMail(box) {
   next.querySelector(`[data-move-id="${CSS.escape(mailId)}"]`)?.focus();
 }
 
+// The operator's words for a denial, from the small dialog. Null when he cancels
+// (Cancelar or Escape). Resolved on close, so the dialog is the only place that waits.
+function askReason() {
+  const dialog = $("approval-reason");
+  const field = $("approval-reason-input");
+  field.value = "";
+  dialog.returnValue = "";
+  dialog.showModal();
+  field.focus();
+  return new Promise((resolve) => {
+    dialog.addEventListener(
+      "close",
+      () => resolve(dialog.returnValue === "deny" ? field.value : null),
+      { once: true },
+    );
+  });
+}
+
+// Denies with the operator's words. An empty reason, like a cancel, decides nothing.
+async function denyWithReason(id, card) {
+  const reason = denyReason(await askReason());
+  if (reason) decide(id, "deny", card, { reason });
+}
+
 export function installApprovalHandlers() {
   // The strip sits beside the thread, so both share one listener.
   $("chat-main").addEventListener("click", (event) => {
@@ -142,8 +170,21 @@ export function installApprovalHandlers() {
     }
     const button = event.target.closest("[data-approval-action]");
     if (!button || button.disabled) return;
-    const decision = button.dataset.approvalAction === "approve" ? "approve" : "deny";
-    decide(button.dataset.approvalId, decision, button.closest(".approval-card"));
+    const { approvalAction: action, approvalId: id } = button.dataset;
+    const card = button.closest(".approval-card");
+    // Any choice from «Más opciones» closes the menu.
+    button.closest("details.approval-more")?.removeAttribute("open");
+    if (action === "approve-task") decide(id, "approve", card, { wholeTask: true });
+    else if (action === "deny-reason") denyWithReason(id, card);
+    else decide(id, action === "approve" ? "approve" : "deny", card);
+  });
+  // Escape closes an open «Más opciones» and returns the keyboard to its summary.
+  $("chat-main").addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const menu = event.target.closest?.("details.approval-more[open]");
+    if (!menu) return;
+    menu.open = false;
+    menu.querySelector("summary")?.focus();
   });
   setInterval(tickCountdowns, 1000);
 }

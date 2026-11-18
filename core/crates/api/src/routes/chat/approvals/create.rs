@@ -63,6 +63,10 @@ pub async fn create(
         Ok(summary) => summary,
         Err(error) => return error.into_response(),
     };
+    let headline = payload
+        .headline
+        .as_deref()
+        .and_then(excubia_chat::headline_of);
     if !is_well_formed(&payload.action_digest) {
         return ApiError::invalid_field(
             "invalid_body",
@@ -151,7 +155,10 @@ pub async fn create(
         payload_redacted: payload.payload_redacted,
         ttl_seconds,
     };
-    match ctx.chat.create_approval(new) {
+    match ctx
+        .chat
+        .create_approval_with_headline(new, headline.as_deref())
+    {
         Ok(approval) => (
             StatusCode::CREATED,
             Json(json!({

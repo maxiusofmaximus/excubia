@@ -7,7 +7,7 @@ use serde_json::Value;
 
 /// The tools the CLI sends to the hook before they run. Claude matches tool
 /// names with this pattern; every tool of [`of`] must be named here.
-pub const CLAUDE_HOOK_MATCHER: &str = "Bash|Write|Edit|MultiEdit|NotebookEdit|WebFetch";
+pub const CLAUDE_HOOK_MATCHER: &str = "Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit|WebFetch";
 
 /// The approval kind and the paths of one tool call.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub struct HookAction {
 /// the hook then keeps its default (a command) and the policy still decides.
 pub fn of(tool: &str, input: &Value) -> Option<HookAction> {
     let action = match tool.to_ascii_lowercase().as_str() {
-        "bash" => HookAction {
+        "bash" | "powershell" => HookAction {
             kind: "command",
             paths: Vec::new(),
         },
@@ -58,6 +58,12 @@ mod tests {
     fn every_gated_tool_maps_to_its_kind_and_its_paths() {
         let cases: Vec<(&str, Value, &str, Vec<&str>)> = vec![
             ("Bash", json!({"command": "ls"}), "command", vec![]),
+            (
+                "PowerShell",
+                json!({"command": "Remove-Item README.md"}),
+                "command",
+                vec![],
+            ),
             (
                 "Write",
                 json!({"file_path": "src/a.rs", "content": "x"}),
@@ -106,6 +112,7 @@ mod tests {
     fn the_matcher_names_every_tool_of_the_table() {
         for tool in [
             "Bash",
+            "PowerShell",
             "Write",
             "Edit",
             "MultiEdit",

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   advanceTurn,
   composerMode,
+  delegationResultIndexes,
   jumpLabel,
   noteTurn,
   stopFailureText,
@@ -126,4 +127,26 @@ test("a failed stop says why in Spanish", () => {
   assert.equal(stopFailureText({ kind: "host", status: 404 }), "Este equipo no admite detener todavía.");
   assert.equal(stopFailureText({ kind: "offline" }), "No se pudo detener. Inténtalo de nuevo.");
   assert.equal(stopFailureText({ kind: "host", status: 500 }), "No se pudo detener. Inténtalo de nuevo.");
+});
+
+test("a finished delegation's report stays on its card, and only that report", () => {
+  const card = (status, agentId) => ({ kind: "card", seq: 1, entry: { status, agent_id: agentId } });
+  const reply = (authorAgentId, state = "complete", authorKind = "agent") => ({
+    kind: "message",
+    seq: 2,
+    message: { author_kind: authorKind, author_agent_id: authorAgentId, state },
+  });
+  const entries = [
+    card("done", "ag_lead"),
+    reply("ag_lead"), // the report: hidden
+    reply("alfred"), // Alfred's own reply: shown
+    reply("ag_bob"), // a finished card of Bob is missing: shown
+    reply("ag_lead", "failed"), // not a complete report: shown
+    reply("ag_lead", "complete", "user"), // the operator's words: shown
+    reply(undefined), // no author: shown
+  ];
+  assert.deepEqual([...delegationResultIndexes(entries, "alfred")], [1]);
+  assert.deepEqual([...delegationResultIndexes([card("running", "ag_lead"), reply("ag_lead")], "alfred")], []);
+  assert.deepEqual([...delegationResultIndexes([card("done", "ag_lead"), reply("ag_lead")], undefined)], [1]);
+  assert.deepEqual([...delegationResultIndexes([card("done", undefined), reply(undefined)], "alfred")], []);
 });

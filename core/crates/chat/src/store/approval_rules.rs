@@ -43,6 +43,7 @@ pub(super) struct ApprovalColumns {
     pub reason: Option<String>,
     pub risk_score: Option<f64>,
     pub scorer_version: Option<String>,
+    pub headline: Option<String>,
 }
 
 pub(super) fn approval_row(row: &Row<'_>) -> rusqlite::Result<ApprovalColumns> {
@@ -75,6 +76,7 @@ pub(super) fn approval_row(row: &Row<'_>) -> rusqlite::Result<ApprovalColumns> {
         reason: row.get(25)?,
         risk_score: row.get(26)?,
         scorer_version: row.get(27)?,
+        headline: row.get(28)?,
     })
 }
 
@@ -99,6 +101,7 @@ pub(super) fn approval_from_columns(columns: ApprovalColumns) -> Result<Approval
             .ok_or(ChatError::Inconsistent("unknown approval kind"))?,
         tool: columns.tool,
         summary: columns.summary,
+        headline: columns.headline,
         cwd: columns.cwd,
         paths,
         risk: Risk::from_db(&columns.risk)
@@ -250,8 +253,15 @@ pub(super) fn resolve_context(
         if !conversation_exists(connection, conversation_id)? {
             return Err(ChatError::NoSuchConversation);
         }
+        // The seat's open task in this same conversation is the one the card belongs to.
+        let delegation = match &new.seat_id {
+            Some(seat_id) => active_delegation_of(connection, "to_agent_id", seat_id)?
+                .filter(|delegation| &delegation.0 == conversation_id),
+            None => None,
+        };
         return Ok(ApprovalContext {
             conversation_id: Some(conversation_id.clone()),
+            delegation_id: delegation.map(|delegation| delegation.1),
             ..ApprovalContext::default()
         });
     }

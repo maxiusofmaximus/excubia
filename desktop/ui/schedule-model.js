@@ -11,7 +11,7 @@ export const PLAN_STEP_LIMIT = 3;
 export const ACTIVE_LIMIT = 20;
 
 export const PC_OFF_NOTE =
-  "Solo se ejecuta con tu PC encendido. Si estaba apagado a la hora, no se lanza al encenderlo: te avisamos aquí y puedes lanzarla tú.";
+  "Se ejecuta con tu PC encendido.";
 export const PERMISSION_TEXT =
   "Este dispositivo no tiene el permiso APPROVE: puedes ver las tareas, pero no cambiarlas ni lanzarlas.";
 export const PLAN_NEEDED_TEXT = "Este encargo es largo: antes de programarlo hay que aprobar un plan.";

@@ -15,7 +15,9 @@ import { installCommandPalette } from "./command-palette.js";
 import { openDraft } from "./mail-draft.js";
 import { installDraftCards } from "./chatdraft.js";
 import { createDelegations } from "./chatdelegations.js";
+import { filterMenuOpen, setFilterMenu } from "./chatfilters.js";
 import { chat, applyFeed, failure, offline } from "./chatstate.js";
+import { teamPanelOpen } from "./team-panel-model.js";
 import {
   debounceSearch,
   filters,
@@ -40,7 +42,8 @@ function toggleSide() {
   const shell = $("chat-shell");
   const collapsed = shell.classList.toggle("side-collapsed");
   $("btn-side-toggle").setAttribute("aria-expanded", String(!collapsed));
-  $("btn-side-toggle").setAttribute("aria-label", collapsed ? "Desplegar el panel del equipo" : "Plegar el panel del equipo");
+  $("btn-side-toggle").setAttribute("aria-label", collapsed ? "Equipo" : "Plegar el panel del equipo");
+  $("btn-side-toggle").title = collapsed ? "Equipo" : "Plegar el panel";
   try {
     localStorage.setItem("hn-chat-side-collapsed", collapsed ? "1" : "0");
   } catch {
@@ -152,22 +155,22 @@ export function installChatHandlers() {
     conversations: () => (chat.home ? [...chat.home.conversations, ...chat.home.archived] : []),
     selectConversation,
   });
+  // The team panel starts folded unless something waits for the operator there; his own choice is kept.
+  let stored = null;
   try {
-    const collapsed = localStorage.getItem("hn-chat-side-collapsed") === "1";
-    if (collapsed) {
-      $("chat-shell").classList.add("side-collapsed");
-      $("btn-side-toggle").setAttribute("aria-expanded", "false");
-      $("btn-side-toggle").setAttribute("aria-label", "Desplegar el panel del equipo");
-      $("btn-side-toggle").title = "Desplegar el panel";
-    }
+    stored = localStorage.getItem("hn-chat-side-collapsed");
   } catch {
     // Preference only.
   }
-  $("btn-team-foot").addEventListener("click", () => showView("agents"));
+  // The panel holds no request of its own: approval cards sit in the thread, so nothing here asks for him.
+  if (!teamPanelOpen(stored, false)) {
+    $("chat-shell").classList.add("side-collapsed");
+    $("btn-side-toggle").setAttribute("aria-expanded", "false");
+    $("btn-side-toggle").setAttribute("aria-label", "Equipo");
+    $("btn-side-toggle").title = "Equipo";
+  }
   $("btn-open-team").addEventListener("click", () => showView("agents"));
   $("btn-new-chat").addEventListener("click", () => newConversation());
-  $("btn-chat-new").addEventListener("click", () => newConversation());
-  $("btn-new-section").addEventListener("click", () => menu.openSection(null));
   $("btn-chat-more").addEventListener("click", () => {
     const conversation = chat.conversation;
     if (conversation) menu.openMenu(conversation, $("btn-chat-more"));
@@ -186,9 +189,12 @@ export function installChatHandlers() {
   $("chat-input").addEventListener("keydown", composerKeydown);
   $("chat-input").addEventListener("input", autoGrow);
   $("btn-reply-cancel").addEventListener("click", clearReply);
-  $("chat-filters").addEventListener("click", (event) => {
+  $("chat-filter-toggle").addEventListener("click", () => setFilterMenu(!filterMenuOpen()));
+  $("chat-filter-menu").addEventListener("click", (event) => {
     const target = event.target.closest("[data-filter]");
-    if (target) filters.setFilter(target.dataset.filter);
+    if (!target) return;
+    setFilterMenu(false);
+    filters.setFilter(target.dataset.filter);
   });
   $("chat-timeline").addEventListener("contextmenu", (event) => {
     const bubble = event.target.closest(".msg[data-message-id]");
@@ -202,8 +208,14 @@ export function installChatHandlers() {
     closeBubbleMenu();
     startReply(item.dataset.replyId);
   });
+  // Narrow windows slide the history in over the thread; wide ones fold its column.
   $("btn-history-toggle").addEventListener("click", () => {
-    $("chat-shell").classList.toggle("history-open");
+    const shell = $("chat-shell");
+    const narrow = window.matchMedia("(max-width: 860px)").matches;
+    const open = narrow
+      ? shell.classList.toggle("history-open")
+      : !shell.classList.toggle("history-off");
+    $("btn-history-toggle").setAttribute("aria-expanded", String(open));
   });
   $("chat-suggestions").addEventListener("click", (event) => {
     const button = event.target.closest("[data-suggestion]");
@@ -231,6 +243,11 @@ export function installChatHandlers() {
       chat.showArchived = true;
       renderChat();
     }
+  });
+
+  $("side-finished-list").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-delegation-action]");
+    if (button) delegations.handleAction(button.dataset);
   });
 
   $("side-body").addEventListener("click", (event) => {
@@ -315,11 +332,13 @@ export function installChatHandlers() {
   document.addEventListener("click", (event) => {
     if (!$("chat-menu").contains(event.target) && !event.target.closest("[data-menu]")) menu.closeMenu();
     if (bubbleMenuOpen() && !$("bubble-menu").contains(event.target)) closeBubbleMenu();
+    if (!event.target.closest("#chat-filters")) setFilterMenu(false);
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       menu.closeMenu();
       closeBubbleMenu();
+      setFilterMenu(false);
     }
   });
 }

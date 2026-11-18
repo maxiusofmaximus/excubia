@@ -7,7 +7,7 @@ import { $, invoke } from "./core.js";
 import { avatarElement } from "./avatar.js";
 import { element, loadingBlock } from "./chatdom.js";
 import { emptyState, errorState } from "./empty-state.js";
-import { teamSnapshot } from "./hires.js";
+import { teamLeaders, teamSnapshot } from "./hires.js";
 import { openPending, refreshPlans } from "./plans.js";
 import { refreshSchedules } from "./schedules.js";
 import { cardSignature, showsHeadline, summaryFailure, summaryView, waitingText } from "./team-summary-model.js";
@@ -109,8 +109,21 @@ function paintCount(text) {
   if (count.textContent !== text) count.textContent = text;
 }
 
+// The band is away while a project lead stands in for the team and nobody is hired.
+function showBand(shown) {
+  $("team-summary").classList.toggle("hidden", !shown);
+}
+
 function applyMembers(members) {
   const views = summaryView(members, Date.now());
+  const leadsOnly = views.length === 0 && teamLeaders() > 0;
+  showBand(!leadsOnly);
+  if (leadsOnly) {
+    showBody("leads", []);
+    paintCount("");
+    $("team-summary-count").classList.remove("has-waiting");
+    return;
+  }
   if (views.length === 0) {
     const canHire = teamSnapshot().canHire;
     showBody(`empty:${canHire}`, [
@@ -136,6 +149,7 @@ function applyMembers(members) {
 
 // Cards already on screen stay, with the reason under them; with nothing shown yet, the reason takes the body.
 function applyFailure(failure) {
+  showBand(true);
   if (state.key === "cards") {
     setNotice(failure.text);
     return;

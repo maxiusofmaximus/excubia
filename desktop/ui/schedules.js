@@ -6,7 +6,7 @@ import { $, invoke, toast } from "./core.js";
 import { element, loadingBlock } from "./chatdom.js";
 import { button, deleteConfirm } from "./agenda-ui.js";
 import { emptyState, errorState } from "./empty-state.js";
-import { statusMeta } from "./delegations.js";
+import { statusMeta } from "./delegation-model.js";
 import { openScheduleEditor } from "./schedule-editor.js";
 import {
   PC_OFF_NOTE,
@@ -161,7 +161,8 @@ function bodyNodes() {
     return state.error ? [errorState(LOAD_TEXT, refreshSchedules)] : [loadingBlock("Cargando tareas")];
   }
   if (state.items.length === 0) {
-    return [emptyState({ icon: "clock", text: EMPTY_TEXT, action: "Programar una tarea" }, () => newSchedule())];
+    // The one «Programar una tarea» is the button in Automatizar's head, always in view.
+    return [emptyState({ icon: "clock", text: EMPTY_TEXT })];
   }
   const list = element("ul", "schedule-list");
   list.setAttribute("role", "list");

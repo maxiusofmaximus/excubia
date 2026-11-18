@@ -170,3 +170,23 @@ fn has_column(connection: &Connection, table: &str, column: &str) -> Result<bool
     }
     Ok(false)
 }
+
+/// Version 27: the tool's one-line description of the action (`headline`). Old rows keep NULL.
+/// A database already past version 5 never runs `add_policy_columns` again, so it needs its own step.
+pub fn migrate_to_27(connection: &mut Connection) -> Result<(), crate::error::ChatError> {
+    let transaction = connection.transaction()?;
+    add_column_once(&transaction, "approval", "headline", "TEXT")?;
+    transaction.pragma_update(None, "user_version", 27)?;
+    transaction.commit()?;
+    Ok(())
+}
+
+/// Version 28: the words the operator wrote with a denial (`operator_reason`), kept apart from
+/// `reason`, which mixes them with the host's own reasons. Old rows keep NULL.
+pub fn migrate_to_28(connection: &mut Connection) -> Result<(), crate::error::ChatError> {
+    let transaction = connection.transaction()?;
+    add_column_once(&transaction, "approval", "operator_reason", "TEXT")?;
+    transaction.pragma_update(None, "user_version", 28)?;
+    transaction.commit()?;
+    Ok(())
+}

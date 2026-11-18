@@ -41,7 +41,7 @@ pub(super) const APPROVAL_SELECT: &str =
             action_digest, status, scope, expires_at,
             decided_by, decided_at, created_at, updated_at,
             payload_redacted, level, escalated_from, decider_kind, decider_id, reason,
-            risk_score, scorer_version
+            risk_score, scorer_version, headline
        FROM approval";
 
 impl super::ChatStore {
@@ -68,10 +68,14 @@ impl super::ChatStore {
         if !scope.covers(&approval) {
             return Err(ChatError::HookScopeMismatch);
         }
+        let reason = (approval.status == ApprovalStatus::Denied)
+            .then_some(approval.reason)
+            .flatten();
         Ok(ApprovalState {
             approval_id: approval.id,
             status: approval.status,
             expires_at: approval.expires_at,
+            reason,
         })
     }
 

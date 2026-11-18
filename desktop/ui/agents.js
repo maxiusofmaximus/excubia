@@ -1,10 +1,11 @@
 import { app, $, invoke, toast } from "./core.js";
 import { avatarElement } from "./avatar.js";
-import { agentTitle, readableState, statusLabel, subtitle } from "./format.js";
+import { element } from "./chatdom.js";
+import { agentTitle, readableState, statusLabel } from "./format.js";
 import { friendlyError, OFFLINE_TEXT } from "./friendly-error.js";
 import { openDetail } from "./detail.js";
 import { chat, chatAfterConnect, chatOnConnection } from "./chat.js";
-import { teamCountLabel } from "./hires-model.js";
+import { teamSubtitle } from "./hires-model.js";
 import { teamHired } from "./hires.js";
 import { openRestore } from "./restore-panel.js";
 
@@ -12,7 +13,7 @@ const CONNECTION_LABELS = {
   idle: "Sin conectar",
   connecting: "Conectando…",
   connected: "En vivo",
-  offline: "Sin conexión",
+  offline: "Sin conexión en vivo",
   fatal: "Requiere atención",
 };
 
@@ -28,6 +29,10 @@ export function renderConnection() {
   const connection = app.connection || { kind: "idle" };
   paintChip($("connection-chip"), connection);
   paintChip($("chat-connection"), connection);
+  // The team page says «En vivo» only when that is not so: while live, its chip stays hidden.
+  $("connection-chip").classList.toggle("hidden", connection.kind === "connected");
+  // The header chip says only what is not normal: while live it stays hidden.
+  $("chat-connection").classList.toggle("hidden", connection.kind === "connected");
 
   const live = $("detail-live");
   if (live) {
@@ -129,6 +134,23 @@ function projectLeadPane(project) {
   );
 }
 
+// The project a lead answers for. Its pane sits in the herdr workspace «Excubia», so the row
+// names the lead's project instead: two leads then no longer read the same.
+function leadProjectName(agent) {
+  const projects =
+    chat.home && chat.home.bootstrap ? chat.home.bootstrap.projects || [] : [];
+  // The pane id can be stale (a lead that ran twice): the folder it works in names the project too.
+  const cwd = (agent.cwd || "").replace(/\\/g, "/").toLowerCase();
+  const isLead = /(^|\s|-)lead(\s|$)/i.test(agent.title || "");
+  return (
+    projects.find(
+      (item) =>
+        (item.lead && item.lead.pane_id === agent.pane_id) ||
+        (isLead && item.root_label && cwd.endsWith(`/${item.root_label.toLowerCase()}`)),
+    )?.name || ""
+  );
+}
+
 function agentItem(agent, leadPane) {
   const item = document.createElement("li");
   const button = document.createElement("button");
@@ -159,7 +181,7 @@ function agentItem(agent, leadPane) {
   if (agent.pane_id === leadPane || /(^|\s|-)(lead)(\s|$)/i.test(agent.title || "")) {
     const lead = document.createElement("span");
     lead.className = "row-restored";
-    lead.textContent = "responsable";
+    lead.textContent = "Líder";
     project.appendChild(lead);
   }
   if (agent.focused) {
@@ -168,36 +190,49 @@ function agentItem(agent, leadPane) {
     focus.textContent = "· en foco";
     project.appendChild(focus);
   }
-  if (agent.restored) {
-    const restored = document.createElement("span");
-    restored.className = "row-restored";
-    restored.textContent = "restaurado";
-    project.appendChild(restored);
-  }
   const title = document.createElement("span");
   title.className = "row-title";
-  title.textContent = agent.project || "Sin proyecto";
+  title.textContent = leadProjectName(agent) || agent.project || "Sin proyecto";
   text.append(project, title);
 
-  const status = document.createElement("span");
-  status.className = "row-status";
-  status.textContent = statusLabel(agent.status);
-
+  // A state the host could not classify says nothing to the operator: it waits in the menu.
+  const known = statusLabel(agent.status) !== statusLabel("unknown");
   const chevron = document.createElement("span");
   chevron.className = "row-chevron";
   chevron.setAttribute("aria-hidden", "true");
   chevron.textContent = "›";
 
-  button.append(face, dot, text, status, chevron);
+  // A gray dot without a known state tells nothing: the row keeps its name and drops the dot.
+  if (known) {
+    const status = document.createElement("span");
+    status.className = "row-status";
+    status.textContent = statusLabel(agent.status);
+    button.append(face, dot, text, status, chevron);
+  } else {
+    button.append(face, text, chevron);
+  }
 
   const copies = document.createElement("button");
   copies.type = "button";
   copies.className = "linkish agent-copies";
   copies.textContent = "Copias del turno";
   copies.addEventListener("click", () => openRestore(agent.pane_id, agentTitle(agent)));
+  const menu = document.createElement("details");
+  menu.className = "agent-menu";
+  const toggle = document.createElement("summary");
+  toggle.className = "agent-menu-toggle";
+  toggle.textContent = "⋯";
+  toggle.title = "Más acciones";
+  toggle.setAttribute("aria-label", "Más acciones");
+  const panel = document.createElement("div");
+  panel.className = "agent-menu-panel";
+  if (agent.restored) panel.append(element("p", "agent-menu-note", "Restaurado"));
+  if (!known) panel.append(element("p", "agent-menu-note", statusLabel(agent.status)));
+  panel.append(copies);
+  menu.append(toggle, panel);
   const foot = document.createElement("div");
   foot.className = "agent-foot";
-  foot.append(copies);
+  foot.append(menu);
 
   item.append(button, foot);
   return item;
@@ -224,10 +259,7 @@ function renderList() {
     const name = document.createElement("span");
     name.className = "team-group-name";
     name.textContent = project;
-    const count = document.createElement("span");
-    count.className = "team-group-count";
-    count.textContent = `${rows.length}`;
-    header.append(name, count);
+    header.append(name);
     list.appendChild(header);
     const leadPane = projectLeadPane(project);
     for (const agent of rows) {
@@ -258,9 +290,7 @@ export function renderAgents() {
   const hired = teamHired();
   $("agents-empty").classList.toggle("hidden", loading || hasAgents || hired > 0);
   $("agents-subtitle").textContent = hasState
-    ? hired > 0
-      ? teamCountLabel(hired, app.state.agents.length)
-      : subtitle(app.state)
+    ? teamSubtitle(hired, app.state.agents.length)
     : loading
       ? "Cargando estado…"
       : "Sin estado";

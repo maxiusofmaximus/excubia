@@ -1,4 +1,4 @@
-import { rowBadge } from "./chat-row-model.js";
+import { isBlankChat, rowBadge } from "./chat-row-model.js";
 import { $ } from "./core.js";
 import { setNavBadge } from "./nav.js";
 import { emptyState } from "./empty-state.js";
@@ -55,14 +55,14 @@ function row(conversation, view) {
 
   const meta = document.createElement("span");
   meta.className = "chat-row-meta";
+  // Every row is with Alfred, so the meta line says only the time and the state.
   const when = formatWhen(conversation.last_message_at);
   const parts = [];
   if (conversation.archived) parts.push("archivado");
   if (when) parts.push(when);
   if (conversation.unread) parts.push(`${conversation.unread} sin leer`);
   const step = progressText(view.progress, conversation.id);
-  if (step) meta.textContent = `Alfred · ${step}`;
-  else meta.textContent = parts.length ? `Alfred · ${parts.join(" · ")}` : "Sin mensajes";
+  meta.textContent = step || parts.join(" · ") || "Sin mensajes";
   const badge = rowBadge(conversation);
   if (badge) {
     const chip = document.createElement("span");
@@ -102,23 +102,26 @@ function caption(title) {
   return element;
 }
 
+// A null title draws the rows with no heading (a list with one group needs none).
 function group(title, conversations, view, options = {}) {
   const element = document.createElement("section");
   element.className = "group";
-  const head = document.createElement("div");
-  head.className = "group-head";
-  const label = document.createElement("span");
-  label.textContent = title;
-  head.append(label);
-  if (options.action) {
-    const action = document.createElement("button");
-    action.type = "button";
-    action.className = "group-action";
-    action.dataset.action = options.action;
-    action.textContent = options.actionLabel || "Ver";
-    head.append(action);
+  if (title !== null) {
+    const head = document.createElement("div");
+    head.className = "group-head";
+    const label = document.createElement("span");
+    label.textContent = title;
+    head.append(label);
+    if (options.action) {
+      const action = document.createElement("button");
+      action.type = "button";
+      action.className = "group-action";
+      action.dataset.action = options.action;
+      action.textContent = options.actionLabel || "Ver";
+      head.append(action);
+    }
+    element.append(head);
   }
-  element.append(head);
   for (const conversation of conversations) {
     element.append(row(conversation, view));
   }
@@ -137,14 +140,12 @@ export function renderHistory(chat) {
       skeleton.className = "skeleton-chat";
       groups.append(skeleton);
     }
-    $("history-count").textContent = "0";
-    $("btn-archived").textContent = "Archivados (0)";
     return;
   }
 
-  const conversations = home.conversations || [];
+  const selectedId = chat.conversation ? chat.conversation.id : null;
+  const conversations = (home.conversations || []).filter((conversation) => !isBlankChat(conversation, selectedId));
   const archived = home.archived || [];
-  $("history-count").textContent = String(conversations.length);
 
   if (chat.searchResults) {
     if (!chat.searchResults.length) {
@@ -203,8 +204,10 @@ export function renderHistory(chat) {
     (conversation) => !conversation.pinned && !inSections.includes(conversation),
   );
 
+  // «Recientes» names the rest only when pinned rows or sections sit above it.
+  const labelled = pinned.length > 0 || sections.length > 0;
   if (pinned.length) groups.append(group("Fijados", pinned, view));
-  if (recent.length) groups.append(group("Recientes", recent, view));
+  if (recent.length) groups.append(group(labelled ? "Recientes" : null, recent, view));
 
   if (sections.length) {
     groups.append(caption("Secciones"));
@@ -212,14 +215,6 @@ export function renderHistory(chat) {
       const rows = inSections.filter((conversation) => conversation.section_id === section.id);
       groups.append(group(section.name, rows, view));
     }
-  }
-  if (archived.length) {
-    groups.append(
-      group(`Archivados · ${archived.length}`, [], view, {
-        action: "toggle-archived",
-        actionLabel: "Ver",
-      }),
-    );
   }
 }
 
@@ -269,7 +264,7 @@ function agentButton(agent, role, extraClass = "") {
   row.dataset.pane = agent.pane_id;
   row.setAttribute(
     "aria-label",
-    `${seatLabel(agent)}, ${role}, ${SEAT_STATUS[agent.status] || agent.status}`,
+    [seatLabel(agent), role, SEAT_STATUS[agent.status] || agent.status].filter(Boolean).join(", "),
   );
   const dot = document.createElement("span");
   dot.className = `status-dot status-${agent.status}`;
@@ -277,10 +272,13 @@ function agentButton(agent, role, extraClass = "") {
   const name = document.createElement("span");
   name.className = "side-name";
   name.textContent = seatLabel(agent);
-  const roleLabel = document.createElement("span");
-  roleLabel.className = "side-role";
-  roleLabel.textContent = role;
-  row.append(dot, name, roleLabel);
+  row.append(dot, name);
+  if (role) {
+    const roleLabel = document.createElement("span");
+    roleLabel.className = "side-role";
+    roleLabel.textContent = role;
+    row.append(roleLabel);
+  }
   return row;
 }
 
@@ -295,12 +293,9 @@ export function renderSide(chat, agents) {
     px: 30,
   });
   $("side-alfred-status").textContent = alfred
-    ? `CTO · ${SEAT_STATUS[alfred.status] || alfred.status || "disponible"}`
+    ? SEAT_STATUS[alfred.status] || alfred.status || "disponible"
     : "Sin conexión";
   setNavBadge(bootstrap && bootstrap.chat ? bootstrap.chat.unread : 0);
-  $("side-company").textContent = bootstrap
-    ? `${bootstrap.company.name}${bootstrap.chat ? ` · ${bootstrap.chat.unread} sin leer` : ""}`
-    : "Sin datos del PC";
 
   const live = agents || [];
   const projects = $("side-projects");
@@ -316,33 +311,34 @@ export function renderSide(chat, agents) {
     for (const project of projectRows) {
       const card = document.createElement("div");
       card.className = "project-card";
+      // The folder and the state sit in the tooltip; the card shows the name and one dot.
+      card.title = [project.root_label, project.status === "active" ? "activo" : project.status]
+        .filter(Boolean)
+        .join(" · ");
       const head = document.createElement("div");
       head.className = "project-head";
       const name = document.createElement("span");
       name.className = "project-name";
       name.textContent = project.name;
-      const state = document.createElement("span");
-      state.className = "project-state";
-      state.textContent = project.status === "active" ? "activo" : project.status || "proyecto";
-      head.append(name, state);
-      card.append(head, Object.assign(document.createElement("p"), {
-        className: "project-root",
-        textContent: project.root_label || "",
-      }));
+      // The grey dot said nothing the lead's own status dot does not: only the name stays.
+      head.append(name);
+      card.append(head);
 
       const team = document.createElement("div");
       team.className = "project-team";
       const lead = project.lead;
       if (lead) {
         const leadAgent = lead.pane_id ? live.find((agent) => agent.pane_id === lead.pane_id) : null;
+        // The lead's name is on the tooltip only: the card already names the project.
         if (leadAgent) {
-          team.append(
-            agentButton(
-              { ...leadAgent, title: `${lead.name} — responsable del proyecto`, agent: "lead" },
-              "lead",
-              "project-lead",
-            ),
+          const button = agentButton(
+            { ...leadAgent, title: `${lead.name} — responsable del proyecto`, agent: "lead" },
+            null,
+            "project-lead",
           );
+          button.title = `${lead.name} — responsable del proyecto`;
+          button.querySelector(".side-name").classList.add("sr-only");
+          team.append(button);
         } else {
           const row = document.createElement("div");
           row.className = "side-row project-lead is-offline";
@@ -350,12 +346,10 @@ export function renderSide(chat, agents) {
           dot.className = `status-dot status-${lead.status || "unknown"}`;
           dot.setAttribute("aria-hidden", "true");
           const label = document.createElement("span");
-          label.className = "side-name";
+          label.className = "side-name sr-only";
           label.textContent = lead.name || "Responsable";
-          const role = document.createElement("span");
-          role.className = "role-badge";
-          role.textContent = "responsable sin panel";
-          row.append(dot, label, role);
+          row.title = `${lead.name || "Responsable"} · responsable del proyecto, sin panel abierto`;
+          row.append(dot, label);
           team.append(row);
         }
       }

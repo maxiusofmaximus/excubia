@@ -87,14 +87,37 @@ pub async fn decision(
             .into_response()
         }
     };
-    if let Some(scope) = payload.scope.as_deref() {
-        if scope.trim() != "once" {
+    // «task»: the same kind of action of this seat, in this folder, until its task ends.
+    let task_scope = match payload.scope.as_deref().map(str::trim) {
+        None | Some("once") => false,
+        Some("task") if decision == Decision::Approve => {
+            match ctx.chat.task_scope_allowed(&approval_id) {
+                Ok(true) => true,
+                Ok(false) => {
+                    return ApiError::invalid_field(
+                        "task_scope_unavailable",
+                        "scope",
+                        "only an action of a task, inside its folder and not a mail action, can be allowed for the whole task",
+                    )
+                    .into_response()
+                }
+                Err(error) => return support::map_error(error).into_response(),
+            }
+        }
+        Some(_) => {
             return ApiError::invalid_field(
                 "invalid_body",
                 "scope",
-                "the only scope of this version is \"once\"",
+                "scope is \"once\", or \"task\" with an approval",
             )
-            .into_response();
+            .into_response()
+        }
+    };
+    if decision == Decision::Deny {
+        if let Some(reason) = payload.reason.as_deref() {
+            if let Err(error) = ctx.chat.note_denial_reason(&approval_id, reason) {
+                return support::map_error(error).into_response();
+            }
         }
     }
     if let Err(error) = support::client_id(&payload.client_id) {
@@ -116,9 +139,17 @@ pub async fn decision(
         &payload.client_id,
         &verified.device_id,
     ) {
-        Ok(approval) => {
+        Ok(mut approval) => {
             if was_pending {
                 ctx.mail.approval_decided(&approval);
+            }
+            if task_scope {
+                match ctx.chat.grant_task_scope(&approval.id) {
+                    // The answer carries the scope the host now holds, so the card says it at once.
+                    Ok(true) => approval.scope = "task".to_string(),
+                    Ok(false) => {}
+                    Err(error) => return support::map_error(error).into_response(),
+                }
             }
             support::ok_object(json!({ "approval": approval.view(reader_of(&verified)) }))
         }

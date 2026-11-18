@@ -151,6 +151,57 @@
   text-align: right;
 }
 
+/* «Controles» and «Salida del agente» stay folded until the operator asks; the ▸ turns when open. */
+.composer-controls > summary,
+.output-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.composer-controls > summary::-webkit-details-marker,
+.output-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.composer-controls > summary {
+  width: fit-content;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.composer-controls[open] > summary {
+  margin-bottom: 10px;
+}
+
+.composer-controls > summary::after,
+.output-panel > summary::after {
+  color: var(--muted);
+  content: "▸";
+  transition: transform 150ms ease;
+}
+
+.composer-controls[open] > summary::after,
+.output-panel[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.composer-controls > summary:focus-visible,
+.output-panel > summary:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* The state dot is not read by the operator: the state word stands beside it. */
+.detail-project > .status-dot {
+  display: none;
+}
+
 #respond-text {
   width: 100%;
   min-height: 82px;

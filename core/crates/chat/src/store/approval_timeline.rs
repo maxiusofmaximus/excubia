@@ -91,13 +91,15 @@ fn load_cards(
     let sql = match before_seq {
         Some(_) => {
             "SELECT id, conversation_id, delegation_id, seq, title, summary, status,
-                    agent_id, pane_id, attention, created_at, updated_at
+                    agent_id, pane_id, attention, created_at, updated_at,
+                    (SELECT reason FROM delegation WHERE id = timeline_card.delegation_id)
                FROM timeline_card WHERE conversation_id = ?1 AND seq < ?2
               ORDER BY seq DESC LIMIT ?3"
         }
         None => {
             "SELECT id, conversation_id, delegation_id, seq, title, summary, status,
-                    agent_id, pane_id, attention, created_at, updated_at
+                    agent_id, pane_id, attention, created_at, updated_at,
+                    (SELECT reason FROM delegation WHERE id = timeline_card.delegation_id)
                FROM timeline_card WHERE conversation_id = ?1
               ORDER BY seq DESC LIMIT ?2"
         }
@@ -128,6 +130,7 @@ fn card_row(row: &Row<'_>) -> rusqlite::Result<Card> {
         agent_id: row.get(7)?,
         pane_id: pane_id.clone(),
         attention: row.get(9)?,
+        reason: row.get(12)?,
         links: crate::model::CardLinks {
             agent: pane_id.map(|pane| format!("/v1/agents/{pane}")),
             delegation: format!("/v1/chat/delegations/{delegation_id}"),

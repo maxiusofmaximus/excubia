@@ -281,3 +281,163 @@ fn an_approval_that_expires_is_decided_by_the_system() {
     assert_eq!(rows[0].0, "system");
     assert_eq!(rows[0].3, "expired");
 }
+
+/// A task whose card expired unanswered was not done: it closes as failed, with the
+/// assignee's words kept. A denied card is the operator's choice: the task is done.
+#[test]
+fn a_task_whose_card_expired_closes_as_failed_and_a_denied_one_as_done() {
+    use excubia_chat::{DelegationState, NewDelegation};
+
+    let team = team("delegation-expired-card");
+    team.store
+        .set_seat_pane(&team.lead, Some("pane_lead"))
+        .expect("lead pane");
+    let delegate = |turn: &str, task: &str| {
+        let delegation = team
+            .store
+            .create_delegation(NewDelegation {
+                conversation_id: team.conversation.clone(),
+                from_agent_id: team.alfred.clone(),
+                to_agent_id: team.lead.clone(),
+                task: task.to_string(),
+                turn_key: turn.to_string(),
+                parent_id: None,
+                steps: 1,
+                plan_id: None,
+            })
+            .expect("delegation");
+        team.store
+            .start_delegation(&delegation.id)
+            .expect("running");
+        delegation.id
+    };
+
+    let expired_task = delegate("run_a", "Crea notas.txt");
+    let args = json!({ "command": "echo hola > notas.txt" });
+    let cwd = team.root.to_string_lossy().to_string();
+    let card = team
+        .store
+        .create_approval(NewApproval {
+            conversation_id: Some(team.conversation.clone()),
+            seat_id: Some(team.lead.clone()),
+            agent_label: Some("ernesto".to_string()),
+            run_id: Some(String::new()),
+            pane_id: None,
+            kind: ApprovalKind::Command,
+            tool: "bash".to_string(),
+            summary: "Ejecutar comando".to_string(),
+            cwd: Some(cwd.clone()),
+            paths: Vec::new(),
+            risk: None,
+            action_digest: action_digest("command", "bash", &args, &cwd, &[]),
+            payload_redacted: Some(args),
+            ttl_seconds: 1,
+        })
+        .expect("card");
+    std::thread::sleep(std::time::Duration::from_millis(1_200));
+    assert_eq!(
+        team.store.approval(&card.id).expect("card").status,
+        ApprovalStatus::Expired
+    );
+    team.store
+        .complete_delegation(&expired_task, "No pude: el permiso caducó.")
+        .expect("closed");
+    let closed = team.store.delegation(&expired_task).expect("delegation");
+    assert_eq!(closed.state, DelegationState::Failed);
+
+    let plain_task = delegate("run_b", "Lee README.md");
+    team.store
+        .complete_delegation(&plain_task, "Hecho.")
+        .expect("closed");
+    assert_eq!(
+        team.store
+            .delegation(&plain_task)
+            .expect("delegation")
+            .state,
+        DelegationState::Done
+    );
+}
+
+/// «Always in this task»: the next card of the same kind, seat, task and folder is
+/// approved as it is filed; one outside the folder, or after the task, still asks.
+#[test]
+fn always_in_this_task_covers_the_same_action_kind_in_the_same_folder_only() {
+    use excubia_chat::NewDelegation;
+
+    let team = team("delegation-task-scope");
+    team.store
+        .set_seat_pane(&team.lead, Some("pane_lead"))
+        .expect("lead pane");
+    let delegation = team
+        .store
+        .create_delegation(NewDelegation {
+            conversation_id: team.conversation.clone(),
+            from_agent_id: team.alfred.clone(),
+            to_agent_id: team.lead.clone(),
+            task: "Prepara la web".to_string(),
+            turn_key: "run_scope".to_string(),
+            parent_id: None,
+            steps: 1,
+            plan_id: None,
+        })
+        .expect("delegation");
+    team.store.start_delegation(&delegation.id).expect("running");
+    let cwd = team.root.to_string_lossy().to_string();
+    let card = |command: &str, paths: Vec<String>| {
+        let args = json!({ "command": command });
+        team.store
+            .create_approval(NewApproval {
+                conversation_id: Some(team.conversation.clone()),
+                seat_id: Some(team.lead.clone()),
+                agent_label: Some("ernesto".to_string()),
+                run_id: Some(String::new()),
+                pane_id: None,
+                kind: ApprovalKind::Command,
+                tool: "bash".to_string(),
+                summary: format!("Ejecutar comando: {command}"),
+                cwd: Some(cwd.clone()),
+                paths: paths.clone(),
+                risk: None,
+                action_digest: action_digest("command", "bash", &args, &cwd, &paths),
+                payload_redacted: Some(args),
+                ttl_seconds: DEFAULT_TTL_SECONDS,
+            })
+            .expect("card")
+    };
+
+    let first = card("npm install", vec![]);
+    assert!(team.store.task_scope_allowed(&first.id).expect("allowed"));
+    team.store
+        .decide_approval(&first.id, Decision::Approve, "client-1", "device-1")
+        .expect("approved");
+    assert!(team.store.grant_task_scope(&first.id).expect("granted"));
+
+    let second = card("npm run build", vec![]);
+    assert_eq!(second.status, ApprovalStatus::Approved, "covered by the grant");
+
+    let outside = card(
+        "cp secreto.txt .",
+        vec!["C:/Windows/secreto.txt".to_string()],
+    );
+    assert_eq!(outside.status, ApprovalStatus::Pending, "outside the folder still asks");
+    assert!(!team.store.task_scope_allowed(&outside.id).expect("checked"));
+}
+
+/// A denial with words: the hook reads them with the state, so the agent knows why.
+#[test]
+fn a_denial_carries_the_operators_words_to_the_hook() {
+    let team = team("delegation-deny-reason");
+    let approval = ask(&team, &team.specialist, "rm -rf build");
+    team.store
+        .note_denial_reason(&approval.id, "No borres build; usa cargo clean.")
+        .expect("reason");
+    team.store
+        .decide_approval(&approval.id, Decision::Deny, "client-9", "device-1")
+        .expect("denied");
+    let state = team
+        .store
+        .approval_state(&approval.id, &HookScope::seat(&team.specialist))
+        .expect("state");
+    assert_eq!(state.status, ApprovalStatus::Denied);
+    assert_eq!(state.reason.as_deref(), Some("No borres build; usa cargo clean."));
+}

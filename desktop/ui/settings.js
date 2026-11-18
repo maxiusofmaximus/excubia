@@ -4,6 +4,8 @@
 
 import { $, tauri } from "./core.js";
 import { showView } from "./nav.js";
+import { openAlerts } from "./alerts.js";
+import { openDevices } from "./devices.js";
 
 export function openSettings() {
   showView("settings");
@@ -12,6 +14,8 @@ export function openSettings() {
 
 export function installSettings() {
   $("btn-settings-connect").addEventListener("click", () => showView("pair"));
+  $("btn-settings-alerts").addEventListener("click", () => openAlerts());
+  $("btn-settings-devices").addEventListener("click", () => openDevices());
   showVersion();
 }
 
