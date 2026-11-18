@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:excubia/core/state/voice_recorder.dart';
@@ -14,6 +15,11 @@ class FakeVoiceRecorder implements VoiceRecorder {
   /// The file the last [stop] returned; null before a stop.
   String? lastPath;
 
+  final _levels = StreamController<double>.broadcast();
+
+  /// Pushes a level as the microphone would, 0 to 1.
+  void emitLevel(double level) => _levels.add(level);
+
   @override
   Future<bool> hasPermission() async => allowed;
 
@@ -29,5 +35,11 @@ class FakeVoiceRecorder implements VoiceRecorder {
   }
 
   @override
-  Future<void> dispose() async => disposed = true;
+  Stream<double> levels() => _levels.stream;
+
+  @override
+  Future<void> dispose() async {
+    disposed = true;
+    await _levels.close();
+  }
 }

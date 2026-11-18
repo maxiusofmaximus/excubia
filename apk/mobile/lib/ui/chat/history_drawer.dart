@@ -87,13 +87,14 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                TextButton(
-                  onPressed: () {
-                    _chat.setFilter(HistoryFilter.archived);
-                    Navigator.of(context).maybePop();
-                  },
-                  child: Text('Ver archivados (${_chat.archivedCount})'),
-                ),
+                if (_chat.archivedCount > 0)
+                  TextButton(
+                    onPressed: () {
+                      _chat.setFilter(HistoryFilter.archived);
+                      Navigator.of(context).maybePop();
+                    },
+                    child: Text('Ver archivados (${_chat.archivedCount})'),
+                  ),
                 TextButton(
                   onPressed: () {
                     final navigator = Navigator.of(context);
@@ -137,6 +138,19 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
     );
   }
 
+  /// «2 fijados · 22 visibles · 1 archivado»: the pinned and archived counts appear above zero only.
+  String _summary() {
+    final pinned = _chat.pinnedCount;
+    final archived = _chat.archivedCount;
+    final visible = _chat.conversations.length;
+    return [
+      if (pinned > 0) '$pinned ${pinned == 1 ? 'fijado' : 'fijados'}',
+      '$visible ${visible == 1 ? 'visible' : 'visibles'}',
+      if (archived > 0)
+        '$archived ${archived == 1 ? 'archivado' : 'archivados'}',
+    ].join(' · ');
+  }
+
   Widget _header(BuildContext context) {
     final c = context.colors;
     return Padding(
@@ -153,13 +167,8 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Historial', style: context.text.headline),
-                Text(
-                  '${_chat.pinnedCount} fijados · '
-                  '${_chat.conversations.length} '
-                  '${_chat.conversations.length == 1 ? 'visible' : 'visibles'} · '
-                  '${_chat.archivedCount} archivados',
-                  style: context.text.small,
-                ),
+                if (_chat.pinnedCount > 0 || _chat.archivedCount > 0)
+                  Text(_summary(), style: context.text.small),
               ],
             ),
           ),

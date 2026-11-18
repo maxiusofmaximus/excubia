@@ -13,17 +13,24 @@ extension _HistoryDrawerFilters on _HistoryDrawerState {
   /// The two chips an older host cannot answer stay out of the row.
   static const _newFilters = {HistoryFilter.attention, HistoryFilter.working};
 
-  /// Sections has no number, as before; the others read the host's chip counts.
+  /// «Todos» and Sections have no number; the others read the host's chip counts.
   int? _chipCount(HistoryFilter filter) {
     final counts = _chat.counts;
     return switch (filter) {
-      HistoryFilter.all => counts?.all.toInt(),
+      HistoryFilter.all || HistoryFilter.sections => null,
       HistoryFilter.attention => counts?.attention.toInt(),
       HistoryFilter.working => counts?.working.toInt(),
       HistoryFilter.pinned => _chat.pinnedCount,
       HistoryFilter.archived => _chat.archivedCount,
-      HistoryFilter.sections => null,
     };
+  }
+
+  /// Hidden while it has nothing to show: «Trabajando» only while an agent works, or while it
+  /// is the filter on screen, so it can be left. An old host gets neither new chip.
+  bool _shown(HistoryFilter filter) {
+    if (!_chat.countsSupported && _newFilters.contains(filter)) return false;
+    if (filter != HistoryFilter.working) return true;
+    return _chat.filter == filter || (_chipCount(filter) ?? 0) > 0;
   }
 
   Widget _filters(BuildContext context) {
@@ -34,7 +41,7 @@ extension _HistoryDrawerFilters on _HistoryDrawerState {
         padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
         children: [
           for (final filter in _labels.keys)
-            if (_chat.countsSupported || !_newFilters.contains(filter))
+            if (_shown(filter))
               Padding(
                 padding: const EdgeInsets.only(right: Spacing.sm),
                 child: _chip(context, filter),

@@ -10,8 +10,7 @@ import 'package:excubia/src/rust/api/catalog.dart';
 import 'package:excubia/src/rust/frb_generated.dart';
 import 'package:excubia/src/rust/api/error.dart';
 import 'package:excubia/ui/alfred/alfred_engine_section.dart';
-import 'package:excubia/ui/new_conversation_screen.dart'
-    show CatalogLoader;
+import 'package:excubia/ui/new_conversation_screen.dart' show CatalogLoader;
 
 import '../support/widget_mount.dart';
 
@@ -85,6 +84,12 @@ Finder _button(String label) => find.widgetWithText(OutlinedButton, label);
 OutlinedButton _buttonOf(WidgetTester tester, String label) =>
     tester.widget<OutlinedButton>(_button(label));
 
+/// Opens «Avanzado», where the switches and the engine list live.
+Future<void> _openAdvanced(WidgetTester tester) async {
+  await tester.tap(find.text('Avanzado'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(() async => RustLib.init());
 
@@ -95,8 +100,9 @@ void main() {
       _read: [_state('claude')],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
-    expect(find.text('Claude'), findsOneWidget);
+    expect(find.text('Claude · recomendado'), findsOneWidget);
     expect(_buttonOf(tester, 'Usar el modelo local').onPressed, isNotNull);
 
     await tester.tap(_button('Usar el modelo local'));
@@ -106,53 +112,100 @@ void main() {
     expect(engine.count(_change), 0);
   });
 
-  testWidgets('the installed agents are listed, read-only, under the engine', (
+  testWidgets('the switches and the engine list are folded and shut at first', (
     tester,
   ) async {
     final engine = _Engine({
-      _read: [_state('claude')],
+      _read: [
+        '{"backend":"claude","state":"claude","detail":null,"since":1,'
+            '"voice_suspended":false,"engines":[{"name":"opencode","version":"2.2.6"}]}',
+      ],
     });
-    await _mount(
-      tester,
-      engine,
-      catalog: () async => (
-        entries: [
-          const CatalogEntry(
-            name: 'claude',
-            available: true,
-            runnable: true,
-            fixable: false,
-            label: 'Claude Code',
-            isDefault: false,
-          ),
-          const CatalogEntry(
-            name: 'codex',
-            available: true,
-            runnable: false,
-            fixable: true,
-            label: 'Codex',
-            isDefault: false,
-          ),
-          const CatalogEntry(
-            name: 'gemini',
-            available: false,
-            runnable: false,
-            fixable: false,
-            label: 'Gemini CLI',
-            isDefault: false,
-          ),
-        ],
-        error: null,
-      ),
-    );
+    await _mount(tester, engine);
 
-    expect(find.text('AGENTES INSTALADOS EN TU PC'), findsOneWidget);
-    expect(find.text('Claude Code'), findsOneWidget);
-    expect(find.text('Codex · Windows no lo arranca todavía'), findsOneWidget);
-    expect(find.textContaining('Gemini CLI'), findsNothing);
-    expect(find.textContaining('Alfred elige entre Claude'), findsOneWidget);
-    expect(engine.count(_change), 0);
+    expect(find.text('Asistente'), findsOneWidget);
+    expect(find.text('Claude · recomendado'), findsOneWidget);
+    expect(find.text('Avanzado'), findsOneWidget);
+    expect(_button('Usar el modelo local'), findsNothing);
+    expect(find.textContaining('Motores listos'), findsNothing);
+
+    await _openAdvanced(tester);
+    expect(_button('Usar el modelo local'), findsOneWidget);
+    expect(
+      find.text('Motores listos en este PC: opencode 2.2.6'),
+      findsOneWidget,
+    );
   });
+
+  testWidgets('a failed change stays in view while Avanzado is shut', (
+    tester,
+  ) async {
+    final engine = _Engine({
+      _read: [_state('failed', detail: 'Sin RAM libre para el modelo.')],
+    });
+    await _mount(tester, engine);
+
+    expect(
+      find.text('No pude cambiar: Sin RAM libre para el modelo.'),
+      findsOneWidget,
+    );
+    expect(_button('Usar el modelo local'), findsNothing);
+  });
+
+  testWidgets(
+    'the Avanzado fold holds the installed agents, under their own label',
+    (tester) async {
+      final engine = _Engine({
+        _read: [_state('claude')],
+      });
+      await _mount(
+        tester,
+        engine,
+        catalog: () async => (
+          entries: [
+            const CatalogEntry(
+              name: 'claude',
+              available: true,
+              runnable: true,
+              fixable: false,
+              label: 'Claude Code',
+              isDefault: false,
+            ),
+            const CatalogEntry(
+              name: 'codex',
+              available: true,
+              runnable: false,
+              fixable: true,
+              label: 'Codex',
+              isDefault: false,
+            ),
+            const CatalogEntry(
+              name: 'gemini',
+              available: false,
+              runnable: false,
+              fixable: false,
+              label: 'Gemini CLI',
+              isDefault: false,
+            ),
+          ],
+          error: null,
+        ),
+      );
+
+      expect(find.text('AGENTES INSTALADOS EN TU PC'), findsNothing);
+      await _openAdvanced(tester);
+
+      expect(find.text('AGENTES INSTALADOS EN TU PC'), findsOneWidget);
+      expect(find.text('Claude Code'), findsOneWidget);
+      expect(
+        find.text('Codex · Windows no lo arranca todavía'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Gemini CLI'), findsNothing);
+      expect(find.textContaining('Alfred elige entre Claude'), findsOneWidget);
+      expect(engine.count(_change), 0);
+    },
+  );
 
   testWidgets('cancelling the confirmation does not post the change', (
     tester,
@@ -161,6 +214,7 @@ void main() {
       _read: [_state('claude')],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
     await tester.tap(_button('Usar el modelo local'));
     await tester.pumpAndSettle();
@@ -168,7 +222,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(engine.count(_change), 0);
-    expect(find.text('Claude'), findsOneWidget);
+    expect(find.text('Claude · recomendado'), findsOneWidget);
   });
 
   testWidgets(
@@ -179,6 +233,7 @@ void main() {
         _change: [_state('starting')],
       });
       await _mount(tester, engine);
+      await _openAdvanced(tester);
 
       await tester.tap(_button('Usar el modelo local'));
       await tester.pumpAndSettle();
@@ -203,6 +258,7 @@ void main() {
       _change: [_state('stopping')],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
     expect(find.text('Modelo local'), findsOneWidget);
     await tester.tap(_button('Volver a Claude'));
@@ -269,6 +325,7 @@ void main() {
       _change: [const HostError(403, '{"detail":"forbidden"}')],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
     await tester.tap(_button('Usar el modelo local'));
     await tester.pumpAndSettle();
@@ -313,6 +370,7 @@ void main() {
       _change: [const HostError(409, '{"detail":{"code":"backend_busy"}}')],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
     await tester.tap(_button('Usar el modelo local'));
     await tester.pumpAndSettle();
@@ -342,7 +400,7 @@ void main() {
     await tester.tap(find.text('Reintentar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Claude'), findsOneWidget);
+    expect(find.text('Claude · recomendado'), findsOneWidget);
     expect(find.text('No se pudo leer'), findsNothing);
   });
 
@@ -353,6 +411,7 @@ void main() {
       _read: [_state('failed', detail: 'Sin RAM libre para el modelo.')],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
     expect(
       find.text('No pude cambiar: Sin RAM libre para el modelo.'),
@@ -375,6 +434,7 @@ void main() {
       ],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
     expect(
       find.text('Motores listos en este PC: opencode 2.2.6'),
@@ -399,6 +459,7 @@ void main() {
     await _mount(tester, engine);
 
     expect(find.text('Motor: opencode'), findsOneWidget);
+    await _openAdvanced(tester);
     expect(_button('Usar opencode'), findsNothing);
     expect(_buttonOf(tester, 'Volver a Claude').onPressed, isNotNull);
     await tester.pumpWidget(const SizedBox());
@@ -420,6 +481,7 @@ void main() {
       find.text('No pude cambiar: opencode no está listo en este PC'),
       findsOneWidget,
     );
+    await _openAdvanced(tester);
     expect(_buttonOf(tester, 'Volver a Claude').onPressed, isNotNull);
     await tester.pumpWidget(const SizedBox());
   });
@@ -429,6 +491,7 @@ void main() {
       _read: [_state('claude')],
     });
     await _mount(tester, engine);
+    await _openAdvanced(tester);
 
     expect(find.textContaining('Motores listos'), findsNothing);
   });
@@ -445,6 +508,7 @@ void main() {
         _change: [_state('stopping')],
       });
       await _mount(tester, engine);
+      await _openAdvanced(tester);
 
       expect(find.text('Usar el modelo local'), findsNothing);
       await tester.tap(_button('Volver a Claude'));
@@ -499,6 +563,7 @@ void main() {
           return null;
         },
       );
+      await _openAdvanced(tester);
 
       expect(find.text('Claude Code · por defecto'), findsOneWidget);
       expect(
@@ -539,6 +604,7 @@ void main() {
         kind: FailureKind.permission,
       ),
     );
+    await _openAdvanced(tester);
 
     await tester.tap(find.widgetWithText(TextButton, 'Usar por defecto'));
     await tester.pumpAndSettle();

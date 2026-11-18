@@ -50,6 +50,7 @@ class TimelineRow extends StatelessWidget {
     this.images,
     this.documents,
     this.sentAttachments,
+    this.replyBelow = false,
   });
 
   final ChatEntry entry;
@@ -85,6 +86,9 @@ class TimelineRow extends StatelessWidget {
 
   /// The files of an unsent message, shown until the host's entry carries them.
   final List<ChatAttachment>? sentAttachments;
+
+  /// True when the next row is Alfred's answer to this message.
+  final bool replyBelow;
   final ValueChanged<ChatEntry> onRetrySend;
   final ValueChanged<ChatEntry> onRetryTurn;
   final ValueChanged<ChatEntry> onOpenDelegation;
@@ -173,6 +177,7 @@ class TimelineRow extends StatelessWidget {
       attachments: entry.attachments ?? sentAttachments,
       images: images,
       documents: documents,
+      replyBelow: replyBelow,
     );
   }
 }

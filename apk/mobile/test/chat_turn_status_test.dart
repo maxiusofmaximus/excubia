@@ -37,6 +37,24 @@ void main() {
       );
     });
 
+    test(
+      'a finished turn with its reply right below shows no «Respondido»',
+      () {
+        expect(
+          turnLine(turnState: 'completed', latestOwn: true, replyBelow: true),
+          isNull,
+        );
+        expect(
+          turnLine(
+            turnState: 'failed',
+            latestOwn: true,
+            replyBelow: true,
+          )?.text,
+          'Falló',
+        );
+      },
+    );
+
     test('a message without a turn state shows no line', () {
       expect(turnLine(turnState: null, latestOwn: true), isNull);
     });

@@ -85,6 +85,9 @@ class VoiceNotes extends ChangeNotifier {
     await _finish(transcribe: false);
   }
 
+  /// The level while recording, for the voice screen's ring.
+  Stream<double> levels() => _recorder.levels();
+
   /// Opens the recorder; false when it could not, and the notice says why.
   Future<bool> _begin() async {
     _notice = null;

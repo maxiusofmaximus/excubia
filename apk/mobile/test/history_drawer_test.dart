@@ -105,19 +105,105 @@ Future<void> _chooseDelete(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Answers the pinned and archived counts with the given number of rows each.
+class _CountedTransport extends FakeChatTransport {
+  _CountedTransport(
+    super.routes, {
+    required this.pinned,
+    required this.archived,
+  });
+
+  final int pinned;
+  final int archived;
+
+  @override
+  Future<String> call(
+    String method,
+    String target, [
+    List<int> body = const [],
+  ]) async {
+    calls.add('$method $target');
+    if (target.contains('pinned=true')) {
+      return conversationsJson(
+        conversations: [
+          for (var i = 0; i < pinned; i++) _row('p$i', 'Fijado $i'),
+        ],
+      );
+    }
+    if (target.contains('archived=true')) {
+      return conversationsJson(
+        conversations: [
+          for (var i = 0; i < archived; i++) _row('a$i', 'Archivado $i'),
+        ],
+      );
+    }
+    return super.call(method, target, body);
+  }
+}
+
+Map<String, Object?> _row(String id, String title) => {
+  'id': id,
+  'title': title,
+  'pinned': false,
+  'archived': false,
+  'last_seq': 1,
+  'last_read_seq': 0,
+  'unread': 0,
+  'last_message_at': '2026-10-22T10:00:00.000Z',
+  'created_at': '2026-10-22T10:00:00.000Z',
+  'updated_at': '2026-10-22T10:00:00.000Z',
+};
+
 void main() {
   setUpAll(() async {
     await RustLib.init();
   });
 
+  testWidgets(
+    'Trabajando shows only while an agent works; Todos has no number',
+    (tester) async {
+      await _pump(tester, FakeChatTransport(_routes(all: 22, attention: 1)));
+
+      expect(find.text('Trabajando'), findsNothing);
+      expect(find.bySemanticsLabel('Todos'), findsOneWidget);
+      expect(find.text('22'), findsNothing);
+      expect(find.text('Pendientes de ti'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+    },
+  );
+
+  testWidgets('the summary line and «Ver archivados» are absent with none', (
+    tester,
+  ) async {
+    await _pump(tester, FakeChatTransport(_routes()));
+
+    expect(find.textContaining('visible'), findsNothing);
+    expect(find.textContaining('Ver archivados'), findsNothing);
+  });
+
+  testWidgets('the summary names only the pinned and archived above zero', (
+    tester,
+  ) async {
+    await _pump(tester, _CountedTransport(_routes(), pinned: 1, archived: 2));
+
+    expect(find.text('1 fijado · 0 visibles · 2 archivados'), findsOneWidget);
+    expect(find.text('Ver archivados (2)'), findsOneWidget);
+  });
+
   testWidgets('six chips in order, each count shown above zero, 99+ above 99', (
     tester,
   ) async {
-    await _pump(tester, FakeChatTransport(_routes(all: 120, attention: 3)));
+    await _pump(tester, FakeChatTransport(_routes(attention: 120, working: 3)));
 
     expect(find.text('99+'), findsOneWidget);
+    await revealHistoryChip(tester, 'Trabajando');
     expect(find.text('3'), findsOneWidget);
     expect(find.text('0'), findsNothing);
+    // Back to the row's start, so the labels are read from «Todos» on.
+    for (var step = 0; step < 4; step++) {
+      await tester.drag(historyChipRow(), const Offset(200, 0));
+      await tester.pumpAndSettle();
+    }
     expect(await _chipLabels(tester), [
       'Todos',
       'Pendientes de ti',
@@ -138,7 +224,8 @@ void main() {
       );
 
       expect(tester.getSize(_chipOf('Todos')).height, greaterThanOrEqualTo(48));
-      expect(find.bySemanticsLabel('Todos, 4'), findsOneWidget);
+      expect(find.bySemanticsLabel('Todos'), findsOneWidget);
+      expect(find.text('4'), findsNothing);
       expect(find.bySemanticsLabel('Pendientes de ti, 2'), findsOneWidget);
 
       await revealHistoryChip(tester, 'Trabajando');
@@ -167,7 +254,7 @@ void main() {
   testWidgets('an empty filter says what is missing in its own words', (
     tester,
   ) async {
-    await _pump(tester, FakeChatTransport(_routes()));
+    await _pump(tester, FakeChatTransport(_routes(working: 1)));
 
     await tester.tap(find.text('Pendientes de ti'));
     await tester.pumpAndSettle();

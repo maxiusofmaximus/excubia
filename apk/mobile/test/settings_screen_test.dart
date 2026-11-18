@@ -144,7 +144,7 @@ void main() {
     const labels = [
       'APARIENCIA',
       'AGENDA',
-      'MOTOR DE ALFRED',
+      'Asistente',
       'VOZ',
       'CORREO',
       'AVISOS',

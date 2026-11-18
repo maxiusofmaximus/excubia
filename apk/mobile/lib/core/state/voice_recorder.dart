@@ -10,8 +10,16 @@ abstract interface class VoiceRecorder {
   /// Ends the recording; null when nothing was recorded.
   Future<String?> stop();
 
+  /// The input level, 0 to 1, about every 100 ms while recording. Errors when
+  /// the platform gives no level; the screen then pulses instead.
+  Stream<double> levels();
+
   Future<void> dispose();
 }
+
+/// Maps a level in dB (silence is about -160, full scale 0) to 0..1. Anything
+/// at or below -60 dB reads as silence, so a ring only moves for speech.
+double micLevel(double db) => ((db + 60) / 60).clamp(0.0, 1.0).toDouble();
 
 /// Ogg Opus at the rate the host's speech engine reads: mono 16 kHz, 24 kbps.
 /// Android writes Ogg for Opus from API 29 on.
@@ -42,6 +50,11 @@ class RecordVoiceRecorder implements VoiceRecorder {
 
   @override
   Future<String?> stop() => _audio.stop();
+
+  @override
+  Stream<double> levels() => _audio
+      .onAmplitudeChanged(const Duration(milliseconds: 100))
+      .map((amplitude) => micLevel(amplitude.current));
 
   @override
   Future<void> dispose() async {

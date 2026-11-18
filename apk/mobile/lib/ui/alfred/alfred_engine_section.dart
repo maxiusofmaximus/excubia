@@ -189,10 +189,11 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
 
   @override
   Widget build(BuildContext context) {
+    final advanced = _advanced(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('MOTOR DE ALFRED', style: context.text.label),
+        Text('Asistente', style: context.text.label),
         const SizedBox(height: Spacing.sm),
         SurfaceCard(
           child: Opacity(
@@ -202,9 +203,31 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
                     'Tu PC no admite este ajuste; actualiza Excubia en el PC.',
                     style: context.text.body,
                   )
-                : _body(context),
+                : _summary(context),
           ),
         ),
+        if (advanced != null) ...[const SizedBox(height: Spacing.sm), advanced],
+      ],
+    );
+  }
+
+  /// The switches, the engines and the installed agents: technical, so folded and shut.
+  Widget? _advanced(BuildContext context) {
+    final status = _status;
+    final showControls = status != null && !_unsupported;
+    if (!showControls && widget.catalog == null) return null;
+    return ExpansionTile(
+      key: const ValueKey('alfred-advanced'),
+      title: Text('Avanzado', style: context.text.body),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(top: Spacing.sm),
+      shape: const Border(),
+      collapsedShape: const Border(),
+      iconColor: context.colors.textSecondary,
+      collapsedIconColor: context.colors.textSecondary,
+      children: [
+        if (status != null && !_unsupported)
+          SurfaceCard(child: _controls(context, status)),
         if (widget.catalog != null) ...[
           const SizedBox(height: Spacing.xl),
           Text('AGENTES INSTALADOS EN TU PC', style: context.text.label),
@@ -268,7 +291,8 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
     );
   }
 
-  Widget _body(BuildContext context) {
+  /// What Alfred runs on now, plus what needs the eye: a read that failed, a refused change.
+  Widget _summary(BuildContext context) {
     final status = _status;
     if (status == null) {
       final failure = _readFailure;
@@ -279,12 +303,8 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
         _button('Reintentar', _busy ? null : _read),
       ]);
     }
-    final state = status.state;
-    final detail = status.detail;
     return _column([
       Text(_lineFor(status), style: context.text.body),
-      if (state != AlfredEngineState.failed && detail != null)
-        Text(detail, style: context.text.bodySecondary),
       if (_refusal != null)
         Text(
           _refusal!,
@@ -292,6 +312,16 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
             color: context.colors.statusBlocked,
           ),
         ),
+    ]);
+  }
+
+  /// Inside «Avanzado»: the detail, the listed engines and the buttons that change them.
+  Widget _controls(BuildContext context, AlfredBackendStatus status) {
+    final state = status.state;
+    final detail = status.detail;
+    return _column([
+      if (state != AlfredEngineState.failed && detail != null)
+        Text(detail, style: context.text.bodySecondary),
       if (status.engines.isNotEmpty)
         Text(
           'Motores listos en este PC: '
@@ -331,7 +361,7 @@ class _AlfredEngineSectionState extends State<AlfredEngineSection> {
   }
 
   static String _lineFor(AlfredBackendStatus status) => switch (status.state) {
-    AlfredEngineState.claude => 'Claude',
+    AlfredEngineState.claude => 'Claude · recomendado',
     AlfredEngineState.local => 'Modelo local',
     AlfredEngineState.engine => 'Motor: ${status.backend}',
     AlfredEngineState.starting => 'Arrancando el modelo local… (unos 4 min)',

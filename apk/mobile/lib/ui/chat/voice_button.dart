@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/state/voice_notes.dart';
 import '../../core/state/voice_send_settings.dart';
 import '../theme.dart';
+import 'voice_screen.dart';
 
 /// Pushes the text the user is editing; a transcript lands at the cursor.
 TextEditingValue insertAtCursor(TextEditingValue value, String text) {
@@ -76,6 +77,21 @@ class _VoiceButtonState extends State<VoiceButton> {
     await voice.toggle();
   }
 
+  /// Hold mode: a short tap opens the voice screen, which starts the note.
+  Future<void> _openVoice() async {
+    final voice = widget.voice;
+    if (!voice.explained) {
+      if (await _explain() != true || !mounted) return;
+    }
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => VoiceScreen(voice: voice),
+      ),
+    );
+  }
+
   /// The first press says what is recorded and where it goes, before the
   /// system asks for the microphone.
   Future<bool?> _explain() {
@@ -126,6 +142,9 @@ class _VoiceButtonState extends State<VoiceButton> {
   }
 
   Widget _holdGesture(Widget child) => GestureDetector(
+    onTap: widget.enabled && widget.voice.phase == VoicePhase.idle
+        ? () => unawaited(_openVoice())
+        : null,
     onLongPressStart: widget.enabled && widget.voice.phase == VoicePhase.idle
         ? (_) => _pressStart()
         : null,
@@ -171,7 +190,7 @@ class _VoiceButtonState extends State<VoiceButton> {
     final end = widget.autoSend ? 'enviar a Alfred' : 'transcribir';
     return switch (widget.micMode) {
       VoiceMicMode.hold =>
-        'Mantén pulsado para grabar, suelta para $end, o desliza a la izquierda para cancelar',
+        'Mantén pulsado para grabar, suelta para $end, o desliza a la izquierda para cancelar. Toca para abrir la pantalla de voz',
       VoiceMicMode.toggle =>
         'Toca para grabar, toca de nuevo para $end, o pulsa la x para cancelar',
     };

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:excubia/core/api/chat_attachment_source.dart';
 import 'package:excubia/core/api/host_client.dart';
@@ -669,5 +670,116 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(controller.attachments.items.length, 2);
+  });
+
+  testWidgets(
+    'a finished turn whose reply is right below shows no «Respondido»',
+    (tester) async {
+      final routes = conversationRoutes();
+      routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+        {
+          ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+          'turn_state': 'completed',
+        },
+        timelineMessage(
+          seq: 2,
+          id: 'm2',
+          preview: 'Alfred: listo',
+          author: 'agent',
+        ),
+      ]);
+      await pumpChat(tester, routes: routes);
+
+      expect(find.text('Respondido'), findsNothing);
+    },
+  );
+
+  testWidgets('a finished turn with no reply below still says «Respondido»', (
+    tester,
+  ) async {
+    final routes = conversationRoutes();
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+      {
+        ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+        'turn_state': 'completed',
+      },
+    ]);
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+      userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+    ]);
+    await pumpChat(tester, routes: routes);
+
+    expect(find.text('Respondido'), findsOneWidget);
+  });
+
+  testWidgets('Alfred’s reply has a copy icon, and only Alfred’s reply', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: conversationRoutes());
+
+    expect(find.byTooltip('Copiar respuesta'), findsOneWidget);
+    expect(
+      tester.getSize(find.byTooltip('Copiar respuesta')).height,
+      greaterThanOrEqualTo(44),
+    );
+    expect(find.text('Copiar'), findsNothing);
+  });
+
+  testWidgets('the copy icon puts the reply on the clipboard and says so', (
+    tester,
+  ) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await pumpChat(tester, routes: conversationRoutes());
+
+    await tester.tap(find.byTooltip('Copiar respuesta'));
+    await tester.pump();
+
+    expect(copied, 'Alfred: listo');
+    expect(find.text('Copiado'), findsOneWidget);
+  });
+
+  testWidgets(
+    'a long press on Alfred’s reply offers copy and select, not share',
+    (tester) async {
+      await pumpChat(tester, routes: conversationRoutes());
+
+      await tester.longPress(find.textContaining('Alfred: listo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Copiar'), findsOneWidget);
+      expect(find.text('Seleccionar texto'), findsOneWidget);
+      expect(find.textContaining('Compartir'), findsNothing);
+    },
+  );
+
+  testWidgets('«Seleccionar texto» shows the reply as selectable text', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: conversationRoutes());
+
+    await tester.longPress(find.textContaining('Alfred: listo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Seleccionar texto'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<SelectableText>(find.byType(SelectableText).last).data,
+      'Alfred: listo',
+    );
   });
 }

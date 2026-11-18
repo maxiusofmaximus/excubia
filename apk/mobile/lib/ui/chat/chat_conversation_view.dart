@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:excubia/src/rust/api/approvals/model.dart';
 import 'package:excubia/src/rust/api/chat/model.dart';
-import 'package:excubia/src/rust/api/error/chat.dart'
-    show offlineChatFailure;
+import 'package:excubia/src/rust/api/error/chat.dart' show offlineChatFailure;
 
 import '../../core/api/connection_text.dart';
 import '../../core/state/chat_controller.dart';
@@ -156,6 +155,10 @@ class ConversationView extends StatelessWidget {
             images: chat.images,
             documents: chat.documents,
             sentAttachments: chat.attachmentsOfSend(entries[cursor].clientId),
+            replyBelow:
+                cursor + 1 < entries.length &&
+                entries[cursor + 1].kind == 'message' &&
+                entries[cursor + 1].authorKind == 'agent',
           );
         }
         cursor -= entries.length;

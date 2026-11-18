@@ -6,7 +6,10 @@ part of 'chat_bubbles.dart';
   required String? turnState,
   required bool latestOwn,
   String? runningAgent,
+  bool replyBelow = false,
 }) {
+  // The reply sits right under the message: «Respondido» would only repeat it.
+  if (turnState == 'completed' && replyBelow) return null;
   final line = switch (turnState) {
     'queued' => (icon: Icons.check, text: 'Enviado'),
     'running' => (
@@ -24,9 +27,20 @@ part of 'chat_bubbles.dart';
   return latestOwn || turnState == 'failed' ? line : null;
 }
 
-/// Copies Alfred's reply as it was written, markdown marks included.
-class _CopyButton extends StatelessWidget {
-  const _CopyButton({required this.text});
+/// What a long press on a message can start.
+enum _MessageAction { reply, copy, select }
+
+/// Copies a reply as it was written, markdown marks included, and says so.
+Future<void> _copyText(BuildContext context, String text) async {
+  await Clipboard.setData(ClipboardData(text: text));
+  if (!context.mounted) return;
+  ScaffoldMessenger.maybeOf(context)
+      ?.showSnackBar(const SnackBar(content: Text('Copiado')));
+}
+
+/// Under Alfred's reply: one small icon to copy it, with a 48 dp touch target.
+class _ReplyActions extends StatelessWidget {
+  const _ReplyActions({required this.text});
 
   final String text;
 
@@ -34,19 +48,17 @@ class _CopyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: AlignmentDirectional.centerStart,
-      child: TextButton.icon(
-        style: TextButton.styleFrom(
-          minimumSize: const Size(48, 48),
-          foregroundColor: context.colors.textSecondary,
+      child: Semantics(
+        button: true,
+        label: 'Copiar respuesta',
+        child: IconButton(
+          tooltip: 'Copiar respuesta',
+          onPressed: () => _copyText(context, text),
+          icon: const Icon(Icons.copy_outlined),
+          iconSize: 18,
+          color: context.colors.textSecondary,
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         ),
-        onPressed: () async {
-          await Clipboard.setData(ClipboardData(text: text));
-          if (!context.mounted) return;
-          ScaffoldMessenger.maybeOf(context)
-              ?.showSnackBar(const SnackBar(content: Text('Copiado')));
-        },
-        icon: const Icon(Icons.copy_outlined, size: 16),
-        label: const Text('Copiar'),
       ),
     );
   }
@@ -69,6 +81,7 @@ class _MessageBubble extends StatelessWidget {
     this.attachments,
     this.images,
     this.documents,
+    this.replyBelow = false,
   });
 
   final ChatEntry entry;
@@ -91,24 +104,69 @@ class _MessageBubble extends StatelessWidget {
   final ChatAttachmentImages? images;
   final ChatDocumentOpener? documents;
 
+  /// True when Alfred's answer is the next row, so the step line need not repeat it.
+  final bool replyBelow;
+
   /// Only a message the host has (not one still sending) can be an answer's target.
   bool get _canReply =>
       onReply != null && entry.messageId != null && !entry.local;
 
-  /// The one action of a long press: answer this message.
-  Future<void> _offerReply(BuildContext context) async {
-    final reply = await showModalBottomSheet<bool>(
+  /// A long press answers a message the host has, and opens the actions of an Alfred reply.
+  bool get _canOpenActions => _canReply || (!mine && entry.body.isNotEmpty);
+
+  /// Answer, copy or select: one sheet, only the actions that apply to this message.
+  Future<void> _openActions(BuildContext context) async {
+    final action = await showModalBottomSheet<_MessageAction>(
       context: context,
       builder: (sheet) => SafeArea(
-        child: ListTile(
-          leading: const Icon(Icons.reply),
-          title: const Text('Responder'),
-          onTap: () => Navigator.pop(sheet, true),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_canReply)
+              ListTile(
+                leading: const Icon(Icons.reply),
+                title: const Text('Responder'),
+                onTap: () => Navigator.pop(sheet, _MessageAction.reply),
+              ),
+            if (!mine) ...[
+              ListTile(
+                leading: const Icon(Icons.copy_outlined),
+                title: const Text('Copiar'),
+                onTap: () => Navigator.pop(sheet, _MessageAction.copy),
+              ),
+              ListTile(
+                leading: const Icon(Icons.select_all),
+                title: const Text('Seleccionar texto'),
+                onTap: () => Navigator.pop(sheet, _MessageAction.select),
+              ),
+            ],
+          ],
         ),
       ),
     );
-    if (reply == true) onReply?.call(entry);
+    if (!context.mounted) return;
+    switch (action) {
+      case _MessageAction.reply:
+        onReply?.call(entry);
+      case _MessageAction.copy:
+        await _copyText(context, entry.body);
+      case _MessageAction.select:
+        await _selectText(context);
+      case null:
+    }
   }
+
+  /// The reply as selectable text: a long press on a word selects it, and the handles widen it.
+  Future<void> _selectText(BuildContext context) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheet) => SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(Spacing.lg),
+        child: SelectableText(entry.body, style: context.text.body),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -120,13 +178,14 @@ class _MessageBubble extends StatelessWidget {
             turnState: entry.turnState,
             latestOwn: latestOwn,
             runningAgent: runningAgent,
+            replyBelow: replyBelow,
           )
         : null;
     final step = entry.turnState == 'running' ? turnStep : null;
     final quote = entry.quote;
     final files = attachments ?? const <ChatAttachment>[];
     return GestureDetector(
-      onLongPress: _canReply ? () => _offerReply(context) : null,
+      onLongPress: _canOpenActions ? () => _openActions(context) : null,
       child: Align(
         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
@@ -170,7 +229,8 @@ class _MessageBubble extends StatelessWidget {
                 ),
                 const SizedBox(height: Spacing.xs),
               ],
-              if (images case final cache? when files.isNotEmpty && documents != null) ...[
+              if (images case final cache?
+                  when files.isNotEmpty && documents != null) ...[
                 ChatAttachmentStrip(
                   attachments: files,
                   images: cache,
@@ -189,7 +249,8 @@ class _MessageBubble extends StatelessWidget {
                   entry.body.isEmpty ? entry.preview : entry.body,
                   style: context.text.body,
                 ),
-              if (!mine && entry.body.isNotEmpty) _CopyButton(text: entry.body),
+              if (!mine && entry.body.isNotEmpty)
+                _ReplyActions(text: entry.body),
               if (suggestions.isNotEmpty)
                 SuggestionChips(texts: suggestions, onTap: onSuggestion),
               if (sending || failed) ...[
