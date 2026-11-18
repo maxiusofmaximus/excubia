@@ -33,7 +33,7 @@ use crate::mail_cli::ACCOUNTS_DIR;
 use crate::mail_draft_input::{input, HtmlOrigin};
 use crate::mail_move_pick::ambiguous_reply;
 use crate::mail_read;
-use crate::mail_routes::{message_of, parts};
+use crate::mail_routes::{message_of, parts, FALLBACK_MESSAGE};
 use crate::mail_send::MailSends;
 use crate::mail_shadow::Shadow;
 use crate::mail_style::{self, PROFILE_FILE, WORD_LIST_FILE};
@@ -531,7 +531,14 @@ pub(crate) fn tool_error(error: MailError) -> ToolError {
     } else {
         ToolErrorKind::Unavailable
     };
-    let (field, message) = ambiguous_reply(&error).unwrap_or((None, message_of(code).to_owned()));
+    // The fixed fallback carries the stable code (never the cause), so a failure can be told apart.
+    let fixed = message_of(code);
+    let message = if fixed == FALLBACK_MESSAGE {
+        format!("{fixed} ({code})")
+    } else {
+        fixed.to_owned()
+    };
+    let (field, message) = ambiguous_reply(&error).unwrap_or((None, message));
     ToolError {
         kind,
         code,

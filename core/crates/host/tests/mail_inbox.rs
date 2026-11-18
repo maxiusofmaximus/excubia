@@ -196,7 +196,7 @@ async fn a_received_message_comes_with_its_checks_and_no_attachment_content() {
     let transport = Arc::new(Scripted::new(vec![
         token_answer(),
         ok(message),
-        ok(json!({"value": []})),
+        ok(json!({"value": [{"id": "att-1", "name": "factura.pdf", "contentType": "application/pdf", "size": 10, "isInline": false}]})),
     ]));
     let (tools, store) = tools(&dir, &transport, &chat);
     sign_in(&store, "trabajo", OLD_REFRESH);
@@ -213,6 +213,7 @@ async fn a_received_message_comes_with_its_checks_and_no_attachment_content() {
         .expect("message");
 
     let shown = &reply.result["message"];
+    assert!(reply.result["next_step"].as_str().is_some_and(|text| text.contains("mail.attachment_read")));
     assert_eq!(reply.result["untrusted_content"], true);
     assert_eq!(shown["checks"]["reply_to_differs"], true);
     assert_eq!(shown["checks"]["return_path_differs"], true);

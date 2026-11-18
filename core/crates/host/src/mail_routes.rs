@@ -255,6 +255,9 @@ fn refusal(error: MailError) -> MailFailure {
     }
 }
 
+/// What a code with no message of its own says.
+pub(crate) const FALLBACK_MESSAGE: &str = "the mail request failed on this host";
+
 /// The fixed message for a stable code. It never carries what the error held,
 /// which may be an address, a path or a token.
 pub(crate) fn message_of(code: &str) -> &'static str {
@@ -282,6 +285,6 @@ pub(crate) fn message_of(code: &str) -> &'static str {
         "mail_attachment_not_file" => "only file attachments can be read; this one is not a file",
         "mail_attachment_too_large" => "the attachment is larger than 10 MiB; nothing was read",
         "mail_attachment_missing" => "the message has no attachment with that attachment_id",
-        _ => "the mail request failed on this host",
+        _ => FALLBACK_MESSAGE,
     }
 }

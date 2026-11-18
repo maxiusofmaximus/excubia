@@ -19,7 +19,6 @@ use crate::transport::HttpResponse;
 pub const MAX_READ_BYTES: u64 = 10 * 1024 * 1024;
 
 const META_SELECT: &str = "id,name,size";
-const CONTENT_SELECT: &str = "contentBytes";
 const FILE_TYPE: &str = "#microsoft.graph.fileAttachment";
 const MAX_NAME_CHARS: usize = 320;
 
@@ -54,9 +53,9 @@ impl GraphClient<'_> {
         if meta.size > max_bytes {
             return Err(MailError::AttachmentTooLarge);
         }
-        let answer = self
-            .get_attachment(&format!("{base}?$select={CONTENT_SELECT}"))
-            .await?;
+        // No $select: `contentBytes` exists only on the derived fileAttachment type, so Graph
+        // rejects selecting it on the base attachment resource.
+        let answer = self.get_attachment(&base).await?;
         let content: RawContent = parse(&answer, "the attachment content is incomplete")?;
         let bytes = STANDARD.decode(content.content_bytes).map_err(|_| {
             MailError::BadResponse(Redacted::new("the attachment content is not base64"))

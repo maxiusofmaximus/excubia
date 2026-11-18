@@ -42,7 +42,7 @@ async fn a_file_attachment_is_read_with_two_gets_and_its_bytes_decoded() {
     assert!(calls[0]
         .url
         .contains("/me/messages/AAMk-1/attachments/AAMk-att?$select=id,name,size"));
-    assert!(calls[1].url.ends_with("?$select=contentBytes"));
+    assert!(calls[1].url.ends_with("/attachments/AAMk-att"));
 }
 
 #[tokio::test]

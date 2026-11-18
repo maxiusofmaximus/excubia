@@ -13,7 +13,8 @@ use crate::redact::Redacted;
 
 const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 const TOTAL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
-const MAX_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
+// 10 MiB of attachment is about 13.4 MiB of base64 inside the JSON answer.
+const MAX_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
 
 /// One raw answer. Errors are not interpreted here: the auth and Graph layers
 /// decide what a status means, and transport failures are already redacted.
@@ -103,7 +104,7 @@ impl ReqwestTransport {
         let bytes = response.bytes().await.map_err(transport_error)?;
         if bytes.len() > MAX_RESPONSE_BYTES {
             return Err(MailError::BadResponse(Redacted::new(
-                "the HTTP answer is larger than 4 MiB",
+                "the HTTP answer is larger than 16 MiB",
             )));
         }
         let body = String::from_utf8(bytes.to_vec())
