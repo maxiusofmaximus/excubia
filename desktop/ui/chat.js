@@ -1,5 +1,6 @@
 import { app, $, invoke, toast } from "./core.js";
-import { renderHistory, renderSide } from "./chatlist.js";
+import { paintSelection, renderHistory, renderSide } from "./chatlist.js";
+import { createSelection } from "./chat-select-model.js";
 import { paintFinishedTasks } from "./delegations.js";
 import { busySeconds, renderThread } from "./chatthread.js";
 import { setBootstrap } from "./approval-model.js";
@@ -55,6 +56,7 @@ export function renderChat() {
   chat.waitingOn = chat.waiting ? open : null;
   renderHeader();
   renderHistory(chat);
+  paintSelection(chat);
   renderThread(chat);
   hydrateAttachments();
   renderSide(chat, app.state ? app.state.agents : []);
@@ -198,10 +200,17 @@ export function scheduleHome(delay = 400) {
   homeTimer = setTimeout(refreshHome, delay);
 }
 
+// A new selection after an action, a filter, a search or a view change: nothing stays picked.
+export function clearSelection() {
+  chat.selection = createSelection();
+  renderChat();
+}
+
 export function debounceSearch() {
   clearTimeout(searchTimer);
   const value = $("chat-search").value.trim();
   chat.query = value;
+  chat.selection = createSelection();
   if (!value) {
     chat.searchResults = null;
     renderChat();
@@ -349,5 +358,7 @@ export function chatReset() {
   chat.loadFailure = null;
   chat.cancelTarget = null;
   chat.delegationError = null;
+  chat.selection = createSelection();
+  chat.bulkProgress = null;
   renderChat();
 }

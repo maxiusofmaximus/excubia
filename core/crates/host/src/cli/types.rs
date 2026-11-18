@@ -37,6 +37,16 @@ pub struct RunOptions {
     pub mail_sidecar: Option<SidecarEndpoint>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PairingPolicyCommand {
+    /// Print the current value.
+    Show,
+    /// A code-less tailnet pairing leaves the new device pending (the default).
+    Confirm,
+    /// A code-less tailnet pairing grants READ_STATE, RESPOND and SEND_KEY at once.
+    Auto,
+}
+
 #[derive(Debug)]
 pub enum DevicesCommand {
     List,
@@ -94,6 +104,11 @@ pub enum Command {
     },
     Devices {
         command: DevicesCommand,
+        data_dir: PathBuf,
+    },
+    /// `excubia-host pairing-policy show|confirm|auto`: what a code-less tailnet pairing gets.
+    PairingPolicy {
+        command: PairingPolicyCommand,
         data_dir: PathBuf,
     },
     /// `excubia-host mail login|accounts|logout|enable-send|disable-send|enable-rules|disable-rules`:

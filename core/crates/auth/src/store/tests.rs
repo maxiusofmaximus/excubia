@@ -224,3 +224,34 @@ fn touch_persists_at_most_once_per_interval() {
     let second = std::fs::read_to_string(&path).expect("read");
     assert_eq!(first, second, "the second touch stays in memory");
 }
+
+#[test]
+fn the_tailnet_policy_defaults_to_confirm_and_survives_a_reopen() {
+    let (store, path, _dir) = temp_store("tailnet-policy");
+    assert!(!store.tailnet_auto_accept(), "confirm is the default");
+    store.set_tailnet_auto_accept(true).expect("set auto");
+    assert!(DeviceStore::open(Some(path.clone())).tailnet_auto_accept());
+    store.set_tailnet_auto_accept(false).expect("set confirm");
+    assert!(!DeviceStore::open(Some(path)).tailnet_auto_accept());
+}
+
+#[test]
+fn a_trust_file_written_before_the_policy_loads_with_confirm() {
+    let dir = TestDir::new("auth-policy-old-file");
+    let path = dir.join("devices.json");
+    std::fs::write(&path, r#"{"version":1,"devices":[],"codes":[]}"#).expect("write");
+    let store = DeviceStore::open(Some(path));
+    assert!(!store.tailnet_auto_accept());
+    assert!(store.is_empty(), "the old file still loads");
+}
+
+#[test]
+fn a_policy_that_cannot_be_written_is_not_kept_in_memory() {
+    // A directory where the file should be: the write fails and the old value stays.
+    let dir = TestDir::new("auth-policy-unwritable");
+    let path = dir.join("devices.json");
+    std::fs::create_dir(&path).expect("a directory in the way");
+    let store = DeviceStore::open(Some(path));
+    assert!(store.set_tailnet_auto_accept(true).is_err());
+    assert!(!store.tailnet_auto_accept());
+}

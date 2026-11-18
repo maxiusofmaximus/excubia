@@ -117,3 +117,25 @@ fn pair_code_pake_prints_the_link_only_when_asked_and_only_with_pake() {
     ]))
     .is_err());
 }
+
+#[test]
+fn pairing_policy_takes_show_confirm_or_auto_and_a_data_dir() {
+    let Command::PairingPolicy { command, data_dir } =
+        parse(args(&["pairing-policy", "auto", "--data-dir", "d"])).expect("parse")
+    else {
+        panic!("expected pairing-policy");
+    };
+    assert_eq!(command, PairingPolicyCommand::Auto);
+    assert_eq!(data_dir, PathBuf::from("d"));
+    assert!(
+        USAGE.contains("pairing-policy show|confirm|auto"),
+        "{USAGE}"
+    );
+}
+
+#[test]
+fn pairing_policy_refuses_unknown_subcommands_and_arguments() {
+    assert!(parse(args(&["pairing-policy"])).is_err());
+    assert!(parse(args(&["pairing-policy", "maybe"])).is_err());
+    assert!(parse(args(&["pairing-policy", "show", "--now"])).is_err());
+}

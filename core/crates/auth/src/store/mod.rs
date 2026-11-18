@@ -45,6 +45,7 @@ impl EnrollmentCode {
 struct Inner {
     devices: BTreeMap<String, Device>,
     codes: BTreeMap<String, EnrollmentCode>,
+    tailnet_auto_accept: bool,
     stamp: Option<std::time::SystemTime>,
 }
 
@@ -62,6 +63,7 @@ impl DeviceStore {
             inner: Mutex::new(Inner {
                 devices: BTreeMap::new(),
                 codes: BTreeMap::new(),
+                tailnet_auto_accept: false,
                 stamp: None,
             }),
         };
@@ -100,6 +102,25 @@ impl DeviceStore {
         self.inner
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// Whether a code-less pairing from the host's tailnet owner gets the reader set at once.
+    /// `false` by default: the new device waits for the operator's grant.
+    pub fn tailnet_auto_accept(&self) -> bool {
+        self.lock().tailnet_auto_accept
+    }
+
+    /// Persist the tailnet pairing policy. A write that fails puts the old value back, so memory and file agree.
+    pub fn set_tailnet_auto_accept(&self, enabled: bool) -> Result<(), StoreError> {
+        let mut inner = self.lock();
+        let previous = std::mem::replace(&mut inner.tailnet_auto_accept, enabled);
+        match self.save(&inner) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                inner.tailnet_auto_accept = previous;
+                Err(error)
+            }
+        }
     }
 
     /// Revocation marks; it never deletes, so a revoked device stays auditable.

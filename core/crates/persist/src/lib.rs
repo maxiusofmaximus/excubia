@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+pub mod acl;
 pub mod credential;
 pub mod migrate;
 mod random;
@@ -24,8 +25,9 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     write_via_tmp(path, bytes, fs::OpenOptions::new())
 }
 
-/// Like `write_atomic`, for a private key: owner-only on Unix. Windows keeps
-/// the ACL of the profile directory the file lands in.
+/// Like `write_atomic`, for a private key: owner-only on Unix. On Windows the
+/// file gets the ACL of its directory, which the host sets at startup
+/// (`acl::restrict_dir_to_owner`).
 pub fn write_secret_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let mut options = fs::OpenOptions::new();
     owner_only(&mut options);

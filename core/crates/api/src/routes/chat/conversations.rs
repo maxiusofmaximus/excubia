@@ -1,6 +1,6 @@
 //! Conversations: list/search, create, detail and metadata updates.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
@@ -10,8 +10,11 @@ use serde::Deserialize;
 use serde_json::json;
 
 use excubia_auth::VerifiedDevice;
-use excubia_chat::{ConversationFilter, ConversationUpdate, NewConversation, SectionChange};
+use excubia_chat::{
+    ChatError, ConversationFilter, ConversationUpdate, NewConversation, SectionChange,
+};
 
+use crate::audit::AuditEvent;
 use crate::error::ApiError;
 use crate::routes::parse_body;
 use crate::ApiContext;
@@ -24,6 +27,16 @@ struct CreateBody {
     title: Option<String>,
     #[serde(default)]
     project_id: Option<String>,
+}
+
+/// The most ids one batch delete takes: the selection of the phone, not a sweep.
+const MAX_BULK_DELETE: usize = 100;
+
+/// The body of `POST /v1/chat/conversations/delete`: the ids the user picked.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BulkDeleteBody {
+    ids: Vec<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -132,6 +145,59 @@ pub async fn delete_conversation(
     }
 }
 
+/// `POST /v1/chat/conversations/delete` (signed, `RESPOND`, one write): the user picks
+/// several conversations and deletes them in one request. Each id runs in its own
+/// transaction, so a busy or missing one lands in `failed` and the rest still go.
+pub async fn bulk_delete(
+    State(ctx): State<ApiContext>,
+    Extension(verified): Extension<VerifiedDevice>,
+    body: Bytes,
+) -> Response {
+    let payload: BulkDeleteBody = match serde_json::from_slice(&body) {
+        Ok(payload) => payload,
+        Err(_) => return ApiError::invalid_body().into_response(),
+    };
+    if payload.ids.is_empty()
+        || payload.ids.len() > MAX_BULK_DELETE
+        || !payload.ids.iter().all(|id| well_formed_id(id))
+    {
+        return ApiError::invalid_body().into_response();
+    }
+    let mut deleted = Vec::new();
+    let mut failed = Vec::new();
+    let mut seen = HashSet::new();
+    for id in payload.ids.iter().filter(|id| seen.insert(id.as_str())) {
+        match ctx.chat.delete_conversation(id, &verified.device_id) {
+            Ok(()) => deleted.push(id.clone()),
+            Err(error) => failed.push(json!({"id": id, "code": failure_code(error)})),
+        }
+    }
+    ctx.audit.record(
+        &AuditEvent::new("conversations_delete", Some(&verified.device_id), "done")
+            .with("deleted", deleted.len().to_string())
+            .with("failed", failed.len().to_string()),
+    );
+    support::ok_object(json!({"deleted": deleted, "failed": failed}))
+}
+
+/// The shape the desktop sends: `cnv_` and 1 to 40 letters or digits.
+fn well_formed_id(id: &str) -> bool {
+    id.strip_prefix("cnv_").is_some_and(|rest| {
+        (1..=40).contains(&rest.len()) && rest.bytes().all(|byte| byte.is_ascii_alphanumeric())
+    })
+}
+
+/// The stable code `support::map_error` gives the refusal (never its detail).
+fn failure_code(error: ChatError) -> String {
+    let body = support::map_error(error).body;
+    let detail = &body["detail"];
+    detail
+        .as_str()
+        .or_else(|| detail["code"].as_str())
+        .unwrap_or("internal error")
+        .to_string()
+}
+
 fn filter(query: &HashMap<String, String>) -> Result<ConversationFilter, ApiError> {
     let q = query
         .get("q")
@@ -170,6 +236,16 @@ mod tests {
     use axum::http::StatusCode;
 
     use super::*;
+
+    #[test]
+    fn a_batch_id_has_the_shape_the_desktop_sends() {
+        assert!(well_formed_id("cnv_01JABC"));
+        assert!(well_formed_id(&format!("cnv_{}", "a".repeat(40))));
+        assert!(!well_formed_id("cnv_"));
+        assert!(!well_formed_id("01JABC"));
+        assert!(!well_formed_id("cnv_a-b"));
+        assert!(!well_formed_id(&format!("cnv_{}", "a".repeat(41))));
+    }
 
     #[test]
     fn filter_flags_accept_only_one_or_true() {

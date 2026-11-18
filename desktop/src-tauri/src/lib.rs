@@ -134,6 +134,7 @@ pub fn run() {
             chat_commands::writes::chat_mark_read,
             chat_commands::writes::chat_create,
             chat_commands::writes::chat_delete_conversation,
+            chat_commands::writes::chat_delete_conversations,
             chat_commands::writes::chat_update,
             chat_commands::writes::chat_save_section,
             chat_commands::delegation::chat_delegation,

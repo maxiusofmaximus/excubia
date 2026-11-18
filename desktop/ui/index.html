@@ -217,7 +217,12 @@
             </button>
             <div id="chat-filter-menu" class="chat-filter-menu hidden" role="menu" aria-label="Filtrar conversaciones"></div>
           </div>
-          <div id="chat-groups" class="chat-groups"></div>
+          <div id="chat-select-bar" class="chat-select-bar hidden" role="toolbar" aria-label="Conversaciones seleccionadas">
+            <span id="chat-select-count" class="chat-select-count" aria-live="polite"></span>
+            <button id="btn-select-delete" class="chat-select-action danger" type="button">Eliminar</button>
+            <button id="btn-select-cancel" class="chat-select-action" type="button">Cancelar</button>
+          </div>
+          <div id="chat-groups" class="chat-groups" role="listbox" aria-multiselectable="true" aria-label="Conversaciones"></div>
           <div class="history-foot">
             <button id="btn-archived" class="linkish hidden" type="button">Archivados (0)</button>
           </div>
@@ -909,7 +914,7 @@
 
   <dialog id="chat-delete" class="dialog chat-dialog">
     <form id="chat-delete-form" method="dialog" novalidate>
-      <h2>Eliminar conversación</h2>
+      <h2 id="chat-delete-title">Eliminar conversación</h2>
       <p id="chat-delete-lede" class="dialog-lede">Se borra para siempre, con sus mensajes y adjuntos. No se puede deshacer.</p>
       <div class="dialog-actions">
         <button id="chat-delete-cancel" class="btn ghost" type="button">Volver</button>

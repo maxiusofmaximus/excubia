@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use super::devices::devices;
-use super::pairing::{pair_code, tls};
+use super::pairing::{pair_code, pairing_policy, tls};
 use super::run::run;
 use super::types::Command;
 use crate::paths;
@@ -31,6 +31,10 @@ pub fn parse(args: impl Iterator<Item = String>) -> Result<Command, String> {
         Some("tls") => {
             args.next();
             tls(args)
+        }
+        Some("pairing-policy") => {
+            args.next();
+            pairing_policy(args)
         }
         Some("mail") => {
             args.next();

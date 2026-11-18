@@ -10,6 +10,7 @@ pub const USAGE: &str = "excubia-host [--port N] [--bind ADDR] [--rows R] [--col
        excubia-host pair-code [--ttl SECONDS, default 180] [--lan IP:PORT]... [--data-dir DIR]\n\
        excubia-host pair-code --pake [--uri] [--port N, default 8791] [--data-dir DIR]\n\
        excubia-host tls prepare|activate [--data-dir DIR]\n\
+       excubia-host pairing-policy show|confirm|auto [--data-dir DIR]\n\
        excubia-host hook-token [--seat AGENT_ID] [--data-dir DIR]\n\
        excubia-host claude-settings --hook <excubia-uac-hook binary> [--out FILE]\n\
        excubia-host strata start | stop | status | enable-agent [--data-dir DIR]\n\

@@ -32,6 +32,7 @@ impl DeviceStore {
         match file::read(&path) {
             Ok(file) => {
                 let now = unix_seconds();
+                let tailnet_auto_accept = file.tailnet_auto_accept;
                 let devices: BTreeMap<String, Device> = file
                     .devices
                     .into_iter()
@@ -57,6 +58,7 @@ impl DeviceStore {
                 let mut inner = self.lock();
                 inner.devices = devices;
                 inner.codes = codes;
+                inner.tailnet_auto_accept = tailnet_auto_accept;
                 inner.stamp = stamp;
             }
             Err(error) => {
@@ -102,6 +104,7 @@ impl DeviceStore {
                 version: file::VERSION,
                 devices,
                 codes,
+                tailnet_auto_accept: inner.tailnet_auto_accept,
             },
         )
     }

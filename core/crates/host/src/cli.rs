@@ -33,6 +33,7 @@ mod tests_pairing;
 
 pub use parse::parse;
 pub use types::{
-    AlfredCommand, Command, DevicesCommand, RunOptions, StrataCommand, TlsCommand, DEFAULT_PORT,
+    AlfredCommand, Command, DevicesCommand, PairingPolicyCommand, RunOptions, StrataCommand,
+    TlsCommand, DEFAULT_PORT,
 };
 pub use usage::{BIN, GRANT_HINT, USAGE};

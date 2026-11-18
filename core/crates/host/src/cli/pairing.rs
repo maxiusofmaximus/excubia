@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 
 use super::parse::resolve_data_dir;
-use super::types::{Command, TlsCommand, DEFAULT_PORT};
+use super::types::{Command, PairingPolicyCommand, TlsCommand, DEFAULT_PORT};
 
 pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut ttl_seconds = excubia_auth::ENROLLMENT_TTL_SECONDS;
@@ -68,6 +68,33 @@ pub(super) fn pair_code(mut args: impl Iterator<Item = String>) -> Result<Comman
     Ok(Command::PairCode {
         ttl_seconds,
         lan,
+        data_dir: resolve_data_dir(data_dir)?,
+    })
+}
+
+pub(super) fn pairing_policy(mut args: impl Iterator<Item = String>) -> Result<Command, String> {
+    let sub = args
+        .next()
+        .ok_or("pairing-policy needs a subcommand: show|confirm|auto")?;
+    let mut data_dir = None;
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--data-dir" => {
+                data_dir = Some(PathBuf::from(
+                    args.next().ok_or("--data-dir needs a value")?,
+                ))
+            }
+            other => return Err(format!("unknown argument for pairing-policy: {other}")),
+        }
+    }
+    let command = match sub.as_str() {
+        "show" => PairingPolicyCommand::Show,
+        "confirm" => PairingPolicyCommand::Confirm,
+        "auto" => PairingPolicyCommand::Auto,
+        other => return Err(format!("unknown pairing-policy subcommand: {other}")),
+    };
+    Ok(Command::PairingPolicy {
+        command,
         data_dir: resolve_data_dir(data_dir)?,
     })
 }

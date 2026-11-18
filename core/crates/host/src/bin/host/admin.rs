@@ -10,7 +10,7 @@ use excubia_api::{AuditEvent, AuditSink};
 use excubia_auth::{DeviceStore, Permission};
 use excubia_chat::{ChatStore, HookScope};
 use excubia_host::audit::AuditLog;
-use excubia_host::cli::{DevicesCommand, TlsCommand};
+use excubia_host::cli::{DevicesCommand, PairingPolicyCommand, TlsCommand};
 use excubia_host::mail_cli::{self, MailInvocation};
 use excubia_host::pake_cli;
 use excubia_host::tls_slots::TlsSlots;
@@ -140,6 +140,29 @@ pub(super) async fn mail(invocation: MailInvocation) -> Result<()> {
     mail_cli::main(invocation, &mut out)
         .await
         .map_err(|error| anyhow::anyhow!("{error} [{}]", error.code()))
+}
+
+/// `excubia-host pairing-policy show|confirm|auto`: the trust store's tailnet policy, which the daemon re-reads.
+/// Each change is one audit line; `show` only prints.
+pub(super) fn pairing_policy(command: PairingPolicyCommand, data_dir: &Path) -> Result<()> {
+    paths::ensure_data_dir(data_dir)?;
+    let store = DeviceStore::open(Some(paths::devices_path(data_dir)));
+    let enabled = match command {
+        PairingPolicyCommand::Show => {
+            println!("tailnet_auto_accept: {}", store.tailnet_auto_accept());
+            return Ok(());
+        }
+        PairingPolicyCommand::Confirm => false,
+        PairingPolicyCommand::Auto => true,
+    };
+    store.set_tailnet_auto_accept(enabled)?;
+    AuditLog::new(data_dir).record(
+        &AuditEvent::new("pairing_policy", None, "set")
+            .with("tailnet_auto_accept", enabled.to_string())
+            .with("by", "cli"),
+    );
+    println!("tailnet_auto_accept: {enabled}");
+    Ok(())
 }
 
 pub(super) fn devices(command: DevicesCommand, data_dir: &Path) -> Result<()> {

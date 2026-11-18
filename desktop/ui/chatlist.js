@@ -5,6 +5,7 @@ import { emptyState } from "./empty-state.js";
 import { paintAvatar } from "./avatar.js";
 import { EMPTY_TEXT, FILTERS } from "./chat-filter-model.js";
 import { progressText } from "./chat-progress-model.js";
+import { prune } from "./chat-select-model.js";
 
 const dayNames = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -39,9 +40,12 @@ function row(conversation, view) {
   if (conversation.id === view.selectedId) element.classList.add("is-active");
   if (conversation.unread > 0) element.classList.add("is-unread");
 
+  // The option of the history listbox; paintSelection sets aria-selected on each render.
   const main = document.createElement("button");
   main.type = "button";
   main.className = "chat-row-main";
+  main.setAttribute("role", "option");
+  main.setAttribute("aria-selected", "false");
   main.dataset.select = conversation.id;
   main.setAttribute(
     "aria-label",
@@ -126,6 +130,35 @@ function group(title, conversations, view, options = {}) {
     element.append(row(conversation, view));
   }
   return element;
+}
+
+// The ids of the rows on screen, top to bottom: the order a Shift+click ranges over.
+export function visibleOrder() {
+  return [...$("chat-groups").querySelectorAll(".chat-row[data-id]")].map((element) => element.dataset.id);
+}
+
+// The bar above the list: shown from two picked rows, and while a bulk archive runs.
+function renderSelectBar(chat) {
+  const progress = chat.bulkProgress;
+  const count = chat.selection.ids.size;
+  $("chat-select-bar").classList.toggle("hidden", !progress && count < 2);
+  $("btn-select-delete").classList.toggle("hidden", Boolean(progress));
+  $("btn-select-cancel").classList.toggle("hidden", Boolean(progress));
+  $("chat-select-count").textContent = progress
+    ? `${progress.archived ? "Archivando" : "Desarchivando"}… ${progress.done} de ${progress.total}`
+    : `${count} seleccionados`;
+}
+
+// Runs after each history render: drops the rows that left, marks the picked ones.
+export function paintSelection(chat) {
+  const rows = [...$("chat-groups").querySelectorAll(".chat-row[data-id]")];
+  prune(chat.selection, rows.map((element) => element.dataset.id));
+  for (const element of rows) {
+    const picked = chat.selection.ids.has(element.dataset.id);
+    element.classList.toggle("is-selected", picked);
+    element.querySelector(".chat-row-main").setAttribute("aria-selected", String(picked));
+  }
+  renderSelectBar(chat);
 }
 
 export function renderHistory(chat) {

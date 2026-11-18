@@ -24,7 +24,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use excubia_api::voice::{EngineStarter, VoiceService};
-use excubia_api::{serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext};
+use excubia_api::{
+    serve, serve_internal, AgentActions, AlfredBackend, ApiConfig, ApiContext, TailnetOwners,
+};
 use excubia_auth::{DeviceStore, Permission};
 use excubia_chat::{ChatSeat, ChatStore, HookScope, NewConversation};
 use excubia_crafting::App;
@@ -357,6 +359,25 @@ impl TestHost {
             None,
             None,
             &App::ALL,
+            None,
+        )
+        .await
+    }
+
+    /// A host whose code-less pairing asks `owners` who owns the peer and the host (the tailnet policy tests).
+    pub async fn start_with_tailnet(name: &str, owners: Arc<dyn TailnetOwners>) -> Self {
+        let scratch = TestDir::new(&format!("core3-tests-{name}"));
+        write_catalog(&scratch);
+        let data_dir = scratch.to_path_buf();
+        Self::open(
+            data_dir,
+            DEFAULT_HOOK_TTL,
+            SeatKind::Fake,
+            Some(scratch),
+            None,
+            None,
+            &App::ALL,
+            Some(owners),
         )
         .await
     }
@@ -374,6 +395,7 @@ impl TestHost {
             None,
             starter,
             &App::ALL,
+            None,
         )
         .await
     }
@@ -402,6 +424,7 @@ impl TestHost {
             Some(transport),
             None,
             &App::ALL,
+            None,
         )
         .await;
         (host, world)
@@ -420,6 +443,7 @@ impl TestHost {
             None,
             None,
             apps,
+            None,
         )
         .await
     }
@@ -442,6 +466,7 @@ impl TestHost {
             None,
             None,
             apps,
+            None,
         )
         .await
     }
@@ -455,9 +480,21 @@ impl TestHost {
         let scratch = self.scratch.take();
         let data_dir = self.data_dir.clone();
         drop(self);
-        Self::open(data_dir, hook_ttl, seat, scratch, None, None, &App::ALL).await
+        Self::open(
+            data_dir,
+            hook_ttl,
+            seat,
+            scratch,
+            None,
+            None,
+            &App::ALL,
+            None,
+        )
+        .await
     }
 
+    // Every start variant names its own pieces; the list is the test surface, not a design to shrink.
+    #[allow(clippy::too_many_arguments)]
     async fn open(
         data_dir: PathBuf,
         hook_ttl: Duration,
@@ -466,6 +503,7 @@ impl TestHost {
         mail: Option<Arc<dyn HttpTransport>>,
         voice: Option<Arc<dyn EngineStarter>>,
         apps: &[App],
+        tailnet: Option<Arc<dyn TailnetOwners>>,
     ) -> Self {
         let devices = Arc::new(DeviceStore::open(Some(paths::devices_path(&data_dir))));
         let host_pin = excubia_pin::Fingerprint::of_spki(b"harness host certificate");
@@ -690,6 +728,10 @@ impl TestHost {
             docs: craft as Arc<dyn excubia_api::DocumentPages>,
         })
         .with_host_pin(Some(host_pin));
+        let context = match tailnet {
+            Some(owners) => context.with_tailnet(owners),
+            None => context,
+        };
         let pake_slot = Arc::clone(&context.pake_slot);
         let internal_context = context.clone();
         tokio::spawn(async move {

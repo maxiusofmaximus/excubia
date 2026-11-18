@@ -2,8 +2,8 @@
 //! and their sections.
 
 use excubia_desktop_core::chat::{
-    ChatFailure, Conversation, ConversationPatch, Message, Section, SectionChange, SendAccepted,
-    Turn,
+    BulkDelete, ChatFailure, Conversation, ConversationPatch, Message, Section, SectionChange,
+    SendAccepted, Turn,
 };
 use excubia_desktop_core::ChatSnapshot;
 use tauri::State;
@@ -116,6 +116,18 @@ pub async fn chat_delete_conversation(
     let shared = shared(&state);
     client(&shared)?
         .chat_delete_conversation(&conversation_id)
+        .await
+}
+
+/// Deletes the conversations the user picked in one request: `{deleted, failed}`.
+#[tauri::command]
+pub async fn chat_delete_conversations(
+    state: State<'_, Shared>,
+    conversation_ids: Vec<String>,
+) -> Result<BulkDelete, ChatFailure> {
+    let shared = shared(&state);
+    client(&shared)?
+        .chat_delete_conversations(&conversation_ids)
         .await
 }
 

@@ -1,6 +1,7 @@
 import { app } from "./core.js";
 import { noteTurn } from "./chat-turn-model.js";
 import { friendlyError } from "./friendly-error.js";
+import { createSelection } from "./chat-select-model.js";
 
 // The chat's shared state: one object, read and written by the chat modules.
 export const chat = {
@@ -13,6 +14,10 @@ export const chat = {
   query: "",
   searchResults: null,
   showArchived: false,
+  // The rows picked with Ctrl or Shift (see chat-select-model.js).
+  selection: createSelection(),
+  // { done, total, archived } while a bulk archive runs, else null.
+  bulkProgress: null,
   // Computed on every render from the conversation's turn (see renderChat).
   waiting: false,
   // Furthest turn state seen per message id, from the feed, the 202 and frames.

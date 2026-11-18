@@ -45,6 +45,15 @@ fn the_matrix_classifies_every_route() {
             .permission,
         Some(Permission::Admin)
     );
+    // The tailnet pairing policy is the host's ADMIN choice: reading and changing it.
+    assert_eq!(
+        classify("GET", "/v1/pairing/policy").unwrap().permission,
+        Some(Permission::Admin)
+    );
+    assert_eq!(
+        classify("PUT", "/v1/pairing/policy").unwrap().budget,
+        Budget::Write
+    );
     assert_eq!(
         classify("POST", "/v1/me/push-endpoint").unwrap().permission,
         Some(Permission::ReadState)
@@ -120,6 +129,7 @@ fn the_chat_matrix_separates_reads_from_writes() {
         ("POST", "/v1/chat/conversations/cnv_1/update"),
         ("POST", "/v1/chat/conversations/cnv_1/messages"),
         ("POST", "/v1/chat/conversations/cnv_1/stop"),
+        ("POST", "/v1/chat/conversations/delete"),
         ("POST", "/v1/chat/sections"),
     ];
     for (method, path) in writes {

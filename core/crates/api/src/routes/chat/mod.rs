@@ -29,7 +29,8 @@ pub use attachments::{
 };
 pub use bootstrap::bootstrap;
 pub use conversations::{
-    counts as conversation_counts, create, delete_conversation, list as conversations, show, update,
+    bulk_delete, counts as conversation_counts, create, delete_conversation, list as conversations,
+    show, update,
 };
 pub use delegations::{cancel as cancel_delegation, cancel_conversation, show as delegation};
 pub use messages::{messages, read, send, timeline};

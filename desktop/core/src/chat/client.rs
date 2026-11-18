@@ -100,6 +100,22 @@ impl HostClient {
         Ok(())
     }
 
+    /// Deletes the chosen conversations in one request, one write of the host's budget.
+    /// A busy or missing id lands in `failed`; the rest still go.
+    pub async fn chat_delete_conversations(&self, ids: &[String]) -> ChatResult<BulkDelete> {
+        for id in ids {
+            validate_prefixed_id(id, "cnv_", "conversación")?;
+        }
+        self.chat_send_json(
+            Method::POST,
+            "/v1/chat/conversations/delete",
+            &[],
+            &json!({ "ids": ids }),
+            true,
+        )
+        .await
+    }
+
     pub async fn chat_update_conversation(
         &self,
         id: &str,

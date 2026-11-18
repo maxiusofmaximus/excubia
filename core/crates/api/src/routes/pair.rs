@@ -10,7 +10,7 @@ use axum::body::Bytes;
 use axum::extract::{ConnectInfo, State};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use excubia_auth::{is_host_owner, tailnet_owner_of, Class, Curve, Device};
+use excubia_auth::{Class, Curve, Device, GrantOutcome, Permission};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -43,7 +43,20 @@ struct Granted {
     recovery: String,
     outcome: PairOutcome,
     via: PairVia,
+    /// The permissions the tailnet policy granted at once; empty when the device stays pending.
+    auto_granted: Vec<Permission>,
 }
+
+/// What a tailnet pairing gets when the owner chose `tailnet_auto_accept`. Never `approve` or `admin`:
+/// those stay the operator's act.
+const TAILNET_AUTO_GRANT: [Permission; 3] = [
+    Permission::ReadState,
+    Permission::Respond,
+    Permission::SendKey,
+];
+
+/// The granter the pairing audit names for a policy grant (not a device).
+const AUTO_GRANTER: &str = "auto-tailnet";
 
 pub async fn pair(
     State(ctx): State<ApiContext>,
@@ -92,6 +105,9 @@ pub async fn pair(
                 granted.device.label.as_deref(),
                 sas,
             );
+            if !granted.auto_granted.is_empty() {
+                audit_auto_grant(&ctx, &ip, &granted.device, &granted.auto_granted);
+            }
             pair_response(&granted.device, &granted.recovery).into_response()
         }
         Err(error) => {
@@ -123,18 +139,21 @@ fn grant(
 
     // The trust store can be rewritten by the CLI while this server runs.
     ctx.devices.reload_if_changed();
-    let owner = tailnet_owner_of(ip).unwrap_or_default();
+    let owner = ctx.tailnet.owner_of(ip).unwrap_or_default();
     let code = payload.code.as_deref().unwrap_or_default();
 
     if code.is_empty() {
-        if !is_host_owner(ip) {
+        if !ctx.tailnet.is_host_owner(ip) {
             return Err(empty_code_refusal(ip));
         }
         let device = ctx
             .devices
             .add_device(curve, &payload.public_key, payload.label.clone(), &owner)
             .map_err(ApiError::internal)?;
-        return issue(ctx, device, PairOutcome::Paired, PairVia::Tailnet);
+        let (device, auto_granted) = auto_grant(ctx, device);
+        let mut granted = issue(ctx, device, PairOutcome::Paired, PairVia::Tailnet)?;
+        granted.auto_granted = auto_granted;
+        return Ok(granted);
     }
 
     match ctx.devices.enroll(
@@ -159,10 +178,30 @@ fn grant(
                 recovery,
                 outcome: PairOutcome::Recovered,
                 via: PairVia::Recovery,
+                auto_granted: Vec::new(),
             }),
             Err(error) if error.internal => Err(ApiError::internal(error)),
             Err(_) => Err(rejected()),
         },
+    }
+}
+
+/// The device as it stands after the owner's standing choice. A grant that fails
+/// leaves it pending: the pairing itself still stands.
+fn auto_grant(ctx: &ApiContext, device: Device) -> (Device, Vec<Permission>) {
+    if !ctx.devices.tailnet_auto_accept() {
+        return (device, Vec::new());
+    }
+    match ctx
+        .devices
+        .grant_pending(&device.device_id, &TAILNET_AUTO_GRANT)
+    {
+        Ok(GrantOutcome::Granted(granted)) => (*granted, TAILNET_AUTO_GRANT.to_vec()),
+        Ok(_) => (device, Vec::new()),
+        Err(error) => {
+            eprintln!("api: tailnet auto-grant failed, the device stays pending: {error}");
+            (device, Vec::new())
+        }
     }
 }
 
@@ -179,6 +218,7 @@ fn issue(
             recovery,
             outcome,
             via,
+            auto_granted: Vec::new(),
         }),
         Ok(None) => Err(ApiError::internal("device vanished while pairing")),
         Err(error) => Err(ApiError::internal(error)),
@@ -210,6 +250,28 @@ pub(super) fn audit(
     ctx.pairing_audit.record(&attempt);
     ctx.audit
         .record(&AuditEvent::new("pair", device_id, outcome.name()).with("via", via.name()));
+}
+
+/// The pairing audit's line for the policy's grant. Same shape as an admin grant; `granted_by` names the policy.
+fn audit_auto_grant(
+    ctx: &ApiContext,
+    source_ip: &str,
+    device: &Device,
+    permissions: &[Permission],
+) {
+    let mut attempt = PairingAttempt::new(
+        PairOutcome::Granted,
+        PairVia::Tailnet,
+        Some(&device.device_id),
+        device.label.as_deref(),
+        source_ip,
+    );
+    attempt.granted_by = Some(AUTO_GRANTER.to_string());
+    attempt.permissions = permissions
+        .iter()
+        .map(|permission| permission.label().to_string())
+        .collect();
+    ctx.pairing_audit.record(&attempt);
 }
 
 /// Uniform refusal for a supplied code: the caller is never told which check

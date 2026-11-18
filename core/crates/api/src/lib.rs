@@ -135,6 +135,33 @@ pub trait AgentActions: Send + Sync + 'static {
     async fn restore_point(&self, point_id: &str) -> Result<Value, RestoreRefusal>;
 }
 
+/// What the host can see of its tailnet for a code-less `POST /v1/pair`: who owns a
+/// source address, and who owns the host. The daemon asks the Tailscale CLI; a test
+/// host supplies its own answer.
+pub trait TailnetOwners: Send + Sync + 'static {
+    fn owner_of(&self, ip: &str) -> Option<String>;
+    fn host_owner(&self) -> Option<String>;
+
+    /// The owner of `ip` is the host's own owner. Same rule as `excubia_auth::is_host_owner`.
+    fn is_host_owner(&self, ip: &str) -> bool {
+        self.host_owner()
+            .is_some_and(|me| self.owner_of(ip).as_deref() == Some(me.as_str()))
+    }
+}
+
+/// The real answer, from `tailscale whois` and `tailscale status` (`excubia_auth::tailnet`).
+pub struct TailscaleCli;
+
+impl TailnetOwners for TailscaleCli {
+    fn owner_of(&self, ip: &str) -> Option<String> {
+        excubia_auth::tailnet_owner_of(ip)
+    }
+
+    fn host_owner(&self) -> Option<String> {
+        excubia_auth::host_tailnet_owner()
+    }
+}
+
 /// Everything a route needs.
 #[derive(Clone)]
 pub struct ApiContext {
@@ -173,6 +200,8 @@ pub struct ApiContext {
     /// The PAKE pairing code, in memory only. It is never written to the trust store and `POST /v1/pair` does not
     /// read it.
     pub pake_slot: Arc<PakeSlot>,
+    /// Who owns a source address and the host, for the code-less pairing (`routes::pair`).
+    pub tailnet: Arc<dyn TailnetOwners>,
 }
 
 /// The pieces the API is built from.
@@ -216,11 +245,17 @@ impl ApiContext {
             pake_slot: Arc::new(PakeSlot::new()),
             docs: config.docs,
             preview_locks: Arc::new(PreviewLocks::default()),
+            tailnet: Arc::new(TailscaleCli),
         }
     }
 
     pub fn with_host_pin(mut self, pin: Option<Fingerprint>) -> Self {
         self.host_pin = pin;
+        self
+    }
+
+    pub fn with_tailnet(mut self, tailnet: Arc<dyn TailnetOwners>) -> Self {
+        self.tailnet = tailnet;
         self
     }
 }
@@ -330,6 +365,10 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             get(routes::chat_conversation_counts),
         )
         .route(
+            "/v1/chat/conversations/delete",
+            post(routes::chat_bulk_delete_conversations),
+        )
+        .route(
             "/v1/chat/conversations/{conversation_id}",
             get(routes::chat_conversation).delete(routes::chat_delete_conversation),
         )
@@ -383,6 +422,10 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             post(routes::revoke_device),
         )
         .route("/v1/devices/{device_id}/grant", post(routes::grant_device))
+        .route(
+            "/v1/pairing/policy",
+            get(routes::get_pairing_policy).put(routes::set_pairing_policy),
+        )
         .route("/v1/mail/login/start", post(routes::mail_login_start))
         .route("/v1/mail/login/status", get(routes::mail_login_status))
         .route("/v1/mail/accounts", get(routes::mail_accounts))

@@ -22,6 +22,9 @@ pub struct TrustFile {
     pub devices: Vec<DeviceRecord>,
     #[serde(default)]
     pub codes: Vec<CodeRecord>,
+    /// The owner's tailnet pairing policy. A file written before it existed loads as `false`.
+    #[serde(default)]
+    pub tailnet_auto_accept: bool,
 }
 
 /// Why a record names no usable device.

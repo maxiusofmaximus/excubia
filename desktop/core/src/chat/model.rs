@@ -375,6 +375,21 @@ pub struct ReadAccepted {
     pub last_read_seq: i64,
 }
 
+/// The answer of a batch delete: the ids that went, and each one that did not with its stable code.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct BulkDelete {
+    #[serde(default)]
+    pub deleted: Vec<String>,
+    #[serde(default)]
+    pub failed: Vec<BulkFailure>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct BulkFailure {
+    pub id: String,
+    pub code: String,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Section {
     pub id: String,

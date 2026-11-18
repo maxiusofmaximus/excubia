@@ -18,7 +18,10 @@ import { createDelegations } from "./chatdelegations.js";
 import { filterMenuOpen, setFilterMenu } from "./chatfilters.js";
 import { chat, applyFeed, failure, offline } from "./chatstate.js";
 import { teamPanelOpen } from "./team-panel-model.js";
+import { visibleOrder } from "./chatlist.js";
+import { clickRow, only, selectAll } from "./chat-select-model.js";
 import {
+  clearSelection,
   debounceSearch,
   filters,
   menu,
@@ -36,6 +39,28 @@ const delegations = createDelegations({ render: renderChat, refresh: refreshActi
 
 function stop() {
   return stopTurn({ render: renderChat, refresh: scheduleRefresh });
+}
+
+function rowConversation(id) {
+  return [...(chat.home.conversations || []), ...(chat.home.archived || [])].find((row) => row.id === id);
+}
+
+// The history's keys wait while a field has the focus or a dialog is open.
+function typing(event) {
+  const target = event.target;
+  return target instanceof HTMLElement && (target.matches("input, textarea, select") || target.isContentEditable);
+}
+
+function shortcutFree(event) {
+  return !typing(event) && !document.querySelector("dialog[open]");
+}
+
+// Ctrl+A and Supr act on the list: the focus is on a row, or on the page once rows are picked
+// (a click on the thread also leaves the page focused, and its text must keep Ctrl+A).
+function onList(event) {
+  const groups = $("chat-groups");
+  if (groups.getClientRects().length === 0) return false;
+  return groups.contains(event.target) || (event.target === document.body && chat.selection.ids.size > 0);
 }
 
 function toggleSide() {
@@ -181,7 +206,7 @@ export function installChatHandlers() {
     chat.searchResults = null;
     $("chat-search").value = "";
     chat.query = "";
-    renderChat();
+    clearSelection();
   });
   $("btn-side-toggle").addEventListener("click", toggleSide);
   $("chat-search").addEventListener("search", debounceSearch);
@@ -194,6 +219,7 @@ export function installChatHandlers() {
     const target = event.target.closest("[data-filter]");
     if (!target) return;
     setFilterMenu(false);
+    clearSelection();
     filters.setFilter(target.dataset.filter);
   });
   $("chat-timeline").addEventListener("contextmenu", (event) => {
@@ -229,21 +255,59 @@ export function installChatHandlers() {
     const target = event.target.closest("button");
     if (!target) return;
     if (target.dataset.select) {
+      const id = target.dataset.select;
+      // Ctrl or Shift picks the row instead of opening it, as in the Explorer.
+      const ctrl = event.ctrlKey || event.metaKey;
+      if (ctrl || event.shiftKey) {
+        clickRow(chat.selection, visibleOrder(), id, { ctrl, shift: event.shiftKey });
+        renderChat();
+        // The composer kept the focus: without it, Ctrl+A and Supr would reach its text.
+        document.activeElement.blur();
+        return;
+      }
+      clickRow(chat.selection, visibleOrder(), id);
+      renderChat();
       $("chat-shell").classList.remove("history-open");
-      selectConversation(target.dataset.select);
+      selectConversation(id);
     } else if (target.dataset.menu) {
-      const id = target.dataset.menu;
-      const conversation = [...(chat.home.conversations || []), ...(chat.home.archived || [])].find(
-        (row) => row.id === id,
-      );
+      const conversation = rowConversation(target.dataset.menu);
       if (conversation) menu.openMenu(conversation, target);
     } else if (target.dataset.action === "new-section") {
       menu.openSection(null);
     } else if (target.dataset.action === "toggle-archived") {
       chat.showArchived = true;
-      renderChat();
+      clearSelection();
     }
   });
+
+  // The text of the rows is not selected by the Ctrl or Shift click that picks them.
+  $("chat-groups").addEventListener("mousedown", (event) => {
+    if ((event.ctrlKey || event.metaKey || event.shiftKey) && event.target.closest(".chat-row-main")) {
+      event.preventDefault();
+    }
+  });
+
+  // A right click on a row picks that row when it was not picked, then opens the menu of one or of several.
+  $("chat-groups").addEventListener("contextmenu", (event) => {
+    const row = event.target.closest(".chat-row[data-id]");
+    if (!row) return;
+    event.preventDefault();
+    const id = row.dataset.id;
+    if (!chat.selection.ids.has(id)) {
+      only(chat.selection, id);
+      renderChat();
+    }
+    const point = { x: event.clientX, y: event.clientY };
+    if (chat.selection.ids.size > 1) {
+      menu.openMany([...chat.selection.ids], point);
+    } else {
+      const conversation = rowConversation(id);
+      if (conversation) menu.openMenuAt(conversation, point);
+    }
+  });
+
+  $("btn-select-delete").addEventListener("click", () => menu.deleteIds([...chat.selection.ids]));
+  $("btn-select-cancel").addEventListener("click", () => clearSelection());
 
   $("side-finished-list").addEventListener("click", (event) => {
     const button = event.target.closest("[data-delegation-action]");
@@ -336,9 +400,21 @@ export function installChatHandlers() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      // The first Esc closes an open menu; a second one clears the picked rows.
+      const menuOpen = !$("chat-menu").classList.contains("hidden");
       menu.closeMenu();
       closeBubbleMenu();
       setFilterMenu(false);
+      if (!menuOpen && chat.selection.ids.size && shortcutFree(event)) clearSelection();
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+      if (!onList(event) || !shortcutFree(event)) return;
+      event.preventDefault();
+      selectAll(chat.selection, visibleOrder());
+      renderChat();
+    } else if (event.key === "Delete") {
+      if (!chat.selection.ids.size || !shortcutFree(event) || !onList(event)) return;
+      event.preventDefault();
+      menu.deleteIds([...chat.selection.ids]);
     }
   });
 }

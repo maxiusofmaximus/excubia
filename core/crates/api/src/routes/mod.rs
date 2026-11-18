@@ -20,6 +20,7 @@ mod mail_send;
 mod notes;
 mod onboarding;
 mod pair;
+mod pairing_policy;
 mod pake;
 mod plans;
 mod recipes;
@@ -38,7 +39,8 @@ pub use catalog::{fix as catalog_fix, list as catalog, set_default as catalog_se
 pub use chat::{
     approval_settings as chat_approval_settings, approval_state as chat_approval_state,
     attachment_content as chat_attachment_content, attachment_preview as chat_attachment_preview,
-    bootstrap as chat_bootstrap, cancel_conversation as chat_cancel_conversation,
+    bootstrap as chat_bootstrap, bulk_delete as chat_bulk_delete_conversations,
+    cancel_conversation as chat_cancel_conversation,
     cancel_delegation as chat_cancel_delegation,
     change_approval_settings as chat_change_approval_settings,
     complete_attachment as chat_complete_attachment, consume_approval as chat_consume_approval,
@@ -72,6 +74,7 @@ pub use mail_send::{
 };
 pub use onboarding::{complete as complete_onboarding, state as onboarding_state};
 pub use pair::pair;
+pub use pairing_policy::{get_pairing_policy, set_pairing_policy};
 pub use pake::{admin_routes as pake_admin_routes, routes as pake_routes};
 pub use plans::{
     approve as approve_plan, list as list_plans, reject as reject_plan,

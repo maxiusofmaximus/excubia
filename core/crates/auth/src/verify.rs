@@ -221,7 +221,8 @@ impl RequestVerifier {
         };
 
         let now = unix_seconds() as i64;
-        if (now - timestamp).abs() > self.skew_seconds {
+        // abs_diff: a timestamp of i64::MIN must be refused, not overflow.
+        if now.abs_diff(timestamp) > self.skew_seconds.unsigned_abs() {
             return Err(Unauthorized::new(Rejection::BadTimestamp));
         }
 
@@ -232,17 +233,6 @@ impl RequestVerifier {
         };
         if device.revoked {
             return Err(Unauthorized::new(Rejection::Revoked));
-        }
-
-        // The nonce is consumed only after the device is known, so an
-        // unauthenticated flood cannot evict a legitimate device's nonces.
-        let fresh = self
-            .nonces
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .check_and_add(&device.device_id, nonce, unix_seconds());
-        if !fresh {
-            return Err(Unauthorized::new(Rejection::BadNonce));
         }
 
         let message = canonical_string(
@@ -260,6 +250,17 @@ impl RequestVerifier {
             message.as_bytes(),
         ) {
             return Err(Unauthorized::new(Rejection::BadSignature));
+        }
+
+        // The nonce is consumed only after the signature is valid: a request that proves nothing
+        // must not evict the nonces of a device that does (that would reopen a replay).
+        let fresh = self
+            .nonces
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .check_and_add(&device.device_id, nonce, unix_seconds());
+        if !fresh {
+            return Err(Unauthorized::new(Rejection::BadNonce));
         }
 
         Ok(VerifiedDevice {
@@ -411,6 +412,61 @@ mod tests {
         let store = Arc::new(DeviceStore::open(None));
         let verifier = RequestVerifier::new(store);
         let headers = signed("dev-x", "1000000000", "bm9uY2U=", "AAAA");
+        let error = verifier
+            .verify(&SignedRequest {
+                method: "GET",
+                target: "/v1/state",
+                body: b"",
+                headers: &headers,
+            })
+            .unwrap_err();
+        assert_eq!(error.reason, Rejection::BadTimestamp);
+    }
+
+    #[test]
+    fn unsigned_requests_cannot_flush_the_nonces_of_a_real_one() {
+        use p256::ecdsa::{signature::Signer, SigningKey};
+        use p256::elliptic_curve::Generate;
+        let key = SigningKey::generate();
+        let public = STANDARD.encode(key.verifying_key().to_sec1_point(false).as_bytes());
+        let store = store_with_device(Curve::P256, &public);
+        let verifier = RequestVerifier::new(Arc::clone(&store));
+        let device_id = store.list()[0].device_id.clone();
+        let timestamp = unix_seconds() as i64;
+        let nonce = "bm9uY2U=";
+        let message =
+            canonical_string("GET", "/v1/state", b"", timestamp, nonce).expect("canonical");
+        let signature: p256::ecdsa::Signature = key.sign(message.as_bytes());
+        let signature = STANDARD.encode(signature.to_der().as_bytes());
+        let headers = signed(&device_id, &timestamp.to_string(), nonce, &signature);
+        let request = SignedRequest {
+            method: "GET",
+            target: "/v1/state",
+            body: b"",
+            headers: &headers,
+        };
+        assert!(verifier.verify(&request).is_ok());
+        // Far more bad-signature requests than the cache holds, each with its own nonce.
+        for index in 0..(NONCE_CACHE_MAX_PER_DEVICE * 2) {
+            let flood = signed(&device_id, &timestamp.to_string(), &format!("f{index}"), "AAAA");
+            let rejected = verifier
+                .verify(&SignedRequest {
+                    method: "GET",
+                    target: "/v1/state",
+                    body: b"",
+                    headers: &flood,
+                })
+                .unwrap_err();
+            assert_eq!(rejected.reason, Rejection::BadSignature);
+        }
+        // The captured request is still a replay.
+        assert_eq!(verifier.verify(&request).unwrap_err().reason, Rejection::BadNonce);
+    }
+
+    #[test]
+    fn the_smallest_timestamp_is_refused_without_overflowing() {
+        let verifier = RequestVerifier::new(Arc::new(DeviceStore::open(None)));
+        let headers = signed("dev-x", &i64::MIN.to_string(), "bm9uY2U=", "AAAA");
         let error = verifier
             .verify(&SignedRequest {
                 method: "GET",

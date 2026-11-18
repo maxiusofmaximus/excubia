@@ -34,6 +34,7 @@ use excubia_host::{
     configured_profiles, engine_listing, load_agents, load_hook_token, paths, ready_engines,
     spawn_alerts, AgentHost, HostOptions, SpawnSpec,
 };
+use excubia_persist::acl;
 use excubia_pin::Identity;
 use excubia_pty::PtySize;
 use excubia_seat::{canary_plan, run_canary, CliId, CliProfile, SeatConfig, SeatService, UacState};
@@ -77,6 +78,16 @@ async fn proven_plugin_dir(
 
 pub(super) async fn run(options: RunOptions) -> Result<()> {
     paths::ensure_data_dir(&options.data_dir)?;
+    // Before any database or key is opened. A failure is a warning: the host still starts.
+    match acl::restrict_dir_to_owner(&options.data_dir) {
+        Ok(true) => println!(
+            "host: permisos de la carpeta de datos fijados (usuario, SYSTEM, Administradores)"
+        ),
+        Ok(false) => {}
+        Err(error) => {
+            println!("host: aviso: no pude fijar los permisos de la carpeta de datos: {error}")
+        }
+    }
     let devices = Arc::new(DeviceStore::open(Some(paths::devices_path(
         &options.data_dir,
     ))));
