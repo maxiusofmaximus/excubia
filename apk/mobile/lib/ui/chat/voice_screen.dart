@@ -11,8 +11,11 @@ import '../widgets/agent_avatar.dart';
 /// How long «Listo» stays before the screen closes and the chat takes over.
 const _listoHold = Duration(milliseconds: 1500);
 
-/// The diameter of Alfred's face inside the orb; the ring grows from here.
+/// The ring's resting diameter; the ring grows from here.
 const _orbCore = 168.0;
+
+/// The face is 8 % smaller than the ring's base so its hair clears the gold ring.
+const _faceCore = _orbCore * 0.92;
 
 /// A full-screen voice note: an orb that follows the voice, what is happening
 /// in words, and two buttons. The text reaches the chat through the composer's
@@ -298,7 +301,7 @@ class _VoiceScreenState extends State<VoiceScreen>
                   ),
                 ),
                 SizedBox.square(
-                  dimension: _orbCore,
+                  dimension: _faceCore,
                   child: ClipOval(
                     child: Image.asset(
                       'assets/agents_v3/portraits/alfred-$face-512.webp',
@@ -319,8 +322,8 @@ class _VoiceScreenState extends State<VoiceScreen>
 
   /// The orb's core when the picture is missing: a plain accent disc.
   Widget _plainCore(HerdrColors c) => Container(
-    width: _orbCore,
-    height: _orbCore,
+    width: _faceCore,
+    height: _faceCore,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: LinearGradient(

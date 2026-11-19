@@ -92,7 +92,7 @@ void main() {
     );
 
     expect(
-      find.textContaining('Sin ruta al PC · último estado'),
+      find.textContaining('Sin conexión con tu PC · último estado'),
       findsOneWidget,
     );
     // The banner sits below the plans, summary and hires of a lazy list.

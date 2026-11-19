@@ -155,7 +155,8 @@ class TeamProjectGroupCard extends StatelessWidget {
             if (lead != null)
               _MemberRow(
                 name: lead.name,
-                role: 'Responsable',
+                // The badge tells the lead apart only when someone works under them.
+                role: group.specialists.isEmpty ? null : 'Responsable',
                 status: group.leadAgent?.status ?? _seatStatus(lead.status),
                 detail: group.leadAgent?.title,
                 onTap: (group.leadAgent != null || lead.paneId != null)
@@ -195,7 +196,7 @@ class _MemberRow extends StatelessWidget {
   });
 
   final String name;
-  final String role;
+  final String? role;
   final AgentStatus status;
   final String? detail;
   final VoidCallback? onTap;
@@ -208,7 +209,7 @@ class _MemberRow extends StatelessWidget {
         : '${c.statusLabel(status)} · ${detail!.trim()}';
     return Semantics(
       button: onTap != null,
-      label: '$name, $role, $subtitle',
+      label: '$name${role == null ? '' : ', $role'}, $subtitle',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -247,26 +248,28 @@ class _MemberRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: Spacing.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Spacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: role == 'Responsable' ? c.accentSoft : c.raised,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    role,
-                    style: context.text.label.copyWith(
-                      color: role == 'Responsable'
-                          ? c.accentText
-                          : c.textSecondary,
-                      fontSize: 10,
+                if (role != null) ...[
+                  const SizedBox(width: Spacing.sm),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.sm,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: role == 'Responsable' ? c.accentSoft : c.raised,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      role!,
+                      style: context.text.label.copyWith(
+                        color: role == 'Responsable'
+                            ? c.accentText
+                            : c.textSecondary,
+                        fontSize: 10,
+                      ),
                     ),
                   ),
-                ),
+                ],
                 if (onTap != null) ...[
                   const SizedBox(width: Spacing.xs),
                   Icon(Icons.chevron_right, size: 18, color: c.textMuted),

@@ -179,7 +179,7 @@ class _AgentsScreenState extends State<AgentsScreen>
 
   /// The live agents on the PC, not the people contracted; the header says so.
   String _countLabel(int count) =>
-      count == 1 ? '1 abierto en el PC' : '$count abiertos en el PC';
+      count == 1 ? '1 agente abierto' : '$count agentes abiertos';
 
   /// One attempt, started by a tap: the loop is not restarted by a timer.
   Future<void> _reconnect() async {

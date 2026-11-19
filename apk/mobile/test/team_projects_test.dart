@@ -239,4 +239,16 @@ void main() {
     await tester.tap(find.text('Claude'));
     expect(opened, 'w1:p4');
   });
+
+  testWidgets('a lead who works alone shows a name, with no Responsable badge', (
+    tester,
+  ) async {
+    await pumpCard(tester, project, [
+      agent(pane: 'w1:p3', project: 'Demo', title: 'Plan de tres hitos'),
+    ]);
+
+    expect(find.text('Ernesto'), findsOneWidget);
+    expect(find.text('Responsable'), findsNothing);
+    expect(find.text('Especialista'), findsNothing);
+  });
 }

@@ -251,7 +251,10 @@ void main() {
     test(
       'each failure has its own short label, and none keeps the old one',
       () {
-        expect(connectionLabel(ConnectionFailure.noRoute), 'Sin ruta al PC');
+        expect(
+          connectionLabel(ConnectionFailure.noRoute),
+          'Sin conexión con tu PC',
+        );
         expect(connectionLabel(ConnectionFailure.hostDown), 'PC sin servicio');
         expect(connectionLabel(ConnectionFailure.timeout), 'Lento');
         expect(

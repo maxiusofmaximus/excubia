@@ -13,7 +13,7 @@ String connectionText(ConnectionFailure failure) => switch (failure) {
 /// The short label for the status bar; without a failure, the generic one.
 String connectionLabel(ConnectionFailure? failure) => switch (failure) {
   null => 'Sin conexión',
-  ConnectionFailure.noRoute => 'Sin ruta al PC',
+  ConnectionFailure.noRoute => 'Sin conexión con tu PC',
   ConnectionFailure.hostDown => 'PC sin servicio',
   ConnectionFailure.timeout => 'Lento',
   ConnectionFailure.identityMismatch => 'PC distinto',
