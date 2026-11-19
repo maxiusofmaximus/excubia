@@ -120,12 +120,15 @@ void main() {
     expect(send.onPressed, isNull);
   });
 
-  testWidgets('a restored pane hides stop and offers a new conversation', (
+  testWidgets('a restored pane has no respond panel, only a new conversation', (
     tester,
   ) async {
     await pumpDetail(tester, triageWith(AgentStatus.unknown, restored: true));
 
-    expect(find.textContaining('El agente terminó'), findsWidgets);
+    expect(find.text('Responder'), findsNothing);
+    expect(find.text('Enviar'), findsNothing);
+    expect(find.text('Aprobar (y)'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
     expect(find.text('Detener agente'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('Nueva conversación aquí'),
@@ -133,7 +136,15 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Nueva conversación aquí'), findsOneWidget);
-    final field = tester.widget<TextField>(find.byType(TextField));
-    expect(field.enabled, isFalse);
+  });
+
+  testWidgets('a live agent that is not blocked keeps the respond panel', (
+    tester,
+  ) async {
+    await pumpDetail(tester, triageWith(AgentStatus.working));
+
+    expect(find.text('Responder'), findsOneWidget);
+    expect(find.text('Enviar'), findsOneWidget);
+    expect(find.text('Nueva conversación aquí'), findsNothing);
   });
 }

@@ -92,6 +92,7 @@ class ChatController extends ChangeNotifier {
   StreamSubscription<ChatEvent>? _chatSubscription;
 
   ChatBootstrap? _bootstrap;
+  bool _bootstrapAnswered = false;
   List<ChatConversation> _conversations = const <ChatConversation>[];
   List<ChatSection> _sections = const <ChatSection>[];
   ChatConversation? _current;
@@ -142,6 +143,9 @@ class ChatController extends ChangeNotifier {
   );
 
   ChatBootstrap? get bootstrap => _bootstrap;
+
+  /// The bootstrap read (the source of [projects]) has answered, with data or with a failure.
+  bool get bootstrapAnswered => _bootstrapAnswered;
   List<ChatProject> get projects =>
       _bootstrap?.projects ?? const <ChatProject>[];
   LiveTriage get triage => _triage;

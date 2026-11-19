@@ -243,8 +243,9 @@ class _AgentsScreenState extends State<AgentsScreen>
           if (!_teamIsEmpty)
             TeamHiresSection(hires: _hires, recipes: widget.recipes),
           if (_hires.hires.isNotEmpty) _portraitRow(),
+          ..._projectCards(),
           SchedulesSection(schedules: widget.schedules, oficioOf: _oficioOf),
-          if (!_teamIsEmpty) _emptyTeam(connection, state),
+          if (!_teamIsEmpty && !_onlyProjects) _emptyTeam(connection, state),
         ],
       );
     }
@@ -326,24 +327,46 @@ class _AgentsScreenState extends State<AgentsScreen>
   /// The name of an oficio for «Automatizar»; a role no longer in the catalog keeps a plain word.
   String _oficioOf(String roleId) => _hires.roleById(roleId)?.title ?? 'Oficio';
 
-  /// Nobody contracted, nobody on the summary, no plan: nothing to list. It is said only once
-  /// every read has answered or failed, so «vacío» never shows before the host has spoken.
+  /// Nobody contracted, nobody on the summary, no plan, no project card: nothing to list. It is
+  /// said only once every read has answered or failed, so «vacío» never shows before the host has spoken.
   bool get _teamIsEmpty =>
       _hiresAnswered &&
       _hires.hires.isEmpty &&
       _summaryAnswered &&
       widget.summary.members.isEmpty &&
       _plansAnswered &&
-      widget.plans.plans.isEmpty;
+      widget.plans.plans.isEmpty &&
+      _projectsAnswered &&
+      _chat.projects.isEmpty;
+
+  /// Only project cards on the team: «PLANES PROPUESTOS» and «TU EQUIPO» would show nothing but
+  /// their own empty states, so they stay away and the cards say the rest.
+  bool get _onlyProjects =>
+      _projectsAnswered &&
+      _chat.projects.isNotEmpty &&
+      _hiresAnswered &&
+      _hires.hires.isEmpty &&
+      _summaryAnswered &&
+      widget.summary.members.isEmpty &&
+      widget.summary.error == null &&
+      _plansAnswered &&
+      widget.plans.plans.isEmpty &&
+      widget.plans.error == null &&
+      !widget.plans.denied;
 
   bool get _hiresAnswered => _hires.loaded || _hires.failure != null;
   bool get _summaryAnswered =>
       widget.summary.loaded || widget.summary.error != null;
   bool get _plansAnswered => widget.plans.loaded || widget.plans.error != null;
+  bool get _projectsAnswered => _chat.bootstrapAnswered;
 
-  /// The search and the filter chips. With nobody on the team and at most two open agents
-  /// there is nothing to filter, so they stay away.
-  bool _filtersShown(int openAgents) => !_teamIsEmpty || openAgents > 2;
+  /// The search and the filter chips appear only when there is a list worth filtering (more than
+  /// four open agents and project cards together) or a search or filter is already on, so it can be cleared.
+  bool _filtersShown(int openAgents) {
+    final applied =
+        _search.text.trim().isNotEmpty || _filter != _TeamFilter.all;
+    return applied || openAgents + _chat.projects.length > 4;
+  }
 
   /// Plans and «Tu equipo»; with nobody on either, one invitation instead of the empty sections.
   List<Widget> _teamHead() {
@@ -367,6 +390,7 @@ class _AgentsScreenState extends State<AgentsScreen>
         ),
       ];
     }
+    if (_onlyProjects) return const [];
     return [
       PlansSection(plans: widget.plans),
       TeamSummarySection(
@@ -422,6 +446,15 @@ class _AgentsScreenState extends State<AgentsScreen>
       onHire: hireCatalogAction(context, _hires),
     ),
   );
+
+  /// The project cards when no agent is open; the same cards as the list above.
+  List<Widget> _projectCards() => [
+    for (final group in groupTeam(
+      projects: _chat.projects,
+      agents: const <AgentEntry>[],
+    ).projects)
+      TeamProjectGroupCard(group: group, onOpenAgent: _openDetail),
+  ];
 
   /// Nobody is listed. With people hired, "nobody is running" is the true state.
   /// Offline keeps the retry panel; online says it lightly, because «Contratar»

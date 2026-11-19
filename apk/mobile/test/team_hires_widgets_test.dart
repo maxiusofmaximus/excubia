@@ -68,13 +68,13 @@ void main() {
   });
 
   group('the team section', () {
-    testWidgets('an empty team without can_hire says so and offers nothing', (
+    testWidgets('an empty team without can_hire shows no section at all', (
       tester,
     ) async {
       await pumpTeam(tester, FakeTeamHost(canHire: false));
 
-      expect(find.text('CONTRATADOS'), findsOneWidget);
-      expect(find.text(_empty), findsOneWidget);
+      expect(find.text('CONTRATADOS'), findsNothing);
+      expect(find.text(_empty), findsNothing);
       expect(find.text('Contratar'), findsNothing);
     });
 

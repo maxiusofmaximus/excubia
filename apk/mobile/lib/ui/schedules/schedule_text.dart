@@ -4,7 +4,8 @@ import '../../core/api/schedule_models.dart';
 
 const String scheduleFooterText =
     'Solo se ejecuta con tu PC encendido. Si estaba apagado a la hora, no se lanza al encenderlo: te avisamos aquí y puedes lanzarla tú.';
-const String scheduleEmptyTitle = 'Aún no hay tareas programadas.';
+const String scheduleEmptyTitle = 'Sin tareas programadas';
+// Said in the tooltip of the empty line, with the footer: the words stay, out of the view.
 const String scheduleEmptyDetail = 'Programa tareas desde el escritorio.';
 const String scheduleLoadingLabel = 'Cargando tareas programadas';
 const String scheduleHistoryEmptyText = 'Aún no hay ejecuciones.';

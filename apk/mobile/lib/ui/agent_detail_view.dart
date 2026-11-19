@@ -40,10 +40,8 @@ extension _AgentDetailView on _AgentDetailScreenState {
   Widget _detail(AgentEntry agent) {
     final ready =
         agent.status == AgentStatus.blocked && !agent.restored && !_busy;
-    final hint = agent.restored
-        ? 'El agente terminó; este panel es una instantánea de su última '
-              'pantalla.'
-        : ready
+    // A finished agent (restored) gets no respond panel at all: only the new conversation below.
+    final hint = ready
         ? 'El agente está esperando; tu respuesta llega al terminal.'
         : 'Disponible cuando el agente está bloqueado '
               '(ahora: ${context.colors.statusLabel(agent.status).toLowerCase()}).';
@@ -76,21 +74,23 @@ extension _AgentDetailView on _AgentDetailScreenState {
             style: context.text.small,
           ),
         ],
-        const SizedBox(height: Spacing.lg),
-        AgentComposer(
-          controller: _message,
-          ready: ready,
-          sending: _sending,
-          stopping: _stopping,
-          canStop: !agent.restored,
-          hint: hint,
-          onRespond: _respond,
-          onKey: _sendKey,
-          onStop: () => _confirmStop(agent),
-          result: _result,
-          resultOk: _resultOk,
-          error: _error,
-        ),
+        if (!agent.restored) ...[
+          const SizedBox(height: Spacing.lg),
+          AgentComposer(
+            controller: _message,
+            ready: ready,
+            sending: _sending,
+            stopping: _stopping,
+            canStop: true,
+            hint: hint,
+            onRespond: _respond,
+            onKey: _sendKey,
+            onStop: () => _confirmStop(agent),
+            result: _result,
+            resultOk: _resultOk,
+            error: _error,
+          ),
+        ],
         if (agent.restored) ...[
           const SizedBox(height: Spacing.lg),
           SurfaceCard(

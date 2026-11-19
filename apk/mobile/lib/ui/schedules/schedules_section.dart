@@ -7,7 +7,6 @@ import '../../core/api/schedules_api.dart';
 import '../../core/state/schedules_controller.dart';
 import '../team/team_panel_parts.dart';
 import '../theme.dart';
-import '../widgets/empty_state.dart';
 import 'schedule_card.dart';
 import 'schedule_dialogs.dart';
 import 'schedule_history_sheet.dart';
@@ -49,13 +48,21 @@ class SchedulesSection extends StatelessWidget {
               const SizedBox(height: Spacing.sm),
             ],
             _body(context),
-            const SizedBox(height: Spacing.sm),
-            Text(scheduleFooterText, style: context.text.small),
+            if (!_nothingScheduled) ...[
+              const SizedBox(height: Spacing.sm),
+              Text(scheduleFooterText, style: context.text.small),
+            ],
           ],
         ),
       ),
     );
   }
+
+  /// Read fine and empty: one quiet line instead of the sentences, which wait in its tooltip.
+  bool get _nothingScheduled =>
+      schedules.loaded &&
+      schedules.error == null &&
+      schedules.schedules.isEmpty;
 
   Widget _body(BuildContext context) {
     final error = schedules.error;
@@ -65,10 +72,9 @@ class SchedulesSection extends StatelessWidget {
     final list = schedules.schedules;
     if (list.isEmpty) {
       if (error != null) return _noticeFor(error);
-      return const EmptyState(
-        icon: Icons.schedule_outlined,
-        title: scheduleEmptyTitle,
-        detail: scheduleEmptyDetail,
+      return Tooltip(
+        message: '$scheduleEmptyDetail $scheduleFooterText',
+        child: Text(scheduleEmptyTitle, style: context.text.small),
       );
     }
     return Column(

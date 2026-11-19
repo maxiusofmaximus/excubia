@@ -74,6 +74,7 @@ extension ChatControllerSync on ChatController {
       // The list and the timeline still work with a stale bootstrap; the
       // header falls back to its defaults instead of blanking the screen.
     }
+    _bootstrapAnswered = true;
   }
 
   Future<void> _loadConversation(String id, {required bool reset}) async {

@@ -251,4 +251,24 @@ void main() {
     expect(find.text('Responsable'), findsNothing);
     expect(find.text('Especialista'), findsNothing);
   });
+
+  testWidgets(
+    'a lead with no activity shows the name alone, not «Sin actividad reciente»',
+    (tester) async {
+      await pumpCard(
+        tester,
+        const ChatProject(
+          id: 'prj_1',
+          name: 'Demo',
+          rootLabel: 'demo',
+          status: 'active',
+          lead: ChatSeat(agentId: 'ag_1', name: 'Ernesto', status: 'draft'),
+        ),
+        const [],
+      );
+
+      expect(find.text('Ernesto'), findsOneWidget);
+      expect(find.text('Sin actividad reciente'), findsNothing);
+    },
+  );
 }

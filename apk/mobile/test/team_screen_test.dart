@@ -15,14 +15,18 @@ import 'package:excubia/core/state/plans_controller.dart';
 import 'package:excubia/core/state/recipes_controller.dart';
 import 'package:excubia/core/state/schedules_controller.dart';
 import 'package:excubia/core/state/team_summary_controller.dart';
+import 'package:excubia/src/rust/api/state.dart';
 import 'package:excubia/src/rust/frb_generated.dart';
 import 'package:excubia/ui/agents_screen.dart';
 import 'package:excubia/ui/team/team_panel_parts.dart';
 import 'package:excubia/ui/theme.dart';
 import 'package:excubia/ui/widgets/agent_portrait_card.dart';
+import 'package:excubia/ui/widgets/agent_row.dart';
 import 'package:excubia/ui/widgets/grouped_card.dart';
 
+import 'support/chat_fixtures.dart';
 import 'support/connection_fixtures.dart';
+import 'support/fake_chat_transport.dart';
 import 'support/fake_team_host.dart';
 import 'support/scripted_transport.dart';
 
@@ -99,10 +103,19 @@ Future<TeamParts> pumpEquipo(
   bool readHires = true,
   bool readSummaryBeforeShow = true,
   VoidCallback? onOpenChat,
+  List<Map<String, Object?>> projects = const [],
+  List<AgentEntry> agents = const [],
 }) async {
   final client = refusingClient();
   final triage = LiveTriage(client);
-  final chat = ChatController(client, triage);
+  // The projects come from the chat bootstrap, read like the screen does at start.
+  final chat = ChatController(
+    FakeChatTransport({
+      ...emptyRoutes(),
+      '/v1/chat/bootstrap': bootstrapJson(projects: projects),
+    }),
+    triage,
+  );
   final hires = HiresController(transport: host.team);
   final summary = TeamSummaryController(api: TeamSummaryApi(host));
   final plans = PlansController(api: PlansApi(host));
@@ -114,6 +127,12 @@ Future<TeamParts> pumpEquipo(
     triage.start();
     await settled(triage);
     triage.stop();
+    if (agents.isNotEmpty) {
+      triage.reconciler.acceptState(
+        StateSnapshot(revision: 1, counts: const {}, agents: agents),
+      );
+    }
+    await chat.start();
   });
   if (readHires) await hires.load();
   if (readSummaryBeforeShow) {
@@ -167,8 +186,96 @@ void expectOnlyEmptyState({int notices = 0}) {
   expect(find.byType(TextField), findsNothing, reason: 'no search while empty');
 }
 
+/// Open agents on the PC, none of them in a project card.
+List<AgentEntry> openAgents(int count) => [
+  for (var i = 1; i <= count; i++)
+    AgentEntry(
+      paneId: 'w9:p$i',
+      workspaceId: 'w9',
+      project: 'excubia',
+      agent: 'opencode',
+      status: AgentStatus.idle,
+      attention: 0,
+      title: 'Tarea $i',
+      cwd: null,
+      focused: false,
+      canResume: false,
+      restored: false,
+    ),
+];
+
+/// Project cards from the chat bootstrap, each with its own lead.
+List<Map<String, Object?>> projectCards(int count) => [
+  for (var i = 1; i <= count; i++)
+    {
+      'id': 'prj_$i',
+      'name': 'Proyecto $i',
+      'root_label': 'proyecto-$i',
+      'status': 'active',
+      'lead': {
+        'agent_id': 'ag_$i',
+        'name': 'Lead $i',
+        'status': 'working',
+        'pane_id': 'wz$i:p1',
+      },
+    },
+];
+
 void main() {
   setUpAll(RustLib.init);
+
+  testWidgets('four entries (agents and cards): no search and no chips', (
+    tester,
+  ) async {
+    // Tall enough that both agent rows are built: the list is lazy.
+    tester.view.physicalSize = const Size(400, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpEquipo(
+      tester,
+      TeamScreenHost(FakeTeamHost(hires: [])),
+      projects: projectCards(2),
+      agents: openAgents(2),
+    );
+
+    expect(find.byType(AgentRow), findsNWidgets(2));
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Todos'), findsNothing);
+  });
+
+  testWidgets(
+    'five entries (agents and cards): the search and the chips show',
+    (tester) async {
+      await pumpEquipo(
+        tester,
+        TeamScreenHost(FakeTeamHost(hires: [])),
+        projects: projectCards(2),
+        agents: openAgents(3),
+      );
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Todos'), findsOneWidget);
+    },
+  );
+
+  testWidgets('a phone that cannot contract shows no CONTRATADOS section', (
+    tester,
+  ) async {
+    await pumpEquipo(
+      tester,
+      TeamScreenHost(FakeTeamHost(canHire: false, hires: [])),
+      projects: projectCards(1),
+    );
+
+    expect(find.text('Proyecto 1'), findsOneWidget);
+    expect(find.text('CONTRATADOS'), findsNothing);
+    expect(find.text(_noHires), findsNothing);
+    expect(
+      find.text('Todavía no hay nadie contratado en tu equipo.'),
+      findsNothing,
+    );
+  });
 
   testWidgets('an empty team says so once, with the way to contract', (
     tester,
@@ -182,6 +289,44 @@ void main() {
       expect(find.text(text), findsNothing, reason: text);
     }
   });
+
+  testWidgets(
+    'projects and nothing else: the cards, never «vacío» above them',
+    (tester) async {
+      await pumpEquipo(
+        tester,
+        TeamScreenHost(FakeTeamHost(hires: [])),
+        projects: [
+          {
+            'id': 'prj_1',
+            'name': 'Demo',
+            'root_label': 'demo',
+            'status': 'active',
+            'lead': {
+              'agent_id': 'ag_1',
+              'name': 'Ernesto',
+              'status': 'working',
+              'pane_id': 'w1:p3',
+            },
+          },
+        ],
+      );
+
+      expect(find.text(_emptyLine), findsNothing);
+      expect(find.text('Pídele a Alfred que arme uno'), findsNothing);
+      expect(find.text('Hablar con Alfred'), findsNothing);
+      expect(find.text('Demo'), findsOneWidget);
+      expect(find.text('Ernesto'), findsOneWidget);
+      for (final text in [
+        'TU EQUIPO',
+        'PLANES PROPUESTOS',
+        'Todavía no tienes a nadie contratado.',
+        'Nadie trabajando en este proyecto.',
+      ]) {
+        expect(find.text(text), findsNothing, reason: text);
+      }
+    },
+  );
 
   testWidgets(
     'a phone that cannot contract offers the chat, not a dead button',

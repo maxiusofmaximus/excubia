@@ -204,12 +204,19 @@ class _MemberRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final subtitle = detail == null || detail!.trim().isEmpty
-        ? c.statusLabel(status)
-        : '${c.statusLabel(status)} · ${detail!.trim()}';
+    final task = detail?.trim();
+    // Unknown state and no task: the row keeps the name alone, not «Sin actividad reciente».
+    final String? subtitle;
+    if (task != null && task.isNotEmpty) {
+      subtitle = '${c.statusLabel(status)} · $task';
+    } else if (status != AgentStatus.unknown) {
+      subtitle = c.statusLabel(status);
+    } else {
+      subtitle = null;
+    }
     return Semantics(
       button: onTap != null,
-      label: '$name${role == null ? '' : ', $role'}, $subtitle',
+      label: [name, ?role, ?subtitle].join(', '),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -238,13 +245,15 @@ class _MemberRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: context.text.small,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: context.text.small,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),

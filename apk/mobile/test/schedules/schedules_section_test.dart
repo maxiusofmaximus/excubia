@@ -79,16 +79,33 @@ Future<SchedulesController> pumpSection(
 }
 
 void main() {
-  testWidgets('with nothing scheduled it says to program from the desktop', (
-    tester,
-  ) async {
-    final host = ScriptedTransport({'GET /v1/schedules': _list([])});
+  testWidgets(
+    'with nothing scheduled one quiet line; the rest waits in its tooltip',
+    (tester) async {
+      final host = ScriptedTransport({'GET /v1/schedules': _list([])});
+
+      await pumpSection(tester, host);
+
+      expect(find.text('Sin tareas programadas'), findsOneWidget);
+      expect(find.text('Crear'), findsNothing);
+      expect(
+        find.textContaining('Solo se ejecuta con tu PC encendido.'),
+        findsNothing,
+        reason: 'the footer is out of the view while nothing is scheduled',
+      );
+      final tooltip = tester.widget<Tooltip>(find.byType(Tooltip));
+      expect(tooltip.message, contains('Programa tareas desde el escritorio.'));
+      expect(tooltip.message, contains('Solo se ejecuta con tu PC encendido.'));
+    },
+  );
+
+  testWidgets('with tasks the footer stays under them', (tester) async {
+    final host = ScriptedTransport({
+      'GET /v1/schedules': _list([_schedule()]),
+    });
 
     await pumpSection(tester, host);
 
-    expect(find.text('Aún no hay tareas programadas.'), findsOneWidget);
-    expect(find.text('Programa tareas desde el escritorio.'), findsOneWidget);
-    expect(find.text('Crear'), findsNothing);
     expect(
       find.textContaining('Solo se ejecuta con tu PC encendido.'),
       findsOneWidget,
@@ -114,18 +131,19 @@ void main() {
     expect(find.text('texto del encargo que no se muestra'), findsNothing);
   });
 
-  testWidgets('a paused card says it has no next run even if the host sends one', (
-    tester,
-  ) async {
-    final host = ScriptedTransport({
-      'GET /v1/schedules': _list([_schedule(status: 'paused')]),
-    });
+  testWidgets(
+    'a paused card says it has no next run even if the host sends one',
+    (tester) async {
+      final host = ScriptedTransport({
+        'GET /v1/schedules': _list([_schedule(status: 'paused')]),
+      });
 
-    await pumpSection(tester, host);
+      await pumpSection(tester, host);
 
-    expect(find.text('Próxima: en pausa'), findsOneWidget);
-    expect(find.textContaining('9 nov'), findsNothing);
-  });
+      expect(find.text('Próxima: en pausa'), findsOneWidget);
+      expect(find.textContaining('9 nov'), findsNothing);
+    },
+  );
 
   testWidgets('the switch pauses an active task', (tester) async {
     final host = ScriptedTransport({

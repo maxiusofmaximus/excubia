@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import 'agent_avatar.dart';
+import 'blinking_portrait.dart';
 
 /// A character's portrait card: the 3:4 render, whose panel and monogram are
 /// part of the picture, then the name in large type and a short line. It is a
@@ -43,14 +44,11 @@ class AgentPortraitCard extends StatelessWidget {
     );
     final portrait = profile == null
         ? ColoredBox(color: c.accentSoft, child: initial)
-        : Image.asset(
-            'assets/agents_v3/portraits/$id-neutral-600x750.webp',
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.medium,
-            gaplessPlayback: true,
-            excludeFromSemantics: true,
-            errorBuilder: (_, _, _) =>
-                ColoredBox(color: profile.background, child: initial),
+        : BlinkingPortrait(
+            base: 'assets/agents_v3/portraits/$id-neutral-600x750.webp',
+            blink: 'assets/agents_v3/portraits/$id-blink-600x750.webp',
+            enabled: id == 'alfred',
+            fallback: ColoredBox(color: profile.background, child: initial),
           );
     final content = Column(
       crossAxisAlignment: centered

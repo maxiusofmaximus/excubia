@@ -7,6 +7,7 @@ import '../../core/state/voice_errors.dart';
 import '../../core/state/voice_notes.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import '../widgets/blinking_portrait.dart';
 
 /// How long «Listo» stays before the screen closes and the chat takes over.
 const _listoHold = Duration(milliseconds: 1500);
@@ -303,12 +304,11 @@ class _VoiceScreenState extends State<VoiceScreen>
                 SizedBox.square(
                   dimension: _faceCore,
                   child: ClipOval(
-                    child: Image.asset(
-                      'assets/agents_v3/portraits/alfred-$face-512.webp',
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.medium,
-                      gaplessPlayback: true,
-                      errorBuilder: (_, _, _) => _plainCore(c),
+                    child: BlinkingPortrait(
+                      base: 'assets/agents_v3/portraits/alfred-$face-512.webp',
+                      blink: 'assets/agents_v3/portraits/alfred-blink-512.webp',
+                      enabled: face == 'neutral',
+                      fallback: _plainCore(c),
                     ),
                   ),
                 ),

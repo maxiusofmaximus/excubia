@@ -57,6 +57,8 @@ String _portraitOf(WidgetTester tester) =>
             .map((image) => image.image)
             .whereType<AssetImage>()
             .where((image) => image.assetName.contains('portraits/'))
+            // The blink render sits over the face, so only the face counts.
+            .where((image) => !image.assetName.contains('blink'))
             .single)
         .assetName;
 

@@ -30,6 +30,10 @@ class TeamHiresSection extends StatelessWidget {
       builder: (context, _) {
         final c = context.colors;
         final failure = hires.failure;
+        // Nobody hired and no «Contratar» here: no title and no sentence, unless a read failed.
+        if (hires.hires.isEmpty && !hires.canHire && failure == null) {
+          return const SizedBox.shrink();
+        }
         return Padding(
           padding: const EdgeInsets.fromLTRB(
             Spacing.lg,
@@ -81,14 +85,12 @@ class TeamHiresSection extends StatelessWidget {
   Widget _body(BuildContext context) {
     if (hires.hires.isEmpty) {
       // Before the first read nobody is known yet: saying «nadie» here would be false.
-      if (!hires.loaded) return const SizedBox.shrink();
+      if (!hires.loaded || !hires.canHire) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: Spacing.md),
         child: Text(
-          hires.canHire
-              ? 'Todavía no has contratado a nadie. Pulsa «Contratar» para '
-                    'elegir por área.'
-              : 'Todavía no hay nadie contratado en tu equipo.',
+          'Todavía no has contratado a nadie. Pulsa «Contratar» para '
+          'elegir por área.',
           style: context.text.bodySecondary,
         ),
       );
