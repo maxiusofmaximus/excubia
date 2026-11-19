@@ -21,16 +21,29 @@ Widget subject(Widget child, {bool reduceMotion = false}) => MaterialApp(
   ),
 );
 
-/// A bundle in which every animated head is missing, as in an older build.
-class _NoClipBundle extends CachingAssetBundle {
+/// A bundle in which every v3 still is missing, as in a build without them.
+class _NoStillBundle extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) {
-    if (key.endsWith('.webp')) {
-      return Future.error(StateError('no clip in this build: $key'));
+    if (key.startsWith('assets/agents_v3/agents/')) {
+      return Future.error(StateError('no still in this build: $key'));
     }
     return rootBundle.load(key);
   }
 }
+
+/// Every rendered agent; the ids the app ships a still for.
+const _ids = [
+  'alfred',
+  'bob',
+  'conan',
+  'dani',
+  'ernesto',
+  'hugo',
+  'ines',
+  'nicole',
+  'sami',
+];
 
 AssetImage assetOf(WidgetTester tester) =>
     tester.widget<Image>(find.byType(Image)).image as AssetImage;
@@ -44,7 +57,16 @@ void main() {
     expect(agentProfileFor(''), isNull);
   });
 
-  test('every status maps to its clip', () {
+  test('the colours are the v3 manifest accents and deep tones', () {
+    final bob = agentProfileById('bob')!;
+    expect(bob.background, const Color(0xFF3CC9A8));
+    expect(bob.foreground, const Color(0xFF0F7F6C));
+    final ernesto = agentProfileById('ernesto')!;
+    expect(ernesto.background, const Color(0xFFE09A5F));
+    expect(ernesto.foreground, const Color(0xFF8A3E1F));
+  });
+
+  test('every status maps to its look', () {
     expect(agentLookFor(AgentStatus.idle), AgentLook.idle);
     expect(agentLookFor(AgentStatus.unknown), AgentLook.idle);
     expect(agentLookFor(AgentStatus.working), AgentLook.working);
@@ -52,7 +74,7 @@ void main() {
     expect(agentLookFor(AgentStatus.blocked), AgentLook.error);
   });
 
-  testWidgets('each status plays its clip, at 64 px up to 64 dp', (
+  testWidgets('each status shows its still, at 64 px up to 64 dp', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -60,9 +82,10 @@ void main() {
         const AgentAvatar(name: 'Bob', status: AgentStatus.working, size: 40),
       ),
     );
+    await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_anim/bob/working-head-64.webp',
+      'assets/agents_v3/agents/bob-working-64.webp',
     );
 
     await tester.pumpWidget(
@@ -70,9 +93,10 @@ void main() {
         const AgentAvatar(name: 'Bob', status: AgentStatus.blocked, size: 68),
       ),
     );
+    await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_anim/bob/error-head-128.webp',
+      'assets/agents_v3/agents/bob-error-128.webp',
     );
 
     await tester.pumpWidget(
@@ -80,9 +104,10 @@ void main() {
         const AgentAvatar(name: 'Bob', status: AgentStatus.done, size: 64),
       ),
     );
+    await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_anim/bob/done-head-64.webp',
+      'assets/agents_v3/agents/bob-done-64.webp',
     );
   });
 
@@ -97,58 +122,92 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_anim/alfred/thinking-head-64.webp',
+      'assets/agents_v3/agents/alfred-thinking-64.webp',
+    );
+
+    await tester.pumpWidget(
+      subject(
+        const AgentAvatar(name: 'Alfred', look: AgentLook.look, size: 68),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      assetOf(tester).assetName,
+      'assets/agents_v3/agents/alfred-neutral-128.webp',
     );
 
     await tester.pumpWidget(
       subject(const AgentAvatar(name: 'Alfred', size: 68)),
     );
+    await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_anim/alfred/idle-head-128.webp',
+      'assets/agents_v3/agents/alfred-neutral-128.webp',
     );
   });
 
-  testWidgets(
-    'the welcome glance plays look every 20 s, then returns to idle',
-    (tester) async {
-      await tester.pumpWidget(
-        subject(const AgentAvatar(name: 'Alfred', size: 68, glance: true)),
-      );
-      expect(
-        assetOf(tester).assetName,
-        'assets/agents_anim/alfred/idle-head-128.webp',
-      );
+  testWidgets('a status change fades to the new still in about 150 ms', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      subject(
+        const AgentAvatar(name: 'Bob', status: AgentStatus.idle, size: 68),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      subject(
+        const AgentAvatar(name: 'Bob', status: AgentStatus.working, size: 68),
+      ),
+    );
+    // Halfway through the fade both stills are in the tree.
+    await tester.pump(const Duration(milliseconds: 75));
+    final names = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => (image.image as AssetImage).assetName);
+    expect(names, contains('assets/agents_v3/agents/bob-working-128.webp'));
+    expect(names, contains('assets/agents_v3/agents/bob-neutral-128.webp'));
 
-      await tester.pump(const Duration(seconds: 20));
-      expect(
-        assetOf(tester).assetName,
-        'assets/agents_anim/alfred/look-head-128.webp',
-      );
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(
+      tester.widgetList<Image>(find.byType(Image)).length,
+      1,
+      reason: 'the old still leaves once the fade ends',
+    );
+  });
 
-      await tester.pump(const Duration(seconds: 3));
-      expect(
-        assetOf(tester).assetName,
-        'assets/agents_anim/alfred/idle-head-128.webp',
-      );
-
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
-
-  testWidgets('reduce motion shows the static still', (tester) async {
+  testWidgets('reduce motion shows the new still at once, without a fade', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      subject(
+        const AgentAvatar(name: 'Bob', status: AgentStatus.idle, size: 68),
+        reduceMotion: true,
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.pumpWidget(
       subject(
         const AgentAvatar(name: 'Bob', status: AgentStatus.working, size: 68),
         reduceMotion: true,
       ),
     );
-    expect(assetOf(tester).assetName, 'assets/agents/bob-working-128.png');
+    await tester.pumpAndSettle();
+    expect(
+      tester.widgetList<Image>(find.byType(Image)).length,
+      1,
+      reason: 'no crossfade: only the new still is in the tree',
+    );
+    expect(
+      assetOf(tester).assetName,
+      'assets/agents_v3/agents/bob-working-128.webp',
+    );
   });
 
-  testWidgets('animated: false shows the static still', (tester) async {
+  testWidgets('animated: false shows the still without a fade', (tester) async {
     await tester.pumpWidget(
       subject(
         const AgentAvatar(
@@ -159,32 +218,32 @@ void main() {
         ),
       ),
     );
-    expect(assetOf(tester).assetName, 'assets/agents/bob-neutral-64.png');
+    await tester.pumpAndSettle();
+    expect(
+      assetOf(tester).assetName,
+      'assets/agents_v3/agents/bob-neutral-64.webp',
+    );
   });
 
-  testWidgets('a missing clip falls back to the still without an error', (
+  testWidgets('a missing still falls back to the initial without an error', (
     tester,
   ) async {
     await tester.pumpWidget(
       DefaultAssetBundle(
-        bundle: _NoClipBundle(),
+        bundle: _NoStillBundle(),
         child: subject(
           const AgentAvatar(name: 'Bob', status: AgentStatus.done, size: 68),
         ),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 200)),
     );
     await tester.pump();
 
-    // The failed WebP keeps its Image in the tree and paints the still inside
-    // it, so both images are listed; the still is the one that is drawn.
     expect(tester.takeException(), isNull);
-    final names = tester
-        .widgetList<Image>(find.byType(Image))
-        .map((image) => (image.image as AssetImage).assetName);
-    expect(names, contains('assets/agents/bob-done-128.png'));
+    expect(find.text('B'), findsOneWidget);
   });
 
   testWidgets('an agent without a render falls back to its initial', (
@@ -195,59 +254,68 @@ void main() {
         const AgentAvatar(name: 'Zoe', status: AgentStatus.blocked, size: 32),
       ),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('Z'), findsOneWidget);
     expect(find.byType(Image), findsNothing);
   });
 
-  testWidgets(
-    'Ernesto plays his clip and shows his still under reduce motion',
-    (tester) async {
-      await tester.pumpWidget(
-        subject(
-          const AgentAvatar(
-            name: 'Ernesto',
-            status: AgentStatus.working,
-            size: 40,
-          ),
+  testWidgets('Ernesto shows his still at both sizes', (tester) async {
+    await tester.pumpWidget(
+      subject(
+        const AgentAvatar(
+          name: 'Ernesto',
+          status: AgentStatus.working,
+          size: 40,
         ),
-      );
-      expect(
-        assetOf(tester).assetName,
-        'assets/agents_anim/ernesto/working-head-64.webp',
-      );
-
-      await tester.pumpWidget(
-        subject(
-          const AgentAvatar(
-            name: 'Ernesto',
-            status: AgentStatus.working,
-            size: 68,
-          ),
-          reduceMotion: true,
-        ),
-      );
-      expect(
-        assetOf(tester).assetName,
-        'assets/agents/ernesto-working-128.png',
-      );
-    },
-  );
-
-  test('Ernesto\'s initial reaches 4.5:1 on his accent disc', () {
-    final profile = agentProfileFor('Ernesto')!;
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(
-      contrastRatio(profile.foreground, profile.background),
-      greaterThanOrEqualTo(4.5),
+      assetOf(tester).assetName,
+      'assets/agents_v3/agents/ernesto-working-64.webp',
+    );
+
+    await tester.pumpWidget(
+      subject(
+        const AgentAvatar(
+          name: 'Ernesto',
+          status: AgentStatus.working,
+          size: 68,
+        ),
+        reduceMotion: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      assetOf(tester).assetName,
+      'assets/agents_v3/agents/ernesto-working-128.webp',
     );
   });
 
-  testWidgets('every clip of a rendered agent is bundled', (tester) async {
+  test('every initial reaches 4.5:1 on its accent disc', () {
+    for (final id in _ids) {
+      final profile = agentProfileById(id)!;
+      expect(
+        contrastRatio(agentInitialInk, profile.background),
+        greaterThanOrEqualTo(4.5),
+        reason: profile.id,
+      );
+    }
+  });
+
+  testWidgets('every still of every agent is bundled', (tester) async {
     await tester.runAsync(() async {
-      for (final id in ['bob', 'ernesto']) {
-        for (final look in AgentLook.values) {
+      for (final id in _ids) {
+        for (final state in [
+          'neutral',
+          'thinking',
+          'working',
+          'done',
+          'error',
+        ]) {
           for (final size in ['64', '128']) {
-            final key = 'assets/agents_anim/$id/${look.name}-head-$size.webp';
+            final key = 'assets/agents_v3/agents/$id-$state-$size.webp';
             final data = await rootBundle.load(key);
             expect(data.lengthInBytes, greaterThan(0), reason: key);
           }
@@ -256,15 +324,15 @@ void main() {
     });
   });
 
-  testWidgets('the animated head decodes to more than one frame', (
-    tester,
-  ) async {
+  testWidgets('a still decodes to its size', (tester) async {
     await tester.runAsync(() async {
       final data = await rootBundle.load(
-        'assets/agents_anim/bob/working-head-128.webp',
+        'assets/agents_v3/agents/bob-working-128.webp',
       );
       final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-      expect(codec.frameCount, greaterThan(1));
+      final frame = await codec.getNextFrame();
+      expect(frame.image.width, 128);
+      frame.image.dispose();
       codec.dispose();
     });
   });

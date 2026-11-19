@@ -77,7 +77,7 @@ class ChatHeader extends StatelessWidget {
     this.connectionFailure,
     this.approvalsPending = 0,
     this.onApprovals,
-    this.thinking = false,
+    this.look,
     this.announce,
   });
 
@@ -95,9 +95,9 @@ class ChatHeader extends StatelessWidget {
   final VoidCallback? onApprovals;
   final AlertsApi alertRules;
 
-  /// True while a turn of this conversation is queued or running; his head shows
-  /// `thinking`.
-  final bool thinking;
+  /// Alfred's face for the open turn: `thinking` while he waits or answers,
+  /// `working` while he runs a step, `error` when it failed; null is the plain face.
+  final AgentLook? look;
 
   @override
   Widget build(BuildContext context) {
@@ -121,11 +121,7 @@ class ChatHeader extends StatelessWidget {
             ),
             color: c.textSecondary,
           ),
-          AgentAvatar(
-            name: name,
-            size: 32,
-            look: thinking ? AgentLook.thinking : null,
-          ),
+          AgentAvatar(name: name, size: 32, look: look),
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Column(

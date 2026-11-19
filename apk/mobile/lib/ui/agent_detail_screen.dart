@@ -13,9 +13,10 @@ import '../core/state/live_triage.dart';
 import 'new_conversation_screen.dart';
 import 'restore/restore_screen.dart';
 import 'theme.dart';
+import 'widgets/agent_avatar.dart';
 import 'widgets/agent_composer.dart';
+import 'widgets/agent_portrait_card.dart';
 import 'widgets/surface_card.dart';
-import 'widgets/status_dot.dart';
 
 part 'agent_detail_view.dart';
 

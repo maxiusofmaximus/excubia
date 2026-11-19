@@ -219,7 +219,7 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     AgentStatus.working => 'trabajando',
     AgentStatus.done => 'terminado',
     AgentStatus.idle => 'inactivo',
-    AgentStatus.unknown => 'desconocido',
+    AgentStatus.unknown => 'Sin actividad reciente',
   };
 
   @override

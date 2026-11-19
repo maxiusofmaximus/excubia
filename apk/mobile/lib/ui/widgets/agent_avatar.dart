@@ -1,19 +1,15 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:excubia/src/rust/api/state.dart';
 
 import '../theme.dart';
 
-/// The clips an avatar plays. The body stays still in every clip and only the
-/// head acts. `idle`, `working`, `done` and `error` follow an agent's status;
-/// `thinking` is Alfred waiting for a reply and `look` is his occasional glance
-/// on the welcome screen.
+/// The looks an avatar shows. v3 has one still per status, so `idle` and `look`
+/// both show the neutral face; `thinking` is Alfred waiting for a reply.
 enum AgentLook { idle, look, thinking, working, done, error }
 
-/// Name and accent colours of a rendered agent. `background` is the light
-/// disc from `avatars/assets/agents/agents.json`; `foreground` is its dark
-/// pair, used for the fallback initial.
+/// Name and colours of a rendered agent, copied from the v3 manifest. The
+/// `background` is the accent that the render's panel is painted in; the
+/// `foreground` is its deep tone from the same manifest.
 @immutable
 class AgentProfile {
   const AgentProfile({
@@ -27,50 +23,54 @@ class AgentProfile {
   final Color foreground;
 }
 
+/// The ink of an initial drawn over an accent disc: the night colour of the
+/// design. The deep tone misses 4.5:1 on the lighter accents (Ernesto 3.2:1).
+const Color agentInitialInk = Color(0xFF0B1120);
+
 const List<AgentProfile> _agentProfiles = [
   AgentProfile(
     id: 'alfred',
-    background: Color(0xFFF7D27A),
+    background: Color(0xFFF2A93B),
     foreground: Color(0xFFB7791F),
   ),
   AgentProfile(
     id: 'bob',
-    background: Color(0xFF9EE6D4),
+    background: Color(0xFF3CC9A8),
     foreground: Color(0xFF0F7F6C),
   ),
   AgentProfile(
     id: 'nicole',
-    background: Color(0xFFCDB9FF),
+    background: Color(0xFF9B7BFF),
     foreground: Color(0xFF6D3FD1),
   ),
   AgentProfile(
     id: 'ines',
-    background: Color(0xFFFFB3A8),
+    background: Color(0xFFFF7A6B),
     foreground: Color(0xFFC2413A),
   ),
   AgentProfile(
     id: 'hugo',
-    background: Color(0xFFA9CBFF),
+    background: Color(0xFF5B9BFF),
     foreground: Color(0xFF1E5DB3),
   ),
   AgentProfile(
     id: 'sami',
-    background: Color(0xFFCDEB9A),
+    background: Color(0xFF9BD34A),
     foreground: Color(0xFF4D7F12),
   ),
   AgentProfile(
     id: 'dani',
-    background: Color(0xFFFFB9DA),
+    background: Color(0xFFFF6FAE),
     foreground: Color(0xFFB0286A),
   ),
   AgentProfile(
     id: 'conan',
-    background: Color(0xFFC9D2DE),
+    background: Color(0xFF8FA3BD),
     foreground: Color(0xFF334155),
   ),
   AgentProfile(
     id: 'ernesto',
-    background: Color(0xFFE7C9A8),
+    background: Color(0xFFE09A5F),
     foreground: Color(0xFF8A3E1F),
   ),
 ];
@@ -105,17 +105,17 @@ AgentLook agentLookFor(AgentStatus status) => switch (status) {
 /// Sizes up to 64 dp load the 64 px render, larger ones the 128 px render.
 String _renderSize(double size) => size <= 64 ? '64' : '128';
 
-/// The still for [look] at [size]. Clips without a still of their own (idle,
-/// look, thinking) use the neutral one, which is what every agent showed before
-/// the animations existed.
+/// The still for [look] at [size]. Each look has its own still, except `idle`
+/// and `look`, which both show the neutral one.
 String _stillAsset(AgentProfile profile, AgentLook look, double size) {
-  final name = switch (look) {
+  final state = switch (look) {
     AgentLook.working => 'working',
     AgentLook.done => 'done',
     AgentLook.error => 'error',
-    AgentLook.idle || AgentLook.look || AgentLook.thinking => 'neutral',
+    AgentLook.thinking => 'thinking',
+    AgentLook.idle || AgentLook.look => 'neutral',
   };
-  return 'assets/agents/${profile.id}-$name-${_renderSize(size)}.png';
+  return 'assets/agents_v3/agents/${profile.id}-$state-${_renderSize(size)}.webp';
 }
 
 /// One head image. A file that cannot be decoded shows [onError] instead.
@@ -128,15 +128,8 @@ Image _head(String asset, Widget onError) => Image.asset(
   errorBuilder: (_, _, _) => onError,
 );
 
-/// The animated head for [look] at [size], one WebP per character and clip.
-String _clipAsset(AgentProfile profile, AgentLook look, double size) =>
-    'assets/agents_anim/${profile.id}/${look.name}-head-${_renderSize(size)}.webp';
-
-/// How long Alfred's glance lasts. One pass of the `look` clip is about 3 s.
-const _glanceLength = Duration(seconds: 3);
-
-/// How often Alfred's welcome screen glances.
-const _glanceInterval = Duration(seconds: 20);
+/// How long a head takes to change from one state to the next.
+const _fade = Duration(milliseconds: 150);
 
 /// The name a row should show for a live agent: the seat label in the middle
 /// of the pane title ("desconocido · Ana · especialista"), else the CLI id.
@@ -173,9 +166,10 @@ String capitalized(String text) => text[0].toUpperCase() + text.substring(1);
 /// The face comes from [characterId] when it is given, so a renamed hire keeps
 /// it; without one the visible [name] is matched, as before.
 ///
-/// The head animates unless [animated] is off or the system asks to reduce
-/// motion; then, or when a clip is missing, the still is shown instead.
-class AgentAvatar extends StatefulWidget {
+/// The face changes with the status through a short fade. The fade is off when
+/// [animated] is off or the system asks to reduce motion; then the new still
+/// simply appears. A still that is missing shows the initial.
+class AgentAvatar extends StatelessWidget {
   const AgentAvatar({
     super.key,
     required this.name,
@@ -197,18 +191,17 @@ class AgentAvatar extends StatefulWidget {
   final String? characterId;
   final AgentStatus status;
 
-  /// Plays this clip whatever [status] says, e.g. Alfred's `thinking` while
+  /// Shows this look whatever [status] says, e.g. Alfred's `thinking` while
   /// his reply is pending.
   final AgentLook? look;
   final double size;
   final bool ringed;
 
-  /// Turns the animation off for this avatar alone.
+  /// Turns the fade off for this avatar alone.
   final bool animated;
 
-  /// Welcome screens only. Read once when the avatar is created: every ~20 s
-  /// the head plays one `look` and goes back to idle. Ignored while [look] is
-  /// set.
+  /// Kept so the welcome screens compile unchanged. The v3 stills have no
+  /// glance, so this does nothing.
   final bool glance;
 
   /// Without a [characterId], match the face by [name] (the agents list). A
@@ -216,68 +209,29 @@ class AgentAvatar extends StatefulWidget {
   final bool faceFromName;
 
   @override
-  State<AgentAvatar> createState() => _AgentAvatarState();
-}
-
-class _AgentAvatarState extends State<AgentAvatar> {
-  Timer? _glanceTimer;
-  Timer? _glanceEndTimer;
-  bool _glancing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.glance) {
-      _glanceTimer = Timer.periodic(_glanceInterval, (_) => _startGlance());
-    }
-  }
-
-  @override
-  void dispose() {
-    _glanceTimer?.cancel();
-    _glanceEndTimer?.cancel();
-    super.dispose();
-  }
-
-  /// The head may move: the avatar is animated and the system has not asked to
-  /// reduce motion.
-  bool get _motion =>
-      widget.animated && !MediaQuery.disableAnimationsOf(context);
-
-  void _startGlance() {
-    if (!mounted || !_motion) return;
-    setState(() => _glancing = true);
-    _glanceEndTimer = Timer(_glanceLength, () {
-      if (mounted) setState(() => _glancing = false);
-    });
-  }
-
-  AgentLook _lookFor() {
-    final forced = widget.look;
-    if (forced != null) return forced;
-    if (_glancing && _motion) return AgentLook.look;
-    return agentLookFor(widget.status);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final size = widget.size;
-    final id = widget.characterId;
+    final id = characterId;
     final profile = id != null
         ? agentProfileById(id)
-        : widget.faceFromName
-        ? agentProfileFor(widget.name)
+        : faceFromName
+        ? agentProfileFor(name)
         : null;
-    final look = _lookFor();
+    final motion = animated && !MediaQuery.disableAnimationsOf(context);
     final fallback = _Initial(
-      initial: _initial(widget.name),
-      color: profile?.foreground ?? context.colors.accentText,
+      initial: _initial(name),
+      color: profile == null ? context.colors.accentText : agentInitialInk,
       fontSize: size * 0.44,
     );
     Widget art = fallback;
     if (profile != null) {
-      final still = _head(_stillAsset(profile, look, size), fallback);
-      art = _motion ? _head(_clipAsset(profile, look, size), still) : still;
+      final asset = _stillAsset(profile, look ?? agentLookFor(status), size);
+      art = AnimatedSwitcher(
+        duration: motion ? _fade : Duration.zero,
+        child: KeyedSubtree(
+          key: ValueKey(asset),
+          child: _head(asset, fallback),
+        ),
+      );
     }
     final disc = ClipOval(
       child: ColoredBox(
@@ -287,11 +241,11 @@ class _AgentAvatarState extends State<AgentAvatar> {
     );
     return Semantics(
       image: true,
-      label: widget.name,
+      label: name,
       excludeSemantics: true,
       child: SizedBox.square(
         dimension: size,
-        child: widget.ringed
+        child: ringed
             ? DecoratedBox(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,

@@ -19,6 +19,7 @@ import '../mail/mail_settings_screen.dart';
 import '../team/hires_section.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import '../widgets/agent_portrait_card.dart';
 import '../widgets/time_label.dart';
 import 'approval_entry.dart';
 import 'approval_inbox.dart';
@@ -320,6 +321,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final c = context.colors;
     final step = _chat.turnProgress;
     final stepLine = step == null ? null : '${_chat.alfredName} · $step';
+    // The head's face follows the open turn: waiting, running a step, failed, or plain.
+    final look = _chat.turnInFlight
+        ? (step == null ? AgentLook.thinking : AgentLook.working)
+        : _chat.turnFailed
+        ? AgentLook.error
+        : AgentLook.idle;
     return Scaffold(
       key: _scaffold,
       backgroundColor: c.bg,
@@ -347,7 +354,7 @@ class _ChatScreenState extends State<ChatScreen> {
               unread: _chat.unreadMessages,
               onHistory: _openHistory,
               onNewChat: _newChat,
-              thinking: _chat.turnInFlight,
+              look: look,
               approvalsPending: _chat.approvals?.userPending().length ?? 0,
               onApprovals: _chat.approvals == null ? null : _openApprovals,
               alertRules: _chat.alertRules,

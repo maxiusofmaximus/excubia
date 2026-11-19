@@ -36,6 +36,9 @@ class SummaryHost implements ChatTransport {
       if (error != null) throw error!;
       return jsonEncode({'ok': true, 'members': members});
     }
+    if (target == '/v1/plans') {
+      return jsonEncode({'ok': true, 'plans': <Object>[]});
+    }
     return team.call(method, target, body);
   }
 
@@ -94,6 +97,7 @@ Future<SectionScreen> pumpSection(
     interval: const Duration(minutes: 1),
   );
   addTearDown(plans.dispose);
+  await plans.read(); // the Equipo screen reads the plans too
   addTearDown(hires.dispose);
   tester.view.physicalSize = Size(width * 3, 2400 * 3);
   tester.view.devicePixelRatio = 3;
@@ -230,6 +234,20 @@ void main() {
         findsOneWidget,
       );
       expect(find.widgetWithText(TextButton, 'Contratar'), findsOneWidget);
+    });
+
+    testWidgets('with people contracted, an empty summary is not "nobody hired"', (
+      tester,
+    ) async {
+      await pumpSection(tester, team: FakeTeamHost(hires: [bobHire()]));
+
+      expect(find.text('Todavía no tienes a nadie contratado.'), findsNothing);
+      expect(find.text('Tu equipo no tiene trabajo en curso'), findsOneWidget);
+      expect(
+        find.text('Pídele algo a Alfred o abre la ficha de alguien'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(TextButton, 'Contratar'), findsNothing);
     });
 
     testWidgets('an empty team without can_hire offers nothing', (

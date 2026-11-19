@@ -1,9 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:excubia/core/api/host_client.dart';
 import 'package:excubia/core/state/hires_controller.dart';
 import 'package:excubia/src/rust/api/onboarding/model.dart';
 import 'package:excubia/src/rust/frb_generated.dart';
 
 import 'support/fake_team_host.dart';
+
+/// The catalogue reads; the list of hires never answers.
+class _HiresUnreachable extends FakeTeamHost {
+  @override
+  Future<String> call(
+    String method,
+    String target, [
+    List<int> body = const [],
+  ]) async {
+    if (target.split('?').first == '/v1/hires') {
+      throw const HostError(0, 'sin red');
+    }
+    return super.call(method, target, body);
+  }
+}
 
 void main() {
   setUpAll(RustLib.init);
@@ -49,6 +65,29 @@ void main() {
         host.calls.where((route) => route == 'GET /v1/roles'),
         hasLength(1),
       );
+    });
+
+    test('loaded turns on with the first read and stays on', () async {
+      final host = FakeTeamHost(hires: [bobHire()]);
+      final hires = HiresController(transport: host);
+      expect(hires.loaded, isFalse);
+
+      await hires.load();
+      expect(hires.loaded, isTrue);
+
+      host.networkDown = true;
+      await hires.refresh();
+      expect(hires.loaded, isTrue);
+    });
+
+    test('a failed read of the hires still counts as loaded, with its message', () async {
+      final hires = HiresController(transport: _HiresUnreachable());
+
+      await hires.load();
+
+      expect(hires.loaded, isTrue);
+      expect(hires.hires, isEmpty);
+      expect(hires.failure, isNotNull);
     });
 
     test(

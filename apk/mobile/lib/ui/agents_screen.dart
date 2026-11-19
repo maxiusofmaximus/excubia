@@ -7,6 +7,8 @@ import 'package:excubia/src/rust/api/workspace.dart';
 
 import '../core/api/connection_failure.dart';
 import '../core/api/connection_text.dart';
+import '../core/api/plans_api.dart';
+import '../core/api/team_summary_api.dart';
 import '../core/model/connection_state.dart';
 import '../core/state/chat_controller.dart';
 import '../core/state/hires_controller.dart';
@@ -19,7 +21,10 @@ import 'agent_detail_screen.dart';
 import 'new_conversation_screen.dart';
 import 'plans/plans_section.dart';
 import 'schedules/schedules_section.dart';
+import 'team/hire_actions.dart';
 import 'team/hires_section.dart';
+import 'team/team_panel_parts.dart';
+import 'team/team_portrait_row.dart';
 import 'team/team_summary_section.dart';
 import 'team_projects.dart';
 import 'theme.dart';
@@ -46,6 +51,7 @@ class AgentsScreen extends StatefulWidget {
     required this.plans,
     required this.schedules,
     required this.onUnpaired,
+    this.onOpenChat,
   });
 
   final LiveTriage triage;
@@ -56,6 +62,9 @@ class AgentsScreen extends StatefulWidget {
   final PlansController plans;
   final SchedulesController schedules;
   final Future<void> Function() onUnpaired;
+
+  /// Opens the Chat tab; the empty team's way out when nobody can be contracted here.
+  final VoidCallback? onOpenChat;
 
   @override
   State<AgentsScreen> createState() => _AgentsScreenState();
@@ -79,6 +88,9 @@ class _AgentsScreenState extends State<AgentsScreen>
     _triage.addListener(_onChanged);
     _chat.addListener(_onChanged);
     _hires.addListener(_onChanged);
+    // The team's own reads decide the empty state too: a read that lands later must redo it.
+    widget.summary.addListener(_onChanged);
+    widget.plans.addListener(_onChanged);
   }
 
   @override
@@ -89,6 +101,8 @@ class _AgentsScreenState extends State<AgentsScreen>
     _triage.removeListener(_onChanged);
     _chat.removeListener(_onChanged);
     _hires.removeListener(_onChanged);
+    widget.summary.removeListener(_onChanged);
+    widget.plans.removeListener(_onChanged);
     super.dispose();
   }
 
@@ -124,8 +138,10 @@ class _AgentsScreenState extends State<AgentsScreen>
 
   List<AgentEntry> _visibleAgents(StateSnapshot? state) {
     final agents = state?.agents ?? const <AgentEntry>[];
-    final query = _search.text.trim().toLowerCase();
+    final filtering = _filtersShown(agents.length);
+    final query = filtering ? _search.text.trim().toLowerCase() : '';
     return agents.where((agent) {
+      if (!filtering) return true;
       final matchesFilter = switch (_filter) {
         _TeamFilter.all => true,
         _TeamFilter.working => agent.status == AgentStatus.working,
@@ -161,7 +177,9 @@ class _AgentsScreenState extends State<AgentsScreen>
     };
   }
 
-  String _countLabel(int count) => count == 1 ? '1 agente' : '$count agentes';
+  /// The live agents on the PC, not the people contracted; the header says so.
+  String _countLabel(int count) =>
+      count == 1 ? '1 abierto en el PC' : '$count abiertos en el PC';
 
   /// One attempt, started by a tap: the loop is not restarted by a timer.
   Future<void> _reconnect() async {
@@ -214,16 +232,19 @@ class _AgentsScreenState extends State<AgentsScreen>
       return ListView(
         padding: const EdgeInsets.only(bottom: Spacing.xl),
         children: [
-          PlansSection(plans: widget.plans),
-          TeamSummarySection(
-            summary: widget.summary,
-            hires: _hires,
-            recipes: widget.recipes,
-            plans: widget.plans,
-          ),
-          TeamHiresSection(hires: _hires, recipes: widget.recipes),
+          // Offline with nobody on the team: the one empty state stays, the connection is one line.
+          if (connection is Offline && _teamIsEmpty)
+            _OfflineBanner(
+              reason: connection.reason,
+              updatedAt: connection.updatedAt,
+              failure: connection.failure,
+            ),
+          ..._teamHead(),
+          if (!_teamIsEmpty)
+            TeamHiresSection(hires: _hires, recipes: widget.recipes),
+          if (_hires.hires.isNotEmpty) _portraitRow(),
           SchedulesSection(schedules: widget.schedules, oficioOf: _oficioOf),
-          _emptyTeam(connection, state),
+          if (!_teamIsEmpty) _emptyTeam(connection, state),
         ],
       );
     }
@@ -291,15 +312,11 @@ class _AgentsScreenState extends State<AgentsScreen>
     return ListView(
       padding: const EdgeInsets.only(bottom: Spacing.xl),
       children: [
-        PlansSection(plans: widget.plans),
-        TeamSummarySection(
-          summary: widget.summary,
-          hires: _hires,
-          recipes: widget.recipes,
-          plans: widget.plans,
-        ),
-        _header(),
-        TeamHiresSection(hires: _hires, recipes: widget.recipes),
+        ..._teamHead(),
+        if (_filtersShown(state.agents.length)) _header(),
+        if (!_teamIsEmpty)
+          TeamHiresSection(hires: _hires, recipes: widget.recipes),
+        if (_hires.hires.isNotEmpty) _portraitRow(),
         ...rows,
         SchedulesSection(schedules: widget.schedules, oficioOf: _oficioOf),
       ],
@@ -308,6 +325,103 @@ class _AgentsScreenState extends State<AgentsScreen>
 
   /// The name of an oficio for «Automatizar»; a role no longer in the catalog keeps a plain word.
   String _oficioOf(String roleId) => _hires.roleById(roleId)?.title ?? 'Oficio';
+
+  /// Nobody contracted, nobody on the summary, no plan: nothing to list. It is said only once
+  /// every read has answered or failed, so «vacío» never shows before the host has spoken.
+  bool get _teamIsEmpty =>
+      _hiresAnswered &&
+      _hires.hires.isEmpty &&
+      _summaryAnswered &&
+      widget.summary.members.isEmpty &&
+      _plansAnswered &&
+      widget.plans.plans.isEmpty;
+
+  bool get _hiresAnswered => _hires.loaded || _hires.failure != null;
+  bool get _summaryAnswered =>
+      widget.summary.loaded || widget.summary.error != null;
+  bool get _plansAnswered => widget.plans.loaded || widget.plans.error != null;
+
+  /// The search and the filter chips. With nobody on the team and at most two open agents
+  /// there is nothing to filter, so they stay away.
+  bool _filtersShown(int openAgents) => !_teamIsEmpty || openAgents > 2;
+
+  /// Plans and «Tu equipo»; with nobody on either, one invitation instead of the empty sections.
+  List<Widget> _teamHead() {
+    // Until the contracted people are read, nobody is known: no empty state, no jump.
+    if (!_hiresAnswered) {
+      return const [TeamLoadingBlock(label: 'Cargando tu equipo')];
+    }
+    if (_teamIsEmpty) {
+      final notice = _teamNotice();
+      return [
+        ?notice,
+        EmptyState(
+          icon: Icons.groups_outlined,
+          title: 'Tu equipo está vacío',
+          detail: 'Pídele a Alfred que arme uno',
+          // Without APPROVE the host refuses hires: the phone offers the chat instead.
+          actionLabel: _hires.canHire ? 'Contratar' : 'Hablar con Alfred',
+          onAction: _hires.canHire
+              ? (_hires.busy ? null : () => openHireCatalog(context, _hires))
+              : widget.onOpenChat,
+        ),
+      ];
+    }
+    return [
+      PlansSection(plans: widget.plans),
+      TeamSummarySection(
+        summary: widget.summary,
+        hires: _hires,
+        recipes: widget.recipes,
+        plans: widget.plans,
+      ),
+    ];
+  }
+
+  /// The one small notice over the empty state: the first read that failed or was refused.
+  Widget? _teamNotice() {
+    final hiresFailure = _hires.failure;
+    if (hiresFailure != null) {
+      return TeamNoticeBox(
+        text: hiresFailure.message,
+        onRetry: _hires.busy ? null : () => _hires.load(),
+      );
+    }
+    final summaryError = widget.summary.error;
+    if (summaryError != null) {
+      return TeamNoticeBox(
+        text: teamSummaryFailureText(summaryError),
+        onRetry: teamSummaryWaitingText(summaryError) == null
+            ? () => widget.summary.refresh()
+            : null,
+      );
+    }
+    final planError = widget.plans.error;
+    if (planError != null) {
+      return TeamNoticeBox(
+        text: planReadFailureText(planError),
+        onRetry: planReadWaitingText(planError) == null
+            ? () => widget.plans.refresh()
+            : null,
+      );
+    }
+    if (widget.plans.denied) {
+      return const TeamNoticeBox(text: planPermissionText);
+    }
+    return null;
+  }
+
+  /// The contracted people as portraits; a tap opens that person's sheet.
+  Widget _portraitRow() => TeamPortraitRow(
+    hires: _hires.hires,
+    onOpen: (hire) => showHireActions(
+      context,
+      _hires,
+      hire,
+      widget.recipes,
+      onHire: hireCatalogAction(context, _hires),
+    ),
+  );
 
   /// Nobody is listed. With people hired, "nobody is running" is the true state.
   /// Offline keeps the retry panel; online says it lightly, because «Contratar»

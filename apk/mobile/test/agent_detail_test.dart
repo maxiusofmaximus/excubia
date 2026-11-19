@@ -86,6 +86,13 @@ void main() {
   ) async {
     await pumpDetail(tester, triageWith(AgentStatus.blocked));
 
+    // The portrait card sits above the actions, so stop is below the fold.
+    await tester.dragUntilVisible(
+      find.text('Detener agente'),
+      find.byType(ListView),
+      const Offset(0, -150),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Detener agente'));
     await tester.pumpAndSettle();
 
@@ -120,6 +127,11 @@ void main() {
 
     expect(find.textContaining('El agente terminó'), findsWidgets);
     expect(find.text('Detener agente'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('Nueva conversación aquí'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Nueva conversación aquí'), findsOneWidget);
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.enabled, isFalse);

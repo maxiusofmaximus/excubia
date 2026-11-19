@@ -77,6 +77,7 @@ class _MessageBubble extends StatelessWidget {
     required this.onSuggestion,
     required this.onReply,
     required this.onOpenQuote,
+    this.characterId,
     this.turnStep,
     this.attachments,
     this.images,
@@ -88,6 +89,9 @@ class _MessageBubble extends StatelessWidget {
   final bool mine;
   final String author;
   final String agentName;
+
+  /// The face beside the author's name; null shows the name alone.
+  final String? characterId;
   final ValueChanged<ChatEntry> onRetrySend;
   final bool latestOwn;
   final String? runningAgent;
@@ -212,11 +216,29 @@ class _MessageBubble extends StatelessWidget {
                 ? CrossAxisAlignment.end
                 : CrossAxisAlignment.start,
             children: [
-              Text(
-                author,
-                style: context.text.label.copyWith(
-                  color: mine ? c.textSecondary : c.accentText,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (characterId case final id?) ...[
+                    ExcludeSemantics(
+                      child: AgentAvatar(
+                        name: author,
+                        characterId: id,
+                        size: 24,
+                        animated: false,
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.xs),
+                  ],
+                  Flexible(
+                    child: Text(
+                      author,
+                      style: context.text.label.copyWith(
+                        color: mine ? c.textSecondary : c.accentText,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 2),
               if (quote != null) ...[

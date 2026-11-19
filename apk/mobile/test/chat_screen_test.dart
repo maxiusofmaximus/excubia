@@ -11,10 +11,13 @@ import 'package:excubia/src/rust/api/error.dart' show FailureKind;
 import 'package:excubia/src/rust/api/error/chat.dart';
 import 'package:excubia/src/rust/frb_generated.dart';
 import 'package:excubia/ui/chat/chat_bubbles.dart';
+import 'package:excubia/ui/chat/chat_composer.dart';
 import 'package:excubia/ui/chat/chat_conversation_view.dart';
 import 'package:excubia/ui/chat/chat_screen.dart';
 import 'package:excubia/ui/chat/history_drawer.dart';
 import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/agent_avatar.dart';
+import 'package:excubia/ui/widgets/agent_portrait_card.dart';
 import 'package:excubia/ui/widgets/surface_card.dart';
 
 import 'support/chat_fixtures.dart';
@@ -178,6 +181,12 @@ void main() {
     await hires.load();
     await pumpChat(tester, routes: emptyRoutes(), hires: hires);
 
+    // Alfred's portrait takes the top of the welcome; the strip is further down.
+    await tester.scrollUntilVisible(
+      find.text('1 en el equipo · 0 activos'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('1 en el equipo · 0 activos'), findsOneWidget);
     expect(find.text('Sin agentes'), findsNothing);
   });
@@ -782,4 +791,237 @@ void main() {
       'Alfred: listo',
     );
   });
+
+  group('Alfred’s face in the chat', () {
+    testWidgets(
+      'on a short phone the whole portrait shows under the header, centred with its name',
+      (tester) async {
+        _screen(tester, const Size(360, 640));
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        final card = find.byType(AgentPortraitCard);
+        final view = tester.getRect(find.byType(SingleChildScrollView).first);
+        final portrait = tester.getRect(card);
+        expect(tester.getSize(card).width, 110);
+        expect(portrait.top, greaterThanOrEqualTo(view.top + Spacing.sm));
+        expect(portrait.bottom, lessThanOrEqualTo(view.bottom));
+        final axis = tester.getCenter(card).dx;
+        expect(
+          tester
+              .getCenter(
+                find.descendant(of: card, matching: find.text('Alfred')),
+              )
+              .dx,
+          closeTo(axis, 1),
+        );
+        expect(
+          tester.getCenter(find.text('¿Qué movemos hoy?')).dx,
+          closeTo(axis, 1),
+        );
+      },
+    );
+
+    testWidgets('on a tall phone the portrait is the full card, shown whole', (
+      tester,
+    ) async {
+      _screen(tester, const Size(412, 915));
+      await pumpChat(tester, routes: emptyConversationRoutes());
+
+      final card = find.byType(AgentPortraitCard);
+      final view = tester.getRect(find.byType(SingleChildScrollView).first);
+      expect(tester.getSize(card).width, 150);
+      expect(
+        tester.getRect(card).top,
+        greaterThanOrEqualTo(view.top + Spacing.sm),
+      );
+      expect(tester.getRect(card).bottom, lessThanOrEqualTo(view.bottom));
+    });
+
+    testWidgets('on a short phone the three starter chips are reachable', (
+      tester,
+    ) async {
+      _screen(tester, const Size(360, 640));
+      await pumpChat(tester, routes: emptyConversationRoutes());
+
+      final view = find.byType(SingleChildScrollView).first;
+      for (final text in const [
+        'Cuéntame a qué te dedicas y armo tu equipo',
+        '¿Qué puedes hacer por mí?',
+        'Apunta una nota para mañana',
+      ]) {
+        await tester.ensureVisible(find.text(text));
+        await tester.pump();
+        expect(
+          tester.getRect(find.text(text)).bottom,
+          lessThanOrEqualTo(tester.getRect(view).bottom),
+          reason: text,
+        );
+      }
+    });
+
+    testWidgets(
+      'on a tall phone the three starter chips show whole, no scroll',
+      (tester) async {
+        _screen(tester, const Size(412, 915));
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        final view = tester.getRect(find.byType(SingleChildScrollView).first);
+        final composer = tester.getRect(find.byType(ChatComposer));
+        final last = tester.getRect(find.text('Apunta una nota para mañana'));
+        expect(
+          last.bottom,
+          lessThanOrEqualTo(view.bottom),
+          reason:
+              'chip bottom ${last.bottom}, view bottom ${view.bottom}, '
+              'composer top ${composer.top}',
+        );
+      },
+    );
+
+    testWidgets(
+      'a new conversation opens with his portrait and the goal line',
+      (tester) async {
+        _screen(tester, const Size(400, 900));
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        expect(find.byType(AgentPortraitCard), findsOneWidget);
+        expect(find.text('¿Qué movemos hoy?'), findsOneWidget);
+        expect(
+          find.text(
+            'Conversación nueva con Alfred. Escribe el primer mensaje.',
+          ),
+          findsNothing,
+        );
+        expect(tester.getSize(find.byType(AgentPortraitCard)).width, 150);
+      },
+    );
+
+    testWidgets(
+      'with the keyboard up the portrait steps aside, the chips stay',
+      (tester) async {
+        _screen(tester, const Size(400, 900), keyboard: 300);
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        expect(find.byType(AgentPortraitCard), findsNothing);
+        expect(find.text('¿Qué movemos hoy?'), findsOneWidget);
+        expect(find.byType(TextField), findsOneWidget);
+      },
+    );
+
+    testWidgets('the portrait comes back when the keyboard closes', (
+      tester,
+    ) async {
+      _screen(tester, const Size(400, 900), keyboard: 300);
+      await pumpChat(tester, routes: emptyConversationRoutes());
+      expect(find.byType(AgentPortraitCard), findsNothing);
+
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(AgentPortraitCard), findsOneWidget);
+    });
+
+    testWidgets('on a short screen the welcome portrait is smaller', (
+      tester,
+    ) async {
+      _screen(tester, const Size(400, 600));
+      await pumpChat(tester, routes: emptyConversationRoutes());
+
+      expect(tester.getSize(find.byType(AgentPortraitCard)).width, 110);
+    });
+
+    testWidgets('Alfred’s reply shows his face beside his name, once', (
+      tester,
+    ) async {
+      await pumpChat(tester, routes: conversationRoutes());
+
+      final faces = find.byWidgetPredicate(
+        (w) => w is AgentAvatar && w.size == 24,
+      );
+      expect(faces, findsOneWidget);
+      expect(tester.widget<AgentAvatar>(faces).characterId, 'alfred');
+    });
+
+    testWidgets('the head shows thinking while his turn waits for a reply', (
+      tester,
+    ) async {
+      await pumpChat(tester, routes: stepRoutes(null));
+
+      expect(_headLook(tester), AgentLook.thinking);
+    });
+
+    testWidgets('the head shows working while he runs a step', (tester) async {
+      await pumpChat(tester, routes: stepRoutes('Redactando la respuesta'));
+
+      expect(_headLook(tester), AgentLook.working);
+    });
+
+    testWidgets('the head shows error once the newest turn failed', (
+      tester,
+    ) async {
+      final routes = conversationRoutes();
+      routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+        {
+          ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+          'turn_state': 'failed',
+        },
+      ]);
+      routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+        userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+      ]);
+      await pumpChat(tester, routes: routes);
+
+      expect(_headLook(tester), AgentLook.error);
+    });
+
+    testWidgets('a finished conversation keeps the plain face', (tester) async {
+      await pumpChat(tester, routes: conversationRoutes());
+
+      expect(_headLook(tester), AgentLook.idle);
+    });
+  });
 }
+
+/// A conversation with no message yet: the welcome is what the timeline shows.
+Map<String, String> emptyConversationRoutes() {
+  final routes = conversationRoutes();
+  routes['/v1/chat/conversations'] = conversationsJson(
+    conversations: [
+      {
+        'id': 'cnv_1',
+        'title': 'Nuevo chat',
+        'pinned': false,
+        'archived': false,
+        'last_seq': 0,
+        'last_read_seq': 0,
+        'unread': 0,
+        'last_message_at': '2026-10-22T10:00:00.000Z',
+        'created_at': '2026-10-22T10:00:00.000Z',
+        'updated_at': '2026-10-22T10:00:00.000Z',
+      },
+    ],
+  );
+  routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([]);
+  routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([]);
+  return routes;
+}
+
+/// The phone-sized surface a test asks for, with the keyboard's inset if given.
+void _screen(WidgetTester tester, Size size, {double keyboard = 0}) {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetViewInsets);
+}
+
+/// The look the head's face shows: the one 32 dp avatar in the chat header.
+AgentLook _headLook(WidgetTester tester) =>
+    tester
+        .widget<AgentAvatar>(
+          find.byWidgetPredicate((w) => w is AgentAvatar && w.size == 32),
+        )
+        .look ??
+    AgentLook.idle;

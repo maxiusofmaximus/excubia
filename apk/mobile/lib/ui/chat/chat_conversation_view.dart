@@ -6,9 +6,85 @@ import 'package:excubia/src/rust/api/error/chat.dart' show offlineChatFailure;
 import '../../core/api/connection_text.dart';
 import '../../core/state/chat_controller.dart';
 import '../theme.dart';
+import '../widgets/agent_portrait_card.dart';
 import '../widgets/time_label.dart';
 import 'approval_card.dart';
 import 'chat_bubbles.dart';
+
+/// The welcome of a new conversation: Alfred's portrait, a line, then the starter
+/// chips. The portrait steps aside while the keyboard is up, so the field and the
+/// chips stay in view, and it is smaller on a short screen.
+class _Welcome extends StatefulWidget {
+  const _Welcome({required this.alfredName, required this.starters});
+
+  final String alfredName;
+  final Widget starters;
+
+  @override
+  State<_Welcome> createState() => _WelcomeState();
+}
+
+/// View.of() does not rebuild when the keyboard opens or closes, so without this
+/// the portrait stayed hidden after the keyboard a new chat opens on its own went away.
+class _WelcomeState extends State<_Welcome> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() => setState(() {});
+
+  String get alfredName => widget.alfredName;
+  Widget get starters => widget.starters;
+
+  @override
+  Widget build(BuildContext context) {
+    // The chat's Scaffold strips the keyboard from MediaQuery, so the view's own inset is read.
+    final keyboardUp = View.of(context).viewInsets.bottom > 0;
+    final height = MediaQuery.sizeOf(context).height;
+    // The card shrinks on short screens, so the portrait, the line and the chips fit one view.
+    final cardWidth = height < 700 ? 110.0 : (height < 760 ? 130.0 : 150.0);
+    // Tighter top and gaps: the third chip must show whole on a 412x915 phone, without scroll.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.md, Spacing.xl, 0),
+      child: Column(
+        children: [
+          if (!keyboardUp) ...[
+            SizedBox(
+              width: cardWidth,
+              child: AgentPortraitCard(
+                id: 'alfred',
+                name: alfredName,
+                centered: true,
+              ),
+            ),
+            const SizedBox(height: Spacing.sm),
+          ],
+          Text(
+            '¿Qué movemos hoy?',
+            style: context.text.headline,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: Spacing.md),
+          starters,
+        ],
+      ),
+    );
+  }
+}
+
+/// Room under the welcome's last chip: the composer's one-line height plus 16 dp,
+/// so the chip scrolls clear of it.
+/// shortcut: fixed estimate; a reply bar or attachment tray is taller, upgrade by measuring the composer.
+const double _welcomeBottomInset = 96;
 
 /// One row per draft: the newest «Revisar borrador» card replaces the older ones
 /// of the same draft; every other row stays as it came.
@@ -109,6 +185,17 @@ class ConversationView extends StatelessWidget {
     final cards =
         approvals?.userPending(conversationId: chat.current?.id) ??
         const <ChatApproval>[];
+    // A new conversation has only its welcome. The welcome has its own scroll view, so the
+    // timeline's jump to the end never cuts the top of the portrait.
+    if (entries.isEmpty && !showFailure && cards.isEmpty) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.only(
+          top: Spacing.sm,
+          bottom: _welcomeBottomInset,
+        ),
+        child: _Welcome(alfredName: chat.alfredName, starters: starters),
+      );
+    }
     return ListView.builder(
       controller: scroll,
       padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.md),
@@ -164,20 +251,7 @@ class ConversationView extends StatelessWidget {
         cursor -= entries.length;
         if (entries.isEmpty) {
           if (cursor == 0) {
-            return Padding(
-              padding: const EdgeInsets.all(Spacing.xl),
-              child: Column(
-                children: [
-                  Text(
-                    'Conversación nueva con ${chat.alfredName}. Escribe el primer mensaje.',
-                    style: context.text.bodySecondary,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: Spacing.lg),
-                  starters,
-                ],
-              ),
-            );
+            return _Welcome(alfredName: chat.alfredName, starters: starters);
           }
           cursor--;
         }

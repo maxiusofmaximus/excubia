@@ -98,10 +98,12 @@ class TeamProjectGroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final lead = group.project.lead;
+    // One agent needs no count; nobody needs none, the line below says so.
     final count = switch (group.seats) {
-      1 => '1 asiento',
-      _ => '${group.seats} asientos',
+      0 || 1 => null,
+      _ => '${group.seats} agentes',
     };
+    final folder = _folderLine(group.project);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Spacing.lg,
@@ -136,10 +138,9 @@ class TeamProjectGroupCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (group.project.rootLabel.isNotEmpty &&
-                            group.project.rootLabel != group.project.name)
+                        if (folder != null)
                           Text(
-                            group.project.rootLabel,
+                            folder,
                             style: context.text.small,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -147,7 +148,7 @@ class TeamProjectGroupCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Text(count, style: context.text.small),
+                  if (count != null) Text(count, style: context.text.small),
                 ],
               ),
             ),
@@ -173,7 +174,7 @@ class TeamProjectGroupCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(Spacing.md),
                 child: Text(
-                  'Sin asientos vivos en este proyecto.',
+                  'Nadie trabajando en este proyecto.',
                   style: context.text.bodySecondary,
                 ),
               ),
@@ -278,6 +279,19 @@ class _MemberRow extends StatelessWidget {
     );
   }
 }
+
+/// The folder name under the project title. Hidden when it says the title again
+/// («Proyecto web» / «proyecto-web») or is a slug («bench-proj»): an id, not a name.
+String? _folderLine(ChatProject project) {
+  final folder = project.rootLabel.trim();
+  if (folder.isEmpty || folder.contains('-') || folder.contains('_')) {
+    return null;
+  }
+  return _words(folder) == _words(project.name) ? null : folder;
+}
+
+String _words(String text) =>
+    text.toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ').trim();
 
 String? _workspaceOf(String? paneId) {
   if (paneId == null) return null;

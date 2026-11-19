@@ -55,22 +55,20 @@ extension _AgentDetailView on _AgentDetailScreenState {
         Spacing.xl,
       ),
       children: [
-        Row(
-          children: [
-            StatusDot(status: agent.status),
-            const SizedBox(width: Spacing.md),
-            Expanded(
-              child: Text(
+        Center(
+          child: SizedBox(
+            width: 240,
+            child: AgentPortraitCard(
+              id: agentProfileFor(agentNameOf(agent))?.id ?? '',
+              name: agentNameOf(agent),
+              tagline: [
                 agent.project,
-                style: context.text.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                context.colors.statusLabel(agent.status),
+              ].where((part) => part.trim().isNotEmpty).join(' · '),
             ),
-          ],
+          ),
         ),
-        const SizedBox(height: Spacing.xs),
-        StatusChip(status: agent.status),
+        const SizedBox(height: Spacing.lg),
         if (agent.restored) ...[
           const SizedBox(height: Spacing.sm),
           Text(

@@ -201,6 +201,10 @@ class ChatController extends ChangeNotifier {
     return (_current?.activeRuns ?? 0) > 0;
   }
 
+  /// The newest own message's turn ended in `failed`; the head shows `error` until
+  /// the next send.
+  bool get turnFailed => latestOwnMessage(entries)?.turnState == 'failed';
+
   /// The step Alfred set on a conversation's open turn, as one plain line.
   String? progressOf(String conversationId) =>
       _reducer.progressOf(conversationId: conversationId);

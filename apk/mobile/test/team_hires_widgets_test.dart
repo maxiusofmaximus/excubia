@@ -8,6 +8,7 @@ import 'package:excubia/ui/team/hire_catalog_screen.dart';
 import 'package:excubia/ui/team/hires_section.dart';
 import 'package:excubia/ui/theme.dart';
 import 'package:excubia/ui/widgets/agent_avatar.dart';
+import 'package:excubia/ui/widgets/grouped_card.dart';
 
 import 'support/fake_team_host.dart';
 
@@ -150,7 +151,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(host.posts, isEmpty);
-      expect(find.text('Bob'), findsOneWidget);
+      // The sheet of Bob shows her name too; the list must still hold her once.
+      expect(
+        find.descendant(
+          of: find.byType(GroupedCard),
+          matching: find.text('Bob'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('confirming dismissal sends it and the list drops the person', (

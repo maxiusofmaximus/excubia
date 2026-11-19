@@ -37,7 +37,102 @@ const project = ChatProject(
   ),
 );
 
+Future<void> pumpCard(
+  WidgetTester tester,
+  ChatProject project,
+  List<AgentEntry> agents,
+) async {
+  final group = groupTeam(projects: [project], agents: agents).projects.single;
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: buildTheme(),
+      home: Scaffold(
+        body: TeamProjectGroupCard(group: group, onOpenAgent: (_) {}),
+      ),
+    ),
+  );
+}
+
 void main() {
+  testWidgets('one agent gets no seat count; two say «2 agentes»', (
+    tester,
+  ) async {
+    await pumpCard(tester, project, [
+      agent(pane: 'w1:p3', project: 'Demo', title: 'Plan'),
+    ]);
+    expect(find.textContaining('asiento'), findsNothing);
+    expect(find.textContaining('agente'), findsNothing);
+
+    await pumpCard(tester, project, [
+      agent(pane: 'w1:p3', project: 'Demo', title: 'Plan'),
+      agent(pane: 'w1:p4', project: 'Demo', title: 'Tests e2e'),
+    ]);
+    expect(find.text('2 agentes'), findsOneWidget);
+    expect(find.textContaining('asiento'), findsNothing);
+  });
+
+  testWidgets('a project with nobody working says so, in plain words', (
+    tester,
+  ) async {
+    await pumpCard(
+      tester,
+      const ChatProject(
+        id: 'prj_2',
+        name: 'Bench',
+        rootLabel: 'bench-proj',
+        status: 'active',
+      ),
+      const [],
+    );
+    expect(find.text('Nadie trabajando en este proyecto.'), findsOneWidget);
+    expect(find.textContaining('asiento'), findsNothing);
+  });
+
+  testWidgets('the folder id is hidden when it is the title or a slug', (
+    tester,
+  ) async {
+    // «demo» is the title again; «bench-proj» is an id, not a name.
+    await pumpCard(tester, project, [
+      agent(pane: 'w1:p3', project: 'Demo', title: 'Plan'),
+    ]);
+    expect(find.text('demo'), findsNothing);
+
+    await pumpCard(
+      tester,
+      const ChatProject(
+        id: 'prj_2',
+        name: 'Bench',
+        rootLabel: 'bench-proj',
+        status: 'active',
+      ),
+      const [],
+    );
+    expect(find.text('bench-proj'), findsNothing);
+  });
+
+  testWidgets('a folder name that reads as a name stays under the title', (
+    tester,
+  ) async {
+    await pumpCard(
+      tester,
+      const ChatProject(
+        id: 'prj_3',
+        name: 'Portafolio',
+        rootLabel: 'Portafolio Pedro',
+        status: 'active',
+      ),
+      const [],
+    );
+    expect(find.text('Portafolio Pedro'), findsOneWidget);
+  });
+
+  test('an agent of unknown status reads «Sin actividad reciente»', () {
+    expect(
+      HerdrColors.noche.statusLabel(AgentStatus.unknown),
+      'Sin actividad reciente',
+    );
+  });
+
   test('agents are grouped by project and leftovers stay visible', () {
     final overview = groupTeam(
       projects: const [project],

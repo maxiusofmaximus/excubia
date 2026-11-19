@@ -8,6 +8,7 @@ import '../../core/state/hires_controller.dart';
 import '../../core/state/recipes_controller.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import '../widgets/agent_portrait_card.dart';
 import 'hire_recipes.dart';
 
 /// The characters a contracted person can wear: the eight with artwork. Alfred
@@ -68,6 +69,15 @@ class _HireActions extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            SizedBox(
+              width: 160,
+              child: AgentPortraitCard(
+                id: hire.avatar ?? '',
+                name: hire.name,
+                tagline: hires.roleById(hire.role)?.title,
+              ),
+            ),
+            const SizedBox(height: Spacing.md),
             ListTile(
               minVerticalPadding: Spacing.md,
               leading: Icon(Icons.edit_outlined, color: c.accentText),

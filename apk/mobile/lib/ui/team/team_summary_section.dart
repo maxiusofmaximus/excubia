@@ -60,8 +60,13 @@ class TeamSummarySection extends StatelessWidget {
   String _counterText(int waiting, int pending) {
     if (summary.error != null) return '';
     if (waiting == 0 && pending > 0) return planWaitingText(pending);
+    // «Nadie espera» is only true once both reads are in and clean.
+    if (waiting == 0 && !_teamAndPlansKnown) return '';
     return teamWaitingText(waiting);
   }
+
+  bool get _teamAndPlansKnown =>
+      summary.loaded && plans.loaded && plans.error == null && !plans.denied;
 
   /// Someone on the team waits for the user first; a plan waits when nobody else does.
   Widget _header(BuildContext context) {
@@ -97,6 +102,14 @@ class TeamSummarySection extends StatelessWidget {
     }
     if (summary.members.isEmpty) {
       if (error != null) return _noticeFor(error);
+      // Someone is contracted: the summary just has nothing to show yet.
+      if (hires.hires.isNotEmpty) {
+        return const EmptyState(
+          icon: Icons.groups_outlined,
+          title: 'Tu equipo no tiene trabajo en curso',
+          detail: 'Pídele algo a Alfred o abre la ficha de alguien',
+        );
+      }
       return EmptyState(
         icon: Icons.groups_outlined,
         title: 'Todavía no tienes a nadie contratado.',

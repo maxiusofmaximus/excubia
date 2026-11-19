@@ -22,7 +22,8 @@ import 'agents_screen.dart';
 import 'chat/chat_screen.dart';
 import 'theme.dart';
 
-/// The Equipo tab's index in the bottom bar.
+/// The Chat and Equipo tabs' indexes in the bottom bar.
+const int _chatTab = 0;
 const int _teamTab = 1;
 
 /// Two one-tap destinations: the Alfred chat (primary) and the existing team
@@ -185,6 +186,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             plans: _plans!,
             schedules: _schedules!,
             onUnpaired: widget.onUnpaired,
+            onOpenChat: () => _selectTab(_chatTab),
           ),
         ],
       ),

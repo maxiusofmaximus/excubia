@@ -80,6 +80,8 @@ class TeamHiresSection extends StatelessWidget {
 
   Widget _body(BuildContext context) {
     if (hires.hires.isEmpty) {
+      // Before the first read nobody is known yet: saying «nadie» here would be false.
+      if (!hires.loaded) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: Spacing.md),
         child: Text(

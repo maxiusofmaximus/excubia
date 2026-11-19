@@ -25,9 +25,12 @@ class _EmptyChat extends StatelessWidget {
       ),
       children: [
         Center(
-          child: AgentAvatar(name: chat.alfredName, size: 68, glance: true),
+          child: SizedBox(
+            width: 160,
+            child: AgentPortraitCard(id: 'alfred', name: chat.alfredName),
+          ),
         ),
-        const SizedBox(height: Spacing.md),
+        const SizedBox(height: Spacing.lg),
         Text(
           '¿Qué movemos hoy?',
           style: context.text.headline,

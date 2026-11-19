@@ -21,6 +21,7 @@ class HiresController extends ChangeNotifier {
   List<Hire> _hires = const <Hire>[];
   bool _canHire = false;
   bool _busy = false;
+  bool _loaded = false;
   ErrorInfo? _failure;
   bool _disposed = false;
 
@@ -29,6 +30,11 @@ class HiresController extends ChangeNotifier {
   bool get canHire => _canHire;
   bool get busy => _busy;
   ErrorInfo? get failure => _failure;
+
+  /// True once the first read of the contracted people has ended, with a result
+  /// or a failure. Later reads never clear it, so an empty list is not shown as
+  /// «nobody» before the host has answered.
+  bool get loaded => _loaded;
 
   /// The contracted people, in the host's order. Dismissed ones are not here.
   List<Hire> get hires => _hires;
@@ -141,12 +147,16 @@ class HiresController extends ChangeNotifier {
   });
 
   Future<void> _fetchHires() async {
-    final list = parseHires(
-      json: await _send(planHires(includeRemoved: false)),
-    );
-    if (list == null) throw const UnreadableAnswer();
-    _hires = list.hires;
-    _canHire = list.canHire;
+    try {
+      final list = parseHires(
+        json: await _send(planHires(includeRemoved: false)),
+      );
+      if (list == null) throw const UnreadableAnswer();
+      _hires = list.hires;
+      _canHire = list.canHire;
+    } finally {
+      _loaded = true;
+    }
     _notify();
   }
 

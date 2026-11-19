@@ -11,6 +11,9 @@ import '../widgets/agent_avatar.dart';
 /// How long «Listo» stays before the screen closes and the chat takes over.
 const _listoHold = Duration(milliseconds: 1500);
 
+/// The diameter of Alfred's face inside the orb; the ring grows from here.
+const _orbCore = 168.0;
+
 /// A full-screen voice note: an orb that follows the voice, what is happening
 /// in words, and two buttons. The text reaches the chat through the composer's
 /// own insertion (VoiceInsertion), so this screen never applies or sends it.
@@ -177,7 +180,7 @@ class _VoiceScreenState extends State<VoiceScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _orb(c),
+                        _orb(c, listo, phase),
                         const SizedBox(height: Spacing.xl),
                         Semantics(
                           liveRegion: true,
@@ -262,45 +265,68 @@ class _VoiceScreenState extends State<VoiceScreen>
   }
 
   /// The orb with its ring. The ring follows the level; without one it pulses
-  /// slowly; with animations off it stays still at a middle size.
-  Widget _orb(HerdrColors c) => ExcludeSemantics(
-    child: SizedBox(
-      width: 232,
-      height: 232,
-      child: AnimatedBuilder(
-        animation: _pulse,
-        builder: (context, _) {
-          final v = !_animate ? 0.3 : (_hasLevel ? _level : _pulse.value);
-          final ring = 128 + 96 * v;
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: ring,
-                height: ring,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: c.accentText.withValues(alpha: 0.25 + 0.5 * v),
-                    width: 2 + 4 * v,
+  /// slowly; with animations off it stays still at a middle size. Inside the
+  /// ring is Alfred's face: neutral while he listens, thinking while the note
+  /// is transcribed, done at «Listo». Without the picture, the plain orb.
+  Widget _orb(HerdrColors c, bool listo, VoicePhase phase) {
+    final face = listo
+        ? 'done'
+        : phase == VoicePhase.transcribing
+        ? 'thinking'
+        : 'neutral';
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: 232,
+        height: 232,
+        child: AnimatedBuilder(
+          animation: _pulse,
+          builder: (context, _) {
+            final v = !_animate ? 0.3 : (_hasLevel ? _level : _pulse.value);
+            final ring = _orbCore + 56 * v;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: ring,
+                  height: ring,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: c.accentText.withValues(alpha: 0.25 + 0.5 * v),
+                      width: 2 + 4 * v,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                width: 128,
-                height: 128,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [c.accentSoft, c.accent],
+                SizedBox.square(
+                  dimension: _orbCore,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/agents_v3/portraits/alfred-$face-512.webp',
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
+                      gaplessPlayback: true,
+                      errorBuilder: (_, _, _) => _plainCore(c),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// The orb's core when the picture is missing: a plain accent disc.
+  Widget _plainCore(HerdrColors c) => Container(
+    width: _orbCore,
+    height: _orbCore,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [c.accentSoft, c.accent],
       ),
     ),
   );

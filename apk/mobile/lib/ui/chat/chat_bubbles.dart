@@ -11,6 +11,7 @@ import '../../core/state/chat_document_opener.dart';
 import '../mail/mail_code_card.dart';
 import '../mail/mail_draft_card.dart';
 import '../theme.dart';
+import '../widgets/agent_avatar.dart';
 import '../widgets/surface_card.dart';
 import '../widgets/time_label.dart';
 import 'approval_timeline_line.dart';
@@ -166,6 +167,8 @@ class TimelineRow extends StatelessWidget {
           ? 'Tú'
           : (entry.authorKind == 'agent' ? agentName : 'Sistema'),
       agentName: agentName,
+      // Alfred's replies carry his face; the system line has none.
+      characterId: entry.authorKind == 'agent' ? 'alfred' : null,
       onRetrySend: onRetrySend,
       latestOwn: latestOwn,
       runningAgent: runningAgent,
