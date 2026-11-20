@@ -10,7 +10,7 @@ import { grantCommand, setDeviceId } from "./approval-model.js";
 let settings = null;
 let notice = "";
 
-const APPROVALS_HELP = "Las decide una regla o tu equipo; solo te llega lo que necesita tu OK.";
+const APPROVALS_HELP = "Una regla o tu equipo decide el resto; solo te llega lo que necesita tu OK.";
 
 export function mountApprovalSettings() {
   const section = element("section", "approval-settings");

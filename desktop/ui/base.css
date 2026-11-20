@@ -281,7 +281,8 @@ summary:focus-visible {
 }
 
 .btn:disabled {
-  opacity: 0.7;
+  opacity: 0.45;
+  filter: saturate(0.4);
   cursor: not-allowed;
   transform: none;
 }

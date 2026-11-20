@@ -67,6 +67,7 @@ function buildConnect() {
   name.id = "mail-account-name";
   name.type = "text";
   name.maxLength = 64;
+  name.placeholder = "Por ejemplo: Trabajo";
   name.autocomplete = "off";
   name.spellcheck = false;
   const kinds = kindPicker();

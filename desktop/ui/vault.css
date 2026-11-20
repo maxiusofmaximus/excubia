@@ -12,6 +12,12 @@
   color: var(--text);
 }
 
+/* The state line is the fact of the row: normal text and size, not the muted small hint. */
+#vault-state {
+  color: var(--text);
+  font-size: 14px;
+}
+
 .vault-pad {
   min-height: 180px;
   margin-top: 6px;

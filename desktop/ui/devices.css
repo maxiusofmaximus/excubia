@@ -14,6 +14,11 @@
   color: var(--muted);
 }
 
+/* The two detail lines are paragraphs; the browser's paragraph margins left a gap between them. */
+.device-row .agenda-row-meta {
+  margin: 0;
+}
+
 .device-title {
   display: flex;
   flex-wrap: wrap;

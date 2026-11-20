@@ -70,7 +70,8 @@
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 99px;
-  background: var(--raised-2);
+  /* Off track: 80% of the border grey over the card, so it stays 3:1 against the card in every palette. */
+  background: color-mix(in srgb, var(--line-strong) 80%, var(--surface));
   transition: background 0.15s ease, border-color 0.15s ease;
   cursor: pointer;
 }
