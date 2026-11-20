@@ -131,10 +131,19 @@ Image _head(String asset, Widget onError) => Image.asset(
 /// How long a head takes to change from one state to the next.
 const _fade = Duration(milliseconds: 150);
 
+/// The host's role tag at the end of a pane title («Ernesto — lead»). A copy of
+/// the one in agent_text.dart, which imports this file and cannot be imported back.
+final _roleTagTitle = RegExp(
+  r'\s+[—-]\s+(lead|specialist|especialista)$',
+  caseSensitive: false,
+);
+
 /// The name a row should show for a live agent: the seat label in the middle
-/// of the pane title ("desconocido · Ana · especialista"), else the CLI id.
+/// of the pane title ("desconocido · Ana · especialista"), else the character
+/// the pane is titled after ("Ernesto — lead"), else the CLI id.
 String agentNameOf(AgentEntry agent) {
-  final segments = (agent.title ?? '')
+  final title = agent.title ?? '';
+  final segments = title
       .split('·')
       .map((segment) => segment.trim())
       .where((segment) => segment.isNotEmpty)
@@ -146,6 +155,10 @@ String agentNameOf(AgentEntry agent) {
       return candidate;
     }
   }
+  // The profile's name, not the title: a title can be a whole task that
+  // starts with a character's name.
+  final profile = agentProfileFor(title.replaceFirst(_roleTagTitle, '').trim());
+  if (profile != null) return capitalized(profile.id);
   final raw = agent.agent.trim();
   if (raw.isEmpty ||
       raw.toLowerCase() == 'unknown' ||

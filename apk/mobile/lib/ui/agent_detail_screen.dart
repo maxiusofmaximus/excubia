@@ -238,7 +238,7 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
         builder: (_) => RestoreScreen(
           api: widget.restore,
           agent: widget.paneId,
-          title: stripRoleSuffix(agent.title ?? agent.project),
+          title: stripRoleSuffix(agent.title ?? agentProjectLabel(agent)),
         ),
       ),
     );

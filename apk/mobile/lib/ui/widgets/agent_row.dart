@@ -65,7 +65,7 @@ class AgentRow extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        agent.project,
+                        agentProjectLabel(agent),
                         style: context.text.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

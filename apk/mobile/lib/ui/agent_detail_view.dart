@@ -61,7 +61,7 @@ extension _AgentDetailView on _AgentDetailScreenState {
               name: stripRoleSuffix(agentNameOf(agent)),
               // An unknown state adds nothing: the line is the project alone.
               tagline: [
-                agent.project,
+                if (agentHasProject(agent)) agent.project,
                 if (agent.status != AgentStatus.unknown)
                   context.colors.statusLabel(agent.status),
               ].where((part) => part.trim().isNotEmpty).join(' · '),

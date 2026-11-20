@@ -206,7 +206,8 @@ void main() {
   ) async {
     await pumpDetail(tester, triageWith(AgentStatus.unknown));
 
-    expect(find.text('excubia'), findsOneWidget);
+    // The app's own name is not a project: nothing repeats it under the name.
+    expect(find.text('excubia'), findsNothing);
     expect(find.text('Sin actividad reciente'), findsNothing);
   });
 
@@ -215,6 +216,6 @@ void main() {
   ) async {
     await pumpDetail(tester, triageWith(AgentStatus.idle));
 
-    expect(find.text('excubia · inactivo'), findsOneWidget);
+    expect(find.text('inactivo'), findsOneWidget);
   });
 }

@@ -1,5 +1,6 @@
 import 'package:excubia/src/rust/api/state.dart';
 
+import '../../core/app_info.dart';
 import 'agent_avatar.dart';
 
 /// The host's role tag at the end of a pane title («Ernesto — lead»).
@@ -11,6 +12,20 @@ final _roleTag = RegExp(
 /// «Ernesto — lead» → «Ernesto». Only for text the screen shows; the name the
 /// portrait is found by is not passed through here.
 String stripRoleSuffix(String text) => text.replaceFirst(_roleTag, '');
+
+/// Whether the PC's project field names a real project. For an agent with none
+/// the PC fills it with its own label («core» by default, the app's name in
+/// older data), which is not a project.
+bool agentHasProject(AgentEntry agent) {
+  final project = agent.project.trim().toLowerCase();
+  return project.isNotEmpty &&
+      project != appName.toLowerCase() &&
+      project != 'core';
+}
+
+/// The project a row shows; without a real project, the agent's character.
+String agentProjectLabel(AgentEntry agent) =>
+    agentHasProject(agent) ? agent.project : agentNameOf(agent);
 
 /// The line under an agent's name: the state word and the task. An unknown state
 /// never reads «Sin actividad reciente»: it shows the task alone, or nothing. A pane title

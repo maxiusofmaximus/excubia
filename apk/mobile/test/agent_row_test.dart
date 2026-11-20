@@ -26,7 +26,7 @@ void main() {
       ),
     );
 
-    expect(find.text('excubia'), findsOneWidget);
+    expect(find.text('bench'), findsOneWidget);
     expect(find.text('bloqueado · Add the pairing screen'), findsOneWidget);
     final row = tester.getSize(find.byType(AgentRow));
     expect(row.height, greaterThanOrEqualTo(64));
@@ -68,7 +68,7 @@ void main() {
         ),
       );
 
-      expect(find.text('excubia'), findsOneWidget);
+      expect(find.text('bench'), findsOneWidget);
       expect(find.text('Sin actividad reciente'), findsNothing);
     },
   );
@@ -94,6 +94,31 @@ void main() {
       expect(find.text('Plan de tres hitos'), findsOneWidget);
       expect(find.textContaining('lead'), findsNothing);
       expect(find.text('Sin actividad reciente'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'an agent with no project of its own shows its character, not the app name',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(),
+          home: Scaffold(
+            body: AgentRow(
+              agent: agent(
+                status: AgentStatus.idle,
+                title: 'Ernesto — lead',
+                project: 'Excubia',
+                cli: 'unknown',
+              ),
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Ernesto'), findsOneWidget);
+      expect(find.text('Excubia'), findsNothing);
     },
   );
 }

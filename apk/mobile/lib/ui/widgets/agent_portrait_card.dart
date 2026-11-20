@@ -68,7 +68,7 @@ class AgentPortraitCard extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        if (tagline != null)
+        if (tagline?.isNotEmpty ?? false)
           Text(
             tagline!,
             style: context.text.bodySecondary,
@@ -81,7 +81,7 @@ class AgentPortraitCard extends StatelessWidget {
     return Semantics(
       button: onTap != null,
       onTap: onTap,
-      label: tagline == null ? name : '$name. $tagline',
+      label: (tagline?.isNotEmpty ?? false) ? '$name. $tagline' : name,
       excludeSemantics: true,
       child: onTap == null
           ? content
