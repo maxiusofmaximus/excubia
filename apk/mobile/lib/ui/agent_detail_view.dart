@@ -59,9 +59,11 @@ extension _AgentDetailView on _AgentDetailScreenState {
             child: AgentPortraitCard(
               id: agentProfileFor(agentNameOf(agent))?.id ?? '',
               name: stripRoleSuffix(agentNameOf(agent)),
+              // An unknown state adds nothing: the line is the project alone.
               tagline: [
                 agent.project,
-                context.colors.statusLabel(agent.status),
+                if (agent.status != AgentStatus.unknown)
+                  context.colors.statusLabel(agent.status),
               ].where((part) => part.trim().isNotEmpty).join(' · '),
             ),
           ),
@@ -137,14 +139,35 @@ extension _AgentDetailView on _AgentDetailScreenState {
           ),
         ),
         const SizedBox(height: Spacing.lg),
-        _fields(agent),
-        const SizedBox(height: Spacing.lg),
-        Text(
-          'Solo se escriben respuestas y teclas permitidas; no hay chat ni '
-          'adjuntos en esta fase.',
-          style: context.text.small,
-        ),
+        _details(agent),
       ],
+    );
+  }
+
+  /// The technical fields and the scope note: for people who need them, so folded and shut.
+  Widget _details(AgentEntry agent) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        key: const ValueKey('agent-details'),
+        title: Text('Detalles', style: context.text.body),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: Spacing.sm),
+        shape: const Border(),
+        collapsedShape: const Border(),
+        iconColor: context.colors.textSecondary,
+        collapsedIconColor: context.colors.textSecondary,
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _fields(agent),
+          const SizedBox(height: Spacing.lg),
+          Text(
+            'Solo se escriben respuestas y teclas permitidas; no hay chat ni '
+            'adjuntos en esta fase.',
+            style: context.text.small,
+          ),
+        ],
+      ),
     );
   }
 

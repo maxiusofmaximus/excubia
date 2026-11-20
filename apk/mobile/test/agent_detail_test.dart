@@ -166,4 +166,50 @@ void main() {
     expect(find.text('Enviar'), findsOneWidget);
     expect(find.text('Nueva conversación aquí'), findsNothing);
   });
+
+  testWidgets('the technical fields stay folded until «Detalles» is opened', (
+    tester,
+  ) async {
+    await pumpDetail(tester, triageWith(AgentStatus.working));
+
+    // The row sits below the portrait card and the actions, so it is below the fold.
+    await tester.scrollUntilVisible(
+      find.text('Detalles'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Workspace'), findsNothing);
+    expect(find.text('Pane'), findsNothing);
+
+    await tester.tap(find.text('Detalles'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Workspace'), findsOneWidget);
+    expect(find.text('Pane'), findsOneWidget);
+    expect(find.text('Revisión del estado'), findsOneWidget);
+    expect(
+      find.text(
+        'Solo se escriben respuestas y teclas permitidas; no hay chat ni '
+        'adjuntos en esta fase.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an unknown state does not read «Sin actividad reciente»', (
+    tester,
+  ) async {
+    await pumpDetail(tester, triageWith(AgentStatus.unknown));
+
+    expect(find.text('excubia'), findsOneWidget);
+    expect(find.text('Sin actividad reciente'), findsNothing);
+  });
+
+  testWidgets('a known state still shows its word under the name', (
+    tester,
+  ) async {
+    await pumpDetail(tester, triageWith(AgentStatus.idle));
+
+    expect(find.text('excubia · inactivo'), findsOneWidget);
+  });
 }
