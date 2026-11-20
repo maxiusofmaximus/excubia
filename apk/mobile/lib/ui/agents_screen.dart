@@ -38,6 +38,10 @@ part 'agents_screen_shell.dart';
 
 enum _TeamFilter { all, working, blocked }
 
+/// The live agents on the PC, not the people contracted. «abierto» is gone: a
+/// finished agent is still listed, so it said too much.
+String agentCountLabel(int count) => count == 1 ? '1 agente' : '$count agentes';
+
 /// The secondary "Equipo" tab: the live triage list with the same detail, stop
 /// and new-conversation actions as APK4, plus the wf44 filters.
 class AgentsScreen extends StatefulWidget {
@@ -165,8 +169,8 @@ class _AgentsScreenState extends State<AgentsScreen>
     final count = hired > 0
         ? teamCountLabel(hired: hired, active: total)
         : visible == total
-        ? _countLabel(total)
-        : '$visible de ${_countLabel(total)}';
+        ? agentCountLabel(total)
+        : '$visible de ${agentCountLabel(total)}';
     return switch (connection) {
       Connecting() => 'Conectando con el equipo…',
       Live(:final updatedAt) => '$count · ${ageLabel(updatedAt)}',
@@ -176,10 +180,6 @@ class _AgentsScreenState extends State<AgentsScreen>
       AwaitingApproval() => 'Pendiente de aprobación',
     };
   }
-
-  /// The live agents on the PC, not the people contracted; the header says so.
-  String _countLabel(int count) =>
-      count == 1 ? '1 agente abierto' : '$count agentes abiertos';
 
   /// One attempt, started by a tap: the loop is not restarted by a timer.
   Future<void> _reconnect() async {

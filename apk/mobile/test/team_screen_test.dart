@@ -328,6 +328,12 @@ void main() {
     },
   );
 
+  test('the header counts the agents on the PC without «abiertos»', () {
+    expect(agentCountLabel(1), '1 agente');
+    expect(agentCountLabel(2), '2 agentes');
+    expect(agentCountLabel(0), '0 agentes');
+  });
+
   testWidgets(
     'a phone that cannot contract offers the chat, not a dead button',
     (tester) async {

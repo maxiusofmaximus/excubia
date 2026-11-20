@@ -173,14 +173,6 @@ class TeamProjectGroupCard extends StatelessWidget {
                 detail: agent.title,
                 onTap: () => onOpenAgent(agent.paneId),
               ),
-            if (idleLead || (lead == null && group.specialists.isEmpty))
-              Padding(
-                padding: const EdgeInsets.all(Spacing.md),
-                child: Text(
-                  'Nadie trabajando en este proyecto.',
-                  style: context.text.bodySecondary,
-                ),
-              ),
           ],
         ),
       ),

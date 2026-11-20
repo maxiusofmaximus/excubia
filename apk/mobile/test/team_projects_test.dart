@@ -71,7 +71,7 @@ void main() {
     expect(find.textContaining('asiento'), findsNothing);
   });
 
-  testWidgets('a project with nobody working says so, in plain words', (
+  testWidgets('a project with nobody working shows only its header', (
     tester,
   ) async {
     await pumpCard(
@@ -84,7 +84,8 @@ void main() {
       ),
       const [],
     );
-    expect(find.text('Nadie trabajando en este proyecto.'), findsOneWidget);
+    expect(find.text('Bench'), findsOneWidget);
+    expect(find.text('Nadie trabajando en este proyecto.'), findsNothing);
     expect(find.textContaining('asiento'), findsNothing);
   });
 
@@ -240,20 +241,22 @@ void main() {
     expect(opened, 'w1:p4');
   });
 
-  testWidgets('a lead who works alone shows a name, with no Responsable badge', (
-    tester,
-  ) async {
-    await pumpCard(tester, project, [
-      agent(pane: 'w1:p3', project: 'Demo', title: 'Plan de tres hitos'),
-    ]);
+  testWidgets(
+    'a lead who works alone shows a name, with no Responsable badge',
+    (tester) async {
+      await pumpCard(tester, project, [
+        agent(pane: 'w1:p3', project: 'Demo', title: 'Plan de tres hitos'),
+      ]);
 
-    expect(find.text('Ernesto'), findsOneWidget);
-    expect(find.text('Responsable'), findsNothing);
-    expect(find.text('Especialista'), findsNothing);
-  });
+      expect(find.text('Ernesto'), findsOneWidget);
+      expect(find.text('Responsable'), findsNothing);
+      expect(find.text('Especialista'), findsNothing);
+      expect(find.text('Nadie trabajando en este proyecto.'), findsNothing);
+    },
+  );
 
   testWidgets(
-    'an idle lead with no agent alive is not named: the card says nobody works',
+    'an idle lead with no agent alive is not named: the card keeps its header',
     (tester) async {
       await pumpCard(
         tester,
@@ -268,7 +271,8 @@ void main() {
       );
 
       expect(find.text('Ernesto'), findsNothing);
-      expect(find.text('Nadie trabajando en este proyecto.'), findsOneWidget);
+      expect(find.text('Demo'), findsOneWidget);
+      expect(find.text('Nadie trabajando en este proyecto.'), findsNothing);
       expect(find.text('Sin actividad reciente'), findsNothing);
     },
   );
@@ -301,4 +305,23 @@ void main() {
     expect(find.text('Ernesto'), findsOneWidget);
     expect(find.text('Nadie trabajando en este proyecto.'), findsNothing);
   });
+
+  testWidgets(
+    'a project with only a live specialist shows that row, no empty line',
+    (tester) async {
+      await pumpCard(
+        tester,
+        const ChatProject(
+          id: 'prj_4',
+          name: 'Solo',
+          rootLabel: 'solo',
+          status: 'active',
+        ),
+        [agent(pane: 'w7:p1', project: 'Solo', title: 'Tests e2e')],
+      );
+
+      expect(find.text('Especialista'), findsOneWidget);
+      expect(find.text('Nadie trabajando en este proyecto.'), findsNothing);
+    },
+  );
 }
