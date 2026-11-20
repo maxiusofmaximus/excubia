@@ -40,6 +40,9 @@ pub(crate) struct WireAgent {
     #[serde(default)]
     restored: bool,
     state_change_seq: Option<u64>,
+    // Raw on purpose: a non-numeric value must degrade to None, not drop the whole state.
+    #[serde(default)]
+    last_active_ms: Option<serde_json::Value>,
 }
 
 pub(crate) fn parse_state(json: &str) -> Option<StateSnapshot> {
@@ -114,6 +117,7 @@ fn sanitise_agent(agent: WireAgent) -> Option<AgentEntry> {
         state_change_seq: agent
             .state_change_seq
             .map(|seq| seq.min(u32::MAX as u64) as u32),
+        last_active_ms: agent.last_active_ms.as_ref().and_then(serde_json::Value::as_i64),
     })
 }
 
@@ -144,6 +148,22 @@ mod tests {
         assert_eq!(revision_of("not json"), None);
         assert_eq!(state_change_seq_of(r#"{"state_change_seq":9}"#), Some(9));
         assert_eq!(state_change_seq_of(r#"{"revision":9}"#), None);
+    }
+
+    #[test]
+    fn last_active_ms_is_carried_or_degrades_to_none() {
+        let state = parse_state(
+            r#"{"revision":1,"agents":[
+                {"pane_id":"w1:p1","restored":true,"last_active_ms":1700000000000},
+                {"pane_id":"w1:p2","restored":true},
+                {"pane_id":"w1:p3","restored":true,"last_active_ms":"ayer"}
+            ]}"#,
+        )
+        .unwrap();
+        assert_eq!(state.agents.len(), 3, "an invalid timestamp keeps the row");
+        assert_eq!(state.agents[0].last_active_ms, Some(1_700_000_000_000));
+        assert_eq!(state.agents[1].last_active_ms, None);
+        assert_eq!(state.agents[2].last_active_ms, None);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 name: excubia
 description: "Excubia Android client: Flutter UI over the Rust contract core."
 publish_to: 'none'
-version: 2.3.410-alpha.15+2079
+version: 2.3.410-alpha.16+2080
 
 environment:
   sdk: ^3.13.5

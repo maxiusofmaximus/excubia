@@ -11,6 +11,7 @@ AgentEntry agent({
   required AgentStatus status,
   bool restored = false,
   String? cwd = '/repo',
+  int? lastActiveMs,
 }) => AgentEntry(
   paneId: 'w1:p1',
   workspaceId: 'w1',
@@ -23,9 +24,14 @@ AgentEntry agent({
   focused: false,
   canResume: false,
   restored: restored,
+  lastActiveMs: lastActiveMs,
 );
 
-LiveTriage triageWith(AgentStatus status, {bool restored = false}) {
+LiveTriage triageWith(
+  AgentStatus status, {
+  bool restored = false,
+  int? lastActiveMs,
+}) {
   final triage = LiveTriage(
     HostClient(
       baseUrl: 'http://100.64.0.1:8788',
@@ -37,7 +43,9 @@ LiveTriage triageWith(AgentStatus status, {bool restored = false}) {
     StateSnapshot(
       revision: 3,
       counts: const <String, int>{},
-      agents: <AgentEntry>[agent(status: status, restored: restored)],
+      agents: <AgentEntry>[
+        agent(status: status, restored: restored, lastActiveMs: lastActiveMs),
+      ],
     ),
   );
   return triage;
@@ -161,6 +169,25 @@ void main() {
       expect(find.text('Ver copias'), findsNothing);
     },
   );
+
+  testWidgets('a finished agent shows when it ended under its name', (
+    tester,
+  ) async {
+    final twoHoursAgo = DateTime.now()
+        .subtract(const Duration(hours: 2))
+        .millisecondsSinceEpoch;
+    await pumpDetail(
+      tester,
+      triageWith(
+        AgentStatus.unknown,
+        restored: true,
+        lastActiveMs: twoHoursAgo,
+      ),
+    );
+
+    expect(find.textContaining('Terminó hace 2 h'), findsOneWidget);
+    expect(find.text('Esta conversación terminó'), findsOneWidget);
+  });
 
   testWidgets('a live agent that is not blocked keeps the respond panel', (
     tester,

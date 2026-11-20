@@ -64,6 +64,7 @@ extension _AgentDetailView on _AgentDetailScreenState {
                 if (agentHasProject(agent)) agent.project,
                 if (agent.status != AgentStatus.unknown)
                   context.colors.statusLabel(agent.status),
+                ?agentEndedText(agent),
               ].where((part) => part.trim().isNotEmpty).join(' · '),
             ),
           ),

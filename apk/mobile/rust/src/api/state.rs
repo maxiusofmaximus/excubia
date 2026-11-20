@@ -67,6 +67,8 @@ pub struct AgentEntry {
     pub can_resume: bool,
     pub restored: bool,
     pub state_change_seq: Option<u32>,
+    /// Unix ms (UTC) of the pane's last movement; None when the host does not know it.
+    pub last_active_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

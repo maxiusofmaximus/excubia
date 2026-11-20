@@ -2,6 +2,17 @@ import 'package:excubia/src/rust/api/state.dart';
 
 import '../../core/app_info.dart';
 import 'agent_avatar.dart';
+import 'status_dot.dart';
+
+/// «Terminó hace 2 h» for a finished agent whose last movement the PC knows;
+/// null otherwise, so a live agent or an old host shows nothing new.
+String? agentEndedText(AgentEntry agent, {DateTime? now}) {
+  final ms = agent.lastActiveMs;
+  if (!agent.restored || ms == null) return null;
+  // toInt(): PlatformInt64 is BigInt on web and int on native.
+  final at = DateTime.fromMillisecondsSinceEpoch(ms.toInt());
+  return 'Terminó ${ageLabel(at, now: now)}';
+}
 
 /// The host's role tag at the end of a pane title («Ernesto — lead»).
 final _roleTag = RegExp(

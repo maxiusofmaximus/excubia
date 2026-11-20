@@ -5015,6 +5015,7 @@ impl SseDecode for crate::api::state::AgentEntry {
         let mut var_canResume = <bool>::sse_decode(deserializer);
         let mut var_restored = <bool>::sse_decode(deserializer);
         let mut var_stateChangeSeq = <Option<u32>>::sse_decode(deserializer);
+        let mut var_lastActiveMs = <Option<i64>>::sse_decode(deserializer);
         return crate::api::state::AgentEntry {
             pane_id: var_paneId,
             workspace_id: var_workspaceId,
@@ -5028,6 +5029,7 @@ impl SseDecode for crate::api::state::AgentEntry {
             can_resume: var_canResume,
             restored: var_restored,
             state_change_seq: var_stateChangeSeq,
+            last_active_ms: var_lastActiveMs,
         };
     }
 }
@@ -7762,6 +7764,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::state::AgentEntry {
             self.can_resume.into_into_dart().into_dart(),
             self.restored.into_into_dart().into_dart(),
             self.state_change_seq.into_into_dart().into_dart(),
+            self.last_active_ms.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9607,6 +9610,7 @@ impl SseEncode for crate::api::state::AgentEntry {
         <bool>::sse_encode(self.can_resume, serializer);
         <bool>::sse_encode(self.restored, serializer);
         <Option<u32>>::sse_encode(self.state_change_seq, serializer);
+        <Option<i64>>::sse_encode(self.last_active_ms, serializer);
     }
 }
 

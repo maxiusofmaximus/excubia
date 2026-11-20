@@ -4886,8 +4886,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AgentEntry dco_decode_agent_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return AgentEntry(
       paneId: dco_decode_String(arr[0]),
       workspaceId: dco_decode_String(arr[1]),
@@ -4901,6 +4901,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       canResume: dco_decode_bool(arr[9]),
       restored: dco_decode_bool(arr[10]),
       stateChangeSeq: dco_decode_opt_box_autoadd_u_32(arr[11]),
+      lastActiveMs: dco_decode_opt_box_autoadd_i_64(arr[12]),
     );
   }
 
@@ -6849,6 +6850,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_canResume = sse_decode_bool(deserializer);
     var var_restored = sse_decode_bool(deserializer);
     var var_stateChangeSeq = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_lastActiveMs = sse_decode_opt_box_autoadd_i_64(deserializer);
     return AgentEntry(
       paneId: var_paneId,
       workspaceId: var_workspaceId,
@@ -6862,6 +6864,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       canResume: var_canResume,
       restored: var_restored,
       stateChangeSeq: var_stateChangeSeq,
+      lastActiveMs: var_lastActiveMs,
     );
   }
 
@@ -9403,6 +9406,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.canResume, serializer);
     sse_encode_bool(self.restored, serializer);
     sse_encode_opt_box_autoadd_u_32(self.stateChangeSeq, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.lastActiveMs, serializer);
   }
 
   @protected

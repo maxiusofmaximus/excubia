@@ -20,6 +20,8 @@ class AgentRow extends StatelessWidget {
       context.colors.statusLabel(agent.status),
       agent.title,
     );
+    // A finished agent with no task line says when it ended, so two look different.
+    final ended = subtitle == null ? agentEndedText(agent) : null;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: Spacing.lg,
@@ -97,6 +99,15 @@ class AgentRow extends StatelessWidget {
                               ),
                             ),
                           ],
+                        )
+                      else if (ended != null)
+                        Text(
+                          ended,
+                          style: context.text.small.copyWith(
+                            color: context.colors.textMuted,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),

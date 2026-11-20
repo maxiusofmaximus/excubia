@@ -6,6 +6,16 @@ import 'package:excubia/ui/widgets/agent_row.dart';
 
 import 'support/agent_fixtures.dart';
 
+Future<void> pumpRow(WidgetTester tester, AgentEntry entry) =>
+    tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(),
+        home: Scaffold(
+          body: AgentRow(agent: entry, onTap: () {}),
+        ),
+      ),
+    );
+
 void main() {
   testWidgets('a row shows project and task over a 56dp-plus touch target', (
     tester,
@@ -51,6 +61,61 @@ void main() {
     );
 
     expect(find.text('inactivo'), findsOneWidget);
+  });
+
+  testWidgets('a finished agent with no task line says when it ended', (
+    tester,
+  ) async {
+    final twoHoursAgo = DateTime.now()
+        .subtract(const Duration(hours: 2))
+        .millisecondsSinceEpoch;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(),
+        home: Scaffold(
+          body: AgentRow(
+            agent: agent(
+              status: AgentStatus.unknown,
+              restored: true,
+              lastActiveMs: twoHoursAgo,
+            ),
+            onTap: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Terminó hace 2 h'), findsOneWidget);
+    expect(find.text('Sin actividad reciente'), findsNothing);
+  });
+
+  testWidgets('a finished agent without a timestamp shows no line', (
+    tester,
+  ) async {
+    await pumpRow(tester, agent(status: AgentStatus.unknown, restored: true));
+
+    expect(find.textContaining('Terminó'), findsNothing);
+    expect(find.text('bench'), findsOneWidget);
+  });
+
+  testWidgets('a finished agent with a task keeps its task line', (
+    tester,
+  ) async {
+    final twoHoursAgo = DateTime.now()
+        .subtract(const Duration(hours: 2))
+        .millisecondsSinceEpoch;
+    await pumpRow(
+      tester,
+      agent(
+        status: AgentStatus.idle,
+        title: 'Plan de tres hitos',
+        restored: true,
+        lastActiveMs: twoHoursAgo,
+      ),
+    );
+
+    expect(find.text('inactivo · Plan de tres hitos'), findsOneWidget);
+    expect(find.textContaining('Terminó'), findsNothing);
   });
 
   testWidgets(

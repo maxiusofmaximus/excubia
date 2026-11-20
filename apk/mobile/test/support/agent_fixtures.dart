@@ -6,6 +6,8 @@ AgentEntry agent({
   String? title,
   String project = 'bench',
   String cli = 'opencode',
+  bool restored = false,
+  int? lastActiveMs,
 }) => AgentEntry(
   paneId: 'w1:p1',
   workspaceId: 'w1',
@@ -17,5 +19,6 @@ AgentEntry agent({
   cwd: '/repo',
   focused: false,
   canResume: false,
-  restored: false,
+  restored: restored,
+  lastActiveMs: lastActiveMs,
 );

@@ -2,7 +2,7 @@
 /// a release that bumps it must bump this constant too.
 const String appName = 'Excubia';
 const String appTagline = 'Vigila a tus agentes mientras no estás';
-const String appVersion = '2.3.1-alpha.1+2050';
+const String appVersion = '2.3.410-alpha.16+2080';
 
 /// Android application id; the settings screens of this app open with it.
 const String appPackage = 'dev.excubia.app';

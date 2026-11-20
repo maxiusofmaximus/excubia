@@ -24,7 +24,7 @@ const String _decisionPath = 'POST /v1/chat/approvals/apr_1/decision';
 class _ApprovingHost implements ChatTransport {
   @override
   Future<String> postBytes(String target, List<int> body, String contentType) =>
-      throw UnimplementedError();
+      call('POST', target, body);
 
   @override
   Future<List<int>> callBytes(String method, String target) =>

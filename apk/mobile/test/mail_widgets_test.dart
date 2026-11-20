@@ -23,7 +23,7 @@ import 'support/widget_mount.dart';
 class _Host implements ChatTransport {
   @override
   Future<String> postBytes(String target, List<int> body, String contentType) =>
-      throw UnimplementedError();
+      call('POST', target, body);
 
   @override
   Future<List<int>> callBytes(String method, String target) =>
@@ -54,7 +54,7 @@ class _Host implements ChatTransport {
 class _Script implements ChatTransport {
   @override
   Future<String> postBytes(String target, List<int> body, String contentType) =>
-      throw UnimplementedError();
+      call('POST', target, body);
 
   @override
   Future<List<int>> callBytes(String method, String target) =>

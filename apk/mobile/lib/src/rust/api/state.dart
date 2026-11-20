@@ -29,6 +29,9 @@ class AgentEntry {
   final bool restored;
   final int? stateChangeSeq;
 
+  /// Unix ms (UTC) of the pane's last movement; None when the host does not know it.
+  final PlatformInt64? lastActiveMs;
+
   const AgentEntry({
     required this.paneId,
     required this.workspaceId,
@@ -42,6 +45,7 @@ class AgentEntry {
     required this.canResume,
     required this.restored,
     this.stateChangeSeq,
+    this.lastActiveMs,
   });
 
   @override
@@ -57,7 +61,8 @@ class AgentEntry {
       focused.hashCode ^
       canResume.hashCode ^
       restored.hashCode ^
-      stateChangeSeq.hashCode;
+      stateChangeSeq.hashCode ^
+      lastActiveMs.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -75,7 +80,8 @@ class AgentEntry {
           focused == other.focused &&
           canResume == other.canResume &&
           restored == other.restored &&
-          stateChangeSeq == other.stateChangeSeq;
+          stateChangeSeq == other.stateChangeSeq &&
+          lastActiveMs == other.lastActiveMs;
 }
 
 enum AgentStatus { blocked, working, done, idle, unknown }
