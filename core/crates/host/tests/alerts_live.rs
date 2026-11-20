@@ -49,6 +49,7 @@ fn agent(pane_id: &str) -> NewAgent {
         cwd: "/work".to_string(),
         label: None,
         restored: false,
+        last_active_ms: None,
     }
 }
 

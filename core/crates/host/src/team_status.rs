@@ -247,6 +247,7 @@ mod tests {
             focused: false,
             can_resume: false,
             restored: false,
+            last_active_ms: None,
         }
     }
 

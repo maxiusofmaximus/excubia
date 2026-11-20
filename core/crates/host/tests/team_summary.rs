@@ -104,6 +104,7 @@ async fn panel(host: &TestHost, pane_id: &str, status: Status) {
             cwd: host.data_dir.to_string_lossy().to_string(),
             label: None,
             restored: false,
+            last_active_ms: None,
         })
         .await;
     host.store.set_status(pane_id, status).await;

@@ -23,10 +23,44 @@ pub struct TriageRow {
     /// previous host run.
     #[serde(skip_serializing_if = "is_false")]
     pub restored: bool,
+    /// Additive field (`state.md`): Unix ms (UTC) of the last movement; absent
+    /// when unknown.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_active_ms: Option<u64>,
 }
 
 fn is_false(value: &bool) -> bool {
     !*value
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row(last_active_ms: Option<u64>) -> TriageRow {
+        TriageRow {
+            pane_id: "w1:p1".to_string(),
+            workspace_id: "w1".to_string(),
+            project: "p".to_string(),
+            agent: "claude".to_string(),
+            status: Status::Idle,
+            attention: 0,
+            title: None,
+            cwd: "C:\\p".to_string(),
+            focused: false,
+            can_resume: false,
+            restored: false,
+            last_active_ms,
+        }
+    }
+
+    #[test]
+    fn last_active_is_omitted_when_unknown_and_sent_when_known() {
+        let unknown = serde_json::to_value(row(None)).expect("json");
+        assert!(unknown.get("last_active_ms").is_none());
+        let known = serde_json::to_value(row(Some(1_793_880_000_000))).expect("json");
+        assert_eq!(known["last_active_ms"], 1_793_880_000_000u64);
+    }
 }
 
 /// The full state object returned by `GET /v1/state` and by the opening

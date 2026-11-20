@@ -27,6 +27,9 @@ pub struct AgentRecord {
     /// True when this pane comes from a previous host run (its process is
     /// gone; only its last screen survives). Additive contract field.
     pub restored: bool,
+    /// Unix ms (UTC) of the last movement: creation or a status change. `None`
+    /// when unknown (a pane restored from an old snapshot).
+    pub last_active_ms: Option<u64>,
 }
 
 impl AgentRecord {
@@ -54,6 +57,7 @@ impl AgentRecord {
             focused: self.focused,
             can_resume: self.can_resume,
             restored: self.restored,
+            last_active_ms: self.last_active_ms,
         }
     }
 }

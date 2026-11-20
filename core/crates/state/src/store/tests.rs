@@ -12,8 +12,54 @@ async fn add(store: &StateStore, pane_id: &str, project: &str, agent: &str) {
             cwd: "C:\\p".to_string(),
             label: None,
             restored: false,
+            last_active_ms: None,
         })
         .await;
+}
+
+async fn last_active(store: &StateStore, pane_id: &str) -> Option<u64> {
+    store
+        .row_of(pane_id)
+        .await
+        .and_then(|row| row.last_active_ms)
+}
+
+#[tokio::test]
+async fn a_new_agent_has_its_last_movement_and_a_status_change_moves_it() {
+    let store = StateStore::new("test");
+    add(&store, "w1:p1", "p", "fake").await;
+    let created = last_active(&store, "w1:p1")
+        .await
+        .expect("known at creation");
+    assert!(created > 0);
+
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+    store.set_status("w1:p1", Status::Working).await;
+    let changed = last_active(&store, "w1:p1")
+        .await
+        .expect("known after change");
+    assert!(changed > created, "a status change must move the timestamp");
+}
+
+#[tokio::test]
+async fn a_restored_agent_keeps_the_snapshot_value_or_stays_unknown() {
+    let store = StateStore::new("test");
+    for (pane_id, value) in [("w1:p1", Some(1_793_880_000_000)), ("w1:p2", None)] {
+        store
+            .add_agent(NewAgent {
+                pane_id: pane_id.to_string(),
+                workspace_id: "w1".to_string(),
+                project: "p".to_string(),
+                agent: "fake".to_string(),
+                cwd: "C:\\p".to_string(),
+                label: None,
+                restored: true,
+                last_active_ms: value,
+            })
+            .await;
+    }
+    assert_eq!(last_active(&store, "w1:p1").await, Some(1_793_880_000_000));
+    assert_eq!(last_active(&store, "w1:p2").await, None);
 }
 
 #[tokio::test]

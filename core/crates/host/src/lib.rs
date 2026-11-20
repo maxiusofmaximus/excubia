@@ -218,6 +218,7 @@ impl AgentHost {
                     cwd: pane.cwd,
                     label: pane.title,
                     restored: true,
+                    last_active_ms: pane.last_active_ms,
                 })
                 .await;
             self.sessions
@@ -280,6 +281,7 @@ impl AgentHost {
                 cwd: cwd_label,
                 label: spec.label.clone(),
                 restored: false,
+                last_active_ms: None,
             })
             .await;
 
@@ -355,6 +357,7 @@ impl AgentHost {
                 agent: row.agent,
                 cwd: row.cwd,
                 title: row.title,
+                last_active_ms: row.last_active_ms,
                 last_lines: session
                     .snapshot_text(self.options.snapshot_lines)
                     .lines()

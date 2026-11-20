@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use tokio::sync::{broadcast, Mutex};
 
@@ -29,6 +30,16 @@ pub struct NewAgent {
     /// True for a pane restored from a previous host run: it exists in the
     /// model, its process does not.
     pub restored: bool,
+    /// Unix ms of the last movement. A live new pane without one gets now; a
+    /// restored pane keeps what its snapshot had (possibly `None`).
+    pub last_active_ms: Option<u64>,
+}
+
+/// Unix ms (UTC) now; 0 only if the system clock is before 1970.
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |elapsed| elapsed.as_millis() as u64)
 }
 
 struct Inner {
@@ -117,6 +128,9 @@ impl StateStore {
                 can_resume: false,
                 focused: false,
                 restored: agent.restored,
+                last_active_ms: agent
+                    .last_active_ms
+                    .or_else(|| (!agent.restored).then(now_ms)),
             },
         );
         inner.persist();
@@ -161,6 +175,7 @@ impl StateStore {
         let (pane_id, workspace_id, agent) = {
             let record = inner.agents.get_mut(pane_id).expect("agent exists");
             record.state_change_seq = seq;
+            record.last_active_ms = Some(now_ms());
             (
                 record.pane_id.clone(),
                 record.workspace_id.clone(),

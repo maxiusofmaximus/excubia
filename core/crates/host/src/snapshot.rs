@@ -28,6 +28,9 @@ pub struct SnapshotPane {
     pub title: Option<String>,
     #[serde(default)]
     pub last_lines: Vec<String>,
+    /// Unix ms of the last movement; absent in snapshots written before it.
+    #[serde(default)]
+    pub last_active_ms: Option<u64>,
 }
 
 impl SnapshotPane {
@@ -92,12 +95,27 @@ mod tests {
             cwd: "C:\\work".to_string(),
             title: Some("mi chat".to_string()),
             last_lines: vec!["uno".to_string(), "dos".to_string()],
+            last_active_ms: Some(1_793_880_000_000),
         }];
         write(&path, panes).expect("write");
         let snapshot = read(&path);
         assert_eq!(snapshot.panes.len(), 1);
         assert_eq!(snapshot.panes[0].text(), "uno\ndos");
         assert_eq!(snapshot.panes[0].title.as_deref(), Some("mi chat"));
+        assert_eq!(snapshot.panes[0].last_active_ms, Some(1_793_880_000_000));
+    }
+
+    #[test]
+    fn a_snapshot_written_before_the_field_reads_as_unknown() {
+        let (_dir, path) = temp_path("old-format");
+        std::fs::write(
+            &path,
+            r#"{"version":1,"panes":[{"pane_id":"w1:p1","workspace_id":"w1","project":"core","agent":"fake","cwd":"C:\\work"}]}"#,
+        )
+        .expect("write");
+        let snapshot = read(&path);
+        assert_eq!(snapshot.panes.len(), 1);
+        assert_eq!(snapshot.panes[0].last_active_ms, None);
     }
 
     #[test]
