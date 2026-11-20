@@ -109,10 +109,13 @@ impl PairingAudit for PairingNotice {
 
 fn notice_text(attempt: &PairingAttempt) -> Option<String> {
     // A refusal, a PAKE start and a failed PAKE post nothing: a stranger's tries never flood the chat, and the
-    // device that completes the pairing is announced by its own `paired` line.
+    // device that completes the pairing is announced by its own `paired` line. A minted code is not a pairing.
     if matches!(
         attempt.outcome,
-        PairOutcome::Rejected | PairOutcome::PakeStarted | PairOutcome::PakeFailed
+        PairOutcome::Rejected
+            | PairOutcome::PakeStarted
+            | PairOutcome::PakeFailed
+            | PairOutcome::CodeIssued
     ) {
         return None;
     }
@@ -145,7 +148,10 @@ fn notice_text(attempt: &PairingAttempt) -> Option<String> {
                 "{granter} concedió {permissions} a {label} ({device})."
             ))
         }
-        PairOutcome::Rejected | PairOutcome::PakeStarted | PairOutcome::PakeFailed => None,
+        PairOutcome::Rejected
+        | PairOutcome::PakeStarted
+        | PairOutcome::PakeFailed
+        | PairOutcome::CodeIssued => None,
     }
 }
 
@@ -238,8 +244,12 @@ mod tests {
     }
 
     #[test]
-    fn a_pake_start_or_failure_posts_nothing() {
-        for outcome in [PairOutcome::PakeStarted, PairOutcome::PakeFailed] {
+    fn a_pake_start_failure_or_minted_code_posts_nothing() {
+        for outcome in [
+            PairOutcome::PakeStarted,
+            PairOutcome::PakeFailed,
+            PairOutcome::CodeIssued,
+        ] {
             let mut pake = attempt(outcome, Some("dev-1"), None);
             pake.via = PairVia::Pake;
             assert!(notice_text(&pake).is_none(), "{outcome:?}");

@@ -59,20 +59,20 @@
       </button>
     </nav>
     <section id="view-pair" class="view view-pair">
+      <button id="btn-pair-top-back" class="icon-btn pair-top-back" type="button" title="Volver al chat" aria-label="Volver al chat">←</button>
       <div class="brand">
         <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
         <span>Excubia</span>
       </div>
 
       <div class="pair-intro">
-        <h1>Vincula este equipo con tu Excubia</h1>
-        <p class="lede">Introduce el código que muestra tu Excubia. Alfred y el equipo se actualizarán en vivo.</p>
+        <h1 id="pair-title">Vincula este equipo con tu Excubia</h1>
+        <p id="pair-lede" class="lede">Introduce el código que muestra tu Excubia. Alfred y el equipo se actualizarán en vivo.</p>
       </div>
 
       <p id="plain-warning" class="warning hidden" role="note">La conexión con este PC no va cifrada. Solo es aceptable en este equipo o en una red privada de confianza.</p>
 
       <div id="local-card" class="card local-card hidden">
-        <h2>Excubia funciona en este equipo</h2>
         <p id="local-status" class="hint">Arrancando Excubia en este equipo…</p>
         <button id="btn-restart-host" class="btn ghost btn-block hidden" type="button">Reiniciar Excubia</button>
         <button id="btn-use-remote" class="btn secondary btn-block" type="button">Vincular con otro equipo</button>
@@ -114,8 +114,7 @@
 
       <details id="advanced" class="advanced">
         <summary>
-          <span>Avanzado</span>
-          <span class="summary-note">código, comando y enlace</span>
+          <span>Más opciones</span>
         </summary>
         <div class="advanced-body">
           <div class="field">
@@ -150,7 +149,7 @@
           <rect x="4" y="10" width="16" height="10" rx="2"></rect>
           <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
         </svg>
-        La clave privada se guarda en el Almacén de credenciales de Windows; nunca se escribe en disco.
+        La clave privada queda protegida por tu cuenta de Windows y nunca se escribe en el disco.
       </p>
     </section>
 

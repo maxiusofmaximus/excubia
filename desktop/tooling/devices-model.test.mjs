@@ -12,6 +12,7 @@ import {
   OWN_REVOKE_WARNING,
   REVOKE_WARNING,
   SAS_HINT,
+  SERVER_DEVICE_REASON,
   THIS_DEVICE_REASON,
   addedText,
   canApprove,
@@ -110,7 +111,8 @@ test("this device cannot revoke itself, and a revoked one has nothing to revoke"
     OWN_REVOKE_WARNING,
     "Este equipo dejará de estar vinculado y tendrás que emparejarlo de nuevo. ¿Continuar?",
   );
-  assert.match(THIS_DEVICE_REASON, /Olvidar emparejamiento/);
+  assert.match(THIS_DEVICE_REASON, /Revocar este equipo/);
+  assert.match(SERVER_DEVICE_REASON, /Vincular con otro equipo/);
   assert.equal(
     REVOKE_WARNING,
     "Este dispositivo dejará de poder entrar y no podrá volver sin emparejarse de nuevo.",

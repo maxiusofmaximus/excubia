@@ -3,7 +3,7 @@
 
 import { countdownText } from "./format.js";
 
-export const EXPIRED_MESSAGE = "Caducó, genera otro.";
+export const EXPIRED_MESSAGE = "Caducó: pulsa «Generar otro código».";
 export const LEFT_WINDOW_MESSAGE = "Oculté el QR al salir de la ventana; genera otro.";
 
 /// phase: idle | shown | expired | hidden. `remaining` is whole seconds left while shown.

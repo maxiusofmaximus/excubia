@@ -41,6 +41,8 @@ test("at 0 the QR is taken down and the message asks for another", () => {
   assert.equal(qrVisible(state), false);
   assert.equal(state.phase, "expired");
   assert.equal(qrMessage(state), EXPIRED_MESSAGE);
+  // The words name the button that makes a new code, so the user knows where to press.
+  assert.equal(EXPIRED_MESSAGE, "Caducó: pulsa «Generar otro código».");
 });
 
 test("a late tick after expiry does not bring the QR back", () => {

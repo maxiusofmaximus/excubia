@@ -14,6 +14,7 @@ import {
   OWN_REVOKE_WARNING,
   REVOKE_WARNING,
   SAS_HINT,
+  SERVER_DEVICE_REASON,
   THIS_DEVICE_REASON,
   addedText,
   canApprove,
@@ -96,7 +97,7 @@ function row(device, thisDevice) {
   );
   if (canApprove(device, thisDevice)) item.append(approveBlock(device));
   if (!device.revoked) item.append(revokeControl(device, canRevoke(device, thisDevice, app.boot?.mode === "local"), mine));
-  if (mine) item.append(notice(THIS_DEVICE_REASON, "agenda-hint"));
+  if (mine) item.append(notice(app.boot?.mode === "local" ? SERVER_DEVICE_REASON : THIS_DEVICE_REASON, "agenda-hint"));
   return item;
 }
 

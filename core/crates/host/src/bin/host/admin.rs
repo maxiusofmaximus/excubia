@@ -8,7 +8,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
-use excubia_api::{AuditEvent, AuditSink};
+use excubia_api::{AuditEvent, AuditSink, PairVia};
 use excubia_auth::{DeviceStore, Permission};
 use excubia_chat::HookScope;
 use excubia_host::audit::AuditLog;
@@ -28,6 +28,7 @@ pub(super) fn pair_code(ttl_seconds: f64, lan: &[SocketAddr], data_dir: &Path) -
     paths::ensure_data_dir(data_dir)?;
     let store = DeviceStore::open(Some(paths::devices_path(data_dir)));
     let code = store.issue_enrollment_code(ttl_seconds)?;
+    excubia_host::pairing_audit::note_code_issued(data_dir, PairVia::Code);
     println!("pairing code: {code}");
     println!("single use, valid for {ttl_seconds:.0} seconds; enter it on the device");
     if !lan.is_empty() {
@@ -49,6 +50,7 @@ pub(super) fn pair_code(ttl_seconds: f64, lan: &[SocketAddr], data_dir: &Path) -
 pub(super) async fn pair_code_pake(port: u16, uri: bool, data_dir: &Path) -> Result<()> {
     let token = pake_cli::read_hook_token(data_dir)?;
     let armed = pake_cli::arm_code(SocketAddr::from(([127, 0, 0, 1], port)), &token).await?;
+    excubia_host::pairing_audit::note_code_issued(data_dir, PairVia::Pake);
     // Checked before printing: a code shown without the link that was asked for would be half an answer.
     let link = match (uri, &armed.uri) {
         (true, None) => {

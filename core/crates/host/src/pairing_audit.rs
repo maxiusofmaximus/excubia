@@ -8,7 +8,7 @@ use std::io::{Error, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
-use excubia_api::{PairingAttempt, PairingAudit};
+use excubia_api::{PairOutcome, PairVia, PairingAttempt, PairingAudit};
 
 pub const AUDIT_FILE: &str = "pairing-audit.jsonl";
 const ROTATED_FILE: &str = "pairing-audit.jsonl.1";
@@ -76,10 +76,16 @@ impl PairingAudit for JsonlPairingAudit {
     }
 }
 
+/// Notes that the CLI minted a pairing code. The line holds neither the code, nor the key, nor the link.
+pub fn note_code_issued(data_dir: &Path, via: PairVia) {
+    let attempt = PairingAttempt::new(PairOutcome::CodeIssued, via, None, None, "local");
+    JsonlPairingAudit::new(data_dir).record(&attempt);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use excubia_api::{PairOutcome, PairVia};
+    use excubia_auth::DeviceStore;
     use excubia_test_dir::TestDir;
 
     fn attempt(label: &str) -> PairingAttempt {
@@ -136,5 +142,19 @@ mod tests {
         sink.record(&attempt("b"));
 
         assert_eq!(labels(&dir.join(AUDIT_FILE)), ["a", "b"]);
+    }
+
+    #[test]
+    fn a_minted_code_is_noted_in_one_line_without_the_code() {
+        let dir = TestDir::new("audit-code-issued");
+        let code = DeviceStore::open(Some(dir.join("devices.json")))
+            .issue_enrollment_code(180.0)
+            .expect("code");
+        note_code_issued(&dir, PairVia::Code);
+
+        let text = fs::read_to_string(dir.join(AUDIT_FILE)).expect("audit");
+        assert_eq!(text.lines().count(), 1, "{text}");
+        assert!(text.contains(r#""outcome":"code_issued""#), "{text}");
+        assert!(!text.contains(&code), "the audit holds a code: {text}");
     }
 }

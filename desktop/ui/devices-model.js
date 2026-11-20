@@ -4,7 +4,9 @@
 import { relativeDate } from "./agenda-model.js";
 import { friendlyError, OFFLINE_TEXT } from "./friendly-error.js";
 
-export const THIS_DEVICE_REASON = "Para salir de este equipo, usa Olvidar emparejamiento.";
+export const THIS_DEVICE_REASON = "Para salir de este equipo, usa Revocar este equipo.";
+export const SERVER_DEVICE_REASON =
+  "Este PC es el servidor de Excubia. Para usar otro PC, elige Vincular con otro equipo en Ajustes.";
 export const REVOKE_WARNING =
   "Este dispositivo dejará de poder entrar y no podrá volver sin emparejarse de nuevo.";
 export const OWN_REVOKE_WARNING =

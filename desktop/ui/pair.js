@@ -20,7 +20,12 @@ export function hydratePairing(boot) {
   $("device-label").value = boot.label || "";
   $("fingerprint").textContent = boot.fingerprint || "No disponible";
   $("notifications-toggle").checked = boot.notifications_enabled !== false;
-  $("btn-pair-back").classList.toggle("hidden", !(boot.paired || local));
+  // Local mode has no code form to read the lede from: it asks for the phone instead.
+  $("pair-title").textContent = local ? "Emparejar el móvil" : "Vincula este equipo con tu Excubia";
+  $("pair-lede").classList.toggle("hidden", local);
+  for (const id of ["btn-pair-top-back", "btn-pair-back"]) {
+    $(id).classList.toggle("hidden", !(boot.paired || local));
+  }
   if (boot.identity_error) {
     showPairError(`No se pudo abrir el almacén seguro: ${boot.identity_error}`);
     $("btn-pair").disabled = true;
@@ -38,7 +43,7 @@ function renderLocalStatus(host) {
   const state = host ? host.state : "disabled";
   restart.classList.toggle("hidden", state !== "failed");
   if (state === "ready") {
-    status.textContent = `Excubia está en marcha en este equipo. Alfred y el equipo aparecerán en cuanto haya datos.`;
+    status.textContent = "Excubia está en marcha en este equipo.";
   } else if (state === "failed") {
     status.textContent = `Excubia no arrancó en este equipo: ${host.error}`;
   } else {
@@ -170,15 +175,19 @@ async function toggleNotifications() {
   }
 }
 
+function backToChat() {
+  showView("chat");
+  chatAfterConnect();
+}
+
 export function installPairHandlers() {
   $("pair-form").addEventListener("submit", doPair);
   installLinkForm(completePairing);
   installLanPairing();
   $("notifications-toggle").addEventListener("change", toggleNotifications);
-  $("btn-pair-back").addEventListener("click", () => {
-    showView("chat");
-    chatAfterConnect();
-  });
+  for (const id of ["btn-pair-top-back", "btn-pair-back"]) {
+    $(id).addEventListener("click", backToChat);
+  }
   $("btn-use-remote").addEventListener("click", useRemoteHost);
   $("btn-use-local").addEventListener("click", useLocalHost);
   $("btn-restart-host").addEventListener("click", restartHost);

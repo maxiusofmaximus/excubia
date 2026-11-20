@@ -20,6 +20,9 @@ pub enum PairOutcome {
     /// A PAKE attempt that did not end in a device: no live code, a bad message, no session, a wrong tag.
     #[serde(rename = "pake_failed")]
     PakeFailed,
+    /// A pairing code was minted by `excubia-host pair-code` (not a pairing: no notice, no device).
+    #[serde(rename = "code_issued")]
+    CodeIssued,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -43,6 +46,7 @@ impl PairOutcome {
             Self::Granted => "granted",
             Self::PakeStarted => "pake_started",
             Self::PakeFailed => "pake_failed",
+            Self::CodeIssued => "code_issued",
         }
     }
 }
@@ -133,5 +137,13 @@ mod tests {
         );
         // The names that existed before did not move.
         assert_eq!(line(PairOutcome::Rejected, PairVia::Code)["via"], "code");
+    }
+
+    #[test]
+    fn a_minted_code_has_its_own_stable_name() {
+        let attempt = PairingAttempt::new(PairOutcome::CodeIssued, PairVia::Pake, None, None, "local");
+        let json = serde_json::to_value(&attempt).expect("json");
+        assert_eq!(json["outcome"], "code_issued");
+        assert_eq!(PairOutcome::CodeIssued.name(), "code_issued");
     }
 }
