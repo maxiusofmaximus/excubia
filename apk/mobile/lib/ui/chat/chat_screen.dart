@@ -216,7 +216,11 @@ class _ChatScreenState extends State<ChatScreen> {
         !_away.value &&
         metrics.maxScrollExtent > metrics.pixels) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients && !_away.value) {
+        // A finger or a fling on the thread wins: the jump never fights it, or a row
+        // that keeps changing size would pin the thread to its end and it would not move.
+        if (_scroll.hasClients &&
+            !_away.value &&
+            !_scroll.position.isScrollingNotifier.value) {
           _scroll.jumpTo(_scroll.position.maxScrollExtent);
         }
       });
