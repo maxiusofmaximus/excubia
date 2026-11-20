@@ -253,7 +253,7 @@ void main() {
   });
 
   testWidgets(
-    'a lead with no activity shows the name alone, not «Sin actividad reciente»',
+    'an idle lead with no agent alive is not named: the card says nobody works',
     (tester) async {
       await pumpCard(
         tester,
@@ -267,8 +267,38 @@ void main() {
         const [],
       );
 
-      expect(find.text('Ernesto'), findsOneWidget);
+      expect(find.text('Ernesto'), findsNothing);
+      expect(find.text('Nadie trabajando en este proyecto.'), findsOneWidget);
       expect(find.text('Sin actividad reciente'), findsNothing);
     },
   );
+
+  testWidgets('an idle lead with a live agent keeps its row', (tester) async {
+    await pumpCard(
+      tester,
+      const ChatProject(
+        id: 'prj_1',
+        name: 'Demo',
+        rootLabel: 'demo',
+        status: 'active',
+        lead: ChatSeat(
+          agentId: 'ag_1',
+          name: 'Ernesto',
+          status: 'draft',
+          paneId: 'w1:p3',
+        ),
+      ),
+      [
+        agent(
+          pane: 'w1:p3',
+          project: 'Demo',
+          title: 'Plan',
+          status: AgentStatus.idle,
+        ),
+      ],
+    );
+
+    expect(find.text('Ernesto'), findsOneWidget);
+    expect(find.text('Nadie trabajando en este proyecto.'), findsNothing);
+  });
 }

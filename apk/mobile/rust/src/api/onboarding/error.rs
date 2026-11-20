@@ -50,7 +50,7 @@ pub fn explain_onboarding_error(status: u16, body: String) -> ErrorInfo {
     match (status, code.as_deref()) {
         (403, _) => info(
             "Este dispositivo no tiene permiso para contratar agentes.",
-            Some("Pide a quien administra el equipo que le conceda el permiso APPROVE."),
+            Some("Pide a quien administra el equipo que le conceda el permiso."),
             FailureKind::Permission,
         ),
         (409, Some("area_full")) => info(

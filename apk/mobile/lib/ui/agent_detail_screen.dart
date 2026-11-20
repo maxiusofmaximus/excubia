@@ -188,9 +188,9 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
         backgroundColor: context.colors.raised,
         title: const Text('Detener agente'),
         content: Text(
-          'Se cerrará el proceso de ${agent.title ?? agent.project} '
-          '(${agent.paneId}). El panel saldrá de la lista y la acción no se '
-          'puede deshacer.',
+          'Se cerrará la conversación con '
+          '${stripRoleSuffix(agentNameOf(agent))}. El agente saldrá de la lista '
+          'y la acción no se puede deshacer.',
           style: context.text.bodySecondary,
         ),
         actions: [

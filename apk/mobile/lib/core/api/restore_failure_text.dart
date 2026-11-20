@@ -2,7 +2,7 @@ part of 'restore_api.dart';
 
 /// The grant the restore needs, said the way the desktop says it.
 const String restoreGrantLede =
-    'Para volver a una versión, este dispositivo necesita el permiso APPROVE. Concédelo desde el PC.';
+    'Para volver a una versión, este dispositivo necesita permiso. Concédelo desde el PC.';
 
 const String _unknownFailure =
     'El equipo no pudo completar la acción. Inténtalo de nuevo.';

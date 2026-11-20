@@ -215,7 +215,10 @@ void main() {
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Concede el permiso APPROVE'), findsOneWidget);
+    expect(
+      find.textContaining('Concede el permiso desde el PC'),
+      findsOneWidget,
+    );
     expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNull);
   });
 

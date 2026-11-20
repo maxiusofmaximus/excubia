@@ -97,7 +97,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.textContaining('Se cerrará el proceso'), findsOneWidget);
+    expect(
+      find.textContaining('Se cerrará la conversación con'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('proceso'), findsNothing);
+    expect(find.textContaining('w1:p1'), findsNothing);
     expect(find.text('Cancelar'), findsOneWidget);
 
     await tester.tap(find.text('Cancelar'));

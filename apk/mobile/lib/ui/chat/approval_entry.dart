@@ -38,11 +38,12 @@ class ApprovalsHeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Hidden, not removed: with nothing waiting the header keeps no empty slot.
+    if (pending <= 0) return const SizedBox.shrink();
     return IconButton(
       tooltip: 'Aprobaciones',
       onPressed: onPressed,
       icon: Badge(
-        isLabelVisible: pending > 0,
         label: Text('$pending'),
         child: const Icon(Icons.shield_outlined),
       ),

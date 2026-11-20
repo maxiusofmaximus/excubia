@@ -268,7 +268,7 @@ fn skip_body_is_fixed() {
 }
 
 #[test]
-fn a_missing_grant_asks_for_approve_and_needs_permission() {
+fn a_missing_grant_asks_for_the_permission_in_plain_words() {
     let failure = explain_onboarding_error(403, String::new());
     assert_eq!(failure.kind, FailureKind::Permission);
     assert!(failure.message.contains("permiso"));
@@ -276,7 +276,7 @@ fn a_missing_grant_asks_for_approve_and_needs_permission() {
         .action
         .as_deref()
         .unwrap_or_default()
-        .contains("APPROVE"));
+        .contains("conceda el permiso"));
 }
 
 #[test]

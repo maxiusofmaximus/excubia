@@ -105,6 +105,7 @@ class TeamProjectGroupCard extends StatelessWidget {
       _ => '${group.seats} agentes',
     };
     final folder = _folderLine(group.project);
+    final idleLead = _idleLead(group);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Spacing.lg,
@@ -153,7 +154,7 @@ class TeamProjectGroupCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (lead != null)
+            if (lead != null && !idleLead)
               _MemberRow(
                 name: lead.name,
                 // The badge tells the lead apart only when someone works under them.
@@ -172,7 +173,7 @@ class TeamProjectGroupCard extends StatelessWidget {
                 detail: agent.title,
                 onTap: () => onOpenAgent(agent.paneId),
               ),
-            if (lead == null && group.specialists.isEmpty)
+            if (idleLead || (lead == null && group.specialists.isEmpty))
               Padding(
                 padding: const EdgeInsets.all(Spacing.md),
                 child: Text(
@@ -303,6 +304,20 @@ String? _workspaceOf(String? paneId) {
   final separator = paneId.indexOf(':');
   if (separator <= 0) return null;
   return paneId.substring(0, separator);
+}
+
+/// The lead of a project with nobody under them and no live agent, whose status
+/// is unknown, idle or done: a bare name would say nothing, so the card omits it.
+/// A blocked or working lead stays visible.
+bool _idleLead(TeamProjectGroup group) {
+  final lead = group.project.lead;
+  if (lead == null || group.specialists.isNotEmpty || group.leadAgent != null) {
+    return false;
+  }
+  final status = _seatStatus(lead.status);
+  return status == AgentStatus.unknown ||
+      status == AgentStatus.idle ||
+      status == AgentStatus.done;
 }
 
 AgentStatus _seatStatus(String status) => switch (status) {

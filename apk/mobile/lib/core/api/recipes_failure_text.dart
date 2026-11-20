@@ -2,7 +2,7 @@ part of 'recipes_api.dart';
 
 /// Said where the device may only see the recipes: it lacks `APPROVE`.
 const String recipePermissionText =
-    'Este dispositivo solo puede ver las recetas. Concede el permiso APPROVE desde el PC para repetirlas.';
+    'Este dispositivo solo puede ver las recetas. Concede el permiso desde el PC para repetirlas.';
 
 /// Said when no conversation of the chat has a project, so a recipe has nowhere to run.
 const String noProjectRunText =

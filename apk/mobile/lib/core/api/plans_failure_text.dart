@@ -2,7 +2,7 @@ part of 'plans_api.dart';
 
 /// Said where the device may only read the plans: it lacks `APPROVE`.
 const String planPermissionText =
-    'Este dispositivo solo puede ver los planes. Concede el permiso APPROVE desde el PC para decidir.';
+    'Este dispositivo solo puede ver los planes. Concede el permiso desde el PC para decidir.';
 
 const String _unknownDecision = 'No se pudo completar la acción. Inténtalo de nuevo.';
 const String _unknownRead = 'No se pudo leer los planes. Inténtalo de nuevo.';

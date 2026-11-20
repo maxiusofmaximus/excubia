@@ -2,7 +2,7 @@ part of 'schedules_api.dart';
 
 /// Said where the device may only see the schedules: it lacks `APPROVE`.
 const String schedulePermissionText =
-    'Este dispositivo solo puede ver las tareas programadas. Concede el permiso APPROVE desde el PC para pausarlas o lanzarlas.';
+    'Este dispositivo solo puede ver las tareas programadas. Concede el permiso desde el PC para pausarlas o lanzarlas.';
 
 const String _unknownRead =
     'No se pudieron leer las tareas programadas. Inténtalo de nuevo.';
