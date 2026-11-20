@@ -58,7 +58,7 @@ extension _AgentDetailView on _AgentDetailScreenState {
             width: 240,
             child: AgentPortraitCard(
               id: agentProfileFor(agentNameOf(agent))?.id ?? '',
-              name: agentNameOf(agent),
+              name: stripRoleSuffix(agentNameOf(agent)),
               tagline: [
                 agent.project,
                 context.colors.statusLabel(agent.status),
@@ -67,13 +67,6 @@ extension _AgentDetailView on _AgentDetailScreenState {
           ),
         ),
         const SizedBox(height: Spacing.lg),
-        if (agent.restored) ...[
-          const SizedBox(height: Spacing.sm),
-          Text(
-            'Restaurado de una sesión anterior; su proceso ya no corre.',
-            style: context.text.small,
-          ),
-        ],
         if (!agent.restored) ...[
           const SizedBox(height: Spacing.lg),
           AgentComposer(
@@ -97,11 +90,11 @@ extension _AgentDetailView on _AgentDetailScreenState {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Panel restaurado', style: context.text.title),
+                Text('Esta conversación terminó', style: context.text.title),
                 const SizedBox(height: Spacing.xs),
                 Text(
-                  'El agente terminó. Puedes abrir una conversación nueva en la '
-                  'misma carpeta del equipo.',
+                  'Puedes abrir una conversación nueva en la misma carpeta del '
+                  'equipo.',
                   style: context.text.bodySecondary,
                 ),
                 const SizedBox(height: Spacing.md),
@@ -126,10 +119,11 @@ extension _AgentDetailView on _AgentDetailScreenState {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Copias del turno', style: context.text.title),
+              Text('Volver a una versión anterior', style: context.text.title),
               const SizedBox(height: Spacing.xs),
               Text(
-                'Mira qué cambió cada turno y, si hace falta, vuelve a una copia de la carpeta.',
+                'Mira qué cambió el agente y, si hace falta, recupera una '
+                'versión anterior de la carpeta.',
                 style: context.text.bodySecondary,
               ),
               const SizedBox(height: Spacing.md),
@@ -137,7 +131,7 @@ extension _AgentDetailView on _AgentDetailScreenState {
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                 onPressed: () => _openRestore(agent),
                 icon: const Icon(Icons.history),
-                label: const Text('Ver copias'),
+                label: const Text('Ver versiones'),
               ),
             ],
           ),
@@ -160,7 +154,7 @@ extension _AgentDetailView on _AgentDetailScreenState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Field(label: 'Tarea', value: agent.title ?? '—'),
+          _Field(label: 'Tarea', value: stripRoleSuffix(agent.title ?? '—')),
           _Field(label: 'Agente', value: agent.agent),
           _Field(label: 'Workspace', value: agent.workspaceId),
           _Field(label: 'Pane', value: agent.paneId, mono: true),

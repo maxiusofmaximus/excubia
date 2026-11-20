@@ -153,7 +153,7 @@ void main() {
 
     expect(
       find.text(
-        'Aún no hay copias de este agente. Se guarda una al empezar cada turno.',
+        'Aún no hay versiones de este agente. Se guarda una cada vez que el agente empieza a trabajar.',
       ),
       findsOneWidget,
     );
@@ -232,7 +232,7 @@ void main() {
 
     expect(
       find.text(
-        'Se van a restaurar 3 ficheros. Antes se guarda una copia de la carpeta actual para poder deshacer.',
+        'Se van a restaurar 3 ficheros. Antes se guarda una versión de la carpeta actual para poder deshacer.',
       ),
       findsOneWidget,
     );

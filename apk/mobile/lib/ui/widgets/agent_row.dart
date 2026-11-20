@@ -3,6 +3,7 @@ import 'package:excubia/src/rust/api/state.dart';
 
 import '../theme.dart';
 import 'agent_avatar.dart';
+import 'agent_text.dart';
 
 /// One agent: project and task, one line each, the whole row tappable.
 class AgentRow extends StatelessWidget {
@@ -14,7 +15,11 @@ class AgentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final blocked = agent.status == AgentStatus.blocked;
-    final detail = agent.title?.trim();
+    final subtitle = agentSubtitle(
+      agent.status,
+      context.colors.statusLabel(agent.status),
+      agent.title,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: Spacing.lg,
@@ -67,33 +72,32 @@ class AgentRow extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       // The word carries the state; the point only repeats it.
-                      Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: context.colors.forStatus(agent.status),
-                            ),
-                          ),
-                          const SizedBox(width: Spacing.xs),
-                          Expanded(
-                            child: Text(
-                              detail == null || detail.isEmpty
-                                  ? context.colors.statusLabel(agent.status)
-                                  : '${context.colors.statusLabel(agent.status)} · $detail',
-                              style: context.text.small.copyWith(
-                                color: context.colors.labelForStatus(
-                                  agent.status,
-                                ),
+                      if (subtitle != null)
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: context.colors.forStatus(agent.status),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: Spacing.xs),
+                            Expanded(
+                              child: Text(
+                                subtitle,
+                                style: context.text.small.copyWith(
+                                  color: context.colors.labelForStatus(
+                                    agent.status,
+                                  ),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),

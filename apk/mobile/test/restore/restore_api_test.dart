@@ -111,15 +111,15 @@ void main() {
     test('words each code the host sends for a restore', () {
       expect(
         restoreFailureText(_coded(404, 'restore_point_not_found')),
-        'Esa copia ya no existe. Vuelve a la lista.',
+        'Esa versión ya no existe. Vuelve a la lista.',
       );
       expect(
         restoreFailureText(_coded(400, 'restore_invalid')),
-        'La copia tiene rutas que salen de la carpeta, así que no se ha restaurado nada.',
+        'La versión tiene rutas que salen de la carpeta, así que no se ha restaurado nada.',
       );
       expect(
         restoreFailureText(_coded(409, 'restore_failed')),
-        'No se pudo volver a esa copia. Revisa la carpeta y reinténtalo.',
+        'No se pudo volver a esa versión. Revisa la carpeta y reinténtalo.',
       );
     });
 

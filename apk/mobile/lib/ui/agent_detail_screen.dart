@@ -16,6 +16,7 @@ import 'theme.dart';
 import 'widgets/agent_avatar.dart';
 import 'widgets/agent_composer.dart';
 import 'widgets/agent_portrait_card.dart';
+import 'widgets/agent_text.dart';
 import 'widgets/surface_card.dart';
 
 part 'agent_detail_view.dart';
@@ -237,7 +238,7 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
         builder: (_) => RestoreScreen(
           api: widget.restore,
           agent: widget.paneId,
-          title: agent.title ?? agent.project,
+          title: stripRoleSuffix(agent.title ?? agent.project),
         ),
       ),
     );

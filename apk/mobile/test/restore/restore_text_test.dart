@@ -37,8 +37,8 @@ void main() {
     final turn = RestorePoint.fromJson(_turnJson(RestorePointKind.turn));
     final undo = RestorePoint.fromJson(_turnJson(RestorePointKind.beforeUndo));
 
-    expect(pointLabel(turn), 'Copia del turno');
-    expect(pointLabel(undo), 'Copia antes de deshacer');
+    expect(pointLabel(turn), 'Versión anterior');
+    expect(pointLabel(undo), 'Versión antes de deshacer');
   });
 
   test('filesText is singular for one file', () {
@@ -92,11 +92,11 @@ void main() {
   test('confirmText names what goes back and keeps a copy to undo', () {
     expect(
       confirmText(1),
-      'Se va a restaurar 1 fichero. Antes se guarda una copia de la carpeta actual para poder deshacer.',
+      'Se va a restaurar 1 fichero. Antes se guarda una versión de la carpeta actual para poder deshacer.',
     );
     expect(
       confirmText(3),
-      'Se van a restaurar 3 ficheros. Antes se guarda una copia de la carpeta actual para poder deshacer.',
+      'Se van a restaurar 3 ficheros. Antes se guarda una versión de la carpeta actual para poder deshacer.',
     );
   });
 

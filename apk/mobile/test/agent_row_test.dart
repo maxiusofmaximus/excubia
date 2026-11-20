@@ -52,4 +52,48 @@ void main() {
 
     expect(find.text('inactivo'), findsOneWidget);
   });
+
+  testWidgets(
+    'a loose agent with no activity never reads «Sin actividad reciente»',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(),
+          home: Scaffold(
+            body: AgentRow(
+              agent: agent(status: AgentStatus.unknown),
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('excubia'), findsOneWidget);
+      expect(find.text('Sin actividad reciente'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a role tag in the title is not shown: «Plan de tres hitos — lead» reads «Plan de tres hitos»',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(),
+          home: Scaffold(
+            body: AgentRow(
+              agent: agent(
+                status: AgentStatus.unknown,
+                title: 'Plan de tres hitos — lead',
+              ),
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Plan de tres hitos'), findsOneWidget);
+      expect(find.textContaining('lead'), findsNothing);
+      expect(find.text('Sin actividad reciente'), findsNothing);
+    },
+  );
 }

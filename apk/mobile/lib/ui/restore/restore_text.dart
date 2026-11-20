@@ -26,8 +26,8 @@ String pointTime(int createdMs) {
 }
 
 String pointLabel(RestorePoint point) => switch (point.kind) {
-  RestorePointKind.turn => 'Copia del turno',
-  RestorePointKind.beforeUndo => 'Copia antes de deshacer',
+  RestorePointKind.turn => 'Versión anterior',
+  RestorePointKind.beforeUndo => 'Versión antes de deshacer',
 };
 
 String filesText(int count) => count == 1 ? '1 fichero' : '$count ficheros';
@@ -66,7 +66,7 @@ String confirmText(int count) {
   final what = count == 1
       ? 'Se va a restaurar 1 fichero.'
       : 'Se van a restaurar $count ficheros.';
-  return '$what Antes se guarda una copia de la carpeta actual para poder deshacer.';
+  return '$what Antes se guarda una versión de la carpeta actual para poder deshacer.';
 }
 
 /// What a finished restore put back and what it took away.

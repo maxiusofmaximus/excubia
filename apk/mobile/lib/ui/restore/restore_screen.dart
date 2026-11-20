@@ -159,7 +159,7 @@ class _RestoreScreenState extends State<RestoreScreen> {
         tooltip: 'Volver',
         onPressed: _back,
       ),
-      title: const Text('Copias del turno'),
+      title: const Text('Versiones anteriores'),
     ),
     body: switch (_stage) {
       _Stage.list => _listBody(),

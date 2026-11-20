@@ -11,7 +11,7 @@ const EdgeInsets _pagePadding = EdgeInsets.fromLTRB(
 /// fails or waits shows the same words wherever it is.
 extension _RestoreSteps on _RestoreScreenState {
   Widget _loadingBody() => Semantics(
-    label: 'Cargando copias',
+    label: 'Cargando versiones',
     child: Center(child: CircularProgressIndicator()),
   );
 
@@ -51,7 +51,7 @@ extension _RestoreSteps on _RestoreScreenState {
     if (failure != null) {
       return _readFailure(
         failure: failure,
-        title: 'No se pudieron cargar las copias',
+        title: 'No se pudieron cargar las versiones',
         retry: _loadList,
       );
     }
@@ -62,8 +62,8 @@ extension _RestoreSteps on _RestoreScreenState {
         children: [
           EmptyState(
             icon: Icons.history,
-            title: 'Sin copias todavía',
-            detail: 'Aún no hay copias de este agente. Se guarda una al empezar cada turno.',
+            title: 'Sin versiones todavía',
+            detail: 'Aún no hay versiones de este agente. Se guarda una cada vez que el agente empieza a trabajar.',
             actionLabel: 'Actualizar',
             onAction: _loadList,
           ),
@@ -111,7 +111,7 @@ extension _RestoreSteps on _RestoreScreenState {
     return ListView(
       padding: _pagePadding,
       children: [
-        Text('Cambios de esta copia', style: context.text.title),
+        Text('Cambios de esta versión', style: context.text.title),
         const SizedBox(height: Spacing.xs),
         Text(
           '${pointLabel(point)} · ${pointTime(point.createdMs)} · '
@@ -147,7 +147,7 @@ extension _RestoreSteps on _RestoreScreenState {
     if (changes.changes.isEmpty) {
       return [
         Text(
-          'Esta copia coincide con la carpeta de ahora: no hay nada que volver a poner.',
+          'Esta versión coincide con la carpeta de ahora: no hay nada que volver a poner.',
           style: context.text.bodySecondary,
         ),
       ];
@@ -223,7 +223,7 @@ extension _RestoreSteps on _RestoreScreenState {
       Text('Deshecho.', style: context.text.title),
       const SizedBox(height: Spacing.sm),
       Text(
-        'La carpeta vuelve a estar como estaba antes de volver a esa copia.',
+        'La carpeta vuelve a estar como estaba antes de volver a esa versión.',
         style: context.text.body,
       ),
       RestoreActions(

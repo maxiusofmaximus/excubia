@@ -2,7 +2,7 @@ part of 'restore_api.dart';
 
 /// The grant the restore needs, said the way the desktop says it.
 const String restoreGrantLede =
-    'Para volver a una copia, este dispositivo necesita el permiso APPROVE. Concédelo desde el PC.';
+    'Para volver a una versión, este dispositivo necesita el permiso APPROVE. Concédelo desde el PC.';
 
 const String _unknownFailure =
     'El equipo no pudo completar la acción. Inténtalo de nuevo.';
@@ -20,10 +20,10 @@ String restoreFailureText(Object error) {
   final failure = error.failure;
   if (failure != null && code == null) return connectionText(failure);
   return switch (code) {
-    'restore_point_not_found' => 'Esa copia ya no existe. Vuelve a la lista.',
-    'restore_invalid' => 'La copia tiene rutas que salen de la carpeta, así que no se ha restaurado nada.',
+    'restore_point_not_found' => 'Esa versión ya no existe. Vuelve a la lista.',
+    'restore_invalid' => 'La versión tiene rutas que salen de la carpeta, así que no se ha restaurado nada.',
     'restore_failed' =>
-      'No se pudo volver a esa copia. Revisa la carpeta y reinténtalo.',
+      'No se pudo volver a esa versión. Revisa la carpeta y reinténtalo.',
     _ => _statusText(error.status),
   };
 }

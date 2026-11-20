@@ -4,6 +4,7 @@ import 'package:excubia/src/rust/api/state.dart';
 
 import 'theme.dart';
 import 'widgets/agent_avatar.dart';
+import 'widgets/agent_text.dart';
 
 /// One project as the team surface sees it: its bootstrap lead plus the live
 /// specialists found in `/v1/state`.
@@ -204,19 +205,11 @@ class _MemberRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final task = detail?.trim();
-    // Unknown state and no task: the row keeps the name alone, not «Sin actividad reciente».
-    final String? subtitle;
-    if (task != null && task.isNotEmpty) {
-      subtitle = '${c.statusLabel(status)} · $task';
-    } else if (status != AgentStatus.unknown) {
-      subtitle = c.statusLabel(status);
-    } else {
-      subtitle = null;
-    }
+    final shown = stripRoleSuffix(name);
+    final subtitle = agentSubtitle(status, c.statusLabel(status), detail);
     return Semantics(
       button: onTap != null,
-      label: [name, ?role, ?subtitle].join(', '),
+      label: [shown, ?role, ?subtitle].join(', '),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -240,7 +233,7 @@ class _MemberRow extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        name,
+                        shown,
                         style: context.text.body,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

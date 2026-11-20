@@ -138,6 +138,25 @@ void main() {
     expect(find.text('Nueva conversación aquí'), findsOneWidget);
   });
 
+  testWidgets(
+    'a finished conversation says so, offers versions, and never says proceso',
+    (tester) async {
+      await pumpDetail(tester, triageWith(AgentStatus.unknown, restored: true));
+
+      expect(find.text('Esta conversación terminó'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Ver versiones'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Ver versiones'), findsOneWidget);
+      expect(find.textContaining('proceso'), findsNothing);
+      expect(find.textContaining('Restaurado'), findsNothing);
+      expect(find.text('Copias del turno'), findsNothing);
+      expect(find.text('Ver copias'), findsNothing);
+    },
+  );
+
   testWidgets('a live agent that is not blocked keeps the respond panel', (
     tester,
   ) async {

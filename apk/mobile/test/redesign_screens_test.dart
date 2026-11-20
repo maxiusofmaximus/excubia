@@ -200,7 +200,9 @@ void main() {
     testWidgets('cada estado de agente se lee en palabras, no solo en color', (
       tester,
     ) async {
+      // Unknown with no task shows no word at all (agent_row_test covers it).
       for (final status in AgentStatus.values) {
+        if (status == AgentStatus.unknown) continue;
         await mountWidget(
           tester,
           Scaffold(
