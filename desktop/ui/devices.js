@@ -24,7 +24,7 @@ import {
   grantChoices,
   groupSas,
   orderDevices,
-  permissionsText,
+  permissionChips,
   seenText,
   shortDeviceId,
 } from "./devices-model.js";
@@ -92,7 +92,7 @@ function row(device, thisDevice) {
   item.append(
     title,
     element("p", "agenda-row-meta", facts.filter(Boolean).join(" · ")),
-    element("p", "agenda-row-meta", permissionsText(device.permissions)),
+    permissionRow(device),
     id,
   );
   if (canApprove(device, thisDevice)) item.append(approveBlock(device));
@@ -150,6 +150,18 @@ async function revokeThisDevice(device, confirm, problem) {
   }
   await forgetPairing();
   toast("Este equipo ya no está vinculado. Introduce un código nuevo del PC.");
+}
+
+// The permissions of a device as chips: granted ✓ on a filled chip, the others «–» as an outline.
+// The text carries the difference too, so the state never rests on the colour alone.
+function permissionRow(device) {
+  const row = element("div", "perm-chips");
+  for (const { id, label, granted } of permissionChips(device.permissions)) {
+    const chip = element("span", granted ? "perm-chip is-granted" : "perm-chip", `${granted ? "✓" : "–"} ${label}`);
+    chip.dataset.permission = id;
+    row.append(chip);
+  }
+  return row;
 }
 
 // A pending device: its verification string to compare, the permissions it gets, and the approval.

@@ -48,7 +48,7 @@ export function characterFor(name, characterId) {
     .map(fold);
   return (
     Object.keys(CHARACTERS).find((id) =>
-      segments.some((segment) => segment === id || segment.startsWith(`${id} `)),
+      segments.some((segment) => segment === id || /^[\s,(]/.test(segment.slice(id.length)) && segment.startsWith(id)),
     ) || null
   );
 }

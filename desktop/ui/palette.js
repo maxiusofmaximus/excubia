@@ -17,6 +17,8 @@ import {
 } from "./palettes.js";
 
 const PREVIEW_TOKENS = ["bg", "surface", "line", "text", "muted", "accent"];
+// The palettes that are new in this release get a «Nueva» stamp on their card.
+const NEW_PALETTES = new Set(["telon"]);
 const state = { prefs: loadPrefs(), systemDark: systemIsDark(), pickers: [], firstRun: null, onContinue: null };
 
 function currentPrefs() {
@@ -61,6 +63,19 @@ function cardFor(palette, onChange) {
 
   const text = document.createElement("span");
   text.className = "palette-card-text";
+  // The palette's own pair, background and accent, as one slanted swatch.
+  const swatch = document.createElement("span");
+  swatch.className = "palette-swatch";
+  swatch.setAttribute("aria-hidden", "true");
+  swatch.style.setProperty("--sw-bg", palette.tokens.bg);
+  swatch.style.setProperty("--sw-accent", palette.tokens.accent);
+  if (NEW_PALETTES.has(palette.id)) {
+    const stamp = document.createElement("span");
+    stamp.className = "palette-new";
+    stamp.textContent = "Nueva";
+    text.append(stamp);
+  }
+  text.prepend(swatch);
   const name = document.createElement("span");
   name.className = "palette-card-name";
   name.textContent = palette.name;

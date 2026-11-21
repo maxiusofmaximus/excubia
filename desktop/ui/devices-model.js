@@ -32,6 +32,16 @@ export function permissionsText(permissions) {
   return words.length ? words.join(" · ") : "Sin permisos";
 }
 
+// Every permission the screen shows, in the contract's order, with whether this device has it.
+// The ones it lacks stay visible, so a reader sees what was not given.
+export function permissionChips(permissions) {
+  return Object.entries(PERMISSION_WORDS).map(([id, label]) => ({
+    id,
+    label,
+    granted: permissions.includes(id),
+  }));
+}
+
 // The host sends seconds since the epoch, and null for a device never used.
 export function seenText(lastSeenSeconds, now = Date.now()) {
   if (lastSeenSeconds == null) return "Sin uso registrado";

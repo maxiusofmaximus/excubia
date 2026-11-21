@@ -34,12 +34,32 @@ export function showsNav(view) {
   return !START_VIEWS.has(view);
 }
 
+let shownOwner = null;
+const enteredViews = new Set();
+
 export function showView(name, owner = ownerOf(name)) {
   for (const view of VIEW_NAMES) {
     document.getElementById(`view-${view}`).classList.toggle("hidden", view !== name);
   }
+  // A screen comes in once, the first time it is shown (ui/comic.css). The class is
+  // taken off after the animation, so showing it again does not replay it.
+  const screen = document.getElementById(`view-${name}`);
+  if (screen && !enteredViews.has(name)) {
+    enteredViews.add(name);
+    screen.classList.add("comic-enter");
+    setTimeout(() => screen.classList.remove("comic-enter"), 450);
+  }
   const bar = showsNav(name);
   document.querySelector(".app").classList.toggle("nav-hidden", !bar);
+  // The diagonal curtain (ui/comic.css) runs when the section changes. It is
+  // pointer-events: none and does not move focus; a quick second change restarts it.
+  if (bar && owner && owner !== shownOwner && shownOwner !== null) {
+    const curtain = document.getElementById("wipe");
+    curtain?.classList.remove("go");
+    void curtain?.offsetWidth;
+    curtain?.classList.add("go");
+  }
+  if (bar) shownOwner = owner;
   for (const item of document.querySelectorAll("#app-nav [data-nav]")) {
     const current = bar && item.dataset.nav === owner;
     item.classList.toggle("is-active", current);

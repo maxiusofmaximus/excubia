@@ -14,7 +14,7 @@ export function renderHeader() {
     name: alfred,
     characterId: "alfred",
     status: chat.waiting ? "working" : seat && seat.status,
-    px: 34,
+    px: 44,
   });
   $("btn-chat-more").disabled = !chat.conversation;
   const state = connection();

@@ -15,6 +15,10 @@
     "shadow-toast": "0 16px 40px rgba(70, 58, 40, 0.18)",
   };
 
+  // The comic UI's hard shadow and halftone dot, one pair per scheme (ui/comic.css).
+  const DARK_COMIC = { hard: "rgba(0, 0, 0, 0.55)", dot: "rgba(0, 0, 0, 0.35)" };
+  const LIGHT_COMIC = { hard: "rgba(28, 36, 56, 0.4)", dot: "rgba(28, 36, 56, 0.16)" };
+
   function tokens(values, shadow) {
     return Object.freeze({ ...values, ...shadow });
   }
@@ -49,6 +53,8 @@
           unknown: "#ded2b6",
           warning: "#f2a93b",
           sunken: "#081020",
+          ...DARK_COMIC,
+          band: "#17274a",
         },
         DARK_SHADOW,
       ),
@@ -82,6 +88,8 @@
           unknown: "#34405e",
           warning: "#8a5208",
           sunken: "#fbf7ec",
+          ...LIGHT_COMIC,
+          band: "#ece2c8",
         },
         LIGHT_SHADOW,
       ),
@@ -115,6 +123,8 @@
           unknown: "#d6d6d6",
           warning: "#7fa6d6",
           sunken: "#121212",
+          ...DARK_COMIC,
+          band: "#2a2a2a",
         },
         DARK_SHADOW,
       ),
@@ -148,6 +158,8 @@
           unknown: "#333333",
           warning: "#8a5208",
           sunken: "#f3f3f3",
+          ...LIGHT_COMIC,
+          band: "#e9e9e9",
         },
         LIGHT_SHADOW,
       ),
@@ -181,6 +193,8 @@
           unknown: "#d0e0fa",
           warning: "#6fb1ff",
           sunken: "#001230",
+          ...DARK_COMIC,
+          band: "#0a2c5e",
         },
         DARK_SHADOW,
       ),
@@ -214,6 +228,45 @@
           unknown: "#f0f0f0",
           warning: "#ffd400",
           sunken: "#000000",
+          ...DARK_COMIC,
+          band: "#1a1a1a",
+        },
+        DARK_SHADOW,
+      ),
+    },
+    // Telón: the red, black and white of the comic mockup. Its on-attention is the
+    // ink, not white: white on the salmon «blocked» token is 2,29:1 and fails the 4,5:1 rule.
+    telon: {
+      id: "telon",
+      name: "Telón",
+      note: "Rojo, negro y blanco de cómic",
+      scheme: "oscuro",
+      tokens: tokens(
+        {
+          bg: "#0a0a0c",
+          surface: "#131316",
+          raised: "#1c1c21",
+          "raised-2": "#25252b",
+          line: "#2a2a30",
+          "line-strong": "#8a8a96",
+          text: "#ffffff",
+          "text-2": "#ececf0",
+          muted: "#a9a9b3",
+          accent: "#e60012",
+          "accent-text": "#ff4d5c",
+          "accent-rgb": "230, 0, 18",
+          "accent-soft": "#3a0a10",
+          "on-accent": "#ffffff",
+          "on-attention": "#0a0a0c",
+          blocked: "#ff8a7a",
+          working: "#8fb7e8",
+          done: "#7fd6a3",
+          idle: "#a3a3a3",
+          unknown: "#d6d6d6",
+          warning: "#ffd400",
+          sunken: "#000000",
+          ...DARK_COMIC,
+          band: "#e60012",
         },
         DARK_SHADOW,
       ),
@@ -224,7 +277,7 @@
     return { id: DEFAULT_PALETTE, followSystem: false };
   }
 
-  // A plain object inherits `__proto__` and friends; only the six own keys are
+  // A plain object inherits `__proto__` and friends; only the own keys are
   // palette ids, so a corrupted store cannot smuggle one of those in.
   function isPaletteId(id) {
     return typeof id === "string" && Object.hasOwn(PALETTES, id);

@@ -1,0 +1,1220 @@
+/* The comic skin, phases 1 and 2: the base, the navigation, the chat, then the other
+   screens (phase 2, marked below). It loads last (ui/index.html), so it restyles the
+   pieces the other sheets draw, and it keeps their markup, ids, data-* and classes untouched.
+
+   Colours follow the palette by role, so the seven palettes (light ones too) work:
+   --hot is the accent and --on-hot the ink on it; --pale is the text colour and
+   --on-pale the ink on it; --deep is the raised surface and --on-deep the text on it.
+
+   Text is never skewed. The slant lives on a ::before behind the text, so a
+   slanted piece reads straight. Clip-paths only cut corners, never the text. */
+
+@font-face {
+  font-family: "Dela Gothic One";
+  src: url("assets/fonts/dela-gothic-one-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --hot: var(--accent);
+  --on-hot: var(--on-accent);
+  --pale: var(--text);
+  --on-pale: var(--bg);
+  --deep: var(--raised);
+  --on-deep: var(--text);
+  --skew: -8deg;
+  --display: "Dela Gothic One", "Arial Black", Impact, sans-serif;
+  --slant-inset: 6px;
+  --comic-shadow: 5px 5px 0 var(--hard);
+}
+
+/* -- the backdrop: a diagonal band of halftone at the right edge ---------- */
+
+.app::before,
+.app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.app::before {
+  background: linear-gradient(105deg, transparent 0 90%, var(--band) 90% 100%), var(--bg);
+}
+
+.app::after {
+  background-image: radial-gradient(circle, var(--dot) 1.4px, transparent 1.9px);
+  background-size: 11px 11px;
+  -webkit-mask-image: linear-gradient(105deg, transparent 0 90%, #000 90%);
+  mask-image: linear-gradient(105deg, transparent 0 90%, #000 90%);
+}
+
+/* -- the one slab: a skewed piece with a hard shadow, under unslanted text -- */
+
+.btn,
+.app-nav .nav-item,
+.thread-head,
+.chat-composer,
+.chat-row,
+.send-btn,
+.app-brand {
+  position: relative;
+  isolation: isolate;
+}
+
+/* -- navigation ----------------------------------------------------------- */
+
+.app-nav {
+  background-color: var(--surface);
+  background-image: radial-gradient(circle, var(--dot) 1.2px, transparent 1.7px);
+  background-size: 9px 9px;
+  border-right: 0;
+  box-shadow: 5px 0 0 var(--hard);
+}
+
+.app-brand {
+  width: max-content;
+  margin: 0 0 14px 4px;
+  padding: 8px 16px 8px 14px;
+  color: var(--on-pale);
+  font-family: var(--display);
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.app-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--pale);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+}
+
+.app-brand .brand-mark {
+  border-radius: 0;
+}
+
+.app-nav .nav-item {
+  min-height: 46px;
+  margin: 5px 6px 5px 4px;
+  padding: 10px 14px 10px 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--on-deep);
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: transform 0.18s cubic-bezier(0.3, 1.6, 0.5, 1), color 0.15s ease;
+}
+
+.app-nav .nav-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--deep);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+  transition: background 0.15s ease;
+}
+
+.app-nav .nav-item:hover {
+  background: transparent;
+  color: var(--on-pale);
+  transform: translateX(6px) scale(1.04);
+}
+
+.app-nav .nav-item:hover::before {
+  background: var(--pale);
+}
+
+/* The active tab is the hot slab with a ▶ that nudges. The ▶ is the only motion
+   that keeps running, and reduced motion turns it off. */
+.app-nav .nav-item.is-active,
+.app-nav .nav-item[aria-current="page"] {
+  color: var(--on-hot);
+  transform: translateX(10px) scale(1.06);
+}
+
+.app-nav .nav-item.is-active::before,
+.app-nav .nav-item[aria-current="page"]::before,
+.app-nav .nav-item.is-active:hover::before {
+  background: var(--hot);
+}
+
+.app-nav .nav-item.is-active::after,
+.app-nav .nav-item[aria-current="page"]::after {
+  content: "▶";
+  position: absolute;
+  left: -13px;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--hot);
+  font-size: 13px;
+  animation: comic-nudge 0.8s ease-in-out infinite alternate;
+}
+
+.app-nav .nav-item:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* -- buttons: parallelograms with a hard shadow --------------------------- */
+
+.btn {
+  min-height: 44px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--on-deep);
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  box-shadow: none;
+  transition: transform 0.14s cubic-bezier(0.3, 1.7, 0.5, 1), opacity 0.15s ease, filter 0.15s ease;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--slab, var(--deep));
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+  transition: background 0.12s ease;
+}
+
+.btn.primary {
+  --slab: var(--hot);
+  background: transparent;
+  border-color: transparent;
+  color: var(--on-hot);
+}
+
+.btn.secondary {
+  --slab: var(--deep);
+  background: transparent;
+  border-color: transparent;
+  color: var(--on-deep);
+}
+
+.btn.ghost {
+  --slab: transparent;
+  color: var(--text-2);
+}
+
+.btn.ghost::before {
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px) scale(1.05);
+}
+
+.btn.primary:hover:not(:disabled) {
+  --slab: var(--pale);
+  color: var(--on-pale);
+  filter: none;
+}
+
+.btn.secondary:hover:not(:disabled) {
+  --slab: var(--hot);
+  color: var(--on-hot);
+  background: transparent;
+}
+
+.btn.ghost:hover:not(:disabled) {
+  --slab: var(--deep);
+  color: var(--text);
+  background: transparent;
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(3px, 3px) scale(0.96);
+}
+
+.btn:active:not(:disabled)::before {
+  box-shadow: 1px 1px 0 var(--hard);
+}
+
+/* Disabled on purpose: an outlined slab with muted ink, not a faded hot one (which read as broken). */
+.btn:disabled {
+  opacity: 1;
+  color: var(--muted);
+  filter: none;
+  transform: none;
+}
+
+.btn:disabled::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 3px;
+}
+
+.btn-small {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 0;
+  font-size: 12px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* -- the chat header ------------------------------------------------------ */
+
+.thread-head {
+  margin: 12px 18px 0;
+  padding: 10px 22px 10px 16px;
+  border-bottom: 0;
+}
+
+.thread-head::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--deep);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+}
+
+.thread-title h1 {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* -- bubbles: cut corners, a hard shadow, the author as a tag ------------- */
+
+.msg-author {
+  position: relative;
+  isolation: isolate;
+  width: max-content;
+  margin-bottom: 4px;
+  padding: 3px 14px 3px 12px;
+  color: var(--on-pale);
+  font-family: var(--display);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.msg-author::before {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  z-index: -1;
+  background: var(--pale);
+  transform: skewX(var(--skew));
+}
+
+.msg-author .you {
+  color: inherit;
+}
+
+.msg.user .msg-author {
+  color: var(--on-hot);
+}
+
+.msg.user .msg-author::before {
+  background: var(--hot);
+}
+
+.msg-bubble {
+  position: relative;
+  isolation: isolate;
+  padding: 14px 20px 14px 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* The bubble's shape is one ::before and its shadow a copy behind it, offset:
+   the clip-path would cut a box-shadow, so the copy takes the shadow's place. */
+.msg-bubble::before,
+.msg-bubble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 3%, 98% 100%, 1.5% 97%);
+}
+
+.msg-bubble::before {
+  z-index: -1;
+  background: var(--surface);
+}
+
+.msg-bubble::after {
+  z-index: -2;
+  background: var(--hard);
+  transform: translate(-6px, 6px);
+}
+
+.msg.user .msg-bubble {
+  background: transparent;
+  border-color: transparent;
+  color: var(--on-pale);
+  font-weight: 600;
+}
+
+.msg.user .msg-bubble::before {
+  background: var(--pale);
+  clip-path: polygon(2% 3%, 100% 0, 98.5% 97%, 0 100%);
+}
+
+.msg.user .msg-bubble::after {
+  background: var(--hard);
+  clip-path: polygon(2% 3%, 100% 0, 98.5% 97%, 0 100%);
+  transform: translate(6px, 6px);
+}
+
+/* A new message slams in once. The thread repaints whole, so chatthread.js marks only the new one. */
+.msg.is-new {
+  animation: comic-in-left 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.msg.user.is-new {
+  animation-name: comic-in-right;
+}
+
+/* -- the permission card: a halftone panel with a stamp ------------------ */
+
+.approval-card,
+.approval-card.plain {
+  position: relative;
+  max-width: 600px;
+  margin: 18px 0 20px;
+  padding: 18px 20px 16px 22px;
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(circle, var(--dot) 1.1px, transparent 1.6px) 0 0 / 9px 9px, var(--surface);
+  box-shadow: 7px 7px 0 var(--hard);
+  color: var(--text);
+}
+
+.approval-card.tone-approved,
+.approval-card.tone-denied,
+.approval-card.tone-expired {
+  background: var(--surface);
+}
+
+.approval-card:not(.tone-approved):not(.tone-denied):not(.tone-expired)::after {
+  content: "¡Tu OK!";
+  position: absolute;
+  right: 14px;
+  top: -16px;
+  padding: 6px 12px;
+  background: var(--hot);
+  color: var(--on-hot);
+  font-family: var(--display);
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: 3px 3px 0 var(--hard);
+  transform: rotate(4deg);
+  pointer-events: none;
+  /* The tilt pulses smoothly; the colours switch in one step, never through the mix. */
+  animation: comic-stamp 1.4s ease-in-out infinite, comic-stamp-tone 1.4s step-end infinite;
+}
+
+/* -- the composer: a pale slab with the send as a hot slab ---------------- */
+
+.chat-composer {
+  margin: 12px 18px 24px;
+  padding: 10px 12px 10px 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--on-pale);
+}
+
+.chat-composer::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--pale);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+}
+
+.chat-composer:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.chat-composer:focus-within::before {
+  box-shadow: var(--comic-shadow), inset 0 -5px 0 var(--hot);
+}
+
+.chat-composer textarea {
+  background: transparent;
+  color: var(--on-pale);
+  font-weight: 600;
+}
+
+.chat-composer textarea::placeholder {
+  color: var(--on-pale);
+}
+
+.chat-composer .composer-hint,
+.chat-composer .chat-reply {
+  color: var(--on-pale);
+}
+
+.send-btn {
+  border-radius: 0;
+  background: transparent;
+  color: var(--on-hot);
+}
+
+.send-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0 2px;
+  z-index: -1;
+  background: var(--hot);
+  transform: skewX(var(--skew));
+  box-shadow: 3px 3px 0 var(--hard);
+}
+
+.send-btn:hover:not(:disabled) {
+  filter: none;
+}
+
+.send-btn:hover:not(:disabled)::before {
+  background: var(--on-pale);
+}
+
+/* -- history rows: a slab that appears on hover and turns hot when open --- */
+
+.chat-row {
+  margin: 3px 4px;
+  padding: 0 4px 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: transform 0.15s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.chat-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: transparent;
+  transform: skewX(var(--skew));
+  transition: background 0.12s ease;
+}
+
+.chat-row:hover {
+  background: transparent;
+  transform: translateX(4px);
+}
+
+.chat-row:hover::before {
+  background: var(--deep);
+}
+
+.chat-row.is-active {
+  background: transparent;
+  border-color: transparent;
+}
+
+.chat-row.is-active::before {
+  background: var(--hot);
+  box-shadow: 3px 3px 0 var(--hard);
+}
+
+.chat-row.is-active,
+.chat-row.is-active .chat-row-title,
+.chat-row.is-active .chat-row-meta {
+  color: var(--on-hot);
+}
+
+/* In the hot row the state chip becomes a pale pill with the hot ink as its ring:
+   amber or accent text on the hot slab was 1,1–2,0:1. The dot and ⋯ take the ink too. */
+.chat-row.is-active .chat-row-badge {
+  background: var(--pale);
+  color: var(--on-pale);
+  box-shadow: 0 0 0 1px var(--on-hot);
+}
+
+.chat-row.is-active .unread-dot {
+  background: var(--on-hot);
+}
+
+.chat-row.is-active .row-more {
+  color: var(--on-hot);
+}
+
+.chat-row.is-active .row-more:hover,
+.chat-row.is-active .row-more:focus-visible {
+  background: var(--pale);
+  color: var(--on-pale);
+}
+
+.quick-reply {
+  border: 0;
+  border-radius: 0;
+  background: var(--deep);
+  color: var(--on-deep);
+  font-weight: 600;
+}
+
+.quick-reply:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--hot);
+  color: var(--on-hot);
+}
+
+/* -- the section curtain: a diagonal wipe that never takes focus ----------- */
+
+.wipe {
+  position: fixed;
+  inset: -10%;
+  z-index: 50;
+  pointer-events: none;
+  background: var(--hot);
+  clip-path: polygon(0 0, 0 0, -20% 100%, -20% 100%);
+}
+
+.wipe::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  clip-path: polygon(0 0, 0 0, -14% 100%, -14% 100%);
+}
+
+.wipe.go {
+  animation: comic-wipe 0.6s cubic-bezier(0.7, 0, 0.2, 1) both;
+}
+
+.wipe.go::after {
+  animation: comic-wipe2 0.6s cubic-bezier(0.7, 0, 0.2, 1) both;
+}
+
+/* -- phase 2: the other screens ------------------------------------------ */
+
+/* Equipo: agent rows, hires and team cards are slabs; the status is a stamp. */
+.agent-row,
+.hire-row,
+.ts-card {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.agent-row:hover,
+.agent-row.status-blocked,
+.agent-row.status-blocked:hover,
+.hire-row:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.agent-row::before,
+.hire-row::before,
+.ts-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--deep);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+  transition: background 0.12s ease;
+}
+
+.agent-row:hover::before,
+.hire-row:hover::before {
+  background: var(--raised-2);
+}
+
+.agent-row.status-blocked::before {
+  background: color-mix(in srgb, var(--blocked) 16%, var(--deep));
+}
+
+.ts-card.is-waiting::before {
+  background: color-mix(in srgb, var(--accent) 16%, var(--deep));
+}
+
+/* The status is a stamp: the ink is the status colour on the page ground, ringed by it. */
+.row-status {
+  position: relative;
+  isolation: isolate;
+  padding: 4px 11px 3px;
+  font-family: var(--display);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.row-status::before {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  z-index: -1;
+  background: var(--bg);
+  transform: skewX(var(--skew));
+  box-shadow: inset 0 0 0 1.5px var(--status-color, var(--unknown));
+}
+
+.team-group {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+/* Avatars: a game dialogue portrait, a rectangle and never a disc. The panel takes the
+   character's colour and fades into the dark ground; its edge is pale and its top right
+   corner is cut. The bust stands on the bottom edge and its head rises past the top.
+   Only the panels slant: the bust and the letters stay straight. */
+.avatar {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  filter: drop-shadow(3px 3px 0 var(--hard));
+}
+
+/* The panel. The cut is on this pseudo only: a clip on the image would shave the head. */
+.avatar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(160deg, var(--avatar-bg, var(--raised-2)) 0%, var(--deep) 100%);
+  transform: skewX(var(--skew));
+  box-shadow: inset 0 0 0 3px var(--pale);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+
+/* The state ring, kept: a hot frame just outside the panel. Its pale keyline carries the
+   3:1 against the page: --hot alone is under it on Pergamino. */
+.avatar::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: -2;
+  border: 2px solid var(--hot);
+  box-shadow: 0 0 0 1px var(--pale);
+  transform: skewX(var(--skew));
+}
+
+/* The bust: anchored on the bottom edge, the head 18% above the frame. It never slants. */
+.avatar img {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: auto;
+  height: 118%;
+  max-width: none;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+
+/* At 44 px the render's own top margin hides the pop, so the header face is larger. */
+#chat-avatar img {
+  height: 132%;
+}
+
+/* No character: the initial, straight and centred on the hot panel. */
+.avatar:not(:has(img)) {
+  place-items: center;
+  color: var(--on-hot);
+  font-family: var(--display);
+  font-weight: 400;
+}
+
+.avatar:not(:has(img))::before {
+  background: var(--hot);
+}
+
+/* The message face keeps the portrait: no round clip, no disc behind the panel. */
+.msg-avatar.avatar {
+  overflow: visible;
+  background: transparent;
+}
+
+/* Agenda: the tabs and the rows are slabs; the chosen row is hot. */
+.agenda-tabs {
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 0;
+}
+
+.agenda-tab {
+  position: relative;
+  isolation: isolate;
+  margin-bottom: 0;
+  padding: 9px 16px;
+  border: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--on-deep);
+  font-family: var(--display);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.agenda-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--deep);
+  transform: skewX(var(--skew));
+  box-shadow: 3px 3px 0 var(--hard);
+}
+
+.agenda-tab:hover::before {
+  background: var(--raised-2);
+}
+
+.agenda-tab[aria-current="page"] {
+  color: var(--on-hot);
+  font-weight: 400;
+}
+
+.agenda-tab[aria-current="page"]::before {
+  background: var(--hot);
+}
+
+.agenda-row {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.agenda-row:hover {
+  background: transparent;
+}
+
+.agenda-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--deep);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+}
+
+.agenda-row:hover::before {
+  background: var(--raised-2);
+}
+
+.agenda-row[aria-current="true"]::before {
+  background: var(--hot);
+}
+
+.agenda-row[aria-current="true"],
+.agenda-row[aria-current="true"] .agenda-row-title,
+.agenda-row[aria-current="true"] .agenda-row-meta {
+  color: var(--on-hot);
+}
+
+.agenda-row[aria-current="true"] .agenda-badge {
+  background: var(--pale);
+  color: var(--on-pale);
+}
+
+/* A pressed toggle (the day and week choices) is hot, like the chosen row. */
+.btn[aria-pressed="true"]::before {
+  background: var(--hot);
+}
+
+.btn[aria-pressed="true"] {
+  color: var(--on-hot);
+}
+
+/* Ajustes: each section is a sheet, a slab with its hard shadow under it. */
+.settings-card {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.settings-card::before,
+.settings-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 1.2%, 99.2% 100%, 0.8% 98.8%);
+}
+
+.settings-card::before {
+  z-index: -1;
+  background: var(--deep);
+}
+
+.settings-card::after {
+  z-index: -2;
+  background: var(--hard);
+  transform: translate(6px, 6px);
+}
+
+/* Switches: the track is a parallelogram; the knob counter-skews so it stays round. */
+.switch input[type="checkbox"] {
+  transform: skewX(var(--skew));
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--hard);
+}
+
+.switch input[type="checkbox"]::after {
+  transform: skewX(calc(var(--skew) * -1));
+}
+
+.switch input[type="checkbox"]:checked::after {
+  transform: skewX(calc(var(--skew) * -1)) translateX(18px);
+}
+
+.mail-switch-track {
+  transform: skewX(var(--skew));
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--hard);
+}
+
+.mail-switch-track::after {
+  transform: skewX(calc(var(--skew) * -1));
+}
+
+/* Section labels: the display face, short and in capitals. The words stay as they are. */
+.settings-card h2,
+.agenda-panel-head h2,
+.team-head h2,
+.team-summary-head h2,
+.hire-group-title {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Dispositivos: a permission is a chip. Granted: a hot fill with ✓. Not granted: an outline and «–». */
+.perm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0;
+}
+
+.perm-chip {
+  position: relative;
+  isolation: isolate;
+  padding: 3px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.perm-chip::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  transform: skewX(var(--skew));
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+
+.perm-chip.is-granted {
+  color: var(--on-hot);
+}
+
+.perm-chip.is-granted::before {
+  background: var(--hot);
+  box-shadow: none;
+}
+
+.device-approve {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.device-approve::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--deep);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+}
+
+.device-approve-title {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Selector de paleta: the chip of each palette is a slanted swatch; Telón has its «Nueva» stamp. */
+.palette-card {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.palette-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--surface);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+}
+
+.palette-card:hover:not(:disabled)::before {
+  background: var(--raised);
+}
+
+.palette-card[aria-pressed="true"] {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.palette-card[aria-pressed="true"]::before {
+  box-shadow: var(--comic-shadow), inset 0 0 0 3px var(--hot);
+}
+
+.palette-card[aria-pressed="true"]::after {
+  content: "✓";
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  padding: 0 6px;
+  background: var(--hot);
+  color: var(--on-hot);
+  font-family: var(--display);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.palette-swatch {
+  width: 64px;
+  height: 22px;
+  transform: skewX(var(--skew));
+  background: linear-gradient(115deg, var(--sw-bg) 0 45%, var(--sw-accent) 45% 100%);
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+
+.palette-new {
+  position: relative;
+  isolation: isolate;
+  align-self: flex-start;
+  padding: 2px 9px;
+  color: var(--on-hot);
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.palette-new::before {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  z-index: -1;
+  background: var(--hot);
+  transform: skewX(var(--skew));
+}
+
+/* Onboarding and pairing: the titles take the display face; the buttons are the new .btn. */
+.view-palette h1,
+.view-onboarding h1,
+.view-pair h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Banners and toasts keep their words; only the shape changes. */
+.toast {
+  position: fixed;
+  isolation: isolate;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.toast::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--slant-inset);
+  z-index: -1;
+  background: var(--raised);
+  transform: skewX(var(--skew));
+  box-shadow: var(--comic-shadow);
+}
+
+.draft-card,
+.delegation-card {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.draft-card::before,
+.draft-card::after,
+.delegation-card::before,
+.delegation-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 2%, 99% 100%, 0.8% 98%);
+}
+
+.draft-card::before,
+.delegation-card::before {
+  z-index: -1;
+  background: var(--surface);
+}
+
+.draft-card::after,
+.delegation-card::after {
+  z-index: -2;
+  background: var(--hard);
+  transform: translate(5px, 5px);
+}
+
+/* The tone of a delegation is a hot bar at the left edge, not a border that the slant would cut. */
+.delegation-card {
+  padding-left: 16px;
+  border-left: 0;
+}
+
+.delegation-card::before {
+  background: linear-gradient(90deg, var(--delegation-tone) 0 5px, var(--surface) 5px);
+}
+
+/* -- motion ---------------------------------------------------------------- */
+
+@keyframes comic-in-left {
+  0% { opacity: 0; transform: translateX(-60px) scale(0.96); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes comic-in-right {
+  0% { opacity: 0; transform: translateX(60px) scale(0.96); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes comic-stamp {
+  50% { transform: rotate(4deg) scale(1.08); }
+}
+
+/* Two states only: each keyframe holds its colours to the next (step-end), so
+   the stamp goes from hot to pale in one step and never through the mix (Telón's pink). */
+@keyframes comic-stamp-tone {
+  0% { background: var(--hot); color: var(--on-hot); }
+  50% { background: var(--pale); color: var(--on-pale); }
+  100% { background: var(--hot); color: var(--on-hot); }
+}
+
+/* A screen comes in once, when it is first shown (ui/nav.js adds the class). */
+@keyframes comic-screen-in {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+.comic-enter {
+  animation: comic-screen-in 0.4s ease-out;
+}
+
+@keyframes comic-nudge {
+  to { translate: -4px -50%; }
+}
+
+@keyframes comic-wipe {
+  0% { clip-path: polygon(0 0, 0 0, -20% 100%, -20% 100%); }
+  45%, 55% { clip-path: polygon(0 0, 130% 0, 110% 100%, -20% 100%); }
+  100% { clip-path: polygon(120% 0, 130% 0, 110% 100%, 100% 100%); }
+}
+
+@keyframes comic-wipe2 {
+  0%, 8% { clip-path: polygon(0 0, 0 0, -14% 100%, -14% 100%); }
+  50% { clip-path: polygon(0 0, 130% 0, 110% 100%, -14% 100%); }
+  100% { clip-path: polygon(110% 0, 130% 0, 110% 100%, 100% 100%); }
+}
+
+@media (max-width: 759px) {
+  .app-brand {
+    margin: 0 0 12px;
+    padding: 6px 8px;
+  }
+
+  .app-nav .nav-item {
+    margin: 4px 2px;
+    padding: 10px 0;
+  }
+
+  .app-nav .nav-item.is-active::after,
+  .app-nav .nav-item[aria-current="page"]::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .wipe {
+    display: none;
+  }
+}

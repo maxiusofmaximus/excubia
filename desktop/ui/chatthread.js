@@ -20,10 +20,16 @@ import { chatSuggestions } from "./chat-suggestions.js";
 import { teamSnapshot } from "./hires.js";
 import { chat as chatState } from "./chatstate.js";
 
+// The highest message seq each conversation showed at the last paint. A message
+// above it is new and slams in once (ui/comic.css); a repaint replays nothing.
+const shownSeq = new Map();
+let newAfter = Infinity;
+
 function messageNode(message, alfredName, line = null, detail = null) {
   const user = message.author_kind === "user";
   const wrapper = element("article", `msg ${user ? "user" : "agent"}`);
   wrapper.dataset.seq = String(message.seq);
+  if (message.seq > newAfter) wrapper.classList.add("is-new");
   if (message.id) wrapper.dataset.messageId = message.id;
 
   if (!user) {
@@ -213,11 +219,17 @@ export function renderThread(chat) {
   const empty = $("chat-empty");
   paintChatSuggestions();
   const alfredName = chat.home && chat.home.bootstrap ? chat.home.bootstrap.alfred.name : "Alfred";
-  paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 52 });
+  paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 96 });
   const previousScroll = timeline.scrollTop;
   const nearBottom =
     timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 140 || chat.forceScroll;
   timeline.replaceChildren();
+  const convId = chat.conversation ? chat.conversation.id : null;
+  newAfter = shownSeq.has(convId) ? shownSeq.get(convId) : Infinity;
+  shownSeq.set(
+    convId,
+    (chat.entries || []).reduce((top, entry) => (entry.kind === "message" ? Math.max(top, entry.message.seq) : top), 0),
+  );
 
   if (!chat.conversation) {
     timeline.classList.add("hidden");

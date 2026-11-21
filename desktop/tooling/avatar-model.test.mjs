@@ -46,6 +46,8 @@ test("sin id, el personaje sale de un segmento del título, sin distinguir acent
   assert.equal(characterFor("desconocido · Sami · especialista"), "sami");
   assert.equal(characterFor("Alfred (lead)"), "alfred");
   assert.equal(characterFor("Inés"), "ines");
+  assert.equal(characterFor("Ernesto, líder"), "ernesto");
+  assert.equal(characterFor("Inesperado"), null);
   assert.equal(characterFor("Zoe"), null);
   assert.equal(characterFor(""), null);
 });

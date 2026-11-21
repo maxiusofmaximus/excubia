@@ -1,5 +1,5 @@
 /* Noche is the static fallback: ui/palette-boot.js applies the saved palette
-   before the first paint and ui/palettes.js owns the six approved themes. Text
+   before the first paint and ui/palettes.js owns the seven approved themes. Text
    and icons in the accent colour use --accent-text; --accent is only for fills. */
 :root {
   --bg: #0b1426;
@@ -24,6 +24,9 @@
   --unknown: #ded2b6;
   --warning: #f2a93b;
   --sunken: #081020;
+  --hard: rgba(0, 0, 0, 0.55);
+  --dot: rgba(0, 0, 0, 0.35);
+  --band: #17274a;
   --qr-paper: #ffffff;
   --shadow-toast: 0 16px 40px rgba(0, 0, 0, 0.4);
   --radius: 16px;

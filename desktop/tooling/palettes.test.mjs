@@ -1,5 +1,5 @@
 // Run with: node --test tooling/palettes.test.mjs
-// The six approved palettes, their contrast rules and the first-run decision.
+// The seven approved palettes, their contrast rules and the first-run decision.
 // The colours live in ui/palettes.js; tooling/contrast.test.mjs only knew the
 // old two themes and is replaced by this file.
 
@@ -15,7 +15,9 @@ import {
   savePrefs,
 } from "../ui/palettes.js";
 
-const IDS = ["noche", "pergamino", "carbon", "papel", "medianoche", "contraste"];
+const IDS = ["noche", "pergamino", "carbon", "papel", "medianoche", "contraste", "telon"];
+// The comic UI's extras (ui/comic.css): a hard shadow and a halftone dot are translucent.
+const COMIC_RGBA = ["hard", "dot"];
 const SURFACES = ["bg", "surface", "raised", "raised-2"];
 const TEXT = [
   "text",
@@ -51,7 +53,7 @@ function below(tokens, pairs, minimum) {
     .map(([fg, bg, value]) => `${fg} sobre ${bg}: ${value.toFixed(2)}:1`);
 }
 
-test("las seis paletas existen con id, nombre, nota y modo", () => {
+test("las siete paletas existen con id, nombre, nota y modo", () => {
   assert.deepEqual(Object.keys(PALETTES), IDS);
   assert.equal(DEFAULT_PALETTE, "noche");
   for (const id of IDS) {
@@ -72,9 +74,20 @@ test("todas las paletas definen exactamente el mismo conjunto de variables", () 
     for (const [name, value] of Object.entries(palette.tokens)) {
       if (name === "accent-rgb") {
         assert.match(value, /^\d{1,3}, \d{1,3}, \d{1,3}$/, `${id}.${name}`);
+      } else if (COMIC_RGBA.includes(name)) {
+        assert.match(value, /^rgba\(\d{1,3}, \d{1,3}, \d{1,3}, [\d.]+\)$/, `${id}.${name}`);
       } else if (!name.startsWith("shadow-")) {
         assert.match(value, /^#[0-9a-f]{6}$/i, `${id}.${name}`);
       }
+    }
+  }
+});
+
+test("cada paleta define la sombra dura, el punteado y la franja del cómic", () => {
+  for (const id of IDS) {
+    const tokens = PALETTES[id].tokens;
+    for (const name of ["hard", "dot", "band"]) {
+      assert.ok(tokens[name], `${id}.${name}`);
     }
   }
 });

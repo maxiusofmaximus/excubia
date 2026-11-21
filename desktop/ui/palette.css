@@ -1,4 +1,4 @@
-/* The palette picker: six cards with a tiny preview, shared by the first-run
+/* The palette picker: seven cards with a tiny preview, shared by the first-run
    screen and Ajustes → Apariencia. The preview colours come from each palette
    as --p-* custom properties, so there is no second copy of the values. */
 
@@ -34,7 +34,8 @@
 
 .palette-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* As many columns as fit: seven cards never leave one alone in a row of three. */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 14px;
 }
 
