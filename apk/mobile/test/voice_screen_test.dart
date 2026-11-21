@@ -56,7 +56,8 @@ String _portraitOf(WidgetTester tester) =>
             .widgetList<Image>(find.byType(Image))
             .map((image) => image.image)
             .whereType<AssetImage>()
-            .where((image) => image.assetName.contains('portraits/'))
+            // The orb's face is the 384 render; the header's 40 dp avatar is the 128 one.
+            .where((image) => image.assetName.endsWith('-384.webp'))
             // The blink render sits over the face, so only the face counts.
             .where((image) => !image.assetName.contains('blink'))
             .single)
@@ -97,10 +98,7 @@ void main() {
 
     expect(recorder.starts, 1);
     expect(find.text('Te escucho'), findsOneWidget);
-    expect(
-      _portraitOf(tester),
-      'assets/agents_v3/portraits/alfred-neutral-512.webp',
-    );
+    expect(_portraitOf(tester), 'assets/portraits/alfred-neutral-384.webp');
     expect(
       find.text('Habla con normalidad; pulsa Terminar cuando acabes.'),
       findsOneWidget,
@@ -125,17 +123,11 @@ void main() {
       await tester.tap(find.text('Terminar'));
       await tester.pump();
       expect(find.text('Transcribiendo…'), findsOneWidget);
-      expect(
-        _portraitOf(tester),
-        'assets/agents_v3/portraits/alfred-thinking-512.webp',
-      );
+      expect(_portraitOf(tester), 'assets/portraits/alfred-thinking-384.webp');
 
       await _until(tester, () => voice.phase == VoicePhase.idle);
       expect(find.text('Listo'), findsOneWidget);
-      expect(
-        _portraitOf(tester),
-        'assets/agents_v3/portraits/alfred-done-512.webp',
-      );
+      expect(_portraitOf(tester), 'assets/portraits/alfred-done-384.webp');
       expect(find.text('hola mundo'), findsOneWidget);
       expect(host.posts.single.target, '/v1/voice/transcribe');
 

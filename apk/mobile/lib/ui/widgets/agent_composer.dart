@@ -15,7 +15,7 @@ class AgentComposer extends StatelessWidget {
     required this.sending,
     required this.stopping,
     required this.canStop,
-    required this.hint,
+    required this.blocked,
     required this.onRespond,
     required this.onKey,
     required this.onStop,
@@ -29,7 +29,9 @@ class AgentComposer extends StatelessWidget {
   final bool sending;
   final bool stopping;
   final bool canStop;
-  final String hint;
+
+  /// Only a blocked agent takes answers: the note and the keys show for it alone.
+  final bool blocked;
   final VoidCallback onRespond;
   final void Function(String key) onKey;
   final VoidCallback onStop;
@@ -54,9 +56,14 @@ class AgentComposer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Responder', style: context.text.title),
-          const SizedBox(height: Spacing.xs),
-          Text(hint, style: context.text.small),
+          Text('Responder al agente', style: context.text.title),
+          if (blocked) ...[
+            const SizedBox(height: Spacing.xs),
+            Text(
+              'El agente está esperando; tu respuesta llega al terminal.',
+              style: context.text.small,
+            ),
+          ],
           const SizedBox(height: Spacing.md),
           TextField(
             controller: controller,
@@ -89,20 +96,22 @@ class AgentComposer extends StatelessWidget {
                   )
                 : const Text('Enviar'),
           ),
-          const SizedBox(height: Spacing.md),
-          Wrap(
-            spacing: Spacing.sm,
-            runSpacing: Spacing.sm,
-            children: [
-              for (final entry in _keys)
-                _KeyButton(
-                  label: entry.label,
-                  enabled: ready,
-                  tooltip: entry.tooltip,
-                  onPressed: () => onKey(entry.key),
-                ),
-            ],
-          ),
+          if (blocked) ...[
+            const SizedBox(height: Spacing.md),
+            Wrap(
+              spacing: Spacing.sm,
+              runSpacing: Spacing.sm,
+              children: [
+                for (final entry in _keys)
+                  _KeyButton(
+                    label: entry.label,
+                    enabled: ready,
+                    tooltip: entry.tooltip,
+                    onPressed: () => onKey(entry.key),
+                  ),
+              ],
+            ),
+          ],
           if (error != null) ...[
             const SizedBox(height: Spacing.md),
             ErrorBox(error: error!),

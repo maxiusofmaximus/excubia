@@ -81,4 +81,36 @@ void main() {
     expect(triageLabel('weird'), isNull);
     expect(triageLabel(null), isNull);
   });
+
+  test('the action reads in plain words, and a delete says so', () {
+    expect(actionPhrase('Write', null), 'guardar un archivo');
+    expect(actionPhrase('edit', null), 'guardar un archivo');
+    expect(actionPhrase('PowerShell', 'cargo test'), 'ejecutar un comando');
+    expect(actionPhrase('bash', 'rm -rf build'), 'borrar archivos');
+    expect(actionPhrase('bash', 'cd x && del a.txt'), 'borrar archivos');
+    expect(actionPhrase('bash', 'remove-itemfoo'), 'ejecutar un comando');
+    expect(actionPhrase('read', null), 'leer un archivo');
+    expect(actionPhrase('websearch', null), isNull);
+    expect(actionPhrase(null, null), isNull);
+    expect(isShellTool('pwsh'), isTrue);
+    expect(isShellTool('edit'), isFalse);
+  });
+
+  test('a timeline line drops the tool name and keeps the operator words', () {
+    expect(timelineLineText('Operador aprobó: edit Write'), 'Aprobado');
+    expect(timelineLineText('Operador denegó: command Bash'), 'Denegado');
+    expect(
+      timelineLineText('Pendiente: command PowerShell'),
+      'Esperando tu OK',
+    );
+    expect(
+      timelineLineText('Operador aprobó: Crear permisos.txt'),
+      'Aprobado · Crear permisos.txt',
+    );
+    expect(timelineLineText('Host expiró: edit Write'), 'Caducó sin respuesta');
+    expect(
+      timelineLineText('Política aprobó: cargo test'),
+      'Política aprobó: cargo test',
+    );
+  });
 }

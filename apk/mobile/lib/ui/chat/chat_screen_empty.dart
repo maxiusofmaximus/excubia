@@ -26,7 +26,7 @@ class _EmptyChat extends StatelessWidget {
       children: [
         Center(
           child: SizedBox(
-            width: 160,
+            width: 220,
             child: AgentPortraitCard(id: 'alfred', name: chat.alfredName),
           ),
         ),

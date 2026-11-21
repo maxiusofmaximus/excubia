@@ -12,6 +12,7 @@ import '../mail/mail_code_card.dart';
 import '../mail/mail_draft_card.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import '../widgets/comic/comic_slab.dart';
 import '../widgets/surface_card.dart';
 import '../widgets/time_label.dart';
 import 'approval_timeline_line.dart';
@@ -52,6 +53,7 @@ class TimelineRow extends StatelessWidget {
     this.documents,
     this.sentAttachments,
     this.replyBelow = false,
+    this.startsStreak = true,
   });
 
   final ChatEntry entry;
@@ -90,6 +92,9 @@ class TimelineRow extends StatelessWidget {
 
   /// True when the next row is Alfred's answer to this message.
   final bool replyBelow;
+
+  /// False when Alfred's bubble above it belongs to the same run: no tail.
+  final bool startsStreak;
   final ValueChanged<ChatEntry> onRetrySend;
   final ValueChanged<ChatEntry> onRetryTurn;
   final ValueChanged<ChatEntry> onOpenDelegation;
@@ -135,12 +140,7 @@ class TimelineRow extends StatelessWidget {
       );
     }
     if (entry.kind == 'card') {
-      return DelegationCard(
-        entry: entry,
-        onOpenAgent: onOpenAgent,
-        onOpenDetail: onOpenDelegation,
-        onCancel: onCancelDelegation,
-      );
+      return DelegationCard(entry: entry, onOpenDetail: onOpenDelegation);
     }
     if (entry.kind == 'approval') {
       return ApprovalTimelineLine(
@@ -181,6 +181,7 @@ class TimelineRow extends StatelessWidget {
       images: images,
       documents: documents,
       replyBelow: replyBelow,
+      startsStreak: startsStreak,
     );
   }
 }

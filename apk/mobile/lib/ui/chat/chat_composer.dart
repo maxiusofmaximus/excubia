@@ -5,9 +5,14 @@ import '../../core/state/chat_attachment_tray.dart';
 import '../../core/state/voice_notes.dart';
 import '../../core/state/voice_send_settings.dart';
 import '../theme.dart';
+import '../widgets/comic/comic_button.dart';
+import '../widgets/comic/comic_slab.dart';
 import 'chat_attachments_picker.dart';
 import 'chat_attachments_tray_view.dart';
 import 'voice_button.dart';
+
+/// The hard shadow of the message field: the slab draws it past its box.
+const double _fieldShadow = 3;
 
 class ChatComposer extends StatelessWidget {
   const ChatComposer({
@@ -47,6 +52,7 @@ class ChatComposer extends StatelessWidget {
 
   /// Sends a dictated note in auto mode; false when it did not go.
   final Future<bool> Function(String text) onVoiceSend;
+
   /// Called with what the «+» menu picked: an image or a document.
   final ValueChanged<ChatAttachKind> onAttach;
   final VoidCallback onSend;
@@ -77,11 +83,6 @@ class ChatComposer extends StatelessWidget {
   Widget _bar(BuildContext context) {
     final c = context.colors;
     final denial = stopDenial;
-    // The input is a pill of its own; the accent is kept for the send button.
-    final pill = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
-      borderSide: BorderSide(color: c.outlineSoft),
-    );
     return Container(
       padding: const EdgeInsets.fromLTRB(
         Spacing.md,
@@ -133,28 +134,43 @@ class ChatComposer extends StatelessWidget {
                   ),
                 ],
               ),
+              // The input is a leaning slab; the send button is the hot one.
               Expanded(
-                child: TextField(
-                  controller: controller,
-                  focusNode: focus,
-                  enabled: enabled,
-                  minLines: 1,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.newline,
-                  style: context.text.body,
-                  decoration: InputDecoration(
-                    hintText: offline
-                        ? 'Reconecta para escribir a Alfred'
-                        : 'Mensaje a Alfred',
-                    isDense: true,
-                    border: pill,
-                    enabledBorder: pill,
-                    focusedBorder: pill.copyWith(
-                      borderSide: BorderSide(color: c.accentText),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.md,
-                      vertical: Spacing.md,
+                // The field is a touch target too: never under 48 dp.
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 48 + _fieldShadow,
+                  ),
+                  child: ComicSlab(
+                    color: c.deep,
+                    shadow: _fieldShadow,
+                    padding: EdgeInsets.zero,
+                    child: Semantics(
+                      label: 'Escribe tu mensaje',
+                      textField: true,
+                      child: TextField(
+                        controller: controller,
+                        focusNode: focus,
+                        enabled: enabled,
+                        minLines: 1,
+                        maxLines: 4,
+                        textInputAction: TextInputAction.newline,
+                        style: context.text.body,
+                        decoration: InputDecoration(
+                          hintText: offline
+                              ? 'Reconecta para escribir a Alfred'
+                              : 'Mensaje a Alfred',
+                          isDense: true,
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: Spacing.md,
+                            vertical: Spacing.md,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -176,37 +192,26 @@ class ChatComposer extends StatelessWidget {
   }
 
   Widget _sendOrStop(BuildContext context) {
-    final c = context.colors;
-    return Semantics(
-      button: true,
+    return ComicButton(
       label: busy ? 'Detener' : 'Enviar mensaje',
-      child: IconButton.filled(
-        onPressed: busy
-            ? (canStop ? onStop : null)
-            : (enabled && attachments.allReady && voice.phase == VoicePhase.idle
-                  ? onSend
-                  : null),
-        tooltip: busy ? 'Detener' : 'Enviar',
-        style: IconButton.styleFrom(
-          minimumSize: const Size(48, 48),
-          backgroundColor: c.accent,
-          foregroundColor: c.onAccent,
-          disabledBackgroundColor: c.raised,
-          disabledForegroundColor: c.textMuted,
-        ),
-        icon: busy
-            ? const Icon(Icons.stop)
-            : sending
-            ? SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: c.onAccent,
-                ),
-              )
-            : const Icon(Icons.arrow_upward),
-      ),
+      tooltip: busy ? 'Detener' : 'Enviar',
+      square: true,
+      onPressed: busy
+          ? (canStop ? onStop : null)
+          : (enabled && attachments.allReady && voice.phase == VoicePhase.idle
+                ? onSend
+                : null),
+      icon: busy
+          ? const Icon(Icons.stop)
+          : sending
+          ? SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: context.colors.onHot,
+              ),
+            )
+          : const Icon(Icons.arrow_upward),
     );
   }
 }

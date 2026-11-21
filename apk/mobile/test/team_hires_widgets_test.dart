@@ -8,6 +8,7 @@ import 'package:excubia/ui/team/hire_catalog_screen.dart';
 import 'package:excubia/ui/team/hires_section.dart';
 import 'package:excubia/ui/theme.dart';
 import 'package:excubia/ui/widgets/agent_avatar.dart';
+import 'package:excubia/ui/widgets/comic/comic_button.dart';
 import 'package:excubia/ui/widgets/grouped_card.dart';
 
 import 'support/fake_team_host.dart';
@@ -23,6 +24,7 @@ Future<HiresController> pumpTeam(
   WidgetTester tester,
   FakeTeamHost host, {
   TextScaler textScaler = TextScaler.noScaling,
+  bool showEmptyHint = true,
 }) async {
   final hires = HiresController(transport: host);
   await hires.load();
@@ -40,6 +42,7 @@ Future<HiresController> pumpTeam(
                   api: RecipesApi(host),
                   conversationId: () => null,
                 ),
+                showEmptyHint: showEmptyHint,
               ),
             ],
           ),
@@ -84,7 +87,16 @@ void main() {
       await pumpTeam(tester, FakeTeamHost());
 
       expect(find.text(_inviting), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Contratar'), findsOneWidget);
+      expect(find.widgetWithText(ComicButton, 'Contratar'), findsOneWidget);
+    });
+
+    testWidgets('the invitation waits when agents are listed below', (
+      tester,
+    ) async {
+      await pumpTeam(tester, FakeTeamHost(), showEmptyHint: false);
+
+      expect(find.text(_inviting), findsNothing);
+      expect(find.widgetWithText(ComicButton, 'Contratar'), findsOneWidget);
     });
 
     testWidgets('hires show their name, title and area, grouped by area', (
@@ -119,7 +131,7 @@ void main() {
 
       expect(find.text('Renombrar'), findsNothing);
       expect(find.text('Despedir'), findsNothing);
-      expect(find.widgetWithText(FilledButton, 'Contratar'), findsNothing);
+      expect(find.widgetWithText(ComicButton, 'Contratar'), findsNothing);
     });
   });
 
@@ -305,7 +317,7 @@ void main() {
       (tester) async {
         await pumpTeam(tester, FakeTeamHost(hires: [bobHire()]));
 
-        await tester.tap(find.widgetWithText(FilledButton, 'Contratar'));
+        await tester.tap(find.widgetWithText(ComicButton, 'Contratar'));
         await tester.pumpAndSettle();
 
         expect(catalogScreen(), findsOneWidget);
@@ -321,7 +333,7 @@ void main() {
       final host = FakeTeamHost();
       await pumpTeam(tester, host);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Contratar'));
+      await tester.tap(find.widgetWithText(ComicButton, 'Contratar'));
       await tester.pumpAndSettle();
       await tester.tap(catalogHireButtons().first);
       await tester.pumpAndSettle();
@@ -334,7 +346,7 @@ void main() {
       final host = FakeTeamHost()..areaFull = true;
       await pumpTeam(tester, host);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Contratar'));
+      await tester.tap(find.widgetWithText(ComicButton, 'Contratar'));
       await tester.pumpAndSettle();
       await tester.tap(catalogHireButtons().first);
       await tester.pumpAndSettle();

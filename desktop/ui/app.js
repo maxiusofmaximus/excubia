@@ -1,5 +1,6 @@
 import { app, $, invoke, listen } from "./core.js";
 import { installNav, showView } from "./nav.js";
+import { installDrawer } from "./drawer.js";
 import { errorMessage, readableState } from "./format.js";
 import {
   applyHostStatus,
@@ -77,6 +78,7 @@ async function boot() {
     alerts: openAlerts,
     devices: openDevices,
   });
+  installDrawer();
   $("btn-stale-pair").addEventListener("click", forgetPairing);
   $("btn-empty-pair").addEventListener("click", forgetPairing);
   $("btn-new").addEventListener("click", () => openNewConversation());

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:excubia/src/rust/api/state.dart';
 
 import '../theme.dart';
+import 'comic/comic_portrait.dart';
 
 /// The looks an avatar shows. v3 has one still per status, so `idle` and `look`
 /// both show the neutral face; `thinking` is Alfred waiting for a reply.
@@ -102,12 +103,12 @@ AgentLook agentLookFor(AgentStatus status) => switch (status) {
   AgentStatus.idle || AgentStatus.unknown => AgentLook.idle,
 };
 
-/// Sizes up to 64 dp load the 64 px render, larger ones the 128 px render.
-String _renderSize(double size) => size <= 64 ? '64' : '128';
+/// Under 48 dp the 128 px render; from 48 dp up the 384 px one, which stays sharp at 3×.
+String _renderSize(double size) => size < 48 ? '128' : '384';
 
-/// The still for [look] at [size]. Each look has its own still, except `idle`
-/// and `look`, which both show the neutral one.
-String _stillAsset(AgentProfile profile, AgentLook look, double size) {
+/// The square still for [look] at [size]. Each look has its own still, except
+/// `idle` and `look`, which both show the neutral one.
+String stillAssetFor(AgentProfile profile, AgentLook look, double size) {
   final state = switch (look) {
     AgentLook.working => 'working',
     AgentLook.done => 'done',
@@ -115,7 +116,7 @@ String _stillAsset(AgentProfile profile, AgentLook look, double size) {
     AgentLook.thinking => 'thinking',
     AgentLook.idle || AgentLook.look => 'neutral',
   };
-  return 'assets/agents_v3/agents/${profile.id}-$state-${_renderSize(size)}.webp';
+  return 'assets/portraits/${profile.id}-$state-${_renderSize(size)}.webp';
 }
 
 /// One head image. A file that cannot be decoded shows [onError] instead.
@@ -171,10 +172,10 @@ String agentNameOf(AgentEntry agent) {
 /// A character or CLI id shown as a name: "bob" → "Bob".
 String capitalized(String text) => text[0].toUpperCase() + text.substring(1);
 
-/// A square avatar that fills its circle. Agents with a render keep their own
-/// face; anyone else gets their initial over their accent colour, never the
-/// generic robot. List rows pass [ringed] for the 2 px outline
-/// that keeps the disc visible on light paper.
+/// A square avatar, never round. Agents with a render keep their own face;
+/// anyone else gets their initial over their accent colour, never the generic
+/// robot. List rows pass [ringed] for the 2 px outline that keeps the square
+/// visible on light paper.
 ///
 /// The face comes from [characterId] when it is given, so a renamed hire keeps
 /// it; without one the visible [name] is matched, as before.
@@ -194,7 +195,12 @@ class AgentAvatar extends StatelessWidget {
     this.animated = true,
     this.glance = false,
     this.faceFromName = true,
+    this.framed = false,
   });
+
+  /// The comic frame instead of the disc: a straight panel with the head rising
+  /// above it. Used in the chat, where the character is the protagonist.
+  final bool framed;
 
   /// The visible name: the label of the avatar, and the initial when there is
   /// no face.
@@ -237,7 +243,7 @@ class AgentAvatar extends StatelessWidget {
     );
     Widget art = fallback;
     if (profile != null) {
-      final asset = _stillAsset(profile, look ?? agentLookFor(status), size);
+      final asset = stillAssetFor(profile, look ?? agentLookFor(status), size);
       art = AnimatedSwitcher(
         duration: motion ? _fade : Duration.zero,
         child: KeyedSubtree(
@@ -246,11 +252,21 @@ class AgentAvatar extends StatelessWidget {
         ),
       );
     }
-    final disc = ClipOval(
-      child: ColoredBox(
-        color: profile?.background ?? context.colors.accentSoft,
-        child: art,
-      ),
+    if (framed) {
+      return Semantics(
+        image: true,
+        label: name,
+        excludeSemantics: true,
+        child: ComicPortrait(
+          size: size,
+          panel: profile?.background ?? context.colors.accentSoft,
+          face: art,
+        ),
+      );
+    }
+    final square = ColoredBox(
+      color: profile?.background ?? context.colors.accentSoft,
+      child: art,
     );
     return Semantics(
       image: true,
@@ -261,15 +277,14 @@ class AgentAvatar extends StatelessWidget {
         child: ringed
             ? DecoratedBox(
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
                   border: Border.all(
                     color: context.colors.outlineStrong,
                     width: 2,
                   ),
                 ),
-                child: Padding(padding: const EdgeInsets.all(2), child: disc),
+                child: Padding(padding: const EdgeInsets.all(2), child: square),
               )
-            : disc,
+            : square,
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/state/chat_controller.dart';
 import '../../core/state/hires_controller.dart';
 import '../theme.dart';
+import '../widgets/comic/comic_slab.dart';
 import 'chat_suggestions.dart';
 
 /// The starter suggestions of an empty chat or of a new conversation with no message yet.
@@ -66,46 +67,41 @@ class _StarterTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    // The slab leans and keeps its shadow; the text inside stays straight. 48 dp in all.
     return Semantics(
       button: true,
       label: '$title, $detail',
-      child: Material(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 56),
-            margin: const EdgeInsets.only(bottom: Spacing.sm),
-            padding: const EdgeInsets.all(Spacing.md),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: c.outlineSoft),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: c.accentSoft,
-                    borderRadius: BorderRadius.circular(8),
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: Spacing.sm),
+          child: ComicSlab(
+            color: c.deep,
+            stroke: c.outlineStrong,
+            cut: true,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: 48 - comicShadow - 2 * Spacing.sm,
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, size: 20, color: c.onDeep),
+                  const SizedBox(width: Spacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(title, style: context.text.body),
+                        Text(detail, style: context.text.small),
+                      ],
+                    ),
                   ),
-                  child: Icon(icon, size: 18, color: c.accentText),
-                ),
-                const SizedBox(width: Spacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: context.text.body),
-                      Text(detail, style: context.text.small),
-                    ],
-                  ),
-                ),
-                Icon(Icons.arrow_forward, size: 18, color: c.textMuted),
-              ],
+                  Icon(Icons.arrow_forward, size: 18, color: c.onDeep),
+                ],
+              ),
             ),
           ),
         ),

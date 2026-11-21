@@ -12,6 +12,7 @@ class HerdrPalette {
     required this.note,
     required this.brightness,
     required this.colors,
+    this.isNew = false,
   });
 
   final String id;
@@ -19,6 +20,9 @@ class HerdrPalette {
   final String note;
   final Brightness brightness;
   final HerdrColors colors;
+
+  /// Shows the «Nueva» tag in the palette picker.
+  final bool isNew;
 }
 
 class HerdrPalettes {
@@ -30,6 +34,7 @@ class HerdrPalettes {
   static const String papelId = 'papel';
   static const String medianocheId = 'medianoche';
   static const String contrasteId = 'contraste';
+  static const String telonId = 'telon';
 
   static const HerdrPalette noche = HerdrPalette(
     id: nocheId,
@@ -79,6 +84,15 @@ class HerdrPalettes {
     colors: HerdrColors.contraste,
   );
 
+  static const HerdrPalette telon = HerdrPalette(
+    id: telonId,
+    name: 'Telón',
+    note: 'Rojo, negro y blanco de cómic',
+    brightness: Brightness.dark,
+    colors: HerdrColors.telon,
+    isNew: true,
+  );
+
   static const List<HerdrPalette> all = [
     noche,
     pergamino,
@@ -86,6 +100,7 @@ class HerdrPalettes {
     papel,
     medianoche,
     contraste,
+    telon,
   ];
 
   static HerdrPalette byId(String id) =>

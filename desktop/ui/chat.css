@@ -1,5 +1,5 @@
-/* Chat-first shell: three zones (wf50). The page itself does not scroll; the
-   history, the timeline and the team panel own their scroll. */
+/* Chat-first shell: one zone, the thread, full width (the history is in the drawer,
+   ui/drawer.js). The page itself does not scroll; the history and the timeline own their scroll. */
 
 .view-chat {
   position: relative;
@@ -14,20 +14,19 @@
 
 .chat-shell {
   display: grid;
-  grid-template-columns: 264px minmax(0, 1fr) 304px;
+  grid-template-columns: minmax(0, 1fr);
   flex: 1;
   min-height: 0;
 }
 
-/* -- history ------------------------------------------------------------- */
+/* -- history: the column of the drawer, under the sections ---------------- */
 
 .history {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
-  padding: 16px 12px 10px;
-  border-right: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 45%, var(--bg));
+  padding: 4px 2px 0;
 }
 
 .history-head {
@@ -351,12 +350,39 @@
   background: var(--bg);
 }
 
+/* The thread reads at one measure, 880 px, centred. The head, the banner and the composer
+   share its edges; the scrollbar stays at the window's edge. Narrower, it keeps 18 px. */
+.thread .timeline {
+  padding-inline: max(18px, calc(50% - 440px));
+}
+
+.thread .thread-head,
+.thread .chat-banner,
+.thread .chat-composer {
+  margin-inline: max(18px, calc(50% - 440px));
+}
+
+/* The portrait of Alfred in the head is the way to Equipo: a plain button around it. */
+.thread-team {
+  display: flex;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.thread-team:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+}
+
 .thread-head {
   display: flex;
   align-items: center;
   gap: 10px;
   flex: none;
-  min-height: 66px;
+  min-height: 78px;
   padding: 10px 18px;
   border-bottom: 1px solid var(--line);
 }
@@ -472,13 +498,6 @@
   text-transform: uppercase;
 }
 
-.side-toggle {
-  width: 32px;
-  height: 32px;
-  border-color: transparent;
-  background: transparent;
-}
-
 .side-body {
   display: flex;
   flex-direction: column;
@@ -572,53 +591,9 @@
   line-height: 1.5;
 }
 
-.chat-shell.side-collapsed {
-  grid-template-columns: 264px minmax(0, 1fr) 52px;
-}
-
-/* ☰ folds the history on wide windows: its column goes, the thread takes the room. */
-.chat-shell.history-off .history {
-  display: none;
-}
-
-.chat-shell.history-off {
-  grid-template-columns: minmax(0, 1fr) 304px;
-}
-
-.chat-shell.history-off.side-collapsed {
-  grid-template-columns: minmax(0, 1fr) 52px;
-}
-
-.side-collapsed .side-body {
-  display: none;
-}
-
-.side-collapsed .side {
-  align-items: center;
-  overflow: hidden;
-}
-
-.side-collapsed .side-head {
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 0;
-  border-bottom: 0;
-}
-
-/* Folded, the team is one icon button named «Equipo»; the title is not drawn sideways. */
-.side-collapsed .side-head h2 {
-  display: none;
-}
-
-.side-toggle-icon {
-  display: none;
-}
-
-.side-collapsed .side-toggle-icon {
-  display: block;
-}
-
-.side-collapsed .side-toggle-arrow {
+/* The team panel is no longer in the chat (its content is the Equipo section): it stays in
+   the markup, hidden, for the scripts that write into it. */
+.side[hidden] {
   display: none;
 }
 
@@ -626,7 +601,8 @@
 
 .menu {
   position: fixed;
-  z-index: 40;
+  /* Over the drawer (60): the menu of a row of the history opens from inside it. */
+  z-index: 70;
   min-width: 196px;
   padding: 5px;
   border: 1px solid var(--line-strong);
@@ -667,23 +643,6 @@
   border-top: 1px solid var(--line);
 }
 
-/* Below 1120 px the team panel is hidden, so its folded track must go too. */
-@media (max-width: 1120px) {
-  .chat-shell,
-  .chat-shell.side-collapsed {
-    grid-template-columns: 248px minmax(0, 1fr);
-  }
-
-  .chat-shell.history-off,
-  .chat-shell.history-off.side-collapsed {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .side {
-    display: none;
-  }
-}
-
 @media (max-width: 860px) {
   .view-chat {
     height: auto;
@@ -693,27 +652,6 @@
   .chat-shell {
     display: flex;
     min-height: 100vh;
-  }
-
-  .history {
-    position: fixed;
-    z-index: 30;
-    top: 58px;
-    bottom: 0;
-    left: 0;
-    width: min(300px, 84vw);
-    background: var(--surface);
-    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.32);
-    transform: translateX(-102%);
-    transition: transform 0.18s ease;
-  }
-
-  .chat-shell.history-open .history {
-    transform: none;
-  }
-
-  .chat-shell.history-off .history {
-    display: flex;
   }
 
   .thread {

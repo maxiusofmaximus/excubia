@@ -167,7 +167,7 @@ function agentItem(agent, leadPane) {
     name: agentTitle(agent),
     characterId: agent.characterId,
     status: agent.status,
-    px: 36,
+    px: 44,
   });
   const dot = document.createElement("span");
   dot.className = "status-dot";

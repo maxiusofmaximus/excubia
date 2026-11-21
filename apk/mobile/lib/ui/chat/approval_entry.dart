@@ -40,14 +40,27 @@ class ApprovalsHeaderButton extends StatelessWidget {
   Widget build(BuildContext context) {
     // Hidden, not removed: with nothing waiting the header keeps no empty slot.
     if (pending <= 0) return const SizedBox.shrink();
-    return IconButton(
-      tooltip: 'Aprobaciones',
-      onPressed: onPressed,
-      icon: Badge(
-        label: Text('$pending'),
-        child: const Icon(Icons.shield_outlined),
+    // The count is in the label, so a screen reader says «1 permiso pendiente», not «1».
+    final label = pending == 1
+        ? '1 permiso pendiente'
+        : '$pending permisos pendientes';
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onPressed,
+      excludeSemantics: true,
+      child: SizedBox(
+        width: 48,
+        child: IconButton(
+          tooltip: label,
+          onPressed: onPressed,
+          icon: Badge(
+            label: Text('$pending'),
+            child: const Icon(Icons.shield_outlined),
+          ),
+          color: context.colors.textSecondary,
+        ),
       ),
-      color: context.colors.textSecondary,
     );
   }
 }

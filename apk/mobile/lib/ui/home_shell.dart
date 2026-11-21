@@ -21,6 +21,7 @@ import '../core/storage/pairing_store.dart';
 import 'agents_screen.dart';
 import 'chat/chat_screen.dart';
 import 'theme.dart';
+import 'widgets/comic/comic_tab_bar.dart';
 
 /// The Chat and Equipo tabs' indexes in the bottom bar.
 const int _chatTab = 0;
@@ -194,11 +195,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         listenable: chat,
         builder: (context, _) {
           final unread = chat.unreadMessages;
-          return NavigationBar(
-            selectedIndex: _tab,
-            onDestinationSelected: _selectTab,
-            destinations: [
-              NavigationDestination(
+          return ComicTabBar(
+            selected: _tab,
+            onSelected: _selectTab,
+            tabs: [
+              ComicTab(
+                label: 'Chat',
                 icon: Badge(
                   isLabelVisible: unread > 0,
                   label: Text('$unread'),
@@ -209,12 +211,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                   label: Text('$unread'),
                   child: const Icon(Icons.forum),
                 ),
-                label: 'Chat',
               ),
-              const NavigationDestination(
+              const ComicTab(
+                label: 'Equipo',
                 icon: Icon(Icons.groups_outlined),
                 selectedIcon: Icon(Icons.groups),
-                label: 'Equipo',
               ),
             ],
           );

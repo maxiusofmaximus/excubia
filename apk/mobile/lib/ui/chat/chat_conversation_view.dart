@@ -246,6 +246,11 @@ class ConversationView extends StatelessWidget {
                 cursor + 1 < entries.length &&
                 entries[cursor + 1].kind == 'message' &&
                 entries[cursor + 1].authorKind == 'agent',
+            // The row above is the older entry: a run of Alfred's replies has tails only on its first.
+            startsStreak:
+                !(cursor > 0 &&
+                    entries[cursor - 1].kind == 'message' &&
+                    entries[cursor - 1].authorKind == 'agent'),
           );
         }
         cursor -= entries.length;

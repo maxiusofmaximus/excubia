@@ -20,6 +20,8 @@ import '../team/hires_section.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
 import '../widgets/agent_portrait_card.dart';
+import '../widgets/comic/comic_button.dart';
+import '../widgets/comic/comic_tag.dart';
 import '../widgets/time_label.dart';
 import 'approval_entry.dart';
 import 'approval_inbox.dart';

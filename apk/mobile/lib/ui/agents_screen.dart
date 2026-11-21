@@ -25,10 +25,12 @@ import 'team/hire_actions.dart';
 import 'team/hires_section.dart';
 import 'team/team_panel_parts.dart';
 import 'team/team_portrait_row.dart';
+import 'team/team_controls.dart';
 import 'team/team_summary_section.dart';
 import 'team_projects.dart';
 import 'theme.dart';
 import 'widgets/agent_row.dart';
+import 'widgets/comic/comic_tag.dart';
 import 'widgets/empty_state.dart';
 import 'widgets/message_panel.dart';
 import 'widgets/status_dot.dart';
@@ -241,7 +243,11 @@ class _AgentsScreenState extends State<AgentsScreen>
             ),
           ..._teamHead(),
           if (!_teamIsEmpty)
-            TeamHiresSection(hires: _hires, recipes: widget.recipes),
+            TeamHiresSection(
+              hires: _hires,
+              recipes: widget.recipes,
+              showEmptyHint: state != null && state.agents.isEmpty,
+            ),
           if (_hires.hires.isNotEmpty) _portraitRow(),
           ..._projectCards(),
           SchedulesSection(schedules: widget.schedules, oficioOf: _oficioOf),
@@ -316,7 +322,12 @@ class _AgentsScreenState extends State<AgentsScreen>
         ..._teamHead(),
         if (_filtersShown(state.agents.length)) _header(),
         if (!_teamIsEmpty)
-          TeamHiresSection(hires: _hires, recipes: widget.recipes),
+          TeamHiresSection(
+            hires: _hires,
+            recipes: widget.recipes,
+            // Agents are listed below: nobody-hired is not said then.
+            showEmptyHint: false,
+          ),
         if (_hires.hires.isNotEmpty) _portraitRow(),
         ...rows,
         SchedulesSection(schedules: widget.schedules, oficioOf: _oficioOf),
@@ -506,38 +517,24 @@ class _AgentsScreenState extends State<AgentsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
+          TeamSearchPanel(
             controller: _search,
             onChanged: (_) => setState(() {}),
-            style: context.text.body,
-            decoration: const InputDecoration(
-              hintText: 'Buscar agente o tarea…',
-              prefixIcon: Icon(Icons.search),
-              isDense: true,
-            ),
           ),
           const SizedBox(height: Spacing.sm),
           Wrap(
             spacing: Spacing.sm,
-            runSpacing: Spacing.sm,
+            runSpacing: Spacing.xs,
             children: [
               for (final entry in const <_TeamFilter, String>{
                 _TeamFilter.all: 'Todos',
                 _TeamFilter.working: 'Trabajando',
                 _TeamFilter.blocked: 'Esperando',
               }.entries)
-                ChoiceChip(
-                  label: Text(entry.value),
+                TeamFilterTab(
+                  label: entry.value,
                   selected: _filter == entry.key,
-                  onSelected: (_) => setState(() => _filter = entry.key),
-                  labelStyle: context.text.small,
-                  selectedColor: context.colors.accentSoft,
-                  backgroundColor: context.colors.raised,
-                  side: BorderSide(color: context.colors.outlineSoft),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Spacing.sm,
-                    vertical: Spacing.md,
-                  ),
+                  onTap: () => setState(() => _filter = entry.key),
                 ),
             ],
           ),

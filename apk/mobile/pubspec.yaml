@@ -1,7 +1,7 @@
 name: excubia
 description: "Excubia Android client: Flutter UI over the Rust contract core."
 publish_to: 'none'
-version: 2.3.410-alpha.17+2081
+version: 2.3.410-alpha.22+2086
 
 environment:
   sdk: ^3.13.5
@@ -34,8 +34,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
-    # v3 avatars (WebP): one still per agent and status at 64 and 128 px, and
-    # one portrait per agent. Flutter does not register nested folders on its
-    # own, so each folder is listed here.
-    - assets/agents_v3/agents/
-    - assets/agents_v3/portraits/
+    # Portraits (WebP, square): one still per agent and status at 128 and 384 px,
+    # plus Alfred's blink. Flutter does not register nested folders on its own,
+    # so the folder is listed here.
+    - assets/portraits/

@@ -42,6 +42,13 @@ List<MdLineItem> parseMarkdownLines(String source) => [
       MdLineItem(MdLine.text, raw),
 ];
 
+/// The words of Alfred's markdown without its marks: «**Resultado:**» reads
+/// «Resultado:», and a code span keeps its text. For a card that shows one line.
+String plainFromMarkdown(String source) =>
+    parseMarkdownLines(source)
+        .map((line) => parseInline(line.body).map((span) => span.text).join())
+        .join('\n');
+
 /// Reads the inline styles of one line. A marker that is never closed, or an
 /// empty pair, stays as plain text.
 List<MdSpan> parseInline(String line) {

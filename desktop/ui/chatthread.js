@@ -25,16 +25,20 @@ import { chat as chatState } from "./chatstate.js";
 const shownSeq = new Map();
 let newAfter = Infinity;
 
-function messageNode(message, alfredName, line = null, detail = null) {
+// `continued`: Alfred's message right after another one of his. Only the first of a run
+// shows his face and tail; the rest are indented to line up with the first bubble.
+function messageNode(message, alfredName, line = null, detail = null, continued = false) {
   const user = message.author_kind === "user";
   const wrapper = element("article", `msg ${user ? "user" : "agent"}`);
   wrapper.dataset.seq = String(message.seq);
   if (message.seq > newAfter) wrapper.classList.add("is-new");
   if (message.id) wrapper.dataset.messageId = message.id;
 
-  if (!user) {
+  if (!user && continued) {
+    wrapper.classList.add("is-cont");
+  } else if (!user) {
     const avatar = element("span", "msg-avatar avatar");
-    paintAvatar(avatar, { name: alfredName, characterId: "alfred", px: 26 });
+    paintAvatar(avatar, { name: alfredName, characterId: "alfred", px: 44 });
     wrapper.append(avatar);
   }
 
@@ -219,7 +223,8 @@ export function renderThread(chat) {
   const empty = $("chat-empty");
   paintChatSuggestions();
   const alfredName = chat.home && chat.home.bootstrap ? chat.home.bootstrap.alfred.name : "Alfred";
-  paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 96 });
+  paintAvatar($("empty-alfred"), { name: alfredName, characterId: "alfred", px: 224 });
+  $("empty-alfred-name").textContent = alfredName;
   const previousScroll = timeline.scrollTop;
   const nearBottom =
     timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 140 || chat.forceScroll;
@@ -291,12 +296,17 @@ export function renderThread(chat) {
       } else {
         const turn = isOwn(entry) ? turnOf(message, chat.turns) : null;
         const isLast = index === lastOwn;
+        const before = chat.entries[index - 1];
+        const continued =
+          message.author_kind !== "user" &&
+          Boolean(before && before.kind === "message" && before.message.author_kind !== "user");
         timeline.append(
           messageNode(
             message,
             alfredName,
             turnStatusLine(turn, alfredName, isLast, answeredAfter(chat.entries, index)),
             isLast ? stepDetail(chat) : null,
+            continued,
           ),
         );
       }

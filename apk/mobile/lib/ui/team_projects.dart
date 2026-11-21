@@ -5,6 +5,8 @@ import 'package:excubia/src/rust/api/state.dart';
 import 'theme.dart';
 import 'widgets/agent_avatar.dart';
 import 'widgets/agent_text.dart';
+import 'widgets/comic/comic_slab.dart';
+import 'widgets/comic/comic_tag.dart';
 
 /// One project as the team surface sees it: its bootstrap lead plus the live
 /// specialists found in `/v1/state`.
@@ -85,7 +87,9 @@ TeamOverview groupTeam({
   return TeamOverview(projects: groups, unassigned: unassigned);
 }
 
-class TeamProjectGroupCard extends StatelessWidget {
+/// A project as a cut comic slab; its agents hang below as narrower strips. Open by
+/// default; the slab's tap folds them, and the chevron turns with the fold.
+class TeamProjectGroupCard extends StatefulWidget {
   const TeamProjectGroupCard({
     super.key,
     required this.group,
@@ -96,8 +100,16 @@ class TeamProjectGroupCard extends StatelessWidget {
   final ValueChanged<String> onOpenAgent;
 
   @override
+  State<TeamProjectGroupCard> createState() => _TeamProjectGroupCardState();
+}
+
+class _TeamProjectGroupCardState extends State<TeamProjectGroupCard> {
+  bool _folded = false;
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final group = widget.group;
     final lead = group.project.lead;
     // One agent needs no count; nobody needs none, the line below says so.
     final count = switch (group.seats) {
@@ -106,6 +118,31 @@ class TeamProjectGroupCard extends StatelessWidget {
     };
     final folder = _folderLine(group.project);
     final idleLead = _idleLead(group);
+    final rows = <Widget>[
+      if (lead != null && !idleLead)
+        _MemberRow(
+          name: lead.name,
+          // The badge tells the lead apart only when someone works under them.
+          role: group.specialists.isEmpty ? null : 'Responsable',
+          status: group.leadAgent?.status ?? _seatStatus(lead.status),
+          detail: group.leadAgent?.title,
+          onTap: (group.leadAgent != null || lead.paneId != null)
+              ? () =>
+                    widget.onOpenAgent(group.leadAgent?.paneId ?? lead.paneId!)
+              : null,
+        ),
+      for (final agent in group.specialists)
+        _MemberRow(
+          name: agentNameOf(agent),
+          role: 'Especialista',
+          status: agent.status,
+          detail: agent.title,
+          onTap: () => widget.onOpenAgent(agent.paneId),
+        ),
+    ];
+    final hasRows = rows.isNotEmpty;
+    final open = hasRows && !_folded;
+    final motion = !MediaQuery.disableAnimationsOf(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Spacing.lg,
@@ -113,73 +150,105 @@ class TeamProjectGroupCard extends StatelessWidget {
         Spacing.lg,
         Spacing.sm,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: c.outlineSoft),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(Spacing.md),
-              color: c.raised,
-              child: Row(
-                children: [
-                  Icon(Icons.folder_outlined, size: 20, color: c.accentText),
-                  const SizedBox(width: Spacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            button: hasRows,
+            expanded: hasRows ? open : null,
+            label: [group.project.name, ?count].join(', '),
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: hasRows ? () => setState(() => _folded = !_folded) : null,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Center(
+                  child: ComicSlab(
+                    color: c.deep,
+                    cut: true,
+                    child: Row(
                       children: [
-                        Text(
-                          group.project.name,
-                          style: context.text.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (folder != null)
-                          Text(
-                            folder,
-                            style: context.text.small,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        Icon(Icons.folder_outlined, size: 20, color: c.onDeep),
+                        const SizedBox(width: Spacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                group.project.name,
+                                style: context.text.title.copyWith(
+                                  color: c.onDeep,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (folder != null)
+                                Text(
+                                  folder,
+                                  style: context.text.small.copyWith(
+                                    color: c.onDeep,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
                           ),
+                        ),
+                        if (count != null) ...[
+                          const SizedBox(width: Spacing.sm),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: ComicTag(label: count, caps: false),
+                            ),
+                          ),
+                        ],
+                        if (hasRows) ...[
+                          const SizedBox(width: Spacing.xs),
+                          AnimatedRotation(
+                            turns: open ? 0.25 : 0,
+                            duration: motion
+                                ? const Duration(milliseconds: 180)
+                                : Duration.zero,
+                            child: Icon(
+                              Icons.chevron_right,
+                              size: 22,
+                              color: c.onDeep,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  if (count != null) Text(count, style: context.text.small),
+                ),
+              ),
+            ),
+          ),
+          if (open)
+            Padding(
+              padding: const EdgeInsets.only(left: Spacing.md, top: Spacing.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final row in rows)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Spacing.sm),
+                      child: row,
+                    ),
                 ],
               ),
             ),
-            if (lead != null && !idleLead)
-              _MemberRow(
-                name: lead.name,
-                // The badge tells the lead apart only when someone works under them.
-                role: group.specialists.isEmpty ? null : 'Responsable',
-                status: group.leadAgent?.status ?? _seatStatus(lead.status),
-                detail: group.leadAgent?.title,
-                onTap: (group.leadAgent != null || lead.paneId != null)
-                    ? () => onOpenAgent(group.leadAgent?.paneId ?? lead.paneId!)
-                    : null,
-              ),
-            for (final agent in group.specialists)
-              _MemberRow(
-                name: agentNameOf(agent),
-                role: 'Especialista',
-                status: agent.status,
-                detail: agent.title,
-                onTap: () => onOpenAgent(agent.paneId),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
 
+/// One agent in a project: a framed portrait, the name, a role stamp and a status dot.
+/// The dot is a colour only; its words are in the row's subtitle and its label.
 class _MemberRow extends StatelessWidget {
   const _MemberRow({
     required this.name,
@@ -199,26 +268,27 @@ class _MemberRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final shown = stripRoleSuffix(name);
-    final subtitle = agentSubtitle(status, c.statusLabel(status), detail);
+    final statusText = c.statusLabel(status);
+    final subtitle = agentSubtitle(status, statusText, detail);
     return Semantics(
       button: onTap != null,
       label: [shown, ?role, ?subtitle].join(', '),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 56),
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.sm,
-            ),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: c.outlineSoft)),
-            ),
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ComicSlab(
+          color: c.pale,
+          shadow: 2,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.sm,
+            vertical: Spacing.sm,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
             child: Row(
               children: [
-                AgentAvatar(name: name, status: status, size: 40, ringed: true),
+                AgentAvatar(name: name, status: status, size: 44, framed: true),
                 const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Column(
@@ -227,47 +297,50 @@ class _MemberRow extends StatelessWidget {
                     children: [
                       Text(
                         shown,
-                        style: context.text.body,
-                        maxLines: 1,
+                        style: context.text.body.copyWith(
+                          color: c.onPale,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
+                      if (subtitle != null)
                         Text(
                           subtitle,
-                          style: context.text.small,
+                          style: context.text.small.copyWith(color: c.onPale),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ],
                     ],
                   ),
                 ),
                 if (role != null) ...[
-                  const SizedBox(width: Spacing.sm),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.sm,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: role == 'Responsable' ? c.accentSoft : c.raised,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      role!,
-                      style: context.text.label.copyWith(
-                        color: role == 'Responsable'
-                            ? c.accentText
-                            : c.textSecondary,
-                        fontSize: 10,
+                  const SizedBox(width: Spacing.xs),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: ComicTag(
+                        label: role!,
+                        caps: false,
+                        tone: role == 'Responsable'
+                            ? ComicTagTone.hot
+                            : ComicTagTone.deep,
                       ),
                     ),
                   ),
                 ],
+                const SizedBox(width: Spacing.xs),
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _statusInk(c, status),
+                  ),
+                ),
                 if (onTap != null) ...[
                   const SizedBox(width: Spacing.xs),
-                  Icon(Icons.chevron_right, size: 18, color: c.textMuted),
+                  Icon(Icons.chevron_right, size: 20, color: c.onPale),
                 ],
               ],
             ),
@@ -277,6 +350,13 @@ class _MemberRow extends StatelessWidget {
     );
   }
 }
+
+Color _statusInk(HerdrColors c, AgentStatus status) => switch (status) {
+  AgentStatus.working => c.statusWorking,
+  AgentStatus.blocked => c.statusBlocked,
+  AgentStatus.done => c.statusDone,
+  _ => c.statusIdle,
+};
 
 /// The folder name under the project title. Hidden when it says the title again
 /// («Proyecto web» / «proyecto-web») or is a slug («bench-proj»): an id, not a name.

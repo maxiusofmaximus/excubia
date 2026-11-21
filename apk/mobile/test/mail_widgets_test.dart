@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:excubia/ui/widgets/comic/comic_button.dart';
 import 'package:excubia/core/api/chat_transport.dart';
 import 'package:excubia/core/api/host_client.dart';
 import 'package:excubia/core/api/mail_api.dart';
@@ -377,8 +378,8 @@ void main() {
           find.textContaining('No llegaron los datos del correo'),
           findsOneWidget,
         );
-        final allow = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Permitir una vez'),
+        final allow = tester.widget<ComicButton>(
+          find.widgetWithText(ComicButton, 'Permitir una vez'),
         );
         expect(allow.onPressed, isNull);
       },

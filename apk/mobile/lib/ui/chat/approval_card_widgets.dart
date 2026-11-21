@@ -67,6 +67,34 @@ class _GrantNotice extends StatelessWidget {
   }
 }
 
+/// «Detalles técnicos»: the host's tool name and the exact command, closed by
+/// default so the card reads as one sentence.
+class _TechnicalDetails extends StatelessWidget {
+  const _TechnicalDetails({required this.command, required this.summary});
+
+  final String command;
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      title: Text('Detalles técnicos', style: context.text.small),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: Spacing.sm),
+      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+      shape: const Border(),
+      collapsedShape: const Border(),
+      children: [
+        if (summary.isNotEmpty) ...[
+          Text(summary, style: context.text.small),
+          const SizedBox(height: Spacing.xs),
+        ],
+        _CommandBox(line: command, plain: false),
+      ],
+    );
+  }
+}
+
 class _Chip extends StatelessWidget {
   const _Chip({required this.label, this.icon});
 

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:excubia/src/rust/api/state.dart';
 import 'package:excubia/ui/theme.dart';
 import 'package:excubia/ui/widgets/agent_avatar.dart';
+import 'package:excubia/ui/widgets/comic/comic_portrait.dart';
 
 import 'support/contrast.dart';
 
@@ -21,11 +22,11 @@ Widget subject(Widget child, {bool reduceMotion = false}) => MaterialApp(
   ),
 );
 
-/// A bundle in which every v3 still is missing, as in a build without them.
+/// A bundle in which every portrait is missing, as in a build without them.
 class _NoStillBundle extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) {
-    if (key.startsWith('assets/agents_v3/agents/')) {
+    if (key.startsWith('assets/portraits/')) {
       return Future.error(StateError('no still in this build: $key'));
     }
     return rootBundle.load(key);
@@ -74,7 +75,7 @@ void main() {
     expect(agentLookFor(AgentStatus.blocked), AgentLook.error);
   });
 
-  testWidgets('each status shows its still, at 64 px up to 64 dp', (
+  testWidgets('each status shows its still: 128 px under 48 dp, 384 px above', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -83,10 +84,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      assetOf(tester).assetName,
-      'assets/agents_v3/agents/bob-working-64.webp',
-    );
+    expect(assetOf(tester).assetName, 'assets/portraits/bob-working-128.webp');
 
     await tester.pumpWidget(
       subject(
@@ -94,10 +92,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      assetOf(tester).assetName,
-      'assets/agents_v3/agents/bob-error-128.webp',
-    );
+    expect(assetOf(tester).assetName, 'assets/portraits/bob-error-384.webp');
 
     await tester.pumpWidget(
       subject(
@@ -105,10 +100,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      assetOf(tester).assetName,
-      'assets/agents_v3/agents/bob-done-64.webp',
-    );
+    expect(assetOf(tester).assetName, 'assets/portraits/bob-done-384.webp');
   });
 
   testWidgets('thinking and look are forced over the status', (tester) async {
@@ -125,7 +117,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_v3/agents/alfred-thinking-64.webp',
+      'assets/portraits/alfred-thinking-128.webp',
     );
 
     await tester.pumpWidget(
@@ -136,7 +128,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_v3/agents/alfred-neutral-128.webp',
+      'assets/portraits/alfred-neutral-384.webp',
     );
 
     await tester.pumpWidget(
@@ -145,7 +137,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_v3/agents/alfred-neutral-128.webp',
+      'assets/portraits/alfred-neutral-384.webp',
     );
   });
 
@@ -168,8 +160,8 @@ void main() {
     final names = tester
         .widgetList<Image>(find.byType(Image))
         .map((image) => (image.image as AssetImage).assetName);
-    expect(names, contains('assets/agents_v3/agents/bob-working-128.webp'));
-    expect(names, contains('assets/agents_v3/agents/bob-neutral-128.webp'));
+    expect(names, contains('assets/portraits/bob-working-384.webp'));
+    expect(names, contains('assets/portraits/bob-neutral-384.webp'));
 
     await tester.pump(const Duration(milliseconds: 150));
     expect(
@@ -201,10 +193,7 @@ void main() {
       1,
       reason: 'no crossfade: only the new still is in the tree',
     );
-    expect(
-      assetOf(tester).assetName,
-      'assets/agents_v3/agents/bob-working-128.webp',
-    );
+    expect(assetOf(tester).assetName, 'assets/portraits/bob-working-384.webp');
   });
 
   testWidgets('animated: false shows the still without a fade', (tester) async {
@@ -219,10 +208,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      assetOf(tester).assetName,
-      'assets/agents_v3/agents/bob-neutral-64.webp',
-    );
+    expect(assetOf(tester).assetName, 'assets/portraits/bob-neutral-128.webp');
   });
 
   testWidgets('a missing still falls back to the initial without an error', (
@@ -273,7 +259,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_v3/agents/ernesto-working-64.webp',
+      'assets/portraits/ernesto-working-128.webp',
     );
 
     await tester.pumpWidget(
@@ -289,8 +275,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       assetOf(tester).assetName,
-      'assets/agents_v3/agents/ernesto-working-128.webp',
+      'assets/portraits/ernesto-working-384.webp',
     );
+  });
+
+  testWidgets('no portrait is round: no ClipOval and no CircleAvatar', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      subject(
+        const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AgentAvatar(name: 'Alfred', size: 64, framed: true),
+            AgentAvatar(name: 'Bob', size: 40),
+            AgentAvatar(name: 'Bob', size: 40, ringed: true),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ClipOval), findsNothing);
+    expect(find.byType(CircleAvatar), findsNothing);
+    expect(find.byType(ComicPortrait), findsOneWidget);
   });
 
   test('every initial reaches 4.5:1 on its accent disc', () {
@@ -304,18 +312,21 @@ void main() {
     }
   });
 
-  testWidgets('every still of every agent is bundled', (tester) async {
+  testWidgets('every id, look and size asks for a bundled portrait', (
+    tester,
+  ) async {
     await tester.runAsync(() async {
       for (final id in _ids) {
-        for (final state in [
-          'neutral',
-          'thinking',
-          'working',
-          'done',
-          'error',
+        final profile = agentProfileById(id)!;
+        for (final look in [
+          AgentLook.idle,
+          AgentLook.thinking,
+          AgentLook.working,
+          AgentLook.done,
+          AgentLook.error,
         ]) {
-          for (final size in ['64', '128']) {
-            final key = 'assets/agents_v3/agents/$id-$state-$size.webp';
+          for (final size in [40.0, 64.0, 128.0, 220.0]) {
+            final key = stillAssetFor(profile, look, size);
             final data = await rootBundle.load(key);
             expect(data.lengthInBytes, greaterThan(0), reason: key);
           }
@@ -324,10 +335,10 @@ void main() {
     });
   });
 
-  testWidgets('a still decodes to its size', (tester) async {
+  testWidgets('a portrait decodes to its size', (tester) async {
     await tester.runAsync(() async {
       final data = await rootBundle.load(
-        'assets/agents_v3/agents/bob-working-128.webp',
+        'assets/portraits/bob-working-128.webp',
       );
       final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
       final frame = await codec.getNextFrame();

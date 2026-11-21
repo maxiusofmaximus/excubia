@@ -94,11 +94,11 @@ void main() {
     });
   }
 
-  test('hay seis paletas con ids únicos', () {
-    expect(HerdrPalettes.all, hasLength(6));
+  test('hay siete paletas con ids únicos', () {
+    expect(HerdrPalettes.all, hasLength(7));
     expect(
       HerdrPalettes.all.map((palette) => palette.id).toSet(),
-      hasLength(6),
+      hasLength(7),
     );
   });
 }

@@ -16,7 +16,7 @@ void main() {
     prefs = PalettePrefs(values);
   });
 
-  test('las seis paletas tienen id estable, nombre y nota', () {
+  test('las siete paletas tienen id estable, nombre y nota', () {
     expect(HerdrPalettes.all.map((palette) => palette.id), [
       'noche',
       'pergamino',
@@ -24,10 +24,11 @@ void main() {
       'papel',
       'medianoche',
       'contraste',
+      'telon',
     ]);
     expect(
       HerdrPalettes.all.map((palette) => palette.id).toSet(),
-      hasLength(6),
+      hasLength(7),
     );
     for (final palette in HerdrPalettes.all) {
       expect(palette.name, isNotEmpty);

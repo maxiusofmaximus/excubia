@@ -34,9 +34,14 @@ class _Shell extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Equipo', style: context.text.headline),
-                        const SizedBox(height: 2),
-                        Text(subtitle, style: context.text.small),
+                        const ComicTag(label: 'Equipo'),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: context.text.small,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                   ),

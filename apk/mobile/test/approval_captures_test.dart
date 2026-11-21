@@ -63,7 +63,6 @@ void main() {
             expiresAt: soonIso(const Duration(minutes: 4, seconds: 40)),
           ),
           agentName: 'Bob',
-          projectName: 'Demo',
           busy: false,
           failure: null,
           onDecide: (_) {},
@@ -71,7 +70,6 @@ void main() {
         'card-resolved': ApprovalCard(
           approval: _record(status: 'approved'),
           agentName: 'Bob',
-          projectName: 'Demo',
           busy: false,
           failure: null,
           onDecide: (_) {},
@@ -79,7 +77,6 @@ void main() {
         'card-expired': ApprovalCard(
           approval: _record(status: 'expired'),
           agentName: 'Bob',
-          projectName: 'Demo',
           busy: false,
           failure: null,
           onDecide: (_) {},
@@ -87,7 +84,6 @@ void main() {
         'card-403': ApprovalCard(
           approval: _record(),
           agentName: 'Bob',
-          projectName: 'Demo',
           busy: false,
           failure: const ApprovalFailure(
             kind: ApprovalFailureKind.needsGrant,
@@ -177,7 +173,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tú aprobaste: cargo test'));
       await tester.pumpAndSettle();
-      await saveCapture(tester, detailKey, _evidenceDir, 'timeline-detail-$mode');
+      await saveCapture(
+        tester,
+        detailKey,
+        _evidenceDir,
+        'timeline-detail-$mode',
+      );
       await tester.pumpWidget(const SizedBox());
 
       await approvals.loadSettings();
@@ -194,7 +195,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await saveCapture(tester, settingsKey, _evidenceDir, 'settings-global-and-project-$mode');
+      await saveCapture(
+        tester,
+        settingsKey,
+        _evidenceDir,
+        'settings-global-and-project-$mode',
+      );
       await tester.pumpWidget(const SizedBox());
       approvals.dispose();
     });

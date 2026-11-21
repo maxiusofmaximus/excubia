@@ -83,6 +83,7 @@ class _MessageBubble extends StatelessWidget {
     this.images,
     this.documents,
     this.replyBelow = false,
+    this.startsStreak = true,
   });
 
   final ChatEntry entry;
@@ -110,6 +111,9 @@ class _MessageBubble extends StatelessWidget {
 
   /// True when Alfred's answer is the next row, so the step line need not repeat it.
   final bool replyBelow;
+
+  /// True when the row above is not Alfred's: this bubble gets the tail toward the face.
+  final bool startsStreak;
 
   /// Only a message the host has (not one still sending) can be an answer's target.
   bool get _canReply =>
@@ -188,174 +192,192 @@ class _MessageBubble extends StatelessWidget {
     final step = entry.turnState == 'running' ? turnStep : null;
     final quote = entry.quote;
     final files = attachments ?? const <ChatAttachment>[];
-    return GestureDetector(
-      onLongPress: _canOpenActions ? () => _openActions(context) : null,
-      child: Align(
-        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          margin: EdgeInsets.fromLTRB(
-            mine ? 40 : Spacing.lg,
-            Spacing.xs,
-            mine ? Spacing.lg : 40,
-            Spacing.xs,
-          ),
-          padding: const EdgeInsets.fromLTRB(
-            Spacing.md,
-            Spacing.sm,
-            Spacing.md,
-            Spacing.sm,
-          ),
-          constraints: const BoxConstraints(maxWidth: 520),
-          decoration: BoxDecoration(
-            color: mine ? c.accentSoft : c.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: failed ? c.statusBlocked : c.outlineSoft),
-          ),
-          child: Column(
-            crossAxisAlignment: mine
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (characterId case final id?) ...[
-                    ExcludeSemantics(
-                      child: AgentAvatar(
-                        name: author,
-                        characterId: id,
-                        size: 24,
-                        animated: false,
+    // Text on the hot slab is onHot; elsewhere it keeps the usual colours.
+    final body = context.text.body.copyWith(color: mine ? c.onHot : null);
+    final small = context.text.small.copyWith(color: mine ? c.onHot : null);
+    final bubble = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: ComicSlab(
+        color: mine ? c.hot : c.deep,
+        cut: mine,
+        tail: !mine && startsStreak,
+        stroke: failed ? c.statusBlocked : null,
+        padding: const EdgeInsets.fromLTRB(
+          Spacing.md,
+          Spacing.sm,
+          Spacing.md,
+          Spacing.sm,
+        ),
+        child: Column(
+          crossAxisAlignment: mine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              author,
+              style: context.text.label.copyWith(
+                color: mine ? c.onHot : c.accentText,
+              ),
+            ),
+            const SizedBox(height: 2),
+            if (quote != null) ...[
+              ReplyQuote(
+                quote: quote,
+                author: replyAuthor(quote.authorKind, agentName),
+                onOpen: onOpenQuote == null
+                    ? null
+                    : () => onOpenQuote!(quote.id),
+              ),
+              const SizedBox(height: Spacing.xs),
+            ],
+            if (images case final cache?
+                when files.isNotEmpty && documents != null) ...[
+              ChatAttachmentStrip(
+                attachments: files,
+                images: cache,
+                documents: documents!,
+              ),
+              const SizedBox(height: Spacing.xs),
+            ],
+            // Alfred's replies carry markdown; the operator's own text is plain.
+            if (mine)
+              Text(entry.body.isEmpty ? entry.preview : entry.body, style: body)
+            else
+              MarkdownText(
+                entry.body.isEmpty ? entry.preview : entry.body,
+                style: body,
+              ),
+            if (!mine && entry.body.isNotEmpty) _ReplyActions(text: entry.body),
+            if (suggestions.isNotEmpty)
+              SuggestionChips(texts: suggestions, onTap: onSuggestion),
+            if (sending || failed) ...[
+              const SizedBox(height: Spacing.xs),
+              if (sending)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: mine ? c.onHot : c.textSecondary,
                       ),
                     ),
                     const SizedBox(width: Spacing.xs),
+                    Text('Enviando…', style: small),
                   ],
-                  Flexible(
-                    child: Text(
-                      author,
-                      style: context.text.label.copyWith(
-                        color: mine ? c.textSecondary : c.accentText,
+                )
+              else
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: Spacing.xs,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 16,
+                          color: c.statusBlocked,
+                        ),
+                        const SizedBox(width: Spacing.xs),
+                        Text('Falló el envío', style: small),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () => onRetrySend(entry),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                        foregroundColor: mine ? c.onHot : c.accentText,
+                      ),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+            ],
+            if (turn case final line?) ...[
+              const SizedBox(height: Spacing.xs),
+              Semantics(
+                label: line.text,
+                excludeSemantics: true,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      line.icon,
+                      size: 16,
+                      color: entry.turnState == 'failed'
+                          ? c.statusBlocked
+                          : (mine ? c.onHot : c.textSecondary),
+                    ),
+                    const SizedBox(width: Spacing.xs),
+                    Text(line.text, style: small),
+                  ],
+                ),
+              ),
+              if (step case final text?)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, left: 22),
+                  child: Text(
+                    text,
+                    style: small,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+    // Alfred's replies carry his face at 44 dp, outside the bubble; the tail on the
+    // first bubble of a run points at it.
+    final row = mine
+        ? Padding(
+            padding: const EdgeInsets.fromLTRB(
+              40,
+              Spacing.xs,
+              Spacing.lg,
+              Spacing.xs,
+            ),
+            child: Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: bubble,
+            ),
+          )
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.xs,
+              40,
+              Spacing.xs,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (characterId case final id?) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(right: Spacing.sm),
+                    child: ExcludeSemantics(
+                      child: AgentAvatar(
+                        name: author,
+                        characterId: id,
+                        size: 44,
+                        framed: true,
+                        animated: false,
                       ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 2),
-              if (quote != null) ...[
-                ReplyQuote(
-                  quote: quote,
-                  author: replyAuthor(quote.authorKind, agentName),
-                  onOpen: onOpenQuote == null
-                      ? null
-                      : () => onOpenQuote!(quote.id),
-                ),
-                const SizedBox(height: Spacing.xs),
+                Flexible(child: bubble),
               ],
-              if (images case final cache?
-                  when files.isNotEmpty && documents != null) ...[
-                ChatAttachmentStrip(
-                  attachments: files,
-                  images: cache,
-                  documents: documents!,
-                ),
-                const SizedBox(height: Spacing.xs),
-              ],
-              // Alfred's replies carry markdown; the operator's own text is plain.
-              if (mine)
-                Text(
-                  entry.body.isEmpty ? entry.preview : entry.body,
-                  style: context.text.body,
-                )
-              else
-                MarkdownText(
-                  entry.body.isEmpty ? entry.preview : entry.body,
-                  style: context.text.body,
-                ),
-              if (!mine && entry.body.isNotEmpty)
-                _ReplyActions(text: entry.body),
-              if (suggestions.isNotEmpty)
-                SuggestionChips(texts: suggestions, onTap: onSuggestion),
-              if (sending || failed) ...[
-                const SizedBox(height: Spacing.xs),
-                if (sending)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: c.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: Spacing.xs),
-                      Text('Enviando…', style: context.text.small),
-                    ],
-                  )
-                else
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: Spacing.xs,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 16,
-                            color: c.statusBlocked,
-                          ),
-                          const SizedBox(width: Spacing.xs),
-                          Text('Falló el envío', style: context.text.small),
-                        ],
-                      ),
-                      TextButton(
-                        onPressed: () => onRetrySend(entry),
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(48, 48),
-                          foregroundColor: c.accentText,
-                        ),
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
-              ],
-              if (turn case final line?) ...[
-                const SizedBox(height: Spacing.xs),
-                Semantics(
-                  label: line.text,
-                  excludeSemantics: true,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        line.icon,
-                        size: 16,
-                        color: entry.turnState == 'failed'
-                            ? c.statusBlocked
-                            : c.textSecondary,
-                      ),
-                      const SizedBox(width: Spacing.xs),
-                      Text(line.text, style: context.text.small),
-                    ],
-                  ),
-                ),
-                if (step case final text?)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2, left: 22),
-                    child: Text(
-                      text,
-                      style: context.text.small,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-            ],
-          ),
-        ),
-      ),
+            ),
+          );
+    return GestureDetector(
+      onLongPress: _canOpenActions ? () => _openActions(context) : null,
+      child: row,
     );
   }
 }

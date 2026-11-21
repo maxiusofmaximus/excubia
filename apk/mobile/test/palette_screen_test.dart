@@ -96,6 +96,8 @@ void main() {
     await mount(tester, system: Brightness.light);
     expect(pageColor(tester), HerdrColors.noche.bg);
 
+    // The seventh card pushes the switch below the fold; the list scrolls to it.
+    await tester.ensureVisible(find.text('Seguir el tema del sistema'));
     await tester.tap(find.text('Seguir el tema del sistema'));
     await tester.pumpAndSettle();
 

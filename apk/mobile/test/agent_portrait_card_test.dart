@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:excubia/ui/theme.dart';
 import 'package:excubia/ui/widgets/agent_portrait_card.dart';
+import 'package:excubia/ui/widgets/comic/comic_portrait.dart';
 
 Widget _host(Widget child) => MaterialApp(
   theme: buildTheme(),
@@ -53,15 +54,19 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('shows its portrait, the neutral 600x750 render', (tester) async {
+  testWidgets('shows its portrait, the neutral 384 square in the comic frame', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _host(const AgentPortraitCard(id: 'bob', name: 'Bob')),
     );
     final image = tester.widget<Image>(find.byType(Image));
     expect(
       (image.image as AssetImage).assetName,
-      'assets/agents_v3/portraits/bob-neutral-600x750.webp',
+      'assets/portraits/bob-neutral-384.webp',
     );
+    final box = tester.getSize(find.byType(ComicPortrait));
+    expect(box.width, box.height, reason: 'the frame is square');
   });
 
   testWidgets('an agent without a render shows its initial, no picture', (

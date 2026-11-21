@@ -35,30 +35,6 @@
 </head>
 <body>
   <div class="app">
-    <nav id="app-nav" class="app-nav" aria-label="Secciones">
-      <div class="brand app-brand">
-        <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
-        <span class="nav-label">Excubia</span>
-      </div>
-      <button id="nav-chat" class="nav-item" type="button" data-nav="chat" title="Chat" aria-label="Chat">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>
-        <span class="nav-label">Chat</span>
-        <span id="nav-badge-chat" class="nav-badge hidden"></span>
-      </button>
-      <button id="nav-agents" class="nav-item" type="button" data-nav="agents" title="Equipo" aria-label="Equipo">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"></path><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.8c1.8.6 3 2.2 3 5.2"></path></svg>
-        <span class="nav-label">Equipo</span>
-      </button>
-      <button id="nav-agenda" class="nav-item" type="button" data-nav="agenda" title="Agenda" aria-label="Agenda">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
-        <span class="nav-label">Agenda</span>
-      </button>
-      <span class="nav-spacer" aria-hidden="true"></span>
-      <button id="nav-settings" class="nav-item" type="button" data-nav="settings" title="Ajustes" aria-label="Ajustes">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"></path></svg>
-        <span class="nav-label">Ajustes</span>
-      </button>
-    </nav>
     <section id="view-pair" class="view view-pair">
       <button id="btn-pair-top-back" class="icon-btn pair-top-back" type="button" title="Volver al chat" aria-label="Volver al chat">←</button>
       <div class="brand">
@@ -196,45 +172,14 @@
     <section id="view-chat" class="view view-chat hidden">
 
       <div id="chat-shell" class="chat-shell">
-        <aside id="chat-history" class="history" aria-label="Historial de conversaciones">
-          <div class="history-head">
-            <h2>Historial</h2>
-          </div>
-          <button id="btn-new-chat" class="btn primary btn-block" type="button">+ Nuevo chat</button>
-          <label class="search">
-            <span class="sr-only">Buscar en títulos y mensajes</span>
-            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <circle cx="11" cy="11" r="7"></circle>
-              <path d="m20 20-3.4-3.4"></path>
-            </svg>
-            <input id="chat-search" type="search" placeholder="Buscar…" autocomplete="off" spellcheck="false">
-          </label>
-          <div id="chat-filters" class="chat-filters hidden">
-            <button id="chat-filter-toggle" class="chat-filter-toggle" type="button" aria-haspopup="menu"
-                    aria-expanded="false" aria-controls="chat-filter-menu">
-              <span id="chat-filter-label">Todos</span>
-              <span class="chat-filter-caret" aria-hidden="true">▾</span>
-            </button>
-            <div id="chat-filter-menu" class="chat-filter-menu hidden" role="menu" aria-label="Filtrar conversaciones"></div>
-          </div>
-          <div id="chat-select-bar" class="chat-select-bar hidden" role="toolbar" aria-label="Conversaciones seleccionadas">
-            <span id="chat-select-count" class="chat-select-count" aria-live="polite"></span>
-            <button id="btn-select-delete" class="chat-select-action danger" type="button">Eliminar</button>
-            <button id="btn-select-cancel" class="chat-select-action" type="button">Cancelar</button>
-          </div>
-          <div id="chat-groups" class="chat-groups" role="listbox" aria-multiselectable="true" aria-label="Conversaciones"></div>
-          <div class="history-foot">
-            <button id="btn-archived" class="linkish hidden" type="button">Archivados (0)</button>
-          </div>
-        </aside>
-
         <main id="chat-main" class="thread" aria-label="Conversación con Alfred">
           <header class="thread-head">
-            <button id="btn-history-toggle" class="icon-btn" type="button"
-                    title="Mostrar u ocultar el historial" aria-label="Mostrar u ocultar el historial" aria-expanded="true">☰</button>
+            <button id="btn-history-toggle" class="icon-btn drawer-toggle" type="button" data-drawer-toggle
+                    aria-expanded="false" aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
             <div class="thread-title">
-              <span id="chat-avatar" class="avatar" aria-hidden="true">A</span>
+              <button id="btn-chat-team" class="thread-team" type="button" title="Abrir el equipo" aria-label="Abrir el equipo">
+                <span id="chat-avatar" class="avatar" aria-hidden="true">A</span>
+              </button>
               <div>
                 <h1 id="chat-title">Alfred</h1>
                 <p id="chat-subtitle" class="subtitle">Cargando…</p>
@@ -245,8 +190,6 @@
                 <span class="chip-dot" aria-hidden="true"></span>
                 <span class="chip-label">Sin conectar</span>
               </span>
-              <button id="btn-chat-more" class="icon-btn" type="button" title="Más opciones de la conversación"
-                      aria-label="Más opciones de la conversación" data-menu="current">⋯</button>
             </div>
           </header>
 
@@ -257,6 +200,7 @@
 
           <div id="chat-empty" class="chat-empty hidden">
             <div id="empty-alfred" class="avatar empty-alfred" aria-hidden="true">A</div>
+            <div id="empty-alfred-name" class="empty-alfred-name">Alfred</div>
             <h2 id="empty-chat-title">¿Qué movemos hoy?</h2>
             <p id="empty-chat-body">Dime un objetivo y reparto el trabajo entre Ernesto y su equipo. Yo te traigo el resultado.</p>
             <div id="chat-suggestions" class="suggestions" role="list"></div>
@@ -289,14 +233,11 @@
           </form>
         </main>
 
-        <aside id="chat-side" class="side" aria-label="Equipo">
+        <!-- The team panel is gone from the chat: its content lives in the Equipo section. The
+             nodes stay, hidden, because chatlist.js and delegations.js still write into them. -->
+        <aside id="chat-side" class="side" aria-label="Equipo" hidden>
           <div class="side-head">
             <h2>Equipo</h2>
-            <button id="btn-side-toggle" class="icon-btn side-toggle" type="button"
-                    title="Plegar el panel" aria-label="Plegar el panel del equipo" aria-expanded="true">
-              <span class="side-toggle-arrow" aria-hidden="true">›</span>
-              <svg class="side-toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.7-3 2.9-4.7 5.5-4.7s4.8 1.7 5.5 4.7"/><circle cx="17" cy="9.5" r="2.3"/><path d="M16.6 14.4c2.2.3 3.7 1.8 4.2 4.4"/></svg>
-            </button>
           </div>
           <div id="side-body" class="side-body">
             <div class="side-card">
@@ -323,16 +264,16 @@
               <summary>Tareas terminadas</summary>
               <div id="side-finished-list" class="side-list"></div>
             </details>
-            <button id="btn-open-team" class="btn secondary btn-block" type="button">Abrir equipo</button>
           </div>
         </aside>
       </div>
-      <div id="chat-menu" class="menu hidden" role="menu" aria-label="Acciones de la conversación"></div>
     </section>
 
     <section id="view-agents" class="view view-agents hidden">
 
       <header class="view-head">
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
+                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
         <div>
           <h1>Equipo</h1>
           <p id="agents-subtitle" class="subtitle">Cargando estado…</p>
@@ -418,6 +359,8 @@
 
     <section id="view-settings" class="view view-settings hidden" aria-labelledby="settings-title">
       <header class="view-head">
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
+                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
         <h1 id="settings-title">Ajustes</h1>
       </header>
       <div class="settings-list">
@@ -533,6 +476,8 @@
 
     <section id="view-contacts" class="view view-agenda hidden" aria-label="Contactos">
       <header class="view-head">
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
+                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
         <h1>Agenda</h1>
       </header>
       <nav class="agenda-tabs" aria-label="Agenda">
@@ -565,6 +510,8 @@
 
     <section id="view-notes" class="view view-agenda hidden" aria-label="Notas">
       <header class="view-head">
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
+                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
         <h1>Agenda</h1>
       </header>
       <nav class="agenda-tabs" aria-label="Agenda">
@@ -597,6 +544,8 @@
 
     <section id="view-calendar" class="view view-agenda hidden" aria-label="Calendario">
       <header class="view-head">
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
+                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
         <h1>Agenda</h1>
       </header>
       <nav class="agenda-tabs" aria-label="Agenda">
@@ -670,6 +619,8 @@
 
     <section id="view-devices" class="view view-agenda hidden" aria-label="Dispositivos">
       <header class="view-head">
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
+                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
         <h1>Dispositivos</h1>
       </header>
       <div class="agenda-shell devices-shell">
@@ -687,6 +638,8 @@
 
     <section id="view-alerts" class="view view-agenda hidden" aria-label="Avisos">
       <header class="view-head">
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
+                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
         <h1>Avisos</h1>
       </header>
       <div class="agenda-shell alerts-shell">
@@ -811,6 +764,79 @@
       </details>
     </section>
   </div>
+
+  <!-- Outside .app, which is inert while the drawer is open: the menu of a row of the history opens over the drawer. -->
+  <div id="chat-menu" class="menu hidden" role="menu" aria-label="Acciones de la conversación"></div>
+
+  <div id="drawer-veil" class="drawer-veil" hidden></div>
+  <aside id="app-drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Menú de Excubia" hidden>
+    <nav id="app-nav" class="app-nav" aria-label="Secciones">
+      <div class="brand app-brand">
+        <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
+        <span class="nav-label">Excubia</span>
+      </div>
+      <button id="btn-drawer-search" class="drawer-search" type="button" title="Buscar conversaciones y órdenes (Ctrl+K)">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-3.4-3.4"></path>
+        </svg>
+        <span>Buscar…</span>
+        <kbd>Ctrl+K</kbd>
+      </button>
+      <button id="nav-chat" class="nav-item" type="button" data-nav="chat" title="Chat" aria-label="Chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>
+        <span class="nav-label">Chat</span>
+        <span id="nav-badge-chat" class="nav-badge hidden"></span>
+      </button>
+      <button id="nav-agents" class="nav-item" type="button" data-nav="agents" title="Equipo" aria-label="Equipo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"></path><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.8c1.8.6 3 2.2 3 5.2"></path></svg>
+        <span class="nav-label">Equipo</span>
+      </button>
+      <button id="nav-agenda" class="nav-item" type="button" data-nav="agenda" title="Agenda" aria-label="Agenda">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+        <span class="nav-label">Agenda</span>
+      </button>
+
+      <aside id="chat-history" class="history" aria-label="Historial de conversaciones">
+        <div class="history-head">
+          <h2>Historial</h2>
+        </div>
+        <button id="btn-new-chat" class="btn primary btn-block" type="button">+ Nuevo chat</button>
+        <label class="search">
+          <span class="sr-only">Buscar en títulos y mensajes</span>
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.4-3.4"></path>
+          </svg>
+          <input id="chat-search" type="search" placeholder="Buscar…" autocomplete="off" spellcheck="false">
+        </label>
+        <div id="chat-filters" class="chat-filters hidden">
+          <button id="chat-filter-toggle" class="chat-filter-toggle" type="button" aria-haspopup="menu"
+                  aria-expanded="false" aria-controls="chat-filter-menu">
+            <span id="chat-filter-label">Todos</span>
+            <span class="chat-filter-caret" aria-hidden="true">▾</span>
+          </button>
+          <div id="chat-filter-menu" class="chat-filter-menu hidden" role="menu" aria-label="Filtrar conversaciones"></div>
+        </div>
+        <div id="chat-select-bar" class="chat-select-bar hidden" role="toolbar" aria-label="Conversaciones seleccionadas">
+          <span id="chat-select-count" class="chat-select-count" aria-live="polite"></span>
+          <button id="btn-select-delete" class="chat-select-action danger" type="button">Eliminar</button>
+          <button id="btn-select-cancel" class="chat-select-action" type="button">Cancelar</button>
+        </div>
+        <div id="chat-groups" class="chat-groups" role="listbox" aria-multiselectable="true" aria-label="Conversaciones"></div>
+        <div class="history-foot">
+          <button id="btn-archived" class="linkish hidden" type="button">Archivados (0)</button>
+        </div>
+      </aside>
+
+      <button id="nav-settings" class="nav-item" type="button" data-nav="settings" title="Ajustes" aria-label="Ajustes">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"></path></svg>
+        <span class="nav-label">Ajustes</span>
+      </button>
+    </nav>
+  </aside>
 
   <dialog id="new-conversation" class="dialog">
     <form id="new-conversation-form" method="dialog" novalidate>

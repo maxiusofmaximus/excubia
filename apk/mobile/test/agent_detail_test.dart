@@ -77,7 +77,7 @@ void main() {
   ) async {
     await pumpDetail(tester, triageWith(AgentStatus.blocked));
 
-    expect(find.text('Responder'), findsOneWidget);
+    expect(find.text('Responder al agente'), findsOneWidget);
     expect(find.text('Aprobar (y)'), findsOneWidget);
     expect(find.text('Rechazar (n)'), findsOneWidget);
     expect(find.text('Detener agente'), findsOneWidget);
@@ -118,12 +118,16 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
   });
 
-  testWidgets('an agent that is not blocked cannot be driven', (tester) async {
+  testWidgets('an agent that is not blocked hides the keys and their note', (
+    tester,
+  ) async {
     await pumpDetail(tester, triageWith(AgentStatus.idle));
 
+    expect(find.text('Aprobar (y)'), findsNothing);
+    expect(find.text('Enter'), findsNothing);
     expect(
       find.textContaining('Disponible cuando el agente está bloqueado'),
-      findsOneWidget,
+      findsNothing,
     );
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.enabled, isFalse);
@@ -138,7 +142,7 @@ void main() {
   ) async {
     await pumpDetail(tester, triageWith(AgentStatus.unknown, restored: true));
 
-    expect(find.text('Responder'), findsNothing);
+    expect(find.text('Responder al agente'), findsNothing);
     expect(find.text('Enviar'), findsNothing);
     expect(find.text('Aprobar (y)'), findsNothing);
     expect(find.byType(TextField), findsNothing);
@@ -194,8 +198,9 @@ void main() {
   ) async {
     await pumpDetail(tester, triageWith(AgentStatus.working));
 
-    expect(find.text('Responder'), findsOneWidget);
+    expect(find.text('Responder al agente'), findsOneWidget);
     expect(find.text('Enviar'), findsOneWidget);
+    expect(find.text('Aprobar (y)'), findsNothing);
     expect(find.text('Nueva conversación aquí'), findsNothing);
   });
 

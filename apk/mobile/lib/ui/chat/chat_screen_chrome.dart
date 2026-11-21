@@ -20,6 +20,7 @@ class _JumpToEnd extends StatelessWidget {
   static String _label(int approvals, int messages) {
     if (approvals == 1) return 'Ir al final, 1 aprobación pendiente';
     if (approvals > 1) return 'Ir al final, $approvals aprobaciones pendientes';
+    if (messages == 0) return 'Ir al final';
     return messages == 1
         ? 'Ir al final, 1 mensaje nuevo'
         : 'Ir al final, $messages mensajes nuevos';
@@ -111,24 +112,34 @@ class ChatHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
+          ComicButton(
+            label: 'Abrir historial',
             tooltip: 'Abrir historial',
+            square: true,
+            tone: ComicButtonTone.secondary,
             onPressed: onHistory,
             icon: Badge(
               isLabelVisible: unread > 0,
               label: Text('$unread'),
               child: const Icon(Icons.menu),
             ),
-            color: c.textSecondary,
           ),
-          AgentAvatar(name: name, size: 32, look: look),
+          const SizedBox(width: Spacing.xs),
+          AgentAvatar(name: name, size: 64, look: look, framed: true),
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(name, style: context.text.title),
+                // Unbounded inside the fit, the name stays on one line and scales
+                // down instead of breaking («ALFRE/D») at large text.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: ComicTag(label: name),
+                ),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Container(
@@ -144,11 +155,17 @@ class ChatHeader extends StatelessWidget {
                       child: Semantics(
                         liveRegion: announce != null,
                         label: announce,
-                        child: Text(
-                          offline ? connectionLabel(connectionFailure) : status,
-                          style: context.text.small,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        // Scales down rather than cutting «Disponible» when the shield takes room.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            offline
+                                ? connectionLabel(connectionFailure)
+                                : status,
+                            style: context.text.small,
+                            maxLines: 1,
+                          ),
                         ),
                       ),
                     ),
@@ -159,17 +176,23 @@ class ChatHeader extends StatelessWidget {
           ),
           if (onApprovals case final onTap?)
             ApprovalsHeaderButton(pending: approvalsPending, onPressed: onTap),
-          IconButton(
-            tooltip: 'Avisos con la pantalla apagada',
-            onPressed: () => openAlertsSettings(context, alertRules),
-            icon: const Icon(Icons.notifications_outlined),
-            color: c.textSecondary,
+          SizedBox(
+            width: 48,
+            child: IconButton(
+              tooltip: 'Avisos con la pantalla apagada',
+              onPressed: () => openAlertsSettings(context, alertRules),
+              icon: const Icon(Icons.notifications_outlined),
+              color: c.textSecondary,
+            ),
           ),
-          IconButton(
-            tooltip: 'Nuevo chat',
-            onPressed: onNewChat,
-            icon: const Icon(Icons.add_comment_outlined),
-            color: c.textSecondary,
+          SizedBox(
+            width: 48,
+            child: IconButton(
+              tooltip: 'Nuevo chat',
+              onPressed: onNewChat,
+              icon: const Icon(Icons.add_comment_outlined),
+              color: c.textSecondary,
+            ),
           ),
         ],
       ),

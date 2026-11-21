@@ -101,93 +101,123 @@ extension _HistoryDrawerList on _HistoryDrawerState {
       container: true,
       label: '${conversation.title}. Abrir conversación.',
       child: Material(
-        color: selected ? c.accentSoft : Colors.transparent,
+        color: Colors.transparent,
         child: InkWell(
           onTap: () {
             Navigator.of(context).maybePop();
             _chat.openConversation(conversation.id);
           },
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 56),
-            padding: const EdgeInsets.fromLTRB(Spacing.md, 4, 4, 4),
-            child: Row(
-              children: [
-                if (conversation.pinned)
-                  Semantics(
-                    label: 'Fijado',
-                    child: Icon(Icons.star, size: 16, color: c.accentText),
-                  ),
-                if (conversation.pinned) const SizedBox(width: Spacing.xs),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        conversation.title,
-                        style: context.text.body,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+          // A leaning strip per conversation; the open one is hot.
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(Spacing.xs, 3, Spacing.xs, 3),
+            child: ComicSlab(
+              color: selected ? c.hot : c.deep,
+              shadow: selected ? comicShadow : 2,
+              padding: const EdgeInsets.fromLTRB(Spacing.md, 4, 4, 4),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Row(
+                  children: [
+                    if (conversation.pinned)
+                      Semantics(
+                        label: 'Fijado',
+                        child: Icon(
+                          Icons.star,
+                          size: 16,
+                          color: selected ? c.onHot : c.accentText,
+                        ),
                       ),
-                      Text(
-                        conversation.activeRuns > 0
-                            ? '${_chat.alfredName} · '
-                                  '${_chat.progressOf(conversation.id) ?? 'trabajando…'}'
-                            : '${_chat.alfredName} · '
-                                  '${relativeTime(conversation.lastMessageAt)}',
-                        style: context.text.small,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                if (conversation.unread > BigInt.zero)
-                  Badge(
-                    label: Text('${conversation.unread}'),
-                    offset: const Offset(-6, 0),
-                  ),
-                PopupMenuButton<String>(
-                  tooltip: 'Acciones de la conversación',
-                  icon: Icon(Icons.more_vert, color: c.textMuted),
-                  onSelected: (action) => _action(action, conversation),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'rename',
-                      child: Text('Renombrar'),
-                    ),
-                    PopupMenuItem(
-                      value: 'pin',
-                      child: Text(
-                        conversation.pinned ? 'Quitar de fijados' : 'Fijar',
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'move',
-                      child: Text('Mover a sección'),
-                    ),
-                    PopupMenuItem(
-                      value: conversation.archived ? 'unarchive' : 'archive',
-                      child: Text(
-                        conversation.archived ? 'Desarchivar' : 'Archivar',
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
+                    if (conversation.pinned) const SizedBox(width: Spacing.xs),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, color: c.statusBlocked),
-                          const SizedBox(width: Spacing.sm),
                           Text(
-                            'Borrar',
-                            style: TextStyle(color: c.statusBlocked),
+                            conversation.title,
+                            style: context.text.body.copyWith(
+                              color: selected ? c.onHot : null,
+                            ),
+                            // Two lines fit the drawer; the rest reads with an ellipsis.
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            conversation.activeRuns > 0
+                                ? '${_chat.alfredName} · '
+                                      '${_chat.progressOf(conversation.id) ?? 'trabajando…'}'
+                                : '${_chat.alfredName} · '
+                                      '${relativeTime(conversation.lastMessageAt)}',
+                            style: context.text.small.copyWith(
+                              color: selected ? c.onHot : null,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
+                    // The open conversation's run, legible on the hot strip.
+                    if (selected && conversation.activeRuns > 0) ...[
+                      const ComicTag(label: 'Trabajando'),
+                      const SizedBox(width: Spacing.xs),
+                    ],
+                    if (conversation.unread > BigInt.zero)
+                      Badge(
+                        label: Text('${conversation.unread}'),
+                        offset: const Offset(-6, 0),
+                      ),
+                    PopupMenuButton<String>(
+                      tooltip: 'Acciones de la conversación',
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: selected ? c.onHot : c.textMuted,
+                      ),
+                      onSelected: (action) => _action(action, conversation),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'rename',
+                          child: Text('Renombrar'),
+                        ),
+                        PopupMenuItem(
+                          value: 'pin',
+                          child: Text(
+                            conversation.pinned ? 'Quitar de fijados' : 'Fijar',
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'move',
+                          child: Text('Mover a sección'),
+                        ),
+                        PopupMenuItem(
+                          value: conversation.archived
+                              ? 'unarchive'
+                              : 'archive',
+                          child: Text(
+                            conversation.archived ? 'Desarchivar' : 'Archivar',
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                color: c.statusBlocked,
+                              ),
+                              const SizedBox(width: Spacing.sm),
+                              Text(
+                                'Borrar',
+                                style: TextStyle(color: c.statusBlocked),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

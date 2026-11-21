@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:excubia/ui/widgets/comic/comic_button.dart';
 import 'package:excubia/core/api/chat_attachment_source.dart';
 import 'package:excubia/core/api/chat_document_previews.dart';
 import 'package:excubia/core/api/host_client.dart';
@@ -97,8 +98,8 @@ void main() {
       ),
     );
 
-    IconButton send() => tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, Icons.arrow_upward),
+    ComicButton send() => tester.widget<ComicButton>(
+      find.widgetWithIcon(ComicButton, Icons.arrow_upward),
     );
     final picked = AttachmentDraft('cnv_1', png());
     tray.hold(picked);

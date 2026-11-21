@@ -104,3 +104,53 @@ String agentTitle(
   final name = seatFor(asked, projects, alfred)?.name.trim() ?? '';
   return name.isEmpty ? 'Un agente' : name;
 }
+
+const _writeTools = {'write', 'edit', 'multiedit', 'notebookedit'};
+const _shellTools = {'bash', 'shell', 'powershell', 'pwsh', 'cmd'};
+final RegExp _deleteCommand = RegExp(
+  r'(?:^|[;&|(]\s*)(?:sudo\s+)?(?:rm|del|erase|rmdir|remove-item|unlink)\s',
+  caseSensitive: false,
+);
+
+/// A shell tool: its command can change or delete files.
+bool isShellTool(String? tool) =>
+    _shellTools.contains((tool ?? '').toLowerCase());
+
+/// What the agent wants to do, in words the operator reads. Null when the tool
+/// says nothing clear; the card then says «necesita permiso».
+String? actionPhrase(String? tool, String? command) {
+  final name = (tool ?? '').toLowerCase();
+  if (_writeTools.contains(name)) return 'guardar un archivo';
+  if (_shellTools.contains(name)) {
+    return _deleteCommand.hasMatch(command ?? '')
+        ? 'borrar archivos'
+        : 'ejecutar un comando';
+  }
+  if (name == 'read') return 'leer un archivo';
+  return null;
+}
+
+/// A timeline line in the operator's words: «Aprobado», «Esperando tu OK», with
+/// the step after it unless the step is only a tool's name («edit Write»).
+String timelineLineText(String summary) {
+  final text = summary.trim();
+  final match = _timelineHead.firstMatch(text);
+  if (match == null) return text;
+  final head = switch (match.group(1)!.toLowerCase()) {
+    'operador aprobó' => 'Aprobado',
+    'operador denegó' => 'Denegado',
+    'host expiró' => 'Caducó sin respuesta',
+    _ => 'Esperando tu OK',
+  };
+  final step = match.group(2)!.trim();
+  return step.isEmpty || _toolOnly.hasMatch(step) ? head : '$head · $step';
+}
+
+final RegExp _timelineHead = RegExp(
+  r'^(operador aprobó|operador denegó|pendiente|host expiró):\s*(.*)$',
+  caseSensitive: false,
+);
+final RegExp _toolOnly = RegExp(
+  r'^(?:command|tool|edit|write|read|multiedit|notebookedit|bash|shell|powershell|pwsh|cmd|websearch|webfetch)\s+\S+$',
+  caseSensitive: false,
+);

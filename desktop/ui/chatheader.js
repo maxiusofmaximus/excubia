@@ -13,10 +13,10 @@ export function renderHeader() {
   paintAvatar($("chat-avatar"), {
     name: alfred,
     characterId: "alfred",
-    status: chat.waiting ? "working" : seat && seat.status,
-    px: 44,
+    status: seat && seat.status,
+    look: chat.waiting ? "thinking" : null,
+    px: 64,
   });
-  $("btn-chat-more").disabled = !chat.conversation;
   const state = connection();
   // The subtitle names the agent; it says more only while something is off or running.
   let subtitle = alfred;

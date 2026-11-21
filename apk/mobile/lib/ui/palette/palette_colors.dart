@@ -25,6 +25,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     required this.statusDone,
     required this.statusIdle,
     required this.statusUnknown,
+    required this.hard,
+    required this.dot,
   });
 
   final Color bg;
@@ -47,6 +49,18 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
   final Color statusIdle;
   final Color statusUnknown;
 
+  /// The comic skin's hard shadow and halftone dot (desktop `palette-data.js`).
+  final Color hard;
+  final Color dot;
+
+  // The comic roles, derived the way desktop `comic.css` derives them.
+  Color get hot => accent;
+  Color get onHot => onAccent;
+  Color get pale => textPrimary;
+  Color get onPale => bg;
+  Color get deep => raised;
+  Color get onDeep => textPrimary;
+
   /// Azul noche y latón. The approved default.
   static const HerdrColors noche = HerdrColors(
     bg: Color(0xFF0B1426),
@@ -68,6 +82,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     statusDone: Color(0xFF6FCF97),
     statusIdle: Color(0xFF9AA5BD),
     statusUnknown: Color(0xFFCFD8E8),
+    hard: Color(0x8C000000),
+    dot: Color(0x59000000),
   );
 
   /// Papel cálido. The approved light palette.
@@ -91,6 +107,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     statusDone: Color(0xFF276B4E),
     statusIdle: Color(0xFF585F71),
     statusUnknown: Color(0xFF34405E),
+    hard: Color(0x661C2438),
+    dot: Color(0x291C2438),
   );
 
   /// Gris oscuro neutro, acento azul acero.
@@ -114,6 +132,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     statusDone: Color(0xFF7FD6A2),
     statusIdle: Color(0xFFA3A3A3),
     statusUnknown: Color(0xFFCFCFCF),
+    hard: Color(0x8C000000),
+    dot: Color(0x59000000),
   );
 
   /// Blanco roto neutro, acento azul.
@@ -137,6 +157,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     statusDone: Color(0xFF276B4E),
     statusIdle: Color(0xFF5A5A5A),
     statusUnknown: Color(0xFF333333),
+    hard: Color(0x661C2438),
+    dot: Color(0x291C2438),
   );
 
   /// Azul profundo de bajo brillo.
@@ -160,6 +182,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     statusDone: Color(0xFF7ADFA8),
     statusIdle: Color(0xFF93A8CC),
     statusUnknown: Color(0xFFC7D6EE),
+    hard: Color(0x8C000000),
+    dot: Color(0x59000000),
   );
 
   /// Negro y blanco, máxima legibilidad.
@@ -183,6 +207,33 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     statusDone: Color(0xFF6FE39B),
     statusIdle: Color(0xFFD0D0D0),
     statusUnknown: Color(0xFFFFFFFF),
+    hard: Color(0x8C000000),
+    dot: Color(0x59000000),
+  );
+
+  /// Telón: the red, black and white of the comic mockup (desktop `palette-data.js`).
+  static const HerdrColors telon = HerdrColors(
+    bg: Color(0xFF0A0A0C),
+    surface: Color(0xFF131316),
+    raised: Color(0xFF1C1C21),
+    surface3: Color(0xFF25252B),
+    outlineSoft: Color(0xFF2A2A30),
+    outlineStrong: Color(0xFF8A8A96),
+    textPrimary: Color(0xFFFFFFFF),
+    textSecondary: Color(0xFFECECF0),
+    textMuted: Color(0xFFA9A9B3),
+    accent: Color(0xFFE60012),
+    accentText: Color(0xFFFF4D5C),
+    accentSoft: Color(0xFF3A0A10),
+    onAccent: Color(0xFFFFFFFF),
+    onAttention: Color(0xFF0A0A0C),
+    statusBlocked: Color(0xFFFF8A7A),
+    statusWorking: Color(0xFF8FB7E8),
+    statusDone: Color(0xFF7FD6A3),
+    statusIdle: Color(0xFFA3A3A3),
+    statusUnknown: Color(0xFFD6D6D6),
+    hard: Color(0x8C000000),
+    dot: Color(0x59000000),
   );
 
   /// The old names stay as aliases for the two approved palettes.
@@ -243,6 +294,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     Color? statusDone,
     Color? statusIdle,
     Color? statusUnknown,
+    Color? hard,
+    Color? dot,
   }) => HerdrColors(
     bg: bg ?? this.bg,
     surface: surface ?? this.surface,
@@ -263,6 +316,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
     statusDone: statusDone ?? this.statusDone,
     statusIdle: statusIdle ?? this.statusIdle,
     statusUnknown: statusUnknown ?? this.statusUnknown,
+    hard: hard ?? this.hard,
+    dot: dot ?? this.dot,
   );
 
   @override
@@ -288,6 +343,8 @@ class HerdrColors extends ThemeExtension<HerdrColors> {
       statusDone: Color.lerp(statusDone, other.statusDone, t)!,
       statusIdle: Color.lerp(statusIdle, other.statusIdle, t)!,
       statusUnknown: Color.lerp(statusUnknown, other.statusUnknown, t)!,
+      hard: Color.lerp(hard, other.hard, t)!,
+      dot: Color.lerp(dot, other.dot, t)!,
     );
   }
 }

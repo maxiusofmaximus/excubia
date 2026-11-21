@@ -5,6 +5,7 @@ import 'package:excubia/src/rust/api/chat/model.dart';
 
 import '../theme.dart';
 import '../widgets/surface_card.dart';
+import 'markdown_text.dart';
 
 /// Some host rows arrive with UTF-8 bytes read as Latin-1 ("Ã³" instead of
 /// "ó"). Repair only that exact signature; leave normal text untouched.
@@ -78,6 +79,27 @@ IconData delegationStatusIcon(String? status) => switch (status) {
   _ => Icons.help_outline,
 };
 
+/// The agent's name from the host's title «Alfred pidió a Ernesto»; null when
+/// the title has none.
+String? delegateName(String title) =>
+    RegExp(r' (?:pidió a|asignó a) (.+)$').firstMatch(title)?.group(1);
+
+/// The card's one line: what the agent does with the request, in plain words.
+String delegationLine(String? agent, String? status, {bool attention = false}) {
+  final who = agent ?? 'Un agente';
+  if (attention && delegationIsActive(status)) {
+    return '$who necesita tu atención';
+  }
+  return switch (status) {
+    'done' || 'completed' => '$who terminó',
+    'failed' => '$who falló',
+    'cancelled' => 'Delegación cancelada',
+    'interrupted' => '$who se interrumpió',
+    'waiting' => '$who está esperando',
+    _ => '$who está trabajando en tu pedido',
+  };
+}
+
 /// Ask before stopping a live delegation. The same wording is used from the
 /// card and from the detail screen so the action is predictable.
 Future<bool> confirmDelegationCancel(
@@ -111,21 +133,18 @@ Future<bool> confirmDelegationCancel(
   return confirmed ?? false;
 }
 
-/// One `kind=card` timeline entry. Flutter only paints what Rust reduced:
-/// title, live status, one-line summary, pane and delegation links.
+/// One `kind=card` timeline entry: one line of what the agent does, a live bar
+/// while it works, and «Ver detalle». The agent, the result and the cancel
+/// button live on the detail screen.
 class DelegationCard extends StatelessWidget {
   const DelegationCard({
     super.key,
     required this.entry,
-    required this.onOpenAgent,
     required this.onOpenDetail,
-    required this.onCancel,
   });
 
   final ChatEntry entry;
-  final ValueChanged<ChatEntry> onOpenAgent;
   final ValueChanged<ChatEntry> onOpenDetail;
-  final ValueChanged<ChatEntry> onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -133,13 +152,18 @@ class DelegationCard extends StatelessWidget {
     final status = entry.status ?? entry.state ?? 'queued';
     final active = delegationIsActive(status);
     final color = delegationStatusColor(context, status);
-    final summary = normalizeCardText(entry.summary?.trim() ?? '');
-    final title = normalizeCardText(
-      (entry.title?.trim().isNotEmpty ?? false)
-          ? entry.title!.trim()
-          : 'Delegación del equipo',
+    final title = plainFromMarkdown(
+      normalizeCardText(
+        (entry.title?.trim().isNotEmpty ?? false)
+            ? entry.title!.trim()
+            : 'Delegación del equipo',
+      ),
     );
-    final paneId = entry.paneId;
+    final line = delegationLine(
+      delegateName(title),
+      status,
+      attention: (entry.attention ?? 0) > 0,
+    );
     return Semantics(
       container: true,
       label: 'Delegación: $title, ${delegationStatusLabel(status)}',
@@ -151,8 +175,8 @@ class DelegationCard extends StatelessWidget {
         child: SurfaceCard(
           padding: const EdgeInsets.fromLTRB(
             Spacing.md,
-            Spacing.md,
-            Spacing.md,
+            Spacing.sm,
+            Spacing.sm,
             Spacing.sm,
           ),
           borderColor: active ? color.withValues(alpha: 0.55) : c.outlineSoft,
@@ -160,26 +184,28 @@ class DelegationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(Icons.account_tree_outlined, size: 20, color: color),
                   const SizedBox(width: Spacing.sm),
-                  Expanded(child: Text(title, style: context.text.title)),
-                  const SizedBox(width: Spacing.sm),
-                  _StatusPill(status: status, color: color),
+                  Expanded(
+                    child: Text(
+                      line,
+                      style: context.text.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => onOpenDetail(entry),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                    ),
+                    child: const Text('Ver detalle'),
+                  ),
                 ],
               ),
-              if (summary.isNotEmpty) ...[
-                const SizedBox(height: Spacing.xs),
-                Text(
-                  summary,
-                  style: context.text.bodySecondary,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
               if (active) ...[
-                const SizedBox(height: Spacing.sm),
+                const SizedBox(height: Spacing.xs),
                 Semantics(
                   label: 'Delegación en curso',
                   child: ClipRRect(
@@ -192,91 +218,9 @@ class DelegationCard extends StatelessWidget {
                   ),
                 ),
               ],
-              if ((entry.attention ?? 0) > 0) ...[
-                const SizedBox(height: Spacing.xs),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.notifications_active_outlined,
-                      size: 16,
-                      color: c.statusBlocked,
-                    ),
-                    const SizedBox(width: Spacing.xs),
-                    Text('Requiere tu atención', style: context.text.small),
-                  ],
-                ),
-              ],
-              const SizedBox(height: Spacing.xs),
-              Wrap(
-                spacing: Spacing.xs,
-                runSpacing: 0,
-                children: [
-                  if (paneId != null && paneId.isNotEmpty)
-                    TextButton.icon(
-                      onPressed: () => onOpenAgent(entry),
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                      ),
-                      icon: const Icon(Icons.terminal_outlined, size: 18),
-                      label: const Text('Abrir agente'),
-                    ),
-                  TextButton.icon(
-                    onPressed: () => onOpenDetail(entry),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                    ),
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('Ver resultado completo'),
-                  ),
-                  if (active)
-                    TextButton.icon(
-                      onPressed: () => onCancel(entry),
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                        foregroundColor: c.textPrimary,
-                      ),
-                      icon: const Icon(Icons.stop_circle_outlined, size: 18),
-                      label: const Text('Cancelar'),
-                    ),
-                ],
-              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status, required this.color});
-
-  final String status;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 26),
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(delegationStatusIcon(status), size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            delegationStatusLabel(status),
-            style: context.text.label.copyWith(
-              color: delegationStatusTextColor(context, status),
-              fontSize: 11,
-            ),
-          ),
-        ],
       ),
     );
   }

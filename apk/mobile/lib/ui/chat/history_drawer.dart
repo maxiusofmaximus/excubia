@@ -6,6 +6,8 @@ import '../../core/api/phone_contacts.dart';
 import '../../core/state/chat_controller.dart';
 import '../settings_screen.dart';
 import '../theme.dart';
+import '../widgets/comic/comic_slab.dart';
+import '../widgets/comic/comic_tag.dart';
 import '../widgets/time_label.dart';
 
 part 'history_drawer_actions.dart';

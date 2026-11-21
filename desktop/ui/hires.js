@@ -54,7 +54,7 @@ function hireRow(hire) {
     row.setAttribute("aria-label", `Opciones de ${hire.name}${roleTitle(hire) ? `, ${roleTitle(hire)}` : ""}`);
     row.addEventListener("click", () => openHireActions(hire));
   }
-  const face = avatarElement({ name: hire.name, characterId: hire.avatar, px: 40, faceFromName: false });
+  const face = avatarElement({ name: hire.name, characterId: hire.avatar, px: 44, faceFromName: false });
   const text = document.createElement("span");
   text.className = "hire-text";
   const name = document.createElement("span");

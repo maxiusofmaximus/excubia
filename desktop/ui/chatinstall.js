@@ -17,7 +17,6 @@ import { installDraftCards } from "./chatdraft.js";
 import { createDelegations } from "./chatdelegations.js";
 import { filterMenuOpen, setFilterMenu } from "./chatfilters.js";
 import { chat, applyFeed, failure } from "./chatstate.js";
-import { teamPanelOpen } from "./team-panel-model.js";
 import { visibleOrder } from "./chatlist.js";
 import { clickRow, only, selectAll } from "./chat-select-model.js";
 import {
@@ -61,19 +60,6 @@ function onList(event) {
   const groups = $("chat-groups");
   if (groups.getClientRects().length === 0) return false;
   return groups.contains(event.target) || (event.target === document.body && chat.selection.ids.size > 0);
-}
-
-function toggleSide() {
-  const shell = $("chat-shell");
-  const collapsed = shell.classList.toggle("side-collapsed");
-  $("btn-side-toggle").setAttribute("aria-expanded", String(!collapsed));
-  $("btn-side-toggle").setAttribute("aria-label", collapsed ? "Equipo" : "Plegar el panel del equipo");
-  $("btn-side-toggle").title = collapsed ? "Equipo" : "Plegar el panel";
-  try {
-    localStorage.setItem("hn-chat-side-collapsed", collapsed ? "1" : "0");
-  } catch {
-    // Preference only.
-  }
 }
 
 async function newConversation() {
@@ -176,30 +162,14 @@ export function installChatHandlers() {
   installVoice();
   installDraftCards();
   installNewProject(refreshHome);
-  installCommandPalette({
+  const palette = installCommandPalette({
     conversations: () => (chat.home ? [...chat.home.conversations, ...chat.home.archived] : []),
     selectConversation,
   });
-  // The team panel starts folded unless something waits for the operator there; his own choice is kept.
-  let stored = null;
-  try {
-    stored = localStorage.getItem("hn-chat-side-collapsed");
-  } catch {
-    // Preference only.
-  }
-  // The panel holds no request of its own: approval cards sit in the thread, so nothing here asks for him.
-  if (!teamPanelOpen(stored, false)) {
-    $("chat-shell").classList.add("side-collapsed");
-    $("btn-side-toggle").setAttribute("aria-expanded", "false");
-    $("btn-side-toggle").setAttribute("aria-label", "Equipo");
-    $("btn-side-toggle").title = "Equipo";
-  }
-  $("btn-open-team").addEventListener("click", () => showView("agents"));
+  $("btn-drawer-search").addEventListener("click", () => palette.open());
+  // The team has no panel of its own in the chat: the avatar of Alfred opens its section.
+  $("btn-chat-team").addEventListener("click", () => showView("agents"));
   $("btn-new-chat").addEventListener("click", () => newConversation());
-  $("btn-chat-more").addEventListener("click", () => {
-    const conversation = chat.conversation;
-    if (conversation) menu.openMenu(conversation, $("btn-chat-more"));
-  });
   $("chat-search").addEventListener("input", debounceSearch);
   $("btn-archived").addEventListener("click", () => {
     chat.showArchived = !chat.showArchived;
@@ -208,7 +178,6 @@ export function installChatHandlers() {
     chat.query = "";
     clearSelection();
   });
-  $("btn-side-toggle").addEventListener("click", toggleSide);
   $("chat-search").addEventListener("search", debounceSearch);
   $("chat-composer").addEventListener("submit", submitComposer);
   $("chat-input").addEventListener("keydown", composerKeydown);
@@ -235,15 +204,6 @@ export function installChatHandlers() {
     closeBubbleMenu();
     startReply(item.dataset.replyId);
   });
-  // Narrow windows slide the history in over the thread; wide ones fold its column.
-  $("btn-history-toggle").addEventListener("click", () => {
-    const shell = $("chat-shell");
-    const narrow = window.matchMedia("(max-width: 860px)").matches;
-    const open = narrow
-      ? shell.classList.toggle("history-open")
-      : !shell.classList.toggle("history-off");
-    $("btn-history-toggle").setAttribute("aria-expanded", String(open));
-  });
   $("chat-suggestions").addEventListener("click", (event) => {
     const button = event.target.closest("[data-suggestion]");
     if (!button) return;
@@ -269,7 +229,6 @@ export function installChatHandlers() {
       }
       clickRow(chat.selection, visibleOrder(), id);
       renderChat();
-      $("chat-shell").classList.remove("history-open");
       selectConversation(id);
     } else if (target.dataset.menu) {
       const conversation = rowConversation(target.dataset.menu);

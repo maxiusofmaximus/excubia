@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:excubia/ui/widgets/comic/comic_button.dart';
+import 'package:excubia/ui/widgets/comic/comic_portrait.dart';
 import 'package:excubia/core/api/chat_attachment_source.dart';
 import 'package:excubia/core/api/host_client.dart';
 import 'package:excubia/core/state/chat_controller.dart';
@@ -154,6 +156,10 @@ void main() {
     expect(find.text('Crea el proyecto Demo'), findsNothing);
     expect(find.byTooltip('Nuevo chat'), findsOneWidget);
     expect(find.text('Mensaje a Alfred'), findsOneWidget);
+    // Alfred's portraits, the header's and the welcome's, are square and framed.
+    expect(find.byType(ComicPortrait), findsWidgets);
+    expect(find.byType(ClipOval), findsNothing);
+    expect(find.byType(CircleAvatar), findsNothing);
   });
 
   testWidgets('with a hired team the start screen offers that trade', (
@@ -555,10 +561,7 @@ void main() {
 
     await tester.drag(find.byType(ConversationView), const Offset(0, 400));
     await tester.pumpAndSettle();
-    expect(
-      find.bySemanticsLabel('Ir al final, 0 mensajes nuevos'),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('Ir al final'), findsOneWidget);
 
     routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson(
       timeline(42),
@@ -639,8 +642,8 @@ void main() {
         ),
         findsWidgets,
       );
-      final stop = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.stop),
+      final stop = tester.widget<ComicButton>(
+        find.widgetWithIcon(ComicButton, Icons.stop),
       );
       expect(stop.onPressed, isNull);
     },
@@ -937,7 +940,7 @@ void main() {
       await pumpChat(tester, routes: conversationRoutes());
 
       final faces = find.byWidgetPredicate(
-        (w) => w is AgentAvatar && w.size == 24,
+        (w) => w is AgentAvatar && w.size == 44,
       );
       expect(faces, findsOneWidget);
       expect(tester.widget<AgentAvatar>(faces).characterId, 'alfred');
@@ -1021,7 +1024,7 @@ void _screen(WidgetTester tester, Size size, {double keyboard = 0}) {
 AgentLook _headLook(WidgetTester tester) =>
     tester
         .widget<AgentAvatar>(
-          find.byWidgetPredicate((w) => w is AgentAvatar && w.size == 32),
+          find.byWidgetPredicate((w) => w is AgentAvatar && w.size == 64),
         )
         .look ??
     AgentLook.idle;

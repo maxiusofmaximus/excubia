@@ -5,9 +5,14 @@ import 'package:excubia/src/rust/api/error.dart' show FailureKind;
 import 'package:excubia/src/rust/api/error/chat.dart';
 import 'package:excubia/ui/chat/chat_bubbles.dart';
 import 'package:excubia/ui/chat/delegation_card.dart';
+import 'package:excubia/ui/chat/markdown_text.dart';
 import 'package:excubia/ui/theme.dart';
 
-ChatEntry cardEntry({required String status, int attention = 0}) => ChatEntry(
+ChatEntry cardEntry({
+  required String status,
+  int attention = 0,
+  String title = 'Alfred pidió a Ernesto',
+}) => ChatEntry(
   seq: 3,
   kind: 'card',
   suggestions: const [],
@@ -18,7 +23,7 @@ ChatEntry cardEntry({required String status, int attention = 0}) => ChatEntry(
   body: '',
   preview: 'Ernesto planifica',
   state: status,
-  title: 'Alfred pidió a Ernesto',
+  title: title,
   summary: 'Ernesto prepara el plan de tres hitos',
   status: status,
   createdAt: '2026-10-22T10:00:00.000Z',
@@ -46,38 +51,33 @@ void main() {
   testWidgets('every delegation state paints its label and live affordances', (
     tester,
   ) async {
-    const states = {
-      'queued': 'En cola',
-      'running': 'En curso',
-      'waiting': 'Esperando',
-      'done': 'Completada',
-      'completed': 'Completada',
-      'failed': 'Falló',
-      'cancelled': 'Cancelada',
-      'interrupted': 'Interrumpida',
+    const lines = {
+      'queued': 'Ernesto está trabajando en tu pedido',
+      'running': 'Ernesto está trabajando en tu pedido',
+      'waiting': 'Ernesto está esperando',
+      'done': 'Ernesto terminó',
+      'completed': 'Ernesto terminó',
+      'failed': 'Ernesto falló',
+      'cancelled': 'Delegación cancelada',
+      'interrupted': 'Ernesto se interrumpió',
     };
-    for (final entry in states.entries) {
+    for (final entry in lines.entries) {
       await tester.pumpWidget(
         wrap(
           DelegationCard(
             entry: cardEntry(status: entry.key),
-            onOpenAgent: (_) {},
             onOpenDetail: (_) {},
-            onCancel: (_) {},
           ),
         ),
       );
 
-      expect(find.text('Alfred pidió a Ernesto'), findsOneWidget);
-      expect(find.text(entry.value), findsOneWidget);
-      expect(
-        find.text('Ernesto prepara el plan de tres hitos'),
-        findsOneWidget,
-      );
-      expect(find.text('Abrir agente'), findsOneWidget);
-      expect(find.text('Ver resultado completo'), findsOneWidget);
+      expect(find.text(entry.value), findsOneWidget, reason: entry.key);
+      expect(find.text('Ver detalle'), findsOneWidget);
+      // The summary, the agent and the cancel button wait in the detail.
+      expect(find.text('Ernesto prepara el plan de tres hitos'), findsNothing);
+      expect(find.text('Abrir agente'), findsNothing);
+      expect(find.text('Cancelar'), findsNothing);
       final active = delegationIsActive(entry.key);
-      expect(find.text('Cancelar'), active ? findsOneWidget : findsNothing);
       expect(
         find.byType(LinearProgressIndicator),
         active ? findsOneWidget : findsNothing,
@@ -85,29 +85,61 @@ void main() {
     }
   });
 
-  testWidgets('the card raises the three callbacks with its entry', (
-    tester,
-  ) async {
-    ChatEntry? agent;
+  testWidgets('the card opens the detail from its one button', (tester) async {
     ChatEntry? detail;
-    ChatEntry? cancel;
     await tester.pumpWidget(
       wrap(
         DelegationCard(
           entry: cardEntry(status: 'running'),
-          onOpenAgent: (entry) => agent = entry,
           onOpenDetail: (entry) => detail = entry,
-          onCancel: (entry) => cancel = entry,
         ),
       ),
     );
 
-    await tester.tap(find.text('Abrir agente'));
-    await tester.tap(find.text('Ver resultado completo'));
-    await tester.tap(find.text('Cancelar'));
-    expect(agent?.delegationId, 'dlg_1');
+    await tester.tap(find.text('Ver detalle'));
     expect(detail?.delegationId, 'dlg_1');
-    expect(cancel?.delegationId, 'dlg_1');
+  });
+
+  testWidgets('a title in markdown reads plain and names the agent', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      wrap(
+        DelegationCard(
+          entry: cardEntry(status: 'done', title: '**Alfred pidió a Ernesto**'),
+          onOpenDetail: (_) {},
+        ),
+      ),
+    );
+    expect(find.text('Ernesto terminó'), findsOneWidget);
+    expect(find.textContaining('**'), findsNothing);
+  });
+
+  test('the line names the agent and the attention it needs', () {
+    expect(delegateName('Alfred pidió a Ernesto'), 'Ernesto');
+    expect(delegateName('Ana asignó a Bob'), 'Bob');
+    expect(delegateName('Delegación del equipo'), isNull);
+    expect(
+      delegationLine(null, 'running'),
+      'Un agente está trabajando en tu pedido',
+    );
+    expect(
+      delegationLine('Ernesto', 'running', attention: true),
+      'Ernesto necesita tu atención',
+    );
+    expect(
+      delegationLine('Ernesto', 'done', attention: true),
+      'Ernesto terminó',
+    );
+  });
+
+  test('markdown marks leave the card text plain', () {
+    expect(
+      plainFromMarkdown('**Resultado de la tarea:** `C:\\Users\\Max`'),
+      'Resultado de la tarea: C:\\Users\\Max',
+    );
+    expect(plainFromMarkdown('Tarea *lista*'), 'Tarea lista');
+    expect(plainFromMarkdown('Sin marcas'), 'Sin marcas');
   });
 
   testWidgets('cancelling asks first and only then reports confirmation', (

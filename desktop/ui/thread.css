@@ -44,26 +44,15 @@
   align-items: flex-start;
 }
 
-.msg-avatar {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 26px;
-  height: 26px;
-  margin-top: 17px;
-  border-radius: 50%;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  color: var(--text-2);
-  font-size: 10px;
-  font-weight: 700;
+/* A run of Alfred's messages: 44 px face + 9 px gap, so the bubble lines up with the first. */
+.msg.agent.is-cont {
+  padding-left: 53px;
 }
 
-/* Alfred's face, painted by avatar.js; the disc colour comes from his character. */
-.msg-avatar.avatar {
-  overflow: hidden;
-  background: var(--avatar-bg, var(--raised));
-  color: var(--avatar-fg, var(--text-2));
+/* 44 px from --avatar-px (ui/avatar.js); its top sits level with the bubble, under the author tag.
+   The square and its frame come from comic.css. */
+.msg-avatar {
+  margin-top: 23px;
 }
 
 /* A reply read as Markdown: blocks set their own spacing, so no pre-wrap. */
@@ -471,9 +460,17 @@
   text-align: center;
 }
 
-/* The welcome face is an .avatar painted by ui/avatar.js at 96 px. */
-.empty-alfred {
-  margin-bottom: 15px;
+/* The welcome portrait: Alfred's 224 px square (ui/avatar.js, 384 px render), his name under it. */
+.avatar.empty-alfred {
+  margin: 40px auto 10px;
+}
+
+.empty-alfred-name {
+  margin-bottom: 14px;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .chat-empty h2 {

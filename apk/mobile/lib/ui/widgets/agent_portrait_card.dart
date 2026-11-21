@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'agent_avatar.dart';
 import 'blinking_portrait.dart';
+import 'comic/comic_portrait.dart';
 
-/// A character's portrait card: the 3:4 render, whose panel and monogram are
-/// part of the picture, then the name in large type and a short line. It is a
-/// button when [onTap] is set. Size it from outside (SizedBox or the parent).
+/// A character's portrait card: the square 384 px render in the comic frame,
+/// then the name in large type and a short line. It is a button when [onTap] is
+/// set. Its width comes from outside (SizedBox or the parent); the frame is square.
 class AgentPortraitCard extends StatelessWidget {
   const AgentPortraitCard({
     super.key,
@@ -26,8 +27,6 @@ class AgentPortraitCard extends StatelessWidget {
   /// Name and line on the portrait's centre line, for a welcome; left otherwise.
   final bool centered;
 
-  static const _radius = BorderRadius.all(Radius.circular(28));
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -45,8 +44,8 @@ class AgentPortraitCard extends StatelessWidget {
     final portrait = profile == null
         ? ColoredBox(color: c.accentSoft, child: initial)
         : BlinkingPortrait(
-            base: 'assets/agents_v3/portraits/$id-neutral-600x750.webp',
-            blink: 'assets/agents_v3/portraits/$id-blink-600x750.webp',
+            base: 'assets/portraits/$id-neutral-384.webp',
+            blink: 'assets/portraits/$id-blink-384.webp',
             enabled: id == 'alfred',
             fallback: ColoredBox(color: profile.background, child: initial),
           );
@@ -56,9 +55,12 @@ class AgentPortraitCard extends StatelessWidget {
           : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        AspectRatio(
-          aspectRatio: 3 / 4,
-          child: ClipRRect(borderRadius: _radius, child: portrait),
+        LayoutBuilder(
+          builder: (context, box) => ComicPortrait(
+            size: box.maxWidth,
+            panel: profile?.background ?? c.accentSoft,
+            face: portrait,
+          ),
         ),
         const SizedBox(height: Spacing.md),
         Text(
@@ -87,11 +89,7 @@ class AgentPortraitCard extends StatelessWidget {
           ? content
           : Material(
               color: Colors.transparent,
-              child: InkWell(
-                borderRadius: _radius,
-                onTap: onTap,
-                child: content,
-              ),
+              child: InkWell(onTap: onTap, child: content),
             ),
     );
   }

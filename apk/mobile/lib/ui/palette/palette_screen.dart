@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../widgets/comic/comic_tag.dart';
 import 'palette_controller.dart';
 import 'palette_scope.dart';
 
@@ -193,9 +194,19 @@ class _PaletteCard extends StatelessWidget {
                 children: [
                   _PalettePreview(colors: palette.colors),
                   const SizedBox(height: Spacing.sm),
-                  Text(
-                    palette.name,
-                    style: context.text.title.copyWith(fontSize: 14),
+                  // A Wrap lets the tag drop under the name at large text sizes.
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: Spacing.xs,
+                    runSpacing: 2,
+                    children: [
+                      Text(
+                        palette.name,
+                        style: context.text.title.copyWith(fontSize: 14),
+                      ),
+                      if (palette.isNew)
+                        const ComicTag(label: 'Nueva', caps: false),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(palette.note, style: context.text.small),

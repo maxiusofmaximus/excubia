@@ -82,16 +82,24 @@ test("el retrato del mensaje no recorta la cabeza: .msg-avatar.avatar no fuerza 
   assert.doesNotMatch(block, /overflow: hidden/);
 });
 
-test("el recorte de esquina va solo en el panel; la imagen no se recorta ni se inclina", () => {
+test("el marco es el retrato: esquina cortada en la imagen y en el borde, sin inclinar ni anclar abajo", () => {
+  assert.match(cssBlock(".avatar img"), /clip-path: polygon\(/);
   assert.match(cssBlock(".avatar::before"), /clip-path: polygon\(/);
-  assert.doesNotMatch(cssBlock(".avatar img"), /clip-path|skew/);
-  assert.match(cssBlock(".avatar img"), /bottom: 0;/);
+  for (const block of [cssBlock(".avatar img"), cssBlock(".avatar::before")]) {
+    assert.doesNotMatch(block, /skew|118%|bottom: 0/);
+  }
 });
 
-test("el borde del panel usa --pale y el anillo de estado --hot", () => {
-  assert.match(cssBlock(".avatar::before"), /box-shadow: inset 0 0 0 3px var\(--pale\);/);
-  assert.match(cssBlock(".avatar::after"), /border: 2px solid var\(--hot\);/);
-  assert.match(cssBlock(".avatar::after"), /box-shadow: 0 0 0 1px var\(--pale\);/);
+test("el borde del retrato es --pale de 3 px y no hay anillo azul suelto", () => {
+  assert.match(cssBlock(".avatar::before"), /background: var\(--pale\);/);
+  assert.match(cssBlock(".avatar img"), /left: 3px;\s*top: 3px;/);
+  assert.equal(cssBlock(".avatar::after"), "");
+  assert.match(cssBlock(".avatar:not(:has(img))::after"), /background: var\(--hot\);/);
+});
+
+test("la sombra dura cae sobre el marco entero, no sobre la imagen", () => {
+  assert.match(cssBlock(".avatar"), /filter: drop-shadow\(3px 3px 0 var\(--hard\)\);/);
+  assert.doesNotMatch(cssBlock(".avatar img"), /filter/);
 });
 
 test("el turno de entrada es una vez por pantalla: nav.js lo quita tras la animación", () => {

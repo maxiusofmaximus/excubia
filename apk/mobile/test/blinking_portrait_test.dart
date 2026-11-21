@@ -6,8 +6,8 @@ import 'package:excubia/ui/theme.dart';
 import 'package:excubia/ui/widgets/agent_portrait_card.dart';
 import 'package:excubia/ui/widgets/blinking_portrait.dart';
 
-const _base = 'assets/agents_v3/portraits/alfred-neutral-512.webp';
-const _blink = 'assets/agents_v3/portraits/alfred-blink-512.webp';
+const _base = 'assets/portraits/alfred-neutral-384.webp';
+const _blink = 'assets/portraits/alfred-blink-384.webp';
 
 /// Always the shortest gap, so the first blink comes at exactly 3 s.
 class _ShortGaps implements Random {
@@ -126,7 +126,7 @@ void main() {
     );
     expect(
       (overlay.image as AssetImage).assetName,
-      'assets/agents_v3/portraits/alfred-blink-600x750.webp',
+      'assets/portraits/alfred-blink-384.webp',
     );
   });
 

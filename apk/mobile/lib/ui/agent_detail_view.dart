@@ -41,10 +41,6 @@ extension _AgentDetailView on _AgentDetailScreenState {
     final ready =
         agent.status == AgentStatus.blocked && !agent.restored && !_busy;
     // A finished agent (restored) gets no respond panel at all: only the new conversation below.
-    final hint = ready
-        ? 'El agente está esperando; tu respuesta llega al terminal.'
-        : 'Disponible cuando el agente está bloqueado '
-              '(ahora: ${context.colors.statusLabel(agent.status).toLowerCase()}).';
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         Spacing.lg,
@@ -78,7 +74,7 @@ extension _AgentDetailView on _AgentDetailScreenState {
             sending: _sending,
             stopping: _stopping,
             canStop: true,
-            hint: hint,
+            blocked: agent.status == AgentStatus.blocked,
             onRespond: _respond,
             onKey: _sendKey,
             onStop: () => _confirmStop(agent),

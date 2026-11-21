@@ -305,8 +305,8 @@ class _VoiceScreenState extends State<VoiceScreen>
                   dimension: _faceCore,
                   child: ClipOval(
                     child: BlinkingPortrait(
-                      base: 'assets/agents_v3/portraits/alfred-$face-512.webp',
-                      blink: 'assets/agents_v3/portraits/alfred-blink-512.webp',
+                      base: 'assets/portraits/alfred-$face-384.webp',
+                      blink: 'assets/portraits/alfred-blink-384.webp',
                       enabled: face == 'neutral',
                       fallback: _plainCore(c),
                     ),

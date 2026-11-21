@@ -11,6 +11,9 @@ import '../../core/state/approvals_controller.dart';
 import '../mail/mail_facts.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import '../widgets/comic/comic_button.dart';
+import '../widgets/comic/comic_slab.dart';
+import '../widgets/comic/comic_tag.dart';
 import 'approval_format.dart';
 
 part 'approval_card_widgets.dart';
@@ -47,7 +50,6 @@ class ApprovalCardHost extends StatelessWidget {
             alfred,
             tool: approval.tool ?? '',
           ),
-          projectName: projectNameFor(approval.seatId, projects),
           busy: controller.isBusy(approvalId),
           failure: controller.failureOf(approvalId),
           unchecked: controller.uncheckedOf(approvalId),
@@ -77,14 +79,12 @@ class ApprovalCard extends StatefulWidget {
     required this.failure,
     required this.onDecide,
     this.onRecheckGrant,
-    this.projectName,
     this.unchecked = const <String>{},
     this.onMoveToggle,
   });
 
   final ChatApproval approval;
   final String agentName;
-  final String? projectName;
   final bool busy;
   final ApprovalFailure? failure;
   final ValueChanged<bool> onDecide;
@@ -101,10 +101,19 @@ class ApprovalCard extends StatefulWidget {
 class _ApprovalCardState extends State<ApprovalCard> {
   Timer? _ticker;
 
+  /// The system's «reducir animaciones», read again whenever it changes.
+  bool _reduceMotion = false;
+
   @override
   void initState() {
     super.initState();
     _syncTicker();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
   }
 
   @override
@@ -140,20 +149,15 @@ class _ApprovalCardState extends State<ApprovalCard> {
     final approval = widget.approval;
     final left = secondsLeft(approval.expiresAt, DateTime.now());
     final closed = _closedStatus(left);
-    final detail = approval.question ?? approval.command;
-    // The host's generic summary («command Bash») is never shown as the detail.
-    final line = detail ?? 'Falta el detalle del comando';
-    final place = [
-      widget.projectName,
-      shortCwd(approval.cwd),
-    ].whereType<String>().join(' · ');
-    return Container(
+    final folder = shortCwd(approval.cwd);
+    // The stamp flips between two tones once a second while the answer is open,
+    // on the card's own clock; with reduced motion it holds the accent.
+    final stampPale =
+        closed == null && !_reduceMotion && DateTime.now().second.isOdd;
+    return ComicSlab(
+      color: colors.deep,
+      cut: true,
       padding: const EdgeInsets.all(Spacing.lg),
-      decoration: BoxDecoration(
-        color: colors.raised,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outlineSoft),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -171,22 +175,35 @@ class _ApprovalCardState extends State<ApprovalCard> {
                   style: text.title,
                 ),
               ),
+              if (closed == null) ...[
+                const SizedBox(width: Spacing.sm),
+                ComicTag(
+                  label: '¡Tu OK!',
+                  caps: false,
+                  tone: stampPale ? ComicTagTone.pale : ComicTagTone.hot,
+                ),
+              ],
             ],
           ),
-          if (place.isNotEmpty) ...[
+          if (folder != null) ...[
             const SizedBox(height: Spacing.xs),
-            Text(place, style: text.small),
+            Text('Carpeta: $folder', style: text.small),
+          ],
+          if (approval.risk == 'high' && isShellTool(approval.tool)) ...[
+            const SizedBox(height: Spacing.xs),
+            Text('Puede cambiar o borrar archivos.', style: text.small),
           ],
           const SizedBox(height: Spacing.md),
-          ..._facts(context, line, detail, open: closed == null),
+          ..._facts(context),
+          if (_technical() case final technical?) ...[
+            const SizedBox(height: Spacing.sm),
+            technical,
+          ],
           const SizedBox(height: Spacing.sm),
           Wrap(
             spacing: Spacing.sm,
             runSpacing: Spacing.xs,
             children: [
-              if (riskLabel(approval.risk) case final risk?) _Chip(label: risk),
-              if (levelLabel(approval.level) case final level?)
-                _Chip(label: level),
               // A card that waits for days (a file for a draft) shows no clock.
               if (closed == null && left != null && left < 3600)
                 _Chip(
@@ -202,14 +219,9 @@ class _ApprovalCardState extends State<ApprovalCard> {
     );
   }
 
-  /// What the operator reads before answering. A mail action shows its facts
-  /// instead of a command; the host's generic summary is never the detail.
-  List<Widget> _facts(
-    BuildContext context,
-    String line,
-    String? detail, {
-    required bool open,
-  }) {
+  /// What the operator reads before answering. A mail action shows its facts;
+  /// a question shows its text. A command waits in «Detalles técnicos».
+  List<Widget> _facts(BuildContext context) {
     final approval = widget.approval;
     if (approval.mailSend case final send?) {
       return [MailSendFacts(details: send)];
@@ -222,7 +234,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
         _MoveBatch(
           items: move.items,
           unchecked: widget.unchecked,
-          onToggle: open ? widget.onMoveToggle : null,
+          onToggle: _open ? widget.onMoveToggle : null,
         ),
       ];
     }
@@ -234,16 +246,24 @@ class _ApprovalCardState extends State<ApprovalCard> {
         ),
       ];
     }
-    return [
-      _CommandBox(line: line, plain: approval.question != null),
-      if (detail != null &&
-          approval.summary.isNotEmpty &&
-          approval.summary != line) ...[
-        const SizedBox(height: Spacing.xs),
-        Text(approval.summary, style: context.text.bodySecondary),
-      ],
-    ];
+    if (approval.question case final question?) {
+      return [_CommandBox(line: question, plain: true)];
+    }
+    return const [];
   }
+
+  /// The command and the host's tool name, folded under «Detalles técnicos» and
+  /// closed. Null when no command came, so no empty section shows.
+  Widget? _technical() {
+    final approval = widget.approval;
+    if (approval.question != null) return null;
+    final command = approval.command;
+    if (command == null || command.isEmpty) return null;
+    return _TechnicalDetails(command: command, summary: approval.summary);
+  }
+
+  /// Whether the card is still open for an answer.
+  bool get _open => widget.approval.status == 'pending';
 
   /// A mail action whose facts have not arrived. The operator must not approve
   /// what the card does not show, so «Permitir una vez» waits for them.
@@ -271,13 +291,19 @@ class _ApprovalCardState extends State<ApprovalCard> {
         '(${checkedCount(approval, widget.unchecked)} de $total)';
   }
 
-  /// The request in the title, after the agent's name.
-  String _askLine(ChatApproval approval) => switch (approval.tool) {
-    'mail.send' => 'quiere enviar un correo',
-    'mail.attach_path' => 'quiere adjuntar un archivo',
-    'mail.move' => 'quiere mover correos',
-    _ => 'necesita permiso',
-  };
+  /// The request in the title, after the agent's name: what it wants to do.
+  String _askLine(ChatApproval approval) {
+    if (approval.question != null) return 'necesita permiso';
+    return switch (approval.tool) {
+      'mail.send' => 'quiere enviar un correo',
+      'mail.attach_path' => 'quiere adjuntar un archivo',
+      'mail.move' => 'quiere mover correos',
+      _ => switch (actionPhrase(approval.tool, approval.command)) {
+        final phrase? => 'quiere $phrase',
+        _ => 'necesita permiso',
+      },
+    };
+  }
 
   /// A status that ends the card, or null while the answer is still open.
   String? _closedStatus(int? left) {
@@ -333,26 +359,24 @@ class _ApprovalCardState extends State<ApprovalCard> {
         ],
         Row(
           children: [
+            // The main answer takes the wider share: «Permitir una vez» fits on one line.
             Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+              flex: 3,
+              child: ComicButton(
+                label: _approveLabel,
+                busy: widget.busy,
                 onPressed: widget.busy || _mailFactsMissing || !_approvable
                     ? null
                     : () => widget.onDecide(true),
-                child: widget.busy
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(_approveLabel),
               ),
             ),
             const SizedBox(width: Spacing.sm),
             Expanded(
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+              flex: 2,
+              child: ComicButton(
+                label: 'Denegar',
+                tone: ComicButtonTone.secondary,
                 onPressed: widget.busy ? null : () => widget.onDecide(false),
-                child: const Text('Denegar'),
               ),
             ),
           ],

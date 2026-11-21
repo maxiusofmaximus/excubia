@@ -55,6 +55,9 @@ void main() {
     });
     final approvals = await _pump(tester, host);
     expect(find.text('Pendientes de ti'), findsOneWidget);
+    // The command waits under «Detalles técnicos», closed until the operator opens it.
+    await tester.tap(find.text('Detalles técnicos'));
+    await tester.pump();
     expect(find.textContaining('echo x'), findsWidgets);
     expect(find.textContaining('cargo test'), findsNothing);
     expect(find.text('Permitir una vez'), findsOneWidget);
@@ -84,7 +87,7 @@ void main() {
         status: 'working',
       ),
     );
-    expect(find.text('Alfred necesita permiso'), findsOneWidget);
+    expect(find.textContaining('Alfred quiere'), findsOneWidget);
     expect(find.text('Un agente necesita permiso'), findsNothing);
     approvals.dispose();
   });
@@ -120,6 +123,8 @@ void main() {
       ),
     });
     final approvals = await _pump(tester, host);
+    await tester.ensureVisible(find.text('Permitir una vez'));
+    await tester.pump();
     await tester.tap(find.text('Permitir una vez'));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pump(const Duration(milliseconds: 100));

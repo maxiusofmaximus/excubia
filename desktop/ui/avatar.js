@@ -1,7 +1,7 @@
-// One face per agent: its character's animated head for the agent's status, the
-// still frame under reduced motion, or the initial when no character matches.
-// Only the head acts; the body is in the render and never moves (APK rule).
-// The palette and clips mirror apk/mobile/lib/ui/widgets/agent_avatar.dart.
+// One face per agent: its character's portrait for the agent's status, or the initial when
+// no character matches. The portraits are square, the card included (ui/assets/portraits, made
+// from the APK's v3 renders); the palette mirrors the APK
+// (adjcard/mobile/lib/ui/widgets/agent_avatar.dart).
 
 const CHARACTERS = {
   alfred: { background: "#f7d27a", foreground: "#b7791f" },
@@ -29,9 +29,19 @@ export function stillFor(clip) {
   return clip === "idle" ? "neutral" : clip;
 }
 
-// 64 px renders up to 64 px faces, 128 px above that.
+// 128 px portraits up to 64 px faces, 384 px above that.
 export function renderSize(px) {
-  return px <= 64 ? 64 : 128;
+  return px <= 64 ? 128 : 384;
+}
+
+// The state a face shows: `thinking` while Alfred waits for a reply, else the status's still.
+export function stateFor(status, look = null) {
+  return look === "thinking" ? "thinking" : stillFor(clipFor(status));
+}
+
+// The file for one state at a size. Every state has both sizes; the welcome is the 384 square.
+export function renderFile(character, state, px) {
+  return `assets/portraits/${character}-${state}-${renderSize(px)}.webp`;
 }
 
 function fold(text) {
@@ -58,37 +68,64 @@ export function initialOf(name) {
   return trimmed ? trimmed[0].toUpperCase() : "?";
 }
 
-export function avatarSource(character, status, px, reduced) {
-  const clip = clipFor(status);
-  const size = renderSize(px);
-  if (reduced) return `assets/agents/${character}-${stillFor(clip)}-${size}.png`;
-  return `assets/agents_anim/${character}/${clip}-head-${size}.webp`;
+export function avatarSource(character, status, px, look = null) {
+  return renderFile(character, stateFor(status, look), px);
+}
+
+// Alfred's eyes shut for this long, every 3 to 6 s (the APK's blinking portrait).
+export const BLINK_HOLD_MS = 120;
+
+export function blinkGapMs(random = Math.random) {
+  return 3000 + Math.floor(random() * 3001);
 }
 
 function prefersReducedMotion() {
   return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 }
 
+// One chained timer per face. It stops on its next step once the face has left the page
+// or its image has been replaced (a failed load).
+function startBlink(el, img, open, shut) {
+  const step = (closed) => {
+    if (!el.isConnected || !img.isConnected) return;
+    img.src = closed ? shut : open;
+    el.blinkTimer = setTimeout(() => step(!closed), closed ? BLINK_HOLD_MS : blinkGapMs());
+  };
+  el.blinkTimer = setTimeout(() => step(true), blinkGapMs());
+}
+
 // Paints the face into an `.avatar` element. Without a character the initial sits
-// on the brass disc from the stylesheet. A team hire passes `faceFromName: false`:
+// on the hot panel from the stylesheet. A team hire passes `faceFromName: false`:
 // its face is its character id only, so renaming it never changes the face.
-export function paintAvatar(el, { name, characterId, status = "idle", px = 34, faceFromName = true }) {
+// Alfred's idle face blinks, unless the system asks to reduce motion.
+export function paintAvatar(
+  el,
+  { name, characterId, status = "idle", look = null, px = 34, faceFromName = true },
+) {
   const character = characterFor(faceFromName ? name : "", characterId);
   const profile = character ? CHARACTERS[character] : null;
   el.style.setProperty("--avatar-px", `${px}px`);
   el.style.setProperty("--avatar-bg", profile ? profile.background : "");
   el.style.setProperty("--avatar-fg", profile ? profile.foreground : "");
   el.setAttribute("aria-hidden", "true");
+  clearTimeout(el.blinkTimer);
   if (!character) {
     el.textContent = initialOf(name);
     return el;
   }
+  const state = stateFor(status, look);
+  const open = renderFile(character, state, px);
   const img = document.createElement("img");
   img.alt = "";
   img.decoding = "async";
-  img.src = avatarSource(character, status, px, prefersReducedMotion());
+  img.src = open;
   img.addEventListener("error", () => el.replaceChildren(initialOf(name)));
   el.replaceChildren(img);
+  if (character === "alfred" && state === "neutral" && !prefersReducedMotion()) {
+    const shut = renderFile(character, "blink", px);
+    new Image().src = shut;
+    startBlink(el, img, open, shut);
+  }
   return el;
 }
 

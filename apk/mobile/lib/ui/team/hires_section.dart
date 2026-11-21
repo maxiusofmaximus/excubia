@@ -6,6 +6,7 @@ import '../../core/state/hires_controller.dart';
 import '../../core/state/recipes_controller.dart';
 import '../theme.dart';
 import '../widgets/agent_avatar.dart';
+import '../widgets/comic/comic_button.dart';
 import '../widgets/grouped_card.dart';
 import 'hire_actions.dart';
 import 'hire_catalog_screen.dart';
@@ -18,17 +19,20 @@ class TeamHiresSection extends StatelessWidget {
     super.key,
     required this.hires,
     required this.recipes,
+    this.showEmptyHint = true,
   });
 
   final HiresController hires;
   final RecipesController recipes;
+
+  /// «Todavía no has contratado a nadie»: only when the team has no agent at all.
+  final bool showEmptyHint;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: hires,
       builder: (context, _) {
-        final c = context.colors;
         final failure = hires.failure;
         // Nobody hired and no «Contratar» here: no title and no sentence, unless a read failed.
         if (hires.hires.isEmpty && !hires.canHire && failure == null) {
@@ -50,17 +54,12 @@ class TeamHiresSection extends StatelessWidget {
                     child: Text('CONTRATADOS', style: context.text.label),
                   ),
                   if (hires.canHire)
-                    FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: c.accent,
-                        foregroundColor: c.onAccent,
-                        minimumSize: const Size(48, 48),
-                      ),
+                    ComicButton(
+                      label: 'Contratar',
+                      icon: const Icon(Icons.person_add_alt_1_outlined),
                       onPressed: hires.busy
                           ? null
                           : () => openHireCatalog(context, hires),
-                      icon: const Icon(Icons.person_add_alt_1_outlined),
-                      label: const Text('Contratar'),
                     ),
                 ],
               ),
@@ -85,7 +84,9 @@ class TeamHiresSection extends StatelessWidget {
   Widget _body(BuildContext context) {
     if (hires.hires.isEmpty) {
       // Before the first read nobody is known yet: saying «nadie» here would be false.
-      if (!hires.loaded || !hires.canHire) return const SizedBox.shrink();
+      if (!hires.loaded || !hires.canHire || !showEmptyHint) {
+        return const SizedBox.shrink();
+      }
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: Spacing.md),
         child: Text(

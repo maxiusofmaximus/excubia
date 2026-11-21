@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:excubia/ui/widgets/comic/comic_button.dart';
+import 'package:excubia/ui/widgets/comic/comic_slab.dart';
+import 'package:excubia/ui/widgets/comic/comic_tag.dart';
 import 'package:excubia/src/rust/api/approvals/error.dart';
 import 'package:excubia/src/rust/api/approvals/model.dart';
 import 'package:excubia/src/rust/frb_generated.dart';
@@ -36,7 +40,6 @@ Widget _card(
       child: ApprovalCard(
         approval: approval,
         agentName: 'Bob',
-        projectName: 'Demo',
         busy: false,
         failure: failure,
         onDecide: onDecide ?? (_) {},
@@ -51,37 +54,50 @@ void main() {
     await RustLib.init();
   });
 
+  testWidgets('at 360 dp «Permitir una vez» reads on one line', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_card(_record(), brightness: Brightness.dark));
+
+    final label = tester.renderObject<RenderParagraph>(
+      find.descendant(
+        of: find.widgetWithText(ComicButton, 'Permitir una vez'),
+        matching: find.text('Permitir una vez'),
+      ),
+    );
+    expect(label.didExceedMaxLines, isFalse);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   for (final brightness in [Brightness.light, Brightness.dark]) {
     group('${brightness.name} theme', () {
       testWidgets(
         'a pending card names the agent, the command, the level and the countdown',
         (tester) async {
           await tester.pumpWidget(_card(_record(), brightness: brightness));
-          expect(find.text('Bob necesita permiso'), findsOneWidget);
-          expect(find.text('Demo · demo/api'), findsOneWidget);
-          expect(find.text('cargo test'), findsOneWidget);
-          expect(find.text('riesgo medio'), findsOneWidget);
-          expect(find.text('te lo pasa Alfred'), findsOneWidget);
+          expect(find.text('Bob quiere ejecutar un comando'), findsOneWidget);
+          expect(find.text('Carpeta: demo/api'), findsOneWidget);
+          // The command waits under «Detalles técnicos», closed.
+          expect(find.text('cargo test'), findsNothing);
+          expect(find.text('riesgo medio'), findsNothing);
+          expect(find.text('te lo pasa Alfred'), findsNothing);
           expect(find.textContaining('Caduca en'), findsOneWidget);
           expect(
-            find.widgetWithText(FilledButton, 'Permitir una vez'),
+            find.widgetWithText(ComicButton, 'Permitir una vez'),
             findsOneWidget,
           );
-          expect(
-            find.widgetWithText(OutlinedButton, 'Denegar'),
-            findsOneWidget,
-          );
+          expect(find.widgetWithText(ComicButton, 'Denegar'), findsOneWidget);
           expect(find.textContaining('Permitir siempre'), findsNothing);
           expect(
             tester
-                .getSize(find.widgetWithText(FilledButton, 'Permitir una vez'))
+                .getSize(find.widgetWithText(ComicButton, 'Permitir una vez'))
                 .height,
             greaterThanOrEqualTo(48),
           );
           expect(
-            tester
-                .getSize(find.widgetWithText(OutlinedButton, 'Denegar'))
-                .height,
+            tester.getSize(find.widgetWithText(ComicButton, 'Denegar')).height,
             greaterThanOrEqualTo(48),
           );
           await tester.pumpWidget(const SizedBox());
@@ -95,8 +111,8 @@ void main() {
         await tester.pumpWidget(
           _card(_record(), brightness: brightness, onDecide: answers.add),
         );
-        await tester.tap(find.widgetWithText(FilledButton, 'Permitir una vez'));
-        await tester.tap(find.widgetWithText(OutlinedButton, 'Denegar'));
+        await tester.tap(find.widgetWithText(ComicButton, 'Permitir una vez'));
+        await tester.tap(find.widgetWithText(ComicButton, 'Denegar'));
         expect(answers, [true, false]);
         await tester.pumpWidget(const SizedBox());
       });
@@ -130,10 +146,10 @@ void main() {
           );
           expect(find.text(entry.value), findsOneWidget, reason: entry.key);
           expect(
-            find.widgetWithText(FilledButton, 'Permitir una vez'),
+            find.widgetWithText(ComicButton, 'Permitir una vez'),
             findsNothing,
           );
-          expect(find.widgetWithText(OutlinedButton, 'Denegar'), findsNothing);
+          expect(find.widgetWithText(ComicButton, 'Denegar'), findsNothing);
         }
         await tester.pumpWidget(const SizedBox());
       });
@@ -150,7 +166,7 @@ void main() {
         );
         expect(find.textContaining('Caduca en'), findsNothing);
         expect(
-          find.widgetWithText(FilledButton, 'Permitir una vez'),
+          find.widgetWithText(ComicButton, 'Permitir una vez'),
           findsOneWidget,
         );
         await tester.pumpWidget(const SizedBox());
@@ -168,7 +184,7 @@ void main() {
         );
         expect(find.text('Caducada'), findsOneWidget);
         expect(
-          find.widgetWithText(FilledButton, 'Permitir una vez'),
+          find.widgetWithText(ComicButton, 'Permitir una vez'),
           findsNothing,
         );
         await tester.pumpWidget(const SizedBox());
@@ -197,7 +213,7 @@ void main() {
           grantCommand,
         );
         expect(
-          find.widgetWithText(FilledButton, 'Permitir una vez'),
+          find.widgetWithText(ComicButton, 'Permitir una vez'),
           findsNothing,
         );
         await tester.pumpWidget(const SizedBox());
@@ -218,7 +234,7 @@ void main() {
         );
         expect(find.text('Ya la decidió otro dispositivo.'), findsOneWidget);
         expect(
-          find.widgetWithText(FilledButton, 'Permitir una vez'),
+          find.widgetWithText(ComicButton, 'Permitir una vez'),
           findsNothing,
         );
         await tester.pumpWidget(const SizedBox());
@@ -248,7 +264,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('a card without detail says so instead of the generic summary', (
+  testWidgets('a card without a command shows no command section at all', (
     tester,
   ) async {
     final row = Map<String, Object?>.from(approvalRow())
@@ -256,10 +272,80 @@ void main() {
       ..['summary'] = 'command Bash';
     final approval = parseApprovalRecord(json: recordJson(row))!;
     await tester.pumpWidget(_card(approval, brightness: Brightness.light));
-    expect(find.text('Falta el detalle del comando'), findsOneWidget);
+    expect(find.textContaining('Falta el detalle'), findsNothing);
+    expect(find.text('Detalles técnicos'), findsNothing);
     expect(find.text('command Bash'), findsNothing);
+    expect(
+      find.widgetWithText(ComicButton, 'Permitir una vez'),
+      findsOneWidget,
+    );
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('the command and the tool name fold under technical details', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_card(_record(), brightness: Brightness.light));
+    expect(find.text('Detalles técnicos'), findsOneWidget);
+    expect(find.text('cargo test'), findsNothing);
+    await tester.tap(find.text('Detalles técnicos'));
+    await tester.pumpAndSettle();
+    expect(find.text('cargo test'), findsOneWidget);
+    expect(find.text('Ejecutar comando: cargo test'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a high-risk shell card says it can change or delete files', (
+    tester,
+  ) async {
+    final row = Map<String, Object?>.from(approvalRow())..['risk'] = 'high';
+    final approval = parseApprovalRecord(json: recordJson(row))!;
+    await tester.pumpWidget(_card(approval, brightness: Brightness.light));
+    expect(find.text('Puede cambiar o borrar archivos.'), findsOneWidget);
+    expect(find.text('riesgo alto'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(_card(_record(), brightness: Brightness.light));
+    expect(find.text('Puede cambiar o borrar archivos.'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'reduced motion holds the stamp on one tone, second after second',
+    (tester) async {
+      // The media query is read below MaterialApp, where the test can override it.
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(HerdrPalettes.pergamino),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: ApprovalCard(
+              approval: _record(),
+              agentName: 'Bob',
+              busy: false,
+              failure: null,
+              onDecide: (_) {},
+            ),
+          ),
+        ),
+      );
+      final tag = find.byType(ComicTag);
+      final hot = tester.element(tag).colors.hot;
+      Color stamp() => tester
+          .widget<ComicSlab>(
+            find.descendant(of: tag, matching: find.byType(ComicSlab)),
+          )
+          .color;
+      expect(stamp(), hot);
+      for (var second = 0; second < 3; second++) {
+        await tester.pump(const Duration(seconds: 1));
+        expect(stamp(), hot);
+      }
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   group('a mail.move batch', () {
     ChatApproval moveRecord({
@@ -276,16 +362,19 @@ void main() {
     }) => MaterialApp(
       theme: buildTheme(HerdrPalettes.pergamino),
       home: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ApprovalCard(
-            approval: approval,
-            agentName: 'Bob',
-            busy: false,
-            failure: null,
-            onDecide: (_) {},
-            unchecked: unchecked,
-            onMoveToggle: onToggle ?? (_, _) {},
+        // The chat list scrolls, so a tall card is shown scrolled rather than clipped.
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: ApprovalCard(
+              approval: approval,
+              agentName: 'Bob',
+              busy: false,
+              failure: null,
+              onDecide: (_) {},
+              unchecked: unchecked,
+              onMoveToggle: onToggle ?? (_, _) {},
+            ),
           ),
         ),
       ),
@@ -297,7 +386,7 @@ void main() {
       expect(find.text('2 correos a mover'), findsOneWidget);
       expect(find.byType(CheckboxListTile), findsNWidgets(2));
       expect(
-        find.widgetWithText(FilledButton, 'Mover los seleccionados (2 de 2)'),
+        find.widgetWithText(ComicButton, 'Mover los seleccionados (2 de 2)'),
         findsOneWidget,
       );
       expect(
@@ -311,12 +400,12 @@ void main() {
     ) async {
       await tester.pumpWidget(moveCard(moveRecord(), unchecked: {'m1'}));
       expect(
-        find.widgetWithText(FilledButton, 'Mover los seleccionados (1 de 2)'),
+        find.widgetWithText(ComicButton, 'Mover los seleccionados (1 de 2)'),
         findsOneWidget,
       );
       await tester.pumpWidget(moveCard(moveRecord(), unchecked: {'m1', 'm2'}));
       expect(
-        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        tester.widget<ComicButton>(find.byType(ComicButton).first).onPressed,
         isNull,
       );
       expect(find.text('Mover los seleccionados (0 de 2)'), findsOneWidget);
@@ -388,7 +477,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        tester.widget<ComicButton>(find.byType(ComicButton).first).onPressed,
         isNull,
       );
     });

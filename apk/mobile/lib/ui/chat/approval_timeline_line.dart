@@ -58,7 +58,9 @@ class ApprovalTimelineLine extends StatelessWidget {
               const SizedBox(width: Spacing.sm),
               Expanded(
                 child: Text(
-                  summary.isEmpty ? 'Aprobación resuelta' : summary,
+                  summary.isEmpty
+                      ? 'Aprobación resuelta'
+                      : timelineLineText(summary),
                   style: text.small,
                 ),
               ),

@@ -2,6 +2,7 @@
 // browser would use to print are taken here, so they never open the print dialog.
 import { $ } from "./core.js";
 import { goTo } from "./nav.js";
+import { openDrawer } from "./drawer.js";
 import { paletteItems } from "./command-palette-model.js";
 
 export function installCommandPalette({ conversations, selectConversation }) {
@@ -60,6 +61,8 @@ export function installCommandPalette({ conversations, selectConversation }) {
       $("btn-new-chat").click();
     } else if (item.id === "search") {
       document.querySelector('[data-nav="chat"]')?.click();
+      // The history search lives in the drawer: open it, then put the caret in its field.
+      openDrawer();
       $("chat-search").focus();
     } else if (item.id === "new-project") {
       document.querySelector('[data-nav="chat"]')?.click();
@@ -114,4 +117,5 @@ export function installCommandPalette({ conversations, selectConversation }) {
     },
     true,
   );
+  return { open };
 }
