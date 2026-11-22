@@ -152,6 +152,29 @@ void main() {
     expect(overview.unassigned.single.paneId, 'w9:p1');
   });
 
+  test('a restored pane outside any project does not show in Equipo', () {
+    final overview = groupTeam(
+      projects: const [project],
+      agents: [
+        agent(pane: 'w9:p1', project: 'Otro', title: 'Ernesto'),
+        AgentEntry(
+          paneId: 'w9:p2',
+          workspaceId: 'w1',
+          project: 'Otro',
+          agent: 'claude',
+          status: AgentStatus.unknown,
+          attention: 0,
+          title: 'Ernesto',
+          focused: false,
+          canResume: false,
+          restored: true,
+        ),
+      ],
+    );
+
+    expect(overview.unassigned.map((agent) => agent.paneId), ['w9:p1']);
+  });
+
   test(
     'a specialist follows the lead workspace when state reports no project',
     () {

@@ -21,4 +21,3 @@
 
 # Seguridad
 
-- [Revisión de seguridad](security-review.md)

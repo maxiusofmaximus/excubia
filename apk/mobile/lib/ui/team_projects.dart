@@ -81,8 +81,10 @@ TeamOverview groupTeam({
       ),
     );
   }
+  // A restored pane is a panel of an earlier host run: it is never relaunched,
+  // so outside a project it is only stale history and would repeat a seat's name.
   final unassigned = agents
-      .where((agent) => !used.contains(agent.paneId))
+      .where((agent) => !used.contains(agent.paneId) && !agent.restored)
       .toList();
   return TeamOverview(projects: groups, unassigned: unassigned);
 }

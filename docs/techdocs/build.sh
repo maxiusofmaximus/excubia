@@ -13,7 +13,6 @@ mkdir -p "$src/contracts" "$src/rfc" "$src/apk"
 cp "$root/docs/techdocs/pages/"*.md "$src/"
 cp "$root/core/docs/contracts/"*.md "$src/contracts/"
 cp "$root/core/docs/rfc/"*.md "$src/rfc/"
-cp "$root/core/docs/security-review.md" "$src/"
 
 # Enlaces a ficheros que no se publican: se quita el enlace y queda el texto.
 # core/docs/core/HOOKS.md no existe en el árbol, y roadmap.md no se publica.

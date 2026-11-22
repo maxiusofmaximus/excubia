@@ -13,7 +13,6 @@ español.
 | [Arquitectura](arquitectura.md) | Visión general del host, la app Android y el escritorio, y cómo se hablan. |
 | [Contratos](contracts/index.html) | Formas exactas de peticiones, respuestas, estado y emparejamiento. |
 | [RFC](rfc/RFC-transports.md) | Propuestas de diseño, con sus decisiones abiertas. |
-| [Revisión de seguridad](security-review.md) | Qué se ha revisado y qué queda pendiente. |
 
 ## Estado de la implementación
 
