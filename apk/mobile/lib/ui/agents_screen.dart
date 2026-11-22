@@ -143,7 +143,10 @@ class _AgentsScreenState extends State<AgentsScreen>
   }
 
   List<AgentEntry> _visibleAgents(StateSnapshot? state) {
-    final agents = state?.agents ?? const <AgentEntry>[];
+    // Restored panes are stale history, not live agents: Equipo never shows them, so no count does.
+    final agents = (state?.agents ?? const <AgentEntry>[])
+        .where((agent) => !agent.restored)
+        .toList();
     final filtering = _filtersShown(agents.length);
     final query = filtering ? _search.text.trim().toLowerCase() : '';
     return agents.where((agent) {
@@ -166,7 +169,7 @@ class _AgentsScreenState extends State<AgentsScreen>
     StateSnapshot? state,
     int visible,
   ) {
-    final total = state?.agents.length ?? 0;
+    final total = state?.agents.where((agent) => !agent.restored).length ?? 0;
     final hired = _hires.hires.length;
     final count = hired > 0
         ? teamCountLabel(hired: hired, active: total)

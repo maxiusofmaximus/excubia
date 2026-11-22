@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex, PoisonError};
 use excubia_api::{PairOutcome, PairingAttempt, PairingAudit};
 use excubia_chat::{ChatError, ChatStore, ConversationFilter, NewConversation};
 
-use crate::cli::BIN;
 use crate::pairing_audit::JsonlPairingAudit;
 
 pub const NOTICE_TITLE: &str = "Avisos del sistema";
@@ -121,25 +120,22 @@ fn notice_text(attempt: &PairingAttempt) -> Option<String> {
     }
     let device = attempt.device_id.as_deref()?;
     let label = label_span(attempt.label.as_deref().unwrap_or_default());
-    let revoke = format!("Si no fuiste tú: `{BIN} devices revoke {device}`.");
+    // People read this in the chat: no ids or commands, the way out is the app's own button.
+    let undo = "Si no fuiste tú, revócalo en Ajustes > Mis dispositivos.";
     match attempt.outcome {
         PairOutcome::Paired => {
             // Without a pin there is no string to check, so the notice leaves it out.
             let verify = attempt
                 .sas
                 .as_ref()
-                .map(|sas| {
-                    format!(
-                        " Cadena de verificación: **{sas}** (debe ser la que muestra el móvil)."
-                    )
-                })
+                .map(|sas| format!(" Este número debe ser el que muestra tu móvil: **{sas}**."))
                 .unwrap_or_default();
             Some(format!(
-                "Nuevo dispositivo pendiente: {label} ({device}), sin permisos.{verify} {revoke}"
+                "Nuevo dispositivo pendiente: {label}, sin permisos.{verify} {undo}"
             ))
         }
         PairOutcome::Recovered => Some(format!(
-            "Se usó el código de recuperación de {device} ({label}). {revoke}"
+            "Se usó el código de recuperación de {label}. {undo}"
         )),
         PairOutcome::Granted => {
             let granter = label_span(attempt.granted_by.as_deref().unwrap_or_default());
@@ -189,11 +185,9 @@ mod tests {
         paired.sas = Some("042817".to_owned());
         assert_eq!(
             notice_text(&paired).expect("a notice"),
-            format!(
-                "Nuevo dispositivo pendiente: `Phone` (dev-1), sin permisos. \
-                 Cadena de verificación: **042817** (debe ser la que muestra el móvil). \
-                 Si no fuiste tú: `{BIN} devices revoke dev-1`."
-            )
+            "Nuevo dispositivo pendiente: `Phone`, sin permisos. \
+             Este número debe ser el que muestra tu móvil: **042817**. \
+             Si no fuiste tú, revócalo en Ajustes > Mis dispositivos."
         );
     }
 
@@ -222,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn recovery_and_pairing_each_name_the_device_to_revoke() {
+    fn a_recovery_notice_names_the_device_and_the_way_out_without_ids() {
         let recovered = notice_text(&attempt(
             PairOutcome::Recovered,
             Some("dev-2"),
@@ -231,10 +225,8 @@ mod tests {
         .expect("a notice");
         assert_eq!(
             recovered,
-            format!(
-                "Se usó el código de recuperación de dev-2 (`Pixel`). \
-                 Si no fuiste tú: `{BIN} devices revoke dev-2`."
-            )
+            "Se usó el código de recuperación de `Pixel`. \
+             Si no fuiste tú, revócalo en Ajustes > Mis dispositivos."
         );
     }
 
@@ -271,9 +263,9 @@ mod tests {
         unnamed.sas = Some("123456".to_owned());
         assert_eq!(
             notice_text(&unnamed).expect("a notice"),
-            format!(
-                "Nuevo dispositivo pendiente: `sin nombre` (dev-2), sin permisos. Cadena de verificación: **123456** (debe ser la que muestra el móvil). Si no fuiste tú: `{BIN} devices revoke dev-2`."
-            )
+            "Nuevo dispositivo pendiente: `sin nombre`, sin permisos. \
+             Este número debe ser el que muestra tu móvil: **123456**. \
+             Si no fuiste tú, revócalo en Ajustes > Mis dispositivos."
         );
     }
 }

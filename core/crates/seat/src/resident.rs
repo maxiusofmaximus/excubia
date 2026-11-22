@@ -177,7 +177,14 @@ fn changed_files(before: &Changes, after: &Changes) -> String {
     let touched: Vec<String> = after
         .iter()
         .filter(|(path, counts)| before.get(*path) != Some(counts))
-        .map(|(path, (added, removed))| format!("- {path} (+{added} −{removed})"))
+        .map(|(path, &(added, removed))| {
+            let counts = match (added, removed) {
+                (added, 0) => format!("{added} líneas añadidas"),
+                (0, removed) => format!("{removed} líneas quitadas"),
+                (added, removed) => format!("{added} añadidas, {removed} quitadas"),
+            };
+            format!("- {path}: {counts}")
+        })
         .collect();
     if touched.is_empty() {
         return String::new();
@@ -298,7 +305,7 @@ mod tests {
         .collect();
         assert_eq!(
             changed_files(&before, &after),
-            "\n\nArchivos cambiados:\n- nuevo.txt (+2 −0)\n- src/app.rs (+5 −2)"
+            "\n\nArchivos cambiados:\n- nuevo.txt: 2 líneas añadidas\n- src/app.rs: 5 añadidas, 2 quitadas"
         );
         assert_eq!(changed_files(&after, &after), "");
     }

@@ -231,12 +231,16 @@ async fn a_pending_device_shows_its_sas_and_the_pairing_notice_carries_the_same(
     let notice = texts
         .iter()
         .find(|text| {
-            text.starts_with("Nuevo dispositivo pendiente") && text.contains(&pending.device_id)
+            text.starts_with("Nuevo dispositivo pendiente") && text.contains(&format!("**{want}**"))
         })
         .expect("the pairing notice");
     assert!(
-        notice.contains(&format!("Cadena de verificación: **{want}**")),
+        notice.contains(&format!("muestra tu móvil: **{want}**")),
         "{notice}"
+    );
+    assert!(
+        !notice.contains(&pending.device_id) && !notice.contains("devices revoke"),
+        "no ids or commands in the chat: {notice}"
     );
 
     let paired_line = audit_lines(&host)
