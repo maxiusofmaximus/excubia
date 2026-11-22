@@ -47,6 +47,7 @@ pub(super) fn claude_settings_ttl(
     let timeout = ttl_seconds.map_or(CLAUDE_HOOK_TIMEOUT_SECONDS, |ttl| u64::from(ttl) + 30);
     let mut allow: Vec<String> = [
         "Bash",
+        "PowerShell",
         "Write",
         "Edit",
         "MultiEdit",

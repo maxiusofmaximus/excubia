@@ -301,6 +301,16 @@ impl super::ChatStore {
         delegation_id: &str,
         result: &str,
     ) -> Result<String, ChatError> {
+        self.complete_delegation_with(delegation_id, result, false)
+    }
+
+    /// As [`Self::complete_delegation`]; `failed` is the assignee's own word that the work was not done.
+    pub fn complete_delegation_with(
+        &self,
+        delegation_id: &str,
+        result: &str,
+        failed: bool,
+    ) -> Result<String, ChatError> {
         let result = &crate::text::without_internal_ids(result);
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
@@ -325,7 +335,17 @@ impl super::ChatStore {
             [delegation_id],
             |row| row.get(0),
         )?;
-        let (state, reason, title) = if expired > 0 {
+        let (state, reason, title) = if failed {
+            (
+                DelegationState::Failed,
+                Some("agent_reported_failure"),
+                format!(
+                    "{} fracasó{}",
+                    delegation.to_name,
+                    task_suffix(&delegation.task)
+                ),
+            )
+        } else if expired > 0 {
             (
                 DelegationState::Failed,
                 Some("approval_expired"),

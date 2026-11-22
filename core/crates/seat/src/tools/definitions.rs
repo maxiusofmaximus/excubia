@@ -129,12 +129,13 @@ pub fn definitions() -> Value {
             },
             {
                 "name": "delegation.complete",
-                "description": "Finish the delegation assigned to this seat with its full result.",
+                "description": "Finish the delegation assigned to this seat with its full result. Use outcome failed when the work could not be done: the operator then sees it as failed.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "delegation_id": { "type": "string", "minLength": 1, "maxLength": 200 },
-                        "result": string_property("The complete result.")
+                        "result": string_property("The complete result."),
+                        "outcome": { "type": "string", "enum": ["done", "failed"], "description": "done (default) or failed." }
                     },
                     "required": ["delegation_id", "result"],
                     "additionalProperties": false

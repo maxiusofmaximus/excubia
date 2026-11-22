@@ -419,3 +419,21 @@ fn a_delegation_without_steps_declares_one_step() {
     };
     assert_eq!(assign.steps, 1);
 }
+
+#[test]
+fn delegation_complete_says_failed_only_when_asked() {
+    let base = json!({"delegation_id": "dlg_1", "result": "No pude"});
+    let Ok(ToolCall::DelegationComplete(plain)) = parse(&request("delegation.complete", base.clone())) else {
+        panic!("plain complete");
+    };
+    assert!(!plain.failed, "outcome defaults to done");
+    let mut failed = base.clone();
+    failed["outcome"] = json!("failed");
+    let Ok(ToolCall::DelegationComplete(call)) = parse(&request("delegation.complete", failed)) else {
+        panic!("failed complete");
+    };
+    assert!(call.failed);
+    let mut odd = base;
+    odd["outcome"] = json!("maybe");
+    assert!(parse(&request("delegation.complete", odd)).is_err(), "an unknown outcome is refused");
+}

@@ -479,3 +479,17 @@ fn the_kill_switch_cancels_every_active_delegation() {
     assert!(t.store.delegation(&first.id).is_ok());
     assert!(t.store.delegation(&second.id).is_ok());
 }
+
+#[test]
+fn a_delegation_the_assignee_reports_as_failed_closes_failed() {
+    let t = team("reported-failure");
+    let delegation = t
+        .assign(&t.alfred, &t.lead, "Escribe comando-p8.txt", "run_1", None)
+        .expect("assign");
+    t.store
+        .complete_delegation_with(&delegation.id, "No pude escribir el archivo.", true)
+        .expect("complete");
+    let row = t.store.delegation(&delegation.id).expect("row");
+    assert_eq!(row.state, DelegationState::Failed);
+    assert_eq!(row.reason.as_deref(), Some("agent_reported_failure"));
+}

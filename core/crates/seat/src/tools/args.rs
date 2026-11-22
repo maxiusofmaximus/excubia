@@ -60,6 +60,17 @@ pub(super) struct DelegationAssignArgs {
 pub(super) struct DelegationCompleteArgs {
     pub(super) delegation_id: String,
     pub(super) result: String,
+    #[serde(default)]
+    pub(super) outcome: CompleteOutcome,
+}
+
+/// How the assignee ends its task. `done` is the default; `failed` means the work was not done.
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub(super) enum CompleteOutcome {
+    #[default]
+    Done,
+    Failed,
 }
 
 #[derive(Deserialize)]

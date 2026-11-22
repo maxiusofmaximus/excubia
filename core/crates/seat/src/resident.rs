@@ -42,16 +42,22 @@ pub async fn run_resident(engine: &[String]) -> Result<(), String> {
         };
         println!("\n── Tarea de {from} ──");
         let before = changes().await;
-        let mut result = match run_engine(program, args, &task_prompt(&from, &text)).await {
-            Ok((true, output)) if !output.trim().is_empty() => output,
-            Ok((true, _)) => "Terminé la tarea sin texto de resultado.".to_string(),
-            Ok((false, output)) => format!("No pude terminar la tarea. Última salida:\n{output}"),
-            Err(error) => format!("No pude arrancar el agente: {error}"),
+        let (ran, answer) = match run_engine(program, args, &task_prompt(&from, &text)).await {
+            Ok((true, output)) if !output.trim().is_empty() => (true, output),
+            Ok((true, _)) => (true, "Terminé la tarea sin texto de resultado.".to_string()),
+            Ok((false, output)) => (false, format!("No pude terminar la tarea. Última salida:\n{output}")),
+            Err(error) => (false, format!("No pude arrancar el agente: {error}")),
         };
+        let (declared_failed, mut result) = closing_status(&answer);
+        let failed = !ran || declared_failed;
         result.push_str(&changed_files(&before, &changes().await));
         let request = ToolRequest {
             tool: "delegation.complete".to_string(),
-            arguments: json!({ "delegation_id": id, "result": result }),
+            arguments: json!({
+                "delegation_id": id,
+                "result": result,
+                "outcome": if failed { "failed" } else { "done" },
+            }),
         };
         // Refused when the agent already closed the task itself: that is the good case.
         if let Err(error) = post_tool(&url, &token, &request).await {
@@ -96,8 +102,25 @@ fn task_prompt(from: &str, text: &str) -> String {
         "Tarea de {from}. Trabaja en la carpeta actual, que es la del proyecto.\n\n\
          {text}\n\n\
          Tu respuesta final es el resultado de la tarea: escríbelo completo, en español. \
-         La tarea se cierra sola con esa respuesta."
+         Como última línea, escribe exactamente `ESTADO: HECHO` si la completaste o \
+         `ESTADO: FALLIDO` si no pudiste. La tarea se cierra sola con esa respuesta."
     )
+}
+
+/// The status line the task asks for as the answer's last line: whether it says the work
+/// failed, and the answer without that line. No status line means done, as before.
+fn closing_status(answer: &str) -> (bool, String) {
+    let mut lines: Vec<&str> = answer.lines().collect();
+    while lines.last().is_some_and(|line| line.trim().is_empty()) {
+        lines.pop();
+    }
+    let failed = match lines.last().map(|line| line.trim()) {
+        Some("ESTADO: FALLIDO") => true,
+        Some("ESTADO: HECHO") => false,
+        _ => return (false, answer.to_string()),
+    };
+    lines.pop();
+    (failed, lines.join("\n").trim_end().to_string())
 }
 
 /// Each changed file of the project folder with its lines added and removed against the
@@ -278,5 +301,27 @@ mod tests {
             "\n\nArchivos cambiados:\n- nuevo.txt (+2 −0)\n- src/app.rs (+5 −2)"
         );
         assert_eq!(changed_files(&after, &after), "");
+    }
+
+    #[test]
+    fn the_last_status_line_says_how_the_task_ended_and_leaves_the_answer() {
+        assert_eq!(
+            closing_status("Lo hice.\n\nESTADO: HECHO\n"),
+            (false, "Lo hice.".to_string())
+        );
+        assert_eq!(
+            closing_status("No pude escribir el archivo.\nESTADO: FALLIDO"),
+            (true, "No pude escribir el archivo.".to_string())
+        );
+        // No status line: done, and the answer is untouched.
+        assert_eq!(
+            closing_status("Resultado: no completado."),
+            (false, "Resultado: no completado.".to_string())
+        );
+        // A status word in the middle of the answer is not a status.
+        assert_eq!(
+            closing_status("ESTADO: FALLIDO\nluego seguí y acabé"),
+            (false, "ESTADO: FALLIDO\nluego seguí y acabé".to_string())
+        );
     }
 }

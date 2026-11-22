@@ -31,6 +31,9 @@ pub struct SnapshotPane {
     /// Unix ms of the last movement; absent in snapshots written before it.
     #[serde(default)]
     pub last_active_ms: Option<u64>,
+    /// The seat the pane ran for; absent in snapshots written before it.
+    #[serde(default)]
+    pub seat_id: Option<String>,
 }
 
 impl SnapshotPane {
@@ -96,6 +99,7 @@ mod tests {
             title: Some("mi chat".to_string()),
             last_lines: vec!["uno".to_string(), "dos".to_string()],
             last_active_ms: Some(1_793_880_000_000),
+            seat_id: Some("ag_seat".to_string()),
         }];
         write(&path, panes).expect("write");
         let snapshot = read(&path);

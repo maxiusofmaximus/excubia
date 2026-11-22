@@ -150,6 +150,12 @@ pub struct SpawnSpec {
     pub label: Option<String>,
     /// Extra environment, e.g. the per-seat MCP token.
     pub env: Vec<(String, String)>,
+    /// The pane this seat had in the previous host run, when it has one. Its
+    /// restored record is the same seat and is replaced; no other record is.
+    pub replaces_pane: Option<String>,
+    /// The seat this pane runs for. A restored row of the same seat is replaced
+    /// even when the seat's pane id is gone (closing a pane clears it).
+    pub seat_id: Option<String>,
 }
 
 impl SpawnSpec {
@@ -163,6 +169,8 @@ impl SpawnSpec {
             cwd: None,
             label: None,
             env: Vec::new(),
+            replaces_pane: None,
+            seat_id: None,
         })
     }
 }
@@ -176,6 +184,8 @@ pub struct AgentHost {
     dirty: Arc<Notify>,
     hook_reports: Arc<Notify>,
     restore: Arc<RestoreStore>,
+    /// Pane id → seat id, for live panes and for panes restored from a snapshot.
+    seats: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl AgentHost {
@@ -192,6 +202,7 @@ impl AgentHost {
             dirty: Arc::new(Notify::new()),
             hook_reports: Arc::new(Notify::new()),
             restore,
+            seats: Arc::new(Mutex::new(HashMap::new())),
         });
         host.restore().await;
         host.spawn_snapshot_writer();
@@ -209,6 +220,12 @@ impl AgentHost {
         let count = snapshot.panes.len();
         for pane in snapshot.panes {
             let text = pane.text();
+            if let Some(seat) = &pane.seat_id {
+                self.seats
+                    .lock()
+                    .expect("seats poisoned")
+                    .insert(pane.pane_id.clone(), seat.clone());
+            }
             self.store
                 .add_agent(NewAgent {
                     pane_id: pane.pane_id.clone(),
@@ -227,6 +244,36 @@ impl AgentHost {
                 .insert(pane.pane_id, Arc::new(Session::restored(text)));
         }
         eprintln!("host: restored {count} pane(s) from the previous run");
+    }
+
+    /// Drop the restored records a new live panel replaces, with their
+    /// sessions: the same pane id (`add_agent` would overwrite it silently) or
+    /// the pane its seat had in the previous run. Only that pane: other seats
+    /// of the same project, folder and agent keep their own restored rows.
+    async fn forget_replaced_restored(&self, pane_id: &str, replaces: Option<&str>, seat: Option<&str>) {
+        let seats = self.seats.lock().expect("seats poisoned").clone();
+        let stale: Vec<String> = self
+            .store
+            .payload()
+            .await
+            .agents
+            .into_iter()
+            .filter(|row| row.restored)
+            .filter(|row| {
+                row.pane_id == pane_id
+                    || replaces == Some(row.pane_id.as_str())
+                    || seat.is_some_and(|seat| seats.get(&row.pane_id).map(String::as_str) == Some(seat))
+            })
+            .map(|row| row.pane_id)
+            .collect();
+        for old in stale {
+            self.store.remove_agent(&old).await;
+            self.sessions
+                .lock()
+                .expect("sessions poisoned")
+                .remove(&old);
+            self.seats.lock().expect("seats poisoned").remove(&old);
+        }
     }
 
     /// Start one agent and return its pane id.
@@ -272,6 +319,14 @@ impl AgentHost {
         let title = Arc::new(Mutex::new(TitleTracker::new()));
 
         let cwd_label = cwd.to_string_lossy().to_string();
+        self.forget_replaced_restored(&pane_id, spec.replaces_pane.as_deref(), spec.seat_id.as_deref())
+            .await;
+        if let Some(seat) = &spec.seat_id {
+            self.seats
+                .lock()
+                .expect("seats poisoned")
+                .insert(pane_id.clone(), seat.clone());
+        }
         self.store
             .add_agent(NewAgent {
                 pane_id: pane_id.clone(),
@@ -350,6 +405,7 @@ impl AgentHost {
             let Some(row) = self.store.row_of(&pane_id).await else {
                 continue;
             };
+            let seat_id = self.seats.lock().expect("seats poisoned").get(&pane_id).cloned();
             panes.push(SnapshotPane {
                 pane_id: row.pane_id,
                 workspace_id: row.workspace_id,
@@ -358,6 +414,7 @@ impl AgentHost {
                 cwd: row.cwd,
                 title: row.title,
                 last_active_ms: row.last_active_ms,
+                seat_id,
                 last_lines: session
                     .snapshot_text(self.options.snapshot_lines)
                     .lines()
@@ -436,5 +493,111 @@ mod tests {
         assert_eq!(spec.program, "opencode");
         assert_eq!(spec.args, vec!["--model", "deepseek"]);
         assert!(SpawnSpec::parse("   ").is_err());
+    }
+
+    /// A host for project `proyecto` with one restored pane already in it.
+    async fn host_with_restored(pane_id: &str, project: &str, cwd: &str, agent: &str) -> Arc<AgentHost> {
+        let dir = std::env::temp_dir().join(format!("excubia-restored-{}", pane_id.replace(':', "_")));
+        let host = AgentHost::new(StateStore::new("test"), HostOptions::new(&dir, "proyecto")).await;
+        host.store
+            .add_agent(NewAgent {
+                pane_id: pane_id.to_string(),
+                workspace_id: "w1".to_string(),
+                project: project.to_string(),
+                agent: agent.to_string(),
+                cwd: cwd.to_string(),
+                label: None,
+                restored: true,
+                last_active_ms: None,
+            })
+            .await;
+        host.sessions
+            .lock()
+            .expect("sessions poisoned")
+            .insert(pane_id.to_string(), Arc::new(Session::restored(String::new())));
+        host
+    }
+
+    /// The register step `start` runs for a new live panel, minus the spawn.
+    async fn register_live(host: &AgentHost, pane_id: &str, cwd: &str, agent: &str, replaces: Option<&str>) {
+        host.forget_replaced_restored(pane_id, replaces, None).await;
+        host.store
+            .add_agent(NewAgent {
+                pane_id: pane_id.to_string(),
+                workspace_id: "w1".to_string(),
+                project: host.options.project.clone(),
+                agent: agent.to_string(),
+                cwd: cwd.to_string(),
+                label: None,
+                restored: false,
+                last_active_ms: None,
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn live_seat_replaces_its_restored_twin() {
+        let host = host_with_restored("w1:p2", "proyecto", "C:/seat", "claude").await;
+        register_live(&host, "w1:p1", "C:/seat", "claude", Some("w1:p2")).await;
+
+        let rows = host.store.payload().await.agents;
+        let seat: Vec<_> = rows.iter().filter(|r| r.cwd == "C:/seat" && r.agent == "claude").collect();
+        assert_eq!(seat.len(), 1, "one row for the seat: {rows:?}");
+        assert_eq!(seat[0].pane_id, "w1:p1");
+        assert!(!seat[0].restored);
+        assert!(!host.sessions.lock().unwrap().contains_key("w1:p2"));
+    }
+
+    #[tokio::test]
+    async fn a_sibling_seat_restored_row_is_kept() {
+        // Two seats of one project, folder and agent: the first to start must not erase the other.
+        let host = host_with_restored("w1:p2", "proyecto", "C:/seat", "claude").await;
+        host.store
+            .add_agent(NewAgent {
+                pane_id: "w1:p3".to_string(),
+                workspace_id: "w1".to_string(),
+                project: "proyecto".to_string(),
+                agent: "claude".to_string(),
+                cwd: "C:/seat".to_string(),
+                label: None,
+                restored: true,
+                last_active_ms: None,
+            })
+            .await;
+        host.sessions
+            .lock()
+            .expect("sessions poisoned")
+            .insert("w1:p3".to_string(), Arc::new(Session::restored(String::new())));
+
+        register_live(&host, "w1:p1", "C:/seat", "claude", Some("w1:p2")).await;
+
+        let rows = host.store.payload().await.agents;
+        assert!(rows.iter().any(|r| r.pane_id == "w1:p3" && r.restored), "sibling kept: {rows:?}");
+        assert!(host.sessions.lock().unwrap().contains_key("w1:p3"));
+        assert!(!rows.iter().any(|r| r.pane_id == "w1:p2"), "its own twin is gone: {rows:?}");
+    }
+
+    #[tokio::test]
+    async fn a_start_without_its_seat_pane_removes_no_restored_row() {
+        let host = host_with_restored("w1:p2", "proyecto", "C:/seat", "claude").await;
+        register_live(&host, "w1:p1", "C:/seat", "claude", None).await;
+
+        let rows = host.store.payload().await.agents;
+        assert_eq!(rows.len(), 2, "both rows stay: {rows:?}");
+        assert!(host.sessions.lock().unwrap().contains_key("w1:p2"));
+    }
+
+    #[tokio::test]
+    async fn a_seat_on_a_new_pane_replaces_its_restored_row_without_its_old_pane() {
+        // Closing the old pane cleared the seat's pane id, so only the seat link can match.
+        let host = host_with_restored("w1:p2", "proyecto", "C:/seat", "claude").await;
+        host.seats.lock().unwrap().insert("w1:p2".to_string(), "ag_seat".to_string());
+        host.forget_replaced_restored("w1:p1", None, Some("ag_other")).await;
+        assert!(host.store.payload().await.agents.iter().any(|r| r.pane_id == "w1:p2"), "other seat keeps it");
+
+        host.forget_replaced_restored("w1:p1", None, Some("ag_seat")).await;
+        let rows = host.store.payload().await.agents;
+        assert!(!rows.iter().any(|r| r.pane_id == "w1:p2"), "its own restored row is gone: {rows:?}");
+        assert!(!host.seats.lock().unwrap().contains_key("w1:p2"));
     }
 }

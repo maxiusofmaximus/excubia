@@ -224,6 +224,7 @@ impl TeamService {
         grant: TeamGrant,
         delegation_id: String,
         result: String,
+        failed: bool,
     ) -> Result<ToolReply, ToolError> {
         let delegation = self
             .chat
@@ -237,7 +238,7 @@ impl TeamService {
         }
         let message_id = self
             .chat
-            .complete_delegation(&delegation_id, &result)
+            .complete_delegation_with(&delegation_id, &result, failed)
             .map_err(tool_chat_error)?;
         self.stop_watcher(&delegation_id);
         let _ = self.chat.set_seat_status(&grant.actor.agent_id, "idle");
@@ -504,7 +505,7 @@ fn close_sentence(name: &str, title: &str, outcome: CloseOutcome, reason: Option
     let stop = if title.ends_with('…') { "" } else { "." };
     match outcome {
         CloseOutcome::Done => format!("{name} terminó: {title}{stop}"),
-        CloseOutcome::Failed => format!("{name} no pudo terminar: {title}{stop}"),
+        CloseOutcome::Failed => format!("{name} fracasó: {title}{stop}"),
         CloseOutcome::Denied => match reason.and_then(close_reason) {
             Some(words) => format!("No se hizo: {title}{stop} Lo denegaste: «{words}»."),
             None => format!("No se hizo: {title}{stop} Lo denegaste."),
@@ -566,10 +567,7 @@ mod tests {
         let done = close_sentence("Ernesto", &title, CloseOutcome::Done, None);
         assert_eq!(done, "Ernesto terminó: Revisar contactos de mañana.");
         let failed = close_sentence("Ernesto", &title, CloseOutcome::Failed, None);
-        assert_eq!(
-            failed,
-            "Ernesto no pudo terminar: Revisar contactos de mañana."
-        );
+        assert_eq!(failed, "Ernesto fracasó: Revisar contactos de mañana.");
         let denied = close_sentence("Ernesto", &title, CloseOutcome::Denied, None);
         assert_eq!(
             denied,

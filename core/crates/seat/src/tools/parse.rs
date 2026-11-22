@@ -8,8 +8,8 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
 use super::args::{
-    AgentSpawnArgs, AskArgs, DelegationAssignArgs, DelegationCompleteArgs, ProgressArgs,
-    ProjectCreateArgs, ReplyArgs,
+    AgentSpawnArgs, AskArgs, CompleteOutcome, DelegationAssignArgs, DelegationCompleteArgs,
+    ProgressArgs, ProjectCreateArgs, ReplyArgs,
 };
 
 use super::call::{AgentSpawn, DelegationAssign, DelegationComplete, ProjectCreate};
@@ -116,6 +116,7 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
             Ok(ToolCall::DelegationComplete(DelegationComplete {
                 delegation_id,
                 result,
+                failed: args.outcome == CompleteOutcome::Failed,
             }))
         }
         "approval.request" => approval::parse(request),

@@ -57,6 +57,8 @@ impl AgentActions for AgentHost {
                 .iter()
                 .map(|(key, value)| (key.clone(), value.clone()))
                 .collect(),
+            replaces_pane: None,
+            seat_id: None,
         };
         let pane_id = self
             .start(spec)

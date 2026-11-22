@@ -77,4 +77,6 @@ pub struct PlanPropose {
 pub struct DelegationComplete {
     pub delegation_id: String,
     pub result: String,
+    /// True when the assignee could not do the task: the delegation closes as failed.
+    pub failed: bool,
 }

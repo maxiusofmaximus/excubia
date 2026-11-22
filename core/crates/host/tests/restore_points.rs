@@ -31,6 +31,8 @@ async fn spawn_in(host: &TestHost, folder: &Path) -> String {
         cwd: Some(folder.to_path_buf()),
         label: None,
         env: Vec::new(),
+        replaces_pane: None,
+        seat_id: None,
     };
     host.host.start(spec).await.expect("spawn")
 }

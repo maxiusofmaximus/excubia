@@ -24,7 +24,7 @@ impl TeamService {
     ) -> Result<ToolReply, ToolError> {
         match call {
             ToolCall::DelegationComplete(complete) => {
-                self.complete(grant, complete.delegation_id, complete.result)
+                self.complete(grant, complete.delegation_id, complete.result, complete.failed)
             }
             ToolCall::AgentSpawn(spawn) => match grant.actor.role_id.as_str() {
                 "alfred" | "lead" => self.spawn_agent(&grant.actor, spawn).await,
@@ -385,6 +385,8 @@ impl TeamService {
                 }
             )),
             env: plan.env,
+            replaces_pane: seat.pane_id.clone(),
+            seat_id: Some(seat.agent_id.clone()),
         };
         spec.env
             .push(("EXCUBIA_TOOL_TOKEN".to_string(), token.clone()));

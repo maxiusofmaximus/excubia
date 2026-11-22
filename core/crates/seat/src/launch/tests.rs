@@ -145,6 +145,29 @@ fn claude_settings_gate_every_edit_tool_with_the_blocking_hook() {
 }
 
 #[test]
+fn claude_allows_every_tool_the_hook_gates() {
+    // Claude runs the hook first; a gated tool missing from `allow` is refused even after the operator approves it.
+    let profile = crate::profile::shipped().remove(0);
+    let scratch = TestDir::new("seat-claude-allow-matcher");
+    let hook_bin = hook_in(&scratch);
+    let root = PathBuf::from("run-dir");
+    let mut launch = input(&profile, &root, "role", "prompt");
+    launch.hook_command = &hook_bin;
+    let plan = prepare(&launch).expect("plan");
+    let settings: serde_json::Value =
+        serde_json::from_str(&file_text(&plan, "claude-settings.json")).expect("json");
+    let allowed: Vec<&str> = settings["permissions"]["allow"]
+        .as_array()
+        .expect("allow list")
+        .iter()
+        .filter_map(|rule| rule.as_str())
+        .collect();
+    for tool in CLAUDE_HOOK_MATCHER.split('|') {
+        assert!(allowed.contains(&tool), "{tool} is gated by the hook but not allowed");
+    }
+}
+
+#[test]
 fn claude_allows_each_tool_the_seat_serves() {
     let profile = crate::profile::shipped().remove(0);
     let scratch = TestDir::new("seat-claude-chat-tools");
