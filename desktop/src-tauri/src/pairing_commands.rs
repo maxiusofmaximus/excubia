@@ -80,12 +80,20 @@ pub async fn lan_pairing(state: State<'_, Shared>) -> Result<LanPairing, String>
     if !lock(&shared.inner).config.lan_pairing {
         return Err("Activa el emparejamiento por red local antes de mostrar el QR.".to_string());
     }
-    let bind = lan::lan_bind().ok_or_else(|| {
-        "No encuentro una dirección de red local privada en este equipo.".to_string()
-    })?;
-    let stdout = shared
-        .run_host_cli(&["pair-code", "--lan", &bind.to_string()])
-        .await?;
+    let binds = lan::pairing_binds();
+    if binds.is_empty() {
+        return Err(
+            "No encuentro una dirección de red local privada ni de Tailscale en este equipo."
+                .to_string(),
+        );
+    }
+    let addresses: Vec<String> = binds.iter().map(ToString::to_string).collect();
+    let mut args = vec!["pair-code"];
+    for address in &addresses {
+        args.push("--lan");
+        args.push(address.as_str());
+    }
+    let stdout = shared.run_host_cli(&args).await?;
     let link = lan::pair_link_from(&stdout)?;
     let expires_at = PairLink::parse_now(&link)
         .map_err(|error| error.pairing_message())?

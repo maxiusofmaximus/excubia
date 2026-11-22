@@ -30,12 +30,12 @@ impl AppState {
     pub fn start_local_host(self: &Arc<Self>, app: AppHandle) {
         self.stop_local_host();
 
-        let lan_bind = lock(&self.inner)
-            .config
-            .lan_pairing
-            .then(lan::lan_bind)
-            .flatten();
-        let host_config = match host_config_for(&app, lan_bind) {
+        let pairing_binds = if lock(&self.inner).config.lan_pairing {
+            lan::pairing_binds()
+        } else {
+            Vec::new()
+        };
+        let host_config = match host_config_for(&app, &pairing_binds) {
             Ok(config) => config,
             Err(error) => return self.fail_host(&app, error),
         };
@@ -128,7 +128,7 @@ pub fn host_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// The sidecar plus the app-owned data and log directories.
-fn host_config_for(app: &AppHandle, lan_bind: Option<SocketAddr>) -> Result<HostConfig, String> {
+fn host_config_for(app: &AppHandle, pairing_binds: &[SocketAddr]) -> Result<HostConfig, String> {
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|exe| exe.parent().map(|parent| parent.to_path_buf()))
@@ -154,7 +154,7 @@ fn host_config_for(app: &AppHandle, lan_bind: Option<SocketAddr>) -> Result<Host
         "--data-dir".to_string(),
         data_dir.display().to_string(),
     ];
-    if let Some(address) = lan_bind {
+    for address in pairing_binds {
         args.push("--tls-bind".to_string());
         args.push(address.to_string());
     }

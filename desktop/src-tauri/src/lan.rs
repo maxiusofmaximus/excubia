@@ -40,9 +40,32 @@ pub fn lan_address() -> Option<Ipv4Addr> {
     }
 }
 
+/// The Tailscale IPv4 this machine sends from (100.64.0.0/10). Routing toward the
+/// tailnet's DNS address picks the tailscale interface; no packet is sent.
+pub fn tailnet_address() -> Option<Ipv4Addr> {
+    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("100.100.100.100:9").ok()?;
+    match socket.local_addr().ok()?.ip() {
+        IpAddr::V4(address) if is_tailnet(address) => Some(address),
+        _ => None,
+    }
+}
+
+fn is_tailnet(address: Ipv4Addr) -> bool {
+    let [first, second, ..] = address.octets();
+    first == 100 && (64..=127).contains(&second)
+}
+
 /// The concrete address the core's LAN listener binds, never a wildcard.
 pub fn lan_bind() -> Option<SocketAddr> {
     lan_address().map(|address| SocketAddr::new(address.into(), lan_port()))
+}
+
+/// Every concrete address the pairing listeners bind: the LAN one and, when
+/// Tailscale is up, the tailnet one, so a phone on another network can reach it.
+pub fn pairing_binds() -> Vec<SocketAddr> {
+    let tailnet = tailnet_address().map(|address| SocketAddr::new(address.into(), lan_port()));
+    lan_bind().into_iter().chain(tailnet).collect()
 }
 
 /// Pulls the link out of `host pair-code --lan`'s output.
@@ -84,6 +107,15 @@ pub fn qr_svg(link: &str) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_tailscale_range_counts_as_tailnet() {
+        assert!(is_tailnet("100.64.0.1".parse().expect("ip")));
+        assert!(is_tailnet("100.127.255.254".parse().expect("ip")));
+        assert!(!is_tailnet("100.63.0.1".parse().expect("ip")));
+        assert!(!is_tailnet("100.128.0.1".parse().expect("ip")));
+        assert!(!is_tailnet("192.168.50.147".parse().expect("ip")));
+    }
 
     #[test]
     fn the_link_line_is_found_in_the_host_output() {
