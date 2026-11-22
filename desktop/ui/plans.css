@@ -1,0 +1,158 @@
+/* «Planes propuestos» in Equipo: the plan cards under «Tu equipo». Colours come from the palette
+   tokens in base.css, so Noche and Papel both follow the rest of the app. */
+
+.team-plans {
+  margin: 0 2px 18px;
+}
+
+.team-plans-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.team-plans-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.team-plans-count {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.team-plans-count.has-waiting {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.team-plans-notice {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.team-plans-notice[hidden] {
+  display: none;
+}
+
+.plan-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.plan-card:not(.is-decided) {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.plan-card.is-decided .plan-title {
+  color: var(--text-2);
+}
+
+.plan-title {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.plan-lede {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.plan-status {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.plan-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 22px;
+  font-size: 0.92rem;
+}
+
+.plan-step {
+  overflow-wrap: anywhere;
+}
+
+.plan-step-touch {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.plan-note {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.plan-form {
+  display: grid;
+  gap: 8px;
+}
+
+.plan-form:empty {
+  display: none;
+}
+
+.plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plan-ask {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.plan-note-field {
+  width: 100%;
+  resize: vertical;
+}
+
+.plan-count {
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.btn.plan-danger {
+  color: var(--blocked);
+}
+
+.plan-slot {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--blocked) 9%, transparent);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.plan-slot[hidden] {
+  display: none;
+}

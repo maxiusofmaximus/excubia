@@ -1,0 +1,325 @@
+.view-pair {
+  max-width: 560px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 42px;
+  padding-bottom: 42px;
+}
+
+.pair-top-back {
+  align-self: flex-start;
+}
+
+.pair-intro {
+  margin: 30px 0 22px;
+}
+
+.pair-intro h1 {
+  font-size: 32px;
+}
+
+.lede {
+  margin: 10px 0 0;
+  max-width: 460px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.code-input {
+  font-family: var(--mono);
+  font-size: 19px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.mono-input {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+#view-pair .btn.primary {
+  margin-top: 16px;
+}
+
+.local-card h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.local-card .btn.secondary {
+  margin-top: 16px;
+}
+
+.local-card .btn.ghost {
+  margin-top: 10px;
+}
+
+.advanced {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.advanced summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced summary::before {
+  content: "›";
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.advanced summary > span:first-child {
+  flex: 1;
+}
+
+.advanced[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.summary-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.advanced-body {
+  display: grid;
+  gap: 18px;
+  padding: 16px 2px 4px;
+}
+
+/* Long values (a fingerprint) must wrap or scroll inside their own
+   block instead of stretching the grid past the viewport. */
+.advanced-body > * {
+  min-width: 0;
+}
+
+.fingerprint {
+  display: block;
+  padding: 11px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.secure-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 20px 2px 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.secure-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* -- recovery ----------------------------------------------------------- */
+
+.view-recovery,
+.view-lan {
+  max-width: 520px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 42px;
+  padding-bottom: 42px;
+}
+
+.recovery-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: 30px 0 18px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent-text);
+}
+
+.view-recovery h1 {
+  font-size: 30px;
+}
+
+.recovery-card {
+  margin-top: 22px;
+}
+
+.recovery-code {
+  padding: 20px 16px;
+  background: var(--bg);
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 21px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+.recovery-card .btn.ghost {
+  margin-top: 12px;
+}
+
+.recovery-card .btn.primary {
+  margin-top: 16px;
+}
+
+.link-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  resize: vertical;
+}
+
+.warning {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--warning);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.lan-card {
+  margin-top: 16px;
+}
+
+.lan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lan-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.lan-card .btn.secondary {
+  margin-top: 14px;
+}
+
+.view-lan h1 {
+  font-size: 30px;
+}
+
+.view-lan .lan-card {
+  margin-top: 22px;
+  text-align: center;
+}
+
+.lan-qr {
+  display: block;
+  box-sizing: content-box;
+  width: 240px;
+  height: 240px;
+  margin: 0 auto;
+  padding: 12px;
+  /* A QR needs a white quiet zone in every palette to scan. */
+  background: var(--qr-paper);
+  border-radius: 12px;
+}
+
+.view-lan .hint {
+  margin-top: 14px;
+}
+
+.view-lan .btn.secondary {
+  margin-top: 16px;
+}
+
+.view-lan .btn.ghost {
+  margin-top: 10px;
+}
+
+.hint.is-error {
+  color: var(--blocked);
+}
+
+@media (max-width: 680px) {
+  .view-pair,
+  .view-recovery,
+  .view-lan {
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+
+  .pair-intro h1 {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 520px) {
+  .view-pair,
+  .view-recovery,
+  .view-lan {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .card {
+    padding: 18px 14px;
+  }
+
+  .code-input {
+    font-size: 17px;
+    letter-spacing: 0.14em;
+  }
+
+  .recovery-code {
+    font-size: 18px;
+    letter-spacing: 0.06em;
+  }
+}

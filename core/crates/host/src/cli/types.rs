@@ -1,0 +1,171 @@
+//! The parsed shapes of the host command line.
+
+use std::net::{IpAddr, SocketAddr};
+use std::path::PathBuf;
+use std::time::Duration;
+
+use excubia_asr::AsrConfig;
+
+use crate::mail_sidecar::SidecarEndpoint;
+
+/// The port the daemon listens on unless `--port` says otherwise; `pair-code --pake` calls it there.
+pub const DEFAULT_PORT: u16 = 8791;
+
+#[derive(Debug)]
+pub struct RunOptions {
+    pub port: u16,
+    pub bind: IpAddr,
+    /// The LAN/VPN TLS listeners. Off unless named; each address must be concrete.
+    pub tls_bind: Vec<SocketAddr>,
+    pub rows: u16,
+    pub cols: u16,
+    pub label: String,
+    pub spawns: Vec<String>,
+    pub data_dir: PathBuf,
+    /// Where every project of this host lives. Paths are resolved inside it.
+    pub workspaces_root: PathBuf,
+    /// Where the document CLIs are looked for, one folder per app (DOC5B). Default `<data-dir>/tools`.
+    pub tools_dir: PathBuf,
+    /// Where the OpenCode UAC plugin lives. Without it the seats are not
+    /// verified and stay degraded.
+    pub uac_plugin_dir: Option<PathBuf>,
+    pub hook_ttl: Duration,
+    pub snapshot_lines: usize,
+    /// The speech engine. Off unless all three `--asr-*` flags are named. Boxed so `Command` stays small.
+    pub asr: Option<Box<AsrConfig>>,
+    /// The triage sidecar in shadow mode. Off unless `--mail-sidecar` names it.
+    pub mail_sidecar: Option<SidecarEndpoint>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PairingPolicyCommand {
+    /// Print the current value.
+    Show,
+    /// A code-less tailnet pairing leaves the new device pending (the default).
+    Confirm,
+    /// A code-less tailnet pairing grants READ_STATE and RESPOND at once.
+    Auto,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum VaultCommand {
+    Status,
+    /// Only with the host stopped; `no_mouse` is the one path the CLI has (no mouse samples).
+    Init {
+        no_mouse: bool,
+        host_stopped: bool,
+        port: u16,
+    },
+    /// The recovery phrase comes on stdin, never as an argument.
+    Recover,
+    Finish,
+}
+
+#[derive(Debug)]
+pub enum DevicesCommand {
+    List,
+    Revoke {
+        device_id: String,
+    },
+    Grant {
+        device_id: String,
+        permission: String,
+    },
+    /// Rotate the device's recovery code and print the new one once.
+    Recovery {
+        device_id: String,
+    },
+}
+
+#[derive(Debug)]
+pub enum TlsCommand {
+    /// Create the replacement certificate and print its pin.
+    Prepare,
+    /// Make the prepared certificate the one the LAN listener serves.
+    Activate,
+}
+
+#[derive(Debug)]
+pub enum Command {
+    Run(RunOptions),
+    PairCode {
+        ttl_seconds: f64,
+        /// The addresses a device may reach the LAN listener at, for the link.
+        lan: Vec<SocketAddr>,
+        data_dir: PathBuf,
+    },
+    /// `pair-code --pake`: asks the running daemon (loopback, host hook token) to arm its PAKE code and prints it.
+    PairCodePake {
+        port: u16,
+        /// Also print the v2 link (`pairing uri:`): the QR payload, without an address.
+        uri: bool,
+        data_dir: PathBuf,
+    },
+    Tls {
+        command: TlsCommand,
+        data_dir: PathBuf,
+    },
+    HookToken {
+        /// `Some(agent id)`: a resident seat token instead of the host token.
+        seat: Option<String>,
+        data_dir: PathBuf,
+    },
+    /// The Claude settings the seat writes, for a test harness that runs Claude
+    /// by hand: the same file, not a copy. `None` writes to stdout.
+    ClaudeSettings {
+        hook: PathBuf,
+        out: Option<PathBuf>,
+    },
+    Devices {
+        command: DevicesCommand,
+        data_dir: PathBuf,
+    },
+    /// `excubia-host vault status|init|recover|finish`: the vault of `chat.db`.
+    Vault {
+        command: VaultCommand,
+        data_dir: PathBuf,
+    },
+    /// `excubia-host pairing-policy show|confirm|auto`: what a code-less tailnet pairing gets.
+    PairingPolicy {
+        command: PairingPolicyCommand,
+        data_dir: PathBuf,
+    },
+    /// `excubia-host mail login|accounts|logout|enable-send|disable-send|enable-rules|disable-rules`:
+    /// the mailboxes this host signs in.
+    Mail(crate::mail_cli::MailInvocation),
+    /// `excubia-host strata start|stop|status|enable-agent`: the local model backend.
+    Strata {
+        command: StrataCommand,
+        data_dir: PathBuf,
+    },
+    /// `excubia-host alfred local|use local|use claude|status`: the model Alfred answers with.
+    Alfred {
+        command: AlfredCommand,
+        data_dir: PathBuf,
+    },
+    /// `excubia-host audit tail [--n N]`: the last N events of the audit log, readable.
+    AuditTail {
+        n: usize,
+        data_dir: PathBuf,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AlfredCommand {
+    UseLocal,
+    UseClaude,
+    /// Starts the local model, then makes it Alfred's model once it answers.
+    Local,
+    Status,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StrataCommand {
+    /// Launch the local model and wait until it answers. The voice host lets go of its ASR
+    /// first (`local-mode`), so no confirmation is needed.
+    Start,
+    Stop,
+    Status,
+    /// Write the `claude-local` entry into `agents.toml` when it is missing.
+    EnableAgent,
+}

@@ -1,0 +1,192 @@
+//! The trust-store file: `{version, devices, codes}` pretty JSON, written
+//! atomically (tmp + rename) and read fail-closed.
+//!
+//! Entries that do not parse are dropped individually, never the whole file.
+
+use std::fs;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+use crate::curve::Curve;
+use crate::error::StoreError;
+use crate::store::device::{Device, Permission};
+
+pub const VERSION: u32 = 1;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TrustFile {
+    pub version: u32,
+    #[serde(default)]
+    pub devices: Vec<DeviceRecord>,
+    #[serde(default)]
+    pub codes: Vec<CodeRecord>,
+    /// The owner's tailnet pairing policy. A file written before it existed loads as `false`.
+    #[serde(default)]
+    pub tailnet_auto_accept: bool,
+}
+
+/// Why a record names no usable device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+pub enum RecordError {
+    #[error("the record has no device_id")]
+    MissingDeviceId,
+    #[error("the record has no public_key")]
+    MissingPublicKey,
+    #[error("the curve is neither p256 nor ed25519")]
+    UnsupportedCurve,
+    #[error("the public key is not a valid point for its curve")]
+    InvalidPublicKey,
+}
+
+/// The on-disk device record. `permissions` is optional on purpose: a missing
+/// field is a pre-M2 record and receives the pairing default, while an
+/// explicitly stored empty set stays empty.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct DeviceRecord {
+    #[serde(default)]
+    pub device_id: String,
+    #[serde(default)]
+    pub curve: String,
+    #[serde(default)]
+    pub public_key: String,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub created_at: f64,
+    #[serde(default)]
+    pub last_seen_at: Option<f64>,
+    #[serde(default)]
+    pub revoked: bool,
+    #[serde(default)]
+    pub permissions: Option<Vec<String>>,
+    #[serde(default)]
+    pub fcm_token: Option<String>,
+    #[serde(default)]
+    pub owner_id: String,
+    #[serde(default)]
+    pub recovery_code_hash: Option<String>,
+    #[serde(default)]
+    pub persisted_at: Option<f64>,
+}
+
+impl DeviceRecord {
+    /// A record that names no usable device is dropped, not guessed at.
+    pub fn into_device(self) -> Result<Device, RecordError> {
+        if self.device_id.is_empty() {
+            return Err(RecordError::MissingDeviceId);
+        }
+        if self.public_key.is_empty() {
+            return Err(RecordError::MissingPublicKey);
+        }
+        let curve = Curve::from_label(&self.curve).ok_or(RecordError::UnsupportedCurve)?;
+        let permissions = match self.permissions {
+            None => vec![Permission::ReadState],
+            Some(labels) => labels
+                .iter()
+                .filter_map(|label| Permission::from_label(label))
+                .collect(),
+        };
+        Ok(Device {
+            device_id: self.device_id,
+            curve,
+            public_key: self.public_key,
+            label: self.label,
+            created_at: self.created_at,
+            last_seen_at: self.last_seen_at,
+            revoked: self.revoked,
+            permissions,
+            fcm_token: self.fcm_token,
+            owner_id: self.owner_id,
+            recovery_code_hash: self.recovery_code_hash,
+            persisted_at: self.persisted_at,
+        })
+    }
+}
+
+impl Device {
+    pub fn to_record(&self) -> DeviceRecord {
+        DeviceRecord {
+            device_id: self.device_id.clone(),
+            curve: self.curve.label().to_string(),
+            public_key: self.public_key.clone(),
+            label: self.label.clone(),
+            created_at: self.created_at,
+            last_seen_at: self.last_seen_at,
+            revoked: self.revoked,
+            permissions: Some(
+                self.permissions
+                    .iter()
+                    .map(|permission| permission.label().to_string())
+                    .collect(),
+            ),
+            fcm_token: self.fcm_token.clone(),
+            owner_id: self.owner_id.clone(),
+            recovery_code_hash: self.recovery_code_hash.clone(),
+            persisted_at: self.persisted_at,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodeRecord {
+    #[serde(default)]
+    pub code_hash: String,
+    #[serde(default)]
+    pub created_at: f64,
+    #[serde(default)]
+    pub expires_at: f64,
+}
+
+/// Read a store. Every failure is the caller's to turn into "trust nobody".
+pub fn read(path: &Path) -> Result<TrustFile, StoreError> {
+    let raw = fs::read_to_string(path)?;
+    let file: TrustFile = serde_json::from_str(&raw)?;
+    if file.version > VERSION {
+        return Err(StoreError::Version(file.version));
+    }
+    Ok(file)
+}
+
+/// Write a store atomically: a half-written file must never be believed.
+pub fn write(path: &Path, file: &TrustFile) -> Result<(), StoreError> {
+    excubia_persist::write_json_atomic(path, file)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use excubia_test_dir::TestDir;
+
+    use super::*;
+
+    /// A store written before the push endpoint was removed still loads: the old field
+    /// is ignored, and it is gone at the next save.
+    #[test]
+    fn a_record_with_an_old_push_endpoint_loads_and_drops_it_on_save() {
+        let dir = TestDir::new("auth-old-push-field");
+        let path = dir.join("devices.json");
+        let old = r#"{"version":1,"devices":[{"device_id":"dev-1","curve":"ed25519",
+            "public_key":"AAAA","push_endpoint":{"endpoint":"https://ntfy.sh/up-old"}}],
+            "codes":[]}"#;
+        fs::write(&path, old).expect("write the old store");
+
+        let file = read(&path).expect("an old store still loads");
+        assert_eq!(file.devices.len(), 1);
+        assert_eq!(file.devices[0].device_id, "dev-1");
+
+        write(&path, &file).expect("save");
+        let saved = fs::read_to_string(&path).expect("read back");
+        assert!(!saved.contains("push_endpoint"), "{saved}");
+        assert!(!saved.contains("ntfy.sh"), "{saved}");
+    }
+
+    #[test]
+    fn a_newer_store_version_is_refused() {
+        let dir = TestDir::new("auth-newer-version");
+        let path = dir.join("devices.json");
+        fs::write(&path, r#"{"version": 2, "devices": []}"#).expect("write the store");
+        assert!(matches!(read(&path), Err(StoreError::Version(2))));
+    }
+}

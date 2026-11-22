@@ -1,0 +1,15 @@
+[book]
+title = "Excubia: guía de usuario"
+description = "Cómo instalar, emparejar y usar la app Android y el host de escritorio de Excubia."
+authors = ["Excubia"]
+language = "es"
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+site-url = "/excubia/guide/"
+theme = "../shared/theme"
+git-repository-url = "https://github.com/maxiusofmaximus/excubia"

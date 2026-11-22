@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Excubia",
+  "version": "2.3.910-alpha.13",
+  "identifier": "dev.excubia.desktop",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Excubia",
+        "width": 1180,
+        "height": 660,
+        "minWidth": 880,
+        "minHeight": 600,
+        "dragDropEnabled": false,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.png", "icons/icon.ico"],
+    "resources": { "uac-plugin/": "uac-plugin/" },
+    "externalBin": ["binaries/excubia-host", "binaries/excubia-mcp", "binaries/excubia-uac-hook", "binaries/excubia-media-worker"],
+    "shortDescription": "Chat con Alfred y estado de tu equipo de agentes",
+    "publisher": "Excubia",
+    "copyright": "Copyright © 2026 Excubia",
+    "longDescription": "Cliente de escritorio para Excubia: chat persistente con Alfred, equipo en vivo, detalle de agentes y emparejamiento firmado.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "sidebarImage": "installer/sidebar.bmp",
+        "headerImage": "installer/header.bmp",
+        "languages": ["Spanish"]
+      }
+    }
+  }
+}

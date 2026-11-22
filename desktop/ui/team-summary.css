@@ -1,0 +1,130 @@
+/* «Tu equipo» status band at the top of Equipo. Colours come from the palette tokens in
+   base.css, so Noche and Papel both follow the rest of the app. */
+
+.team-summary {
+  margin: 0 2px 18px;
+}
+
+.team-summary-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.team-summary-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.team-summary-count {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.team-summary-count.has-waiting {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.ts-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ts-card {
+  --tone: var(--idle);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.ts-card.tone-waiting { --tone: var(--accent-text); }
+.ts-card.tone-blocked { --tone: var(--blocked); }
+.ts-card.tone-working { --tone: var(--working); }
+.ts-card.tone-done { --tone: var(--done); }
+
+.ts-card.is-waiting {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.ts-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ts-name {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ts-role {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ts-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.ts-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+.ts-age {
+  color: var(--muted);
+}
+
+.ts-headline {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.ts-review {
+  flex: none;
+}
+
+.ts-notice {
+  margin: 8px 0 0;
+}
+
+.ts-notice[hidden] {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .ts-card {
+    flex-wrap: wrap;
+  }
+
+  .ts-review {
+    margin-left: 52px;
+  }
+}

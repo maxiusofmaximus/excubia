@@ -1,0 +1,62 @@
+[package]
+name = "excubia-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Agent host for Excubia core: supervises CLI agents in ptys and serves the local API"
+
+[dependencies]
+anyhow.workspace = true
+async-trait = "0.1"
+axum.workspace = true
+chrono = { workspace = true, features = ["clock"] }
+hex.workspace = true
+excubia-api = { path = "../api" }
+excubia-asr = { path = "../asr" }
+excubia-auth = { path = "../auth" }
+excubia-chat = { path = "../chat" }
+excubia-crafting = { path = "../crafting" }
+excubia-detect = { path = "../detect" }
+excubia-mail = { path = "../mail" }
+excubia-persist = { path = "../persist" }
+excubia-pin = { path = "../pin" }
+excubia-pty = { path = "../pty" }
+excubia-seat = { path = "../seat" }
+excubia-state = { path = "../state" }
+mdns-sd = { version = "=0.21.6", default-features = false }
+rand_core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+vt100.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_SystemInformation"] }
+
+[dev-dependencies]
+base64.workspace = true
+excubia-pake = { path = "../pake" }
+excubia-test-dir = { path = "../test-dir" }
+excubia-test-support = { path = "../test-support" }
+image = { workspace = true, features = ["png"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite.workspace = true
+tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
+
+[[bin]]
+name = "excubia-host"
+path = "src/bin/host/main.rs"
+
+[[bin]]
+name = "fake-agent"
+path = "src/bin/fake-agent.rs"
+
+[[bin]]
+name = "excubia-mcp"
+path = "src/bin/excubia-mcp.rs"
+
+[[bin]]
+name = "fake-cli"
+path = "src/bin/fake-cli/main.rs"

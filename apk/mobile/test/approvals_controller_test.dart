@@ -1,0 +1,323 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/approvals_controller.dart';
+import 'package:excubia/src/rust/api/approvals/error.dart';
+import 'package:excubia/src/rust/api/chat/model.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+
+import 'support/approval_fixtures.dart';
+import 'support/scripted_transport.dart';
+
+const _decide = 'POST /v1/chat/approvals/apr_1/decision';
+const _probe = 'POST /v1/chat/approvals/apr_grant_probe/decision';
+const _write = 'POST /v1/chat/approvals/settings';
+const _settings = 'GET /v1/chat/approvals/settings';
+
+// The device reads an approval from the inbox, never by id: once decided, the
+// pending list drops it and the resolved status lists it (`state`).
+ScriptedTransport _host({String state = 'denied'}) => ScriptedTransport({
+  'GET /v1/chat/approvals': inboxJson(),
+  'GET /v1/chat/approvals?status=$state': inboxJson([
+    approvalRow(status: state),
+  ]),
+  _settings: settingsJson(),
+  _write: settingsJson(global: 'always_user'),
+  _decide: recordJson(approvalRow(status: 'approved', level: 'user')),
+});
+
+Future<ApprovalsController> _loaded(ScriptedTransport host) async {
+  final approvals = ApprovalsController(transport: host, deviceId: 'dev_1');
+  await approvals.refresh();
+  return approvals;
+}
+
+void main() {
+  setUpAll(() async {
+    await RustLib.init();
+  });
+
+  test(
+    'the inbox fills the user queue and the view reads its command',
+    () async {
+      final approvals = await _loaded(_host());
+      expect(approvals.userPending().map((a) => a.approvalId), ['apr_1']);
+      final view = approvals.viewOf('apr_1')!;
+      expect(view.command, 'cargo test');
+      expect(view.cwd, 'demo/api');
+      expect(approvals.settings!.global, 'delegated');
+      approvals.dispose();
+    },
+  );
+
+  test('approve sends one decision and shows the host answer', () async {
+    final host = _host();
+    final approvals = await _loaded(host);
+    await approvals.decide('apr_1', approve: true);
+    expect(approvals.viewOf('apr_1')!.status, 'approved');
+    expect(approvals.failureOf('apr_1'), isNull);
+    expect(approvals.userPending(), isEmpty);
+    final sent = host.bodies[_decide]!.single;
+    expect(sent['decision'], 'approve');
+    expect(sent['scope'], 'once');
+    expect(sent['client_id'], isA<String>());
+    approvals.dispose();
+  });
+
+  test('deny sends the deny decision', () async {
+    final host = _host();
+    final approvals = await _loaded(host);
+    await approvals.decide('apr_1', approve: false);
+    expect(host.bodies[_decide]!.single['decision'], 'deny');
+    approvals.dispose();
+  });
+
+  test('a 403 keeps the card pending and names the host command', () async {
+    final host = _host()
+      ..failNext(_decide, const HostError(403, forbiddenBody));
+    final approvals = await _loaded(host);
+    await approvals.decide('apr_1', approve: true);
+    final failure = approvals.failureOf('apr_1')!;
+    expect(failure.kind, ApprovalFailureKind.needsGrant);
+    expect(failure.command, grantCommand);
+    expect(approvals.viewOf('apr_1')!.status, 'pending');
+    approvals.dispose();
+  });
+
+  test('a 409 already decided shows the real state and re-reads it', () async {
+    final host = _host(state: 'denied')
+      ..failNext(
+        _decide,
+        const HostError(409, '{"detail":"approval_already_decided"}'),
+      );
+    final approvals = await _loaded(host);
+    host.routes['GET /v1/chat/approvals'] = inboxJson([]);
+    await approvals.decide('apr_1', approve: true);
+    expect(
+      approvals.failureOf('apr_1')!.kind,
+      ApprovalFailureKind.alreadyDecided,
+    );
+    expect(approvals.viewOf('apr_1')!.status, 'denied');
+    approvals.dispose();
+  });
+
+  test('a 409 expired closes the card as expired', () async {
+    final host = _host(
+      state: 'expired',
+    )..failNext(_decide, const HostError(409, '{"detail":"approval_expired"}'));
+    final approvals = await _loaded(host);
+    host.routes['GET /v1/chat/approvals'] = inboxJson([]);
+    await approvals.decide('apr_1', approve: true);
+    expect(approvals.failureOf('apr_1')!.kind, ApprovalFailureKind.expired);
+    expect(approvals.viewOf('apr_1')!.status, 'expired');
+    approvals.dispose();
+  });
+
+  test('a retry after a network failure reuses the client_id', () async {
+    final host = _host()..failNext(_decide, const HostError(0, 'sin red'));
+    final approvals = await _loaded(host);
+    await approvals.decide('apr_1', approve: true);
+    expect(approvals.failureOf('apr_1')!.kind, ApprovalFailureKind.other);
+    await approvals.decide('apr_1', approve: true);
+    expect(approvals.failureOf('apr_1'), isNull);
+    final ids = host.bodies[_decide]!.map((b) => b['client_id']).toList();
+    expect(ids, hasLength(2));
+    expect(ids[1], ids[0]);
+    approvals.dispose();
+  });
+
+  test('without APPROVE the settings stay read-only and say why', () async {
+    final host = _host()
+      ..failNext(_settings, const HostError(403, forbiddenBody));
+    final approvals = ApprovalsController(transport: host, deviceId: 'dev_1');
+    await approvals.loadSettings();
+    expect(approvals.settingsDenied, isTrue);
+    expect(approvals.settingsFailure!.command, grantCommand);
+    expect(await approvals.setMode(mode: 'always_user'), isFalse);
+    expect(host.calls, isNot(contains(_write)));
+    approvals.dispose();
+  });
+
+  test(
+    'the global switch and a project override post their own scope',
+    () async {
+      final host = _host();
+      final approvals = await _loaded(host);
+      expect(await approvals.setMode(mode: 'always_user'), isTrue);
+      expect(
+        await approvals.setMode(mode: 'delegated', projectId: 'prj_a'),
+        isTrue,
+      );
+      final writes = host.bodies[_write]!;
+      expect(writes[0]['mode'], 'always_user');
+      expect(writes[0].containsKey('project_id'), isFalse);
+      expect(writes[1]['mode'], 'delegated');
+      expect(writes[1]['project_id'], 'prj_a');
+      expect(writes[0]['client_id'], isA<String>());
+      approvals.dispose();
+    },
+  );
+
+  test('a chat.approval frame moves the card forward and never back', () async {
+    final approvals = await _loaded(_host());
+    approvals.onChatEvent(
+      parseChatEvent(
+        json:
+            '{"event":"chat.approval","revision":10,"conversation_id":"cnv_1",'
+            '"approval_id":"apr_1","status":"approved","level":"user"}',
+      )!,
+    );
+    expect(approvals.viewOf('apr_1')!.status, 'approved');
+    approvals.onChatEvent(
+      parseChatEvent(
+        json:
+            '{"event":"chat.approval","revision":11,"conversation_id":"cnv_1",'
+            '"approval_id":"apr_1","status":"pending","level":"user"}',
+      )!,
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(approvals.viewOf('apr_1')!.status, 'approved');
+    approvals.dispose();
+  });
+
+  test(
+    'a recheck clears the grant notice only once the grant is there',
+    () async {
+      final host = _host()
+        ..failNext(_decide, const HostError(403, forbiddenBody));
+      final approvals = await _loaded(host);
+      await approvals.decide('apr_1', approve: true);
+      expect(
+        approvals.failureOf('apr_1')!.kind,
+        ApprovalFailureKind.needsGrant,
+      );
+
+      host.failNext(_probe, const HostError(403, forbiddenBody));
+      expect(await approvals.recheckGrant(), isFalse);
+      expect(
+        approvals.failureOf('apr_1')!.kind,
+        ApprovalFailureKind.needsGrant,
+      );
+
+      host.failNext(_probe, const HostError(404, '{"detail":"not found"}'));
+      expect(await approvals.recheckGrant(), isTrue);
+      expect(approvals.failureOf('apr_1'), isNull);
+      expect(approvals.viewOf('apr_1')!.status, 'pending');
+      // The probe never approves: an unknown id can only be denied, if at all.
+      expect(
+        host.bodies[_probe]!.map((sent) => sent['decision']),
+        everyElement('deny'),
+      );
+      approvals.dispose();
+    },
+  );
+
+  test('a new pending frame shows its inbox card without a restart', () async {
+    final routes = <String, String>{
+      'GET /v1/chat/approvals': inboxJson([]),
+      _settings: settingsJson(),
+    };
+    final approvals = ApprovalsController(
+      transport: ScriptedTransport(routes),
+      deviceId: 'dev_1',
+    );
+    await approvals.refresh();
+    expect(approvals.inboxUnassigned(), isEmpty);
+    routes['GET /v1/chat/approvals'] = inboxJson([
+      approvalRow(conversationId: null),
+    ]);
+    approvals.onChatEvent(
+      parseChatEvent(
+        json:
+            '{"event":"chat.approval","revision":12,"conversation_id":null,'
+            '"approval_id":"apr_1","status":"pending","level":"user"}',
+      )!,
+    );
+    for (var i = 0; i < 5; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(approvals.inboxUnassigned().map((a) => a.approvalId), ['apr_1']);
+    approvals.dispose();
+  });
+
+  group('a mail.move batch', () {
+    ScriptedTransport moveHost() => ScriptedTransport({
+      'GET /v1/chat/approvals': inboxJson([moveRow()]),
+      _settings: settingsJson(),
+      _decide: recordJson(moveRow(status: 'approved')),
+    });
+
+    test('approve sends exclude with the unchecked mails only', () async {
+      final host = moveHost();
+      final approvals = await _loaded(host);
+      approvals.setMailChecked('apr_1', 'm2', checked: false);
+      await approvals.decide('apr_1', approve: true);
+      expect(host.bodies[_decide]!.single['exclude'], ['m2']);
+      expect(approvals.viewOf('apr_1')!.status, 'approved');
+      approvals.dispose();
+    });
+
+    test('a batch sends no exclude while every mail is checked', () async {
+      final host = moveHost();
+      final approvals = await _loaded(host);
+      await approvals.decide('apr_1', approve: true);
+      expect(host.bodies[_decide]!.single.containsKey('exclude'), isFalse);
+      approvals.dispose();
+    });
+
+    test('deny sends no exclude even with mails unchecked', () async {
+      final host = moveHost();
+      final approvals = await _loaded(host);
+      approvals.setMailChecked('apr_1', 'm2', checked: false);
+      await approvals.decide('apr_1', approve: false);
+      expect(host.bodies[_decide]!.single.containsKey('exclude'), isFalse);
+      approvals.dispose();
+    });
+
+    test('with every mail unchecked nothing is sent', () async {
+      final host = moveHost();
+      final approvals = await _loaded(host);
+      approvals.setMailChecked('apr_1', 'm1', checked: false);
+      approvals.setMailChecked('apr_1', 'm2', checked: false);
+      await approvals.decide('apr_1', approve: true);
+      expect(host.calls, isNot(contains(_decide)));
+      approvals.dispose();
+    });
+
+    test('the unchecked mails survive a refresh', () async {
+      final approvals = await _loaded(moveHost());
+      approvals.setMailChecked('apr_1', 'm2', checked: false);
+      await approvals.refresh();
+      expect(approvals.uncheckedOf('apr_1'), {'m2'});
+      approvals.dispose();
+    });
+
+    test('a retry with the same exclusions reuses the client_id', () async {
+      final host = moveHost()..failNext(_decide, const HostError(0, 'sin red'));
+      final approvals = await _loaded(host);
+      approvals.setMailChecked('apr_1', 'm2', checked: false);
+      await approvals.decide('apr_1', approve: true);
+      await approvals.decide('apr_1', approve: true);
+      final sent = host.bodies[_decide]!;
+      expect(sent, hasLength(2));
+      expect(sent[1]['client_id'], sent[0]['client_id']);
+      approvals.dispose();
+    });
+
+    test('a retry with other exclusions gets a new client_id', () async {
+      final host = moveHost()..failNext(_decide, const HostError(0, 'sin red'));
+      final approvals = await _loaded(host);
+      approvals.setMailChecked('apr_1', 'm2', checked: false);
+      await approvals.decide('apr_1', approve: true);
+      approvals.setMailChecked('apr_1', 'm2', checked: true);
+      approvals.setMailChecked('apr_1', 'm1', checked: false);
+      await approvals.decide('apr_1', approve: true);
+      final sent = host.bodies[_decide]!;
+      expect(sent.map((body) => body['exclude']), [
+        ['m2'],
+        ['m1'],
+      ]);
+      expect(sent[1]['client_id'], isNot(sent[0]['client_id']));
+      approvals.dispose();
+    });
+  });
+}

@@ -1,0 +1,201 @@
+part of 'chat_screen.dart';
+
+/// «Ir al final»: shown only while away from the end, with the unseen count.
+class _JumpToEnd extends StatelessWidget {
+  const _JumpToEnd({
+    required this.away,
+    required this.unseen,
+    required this.approvals,
+    required this.onTap,
+  });
+
+  final ValueListenable<bool> away;
+  final ValueListenable<int> unseen;
+
+  /// The user's pending approvals in this conversation: their cards wait at the end.
+  final int approvals;
+  final VoidCallback onTap;
+
+  /// The approvals take the count while any is pending; messages otherwise.
+  static String _label(int approvals, int messages) {
+    if (approvals == 1) return 'Ir al final, 1 aprobación pendiente';
+    if (approvals > 1) return 'Ir al final, $approvals aprobaciones pendientes';
+    if (messages == 0) return 'Ir al final';
+    return messages == 1
+        ? 'Ir al final, 1 mensaje nuevo'
+        : 'Ir al final, $messages mensajes nuevos';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: away,
+      builder: (context, isAway, _) {
+        if (!isAway) return const SizedBox.shrink();
+        return ValueListenableBuilder<int>(
+          valueListenable: unseen,
+          builder: (context, messages, _) {
+            final count = approvals > 0 ? approvals : messages;
+            return Semantics(
+              button: true,
+              label: _label(approvals, messages),
+              excludeSemantics: true,
+              child: FilledButton(
+                onPressed: onTap,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.arrow_downward, size: 18),
+                    if (count > 0) ...[
+                      const SizedBox(width: Spacing.xs),
+                      Text('$count'),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class ChatHeader extends StatelessWidget {
+  const ChatHeader({
+    super.key,
+    required this.name,
+    required this.status,
+    required this.offline,
+    required this.unread,
+    required this.onHistory,
+    required this.onNewChat,
+    required this.alertRules,
+    this.connectionFailure,
+    this.approvalsPending = 0,
+    this.onApprovals,
+    this.look,
+    this.announce,
+  });
+
+  final String name;
+  final String status;
+  final ConnectionFailure? connectionFailure;
+
+  /// The status as a screen reader hears it, once a new step may be spoken.
+  final String? announce;
+  final bool offline;
+  final int unread;
+  final VoidCallback onHistory;
+  final VoidCallback onNewChat;
+  final int approvalsPending;
+  final VoidCallback? onApprovals;
+  final AlertsApi alertRules;
+
+  /// Alfred's face for the open turn: `thinking` while he waits or answers,
+  /// `working` while he runs a step, `error` when it failed; null is the plain face.
+  final AgentLook? look;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 58),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(bottom: BorderSide(color: c.outlineSoft)),
+      ),
+      child: Row(
+        children: [
+          ComicButton(
+            label: 'Abrir historial',
+            tooltip: 'Abrir historial',
+            square: true,
+            tone: ComicButtonTone.secondary,
+            onPressed: onHistory,
+            icon: Badge(
+              isLabelVisible: unread > 0,
+              label: Text('$unread'),
+              child: const Icon(Icons.menu),
+            ),
+          ),
+          const SizedBox(width: Spacing.xs),
+          AgentAvatar(name: name, size: 64, look: look, framed: true),
+          const SizedBox(width: Spacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Unbounded inside the fit, the name stays on one line and scales
+                // down instead of breaking («ALFRE/D») at large text.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: ComicTag(label: name),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: offline ? c.statusBlocked : c.statusDone,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Semantics(
+                        liveRegion: announce != null,
+                        label: announce,
+                        // Scales down rather than cutting «Disponible» when the shield takes room.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            offline
+                                ? connectionLabel(connectionFailure)
+                                : status,
+                            style: context.text.small,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (onApprovals case final onTap?)
+            ApprovalsHeaderButton(pending: approvalsPending, onPressed: onTap),
+          SizedBox(
+            width: 48,
+            child: IconButton(
+              tooltip: 'Avisos con la pantalla apagada',
+              onPressed: () => openAlertsSettings(context, alertRules),
+              icon: const Icon(Icons.notifications_outlined),
+              color: c.textSecondary,
+            ),
+          ),
+          SizedBox(
+            width: 48,
+            child: IconButton(
+              tooltip: 'Nuevo chat',
+              onPressed: onNewChat,
+              icon: const Icon(Icons.add_comment_outlined),
+              color: c.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

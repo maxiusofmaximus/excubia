@@ -1,0 +1,405 @@
+/* Picture attachments: the tray over the composer, the drop state, the thumbnails in
+   the thread and the full-size view. Colours come from base.css. */
+
+.attach-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.attach-btn:hover:not(:disabled) {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
+.attach-btn:focus-visible,
+.attach-action:focus-visible,
+.attach-open:focus-visible,
+.msg-attachment:focus-visible,
+.msg-document:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.attach-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.attach-tray {
+  display: flex;
+  flex: 0 0 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 2px 6px;
+}
+
+.attach-tray[hidden],
+.attach-viewer[hidden] {
+  display: none;
+}
+
+.attach-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  flex: 0 0 100%;
+  margin: 0;
+  color: var(--blocked);
+  font-size: 12px;
+}
+
+.attach-status:empty {
+  display: none;
+}
+
+.attach-notice-close {
+  flex: none;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Narrow, the card breaks in two: the name with its ellipsis, the buttons on the line below. */
+.attach-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+}
+
+.attach-item.is-failed {
+  border-color: var(--blocked);
+}
+
+.attach-picture,
+.attach-fallback {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--raised-2);
+  color: var(--muted);
+}
+
+.attach-picture {
+  display: block;
+  object-fit: cover;
+}
+
+.attach-fallback {
+  display: grid;
+  place-items: center;
+}
+
+.attach-fallback svg {
+  width: 20px;
+  height: 20px;
+}
+
+.attach-open {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: zoom-in;
+}
+
+.attach-text {
+  display: grid;
+  flex: 1 1 140px;
+  min-width: 0;
+  gap: 2px;
+}
+
+.attach-name,
+.attach-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-name {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.attach-detail {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.attach-progress {
+  flex: none;
+  width: 100%;
+  max-width: 140px;
+  height: 5px;
+  accent-color: var(--accent-text);
+}
+
+.attach-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* A file dragged over the chat: a dashed layer over it, gone on drag-out or on drop. */
+.view-chat.is-dragging::after {
+  content: "Suelta para adjuntar";
+  position: absolute;
+  inset: 8px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent-text);
+  border-radius: 18px;
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent-text);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.msg-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.msg-attachment {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+  cursor: zoom-in;
+}
+
+/* The picture shows once its bytes are in; the neutral box with the icon holds the place until then, or instead of a failure. */
+.msg-attachment img {
+  display: none;
+  width: 120px;
+  height: 120px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+.msg-attachment.is-loaded img {
+  display: block;
+}
+
+.msg-attachment .attach-fallback {
+  width: 120px;
+  height: 120px;
+  border-radius: 9px;
+}
+
+.msg-attachment.is-loaded .attach-fallback {
+  display: none;
+}
+
+.attach-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+}
+
+.attach-viewer-image {
+  max-width: 92vw;
+  max-height: 80vh;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+/* Documents: a badge per family, and a card the thread shows in place of a picture. */
+.doc-badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--raised-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.doc-badge.is-sheet {
+  background: color-mix(in srgb, var(--done) 22%, var(--raised-2));
+  color: var(--done);
+}
+
+.doc-badge.is-doc {
+  background: color-mix(in srgb, var(--working) 22%, var(--raised-2));
+  color: var(--working);
+}
+
+.doc-badge.is-slides {
+  background: color-mix(in srgb, var(--warning) 22%, var(--raised-2));
+  color: var(--warning);
+}
+
+.doc-badge.is-pdf {
+  background: color-mix(in srgb, var(--blocked) 22%, var(--raised-2));
+  color: var(--blocked);
+}
+
+.msg-document {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 260px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.msg-document:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.msg-document.is-failed {
+  border-color: var(--blocked);
+}
+
+.doc-text {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+/* Two lines at most; the rest is cut with an ellipsis. */
+.doc-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.doc-size,
+.doc-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.msg-document.is-failed .doc-status {
+  color: var(--blocked);
+}
+
+.doc-status:empty {
+  display: none;
+}
+
+/* The page viewer: one page as an image that fits the width, its buttons and the document's actions.
+   It opens and closes without motion, so it needs no reduced-motion rule. */
+.doc-preview[hidden],
+.doc-preview [hidden] {
+  display: none;
+}
+
+.doc-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+
+.doc-preview-bar,
+.doc-preview-nav,
+.doc-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.doc-preview-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-preview-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 0;
+}
+
+.doc-preview-page {
+  max-width: 100%;
+  max-height: 70vh;
+  height: auto;
+  border-radius: 8px;
+  background: var(--qr-paper);
+  object-fit: contain;
+}
+
+.doc-preview-message {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.doc-preview-label {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-preview-status {
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}

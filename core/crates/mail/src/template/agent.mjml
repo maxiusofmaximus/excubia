@@ -1,0 +1,28 @@
+<mjml lang="es">
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Segoe UI, Helvetica, Arial, sans-serif" />
+      <mj-text color="#222222" font-size="16px" line-height="1.6" padding="0 0 14px" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#EEF1F5">
+    <mj-section background-color="#FFFFFF" padding="28px 32px 0 32px">
+      <mj-column>
+        <mj-text color="#1B2A41" font-size="14px" font-weight="700" padding="0 0 18px 0">Excubia</mj-text>
+        <mj-text color="#1B2A41" font-size="22px" font-weight="700" line-height="1.3" padding="0 0 20px 0">{{SUBJECT}}</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#FFFFFF" padding="0 32px 28px 32px">
+      <mj-column>
+        <mj-raw><!--excubia:agent:v1--></mj-raw>
+        {{BODY}}
+        <mj-raw><!--/excubia:agent:v1--></mj-raw>
+      </mj-column>
+    </mj-section>
+    <mj-section padding="16px 0">
+      <mj-column>
+        <mj-text color="#6B7280" font-size="12px" align="center" padding="0">Redactado por un agente de Excubia</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

@@ -1,0 +1,58 @@
+# Comprobaciones mínimas en cada subida y en cada PR: dependencias con avisos de
+# seguridad conocidos, pruebas unitarias del núcleo y pruebas del escritorio (JS).
+# Las acciones están fijadas por SHA; el permiso por defecto es solo lectura.
+name: ci
+
+on:
+  push:
+    branches: [main, "sync/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: cargo audit (RustSec)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@ab49d3c64680143e184118bed66a46419fc15519 # v2.90.5
+        with:
+          tool: cargo-audit
+      # Falla si hay una vulnerabilidad; los avisos de «sin mantenimiento» no bloquean.
+      - run: cargo audit --file core/Cargo.lock
+      - run: cargo audit --file desktop/Cargo.lock
+
+  core-tests:
+    name: núcleo (pruebas de biblioteca)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: cargo test --workspace --lib
+        working-directory: core
+        run: cargo test --workspace --lib --locked
+
+  desktop-js:
+    name: escritorio (pruebas de la interfaz)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - working-directory: desktop
+        run: node --test tooling/*.test.mjs

@@ -1,0 +1,21 @@
+[package]
+name = "fake-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Acceptance host for the desktop: the host's code with fake-cli as the seat CLI."
+
+# Its own workspace: it is test tooling, not a member of the desktop workspace.
+[workspace]
+
+[dependencies]
+anyhow = "1"
+excubia-api = { path = "../../../core/crates/api" }
+excubia-auth = { path = "../../../core/crates/auth" }
+excubia-chat = { path = "../../../core/crates/chat" }
+excubia-host = { path = "../../../core/crates/host" }
+excubia-pin = { path = "../../../core/crates/pin" }
+excubia-pty = { path = "../../../core/crates/pty" }
+excubia-seat = { path = "../../../core/crates/seat" }
+excubia-state = { path = "../../../core/crates/state" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "io-std", "process", "signal"] }

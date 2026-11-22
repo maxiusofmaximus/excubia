@@ -1,0 +1,61 @@
+//! `excubia-host` — the daemon and its host-side CLI.
+//!
+//! Run `excubia-host` (no subcommand) to supervise agents and serve the local API on
+//! loopback. `excubia-host pair-code` mints a single-use pairing code (and its link,
+//! with `--lan`; with `--pake` it asks the running daemon for its PAKE code), `excubia-host tls prepare|activate` rotates the LAN certificate,
+//! `excubia-host hook-token` prints the token agent hooks use, and
+//! `excubia-host devices list|revoke|grant|recovery` manage the trust store — the
+//! same files the daemon re-reads, so both processes agree without a restart.
+
+mod admin;
+mod daemon;
+
+use anyhow::Result;
+use excubia_host::cli::{self, Command};
+
+use admin::{
+    claude_settings, devices, hook_token, mail, pair_code, pair_code_pake, pairing_policy,
+    tls, vault_command,
+};
+use daemon::run;
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Before the arguments are read: an explicit `--data-dir` keeps its folder and is never moved.
+    if !std::env::args().any(|arg| arg == "--data-dir") {
+        excubia_host::paths::migrate_default_data_dir();
+        excubia_mail::config::migrate_default_dir();
+    }
+    let command = cli::parse(std::env::args().skip(1))
+        .map_err(|error| anyhow::anyhow!("{error}\n\n{}", cli::USAGE))?;
+    match command {
+        Command::PairCode {
+            ttl_seconds,
+            lan,
+            data_dir,
+        } => pair_code(ttl_seconds, &lan, &data_dir),
+        Command::PairCodePake {
+            port,
+            uri,
+            data_dir,
+        } => pair_code_pake(port, uri, &data_dir).await,
+        Command::Tls { command, data_dir } => tls(command, &data_dir),
+        Command::HookToken { seat, data_dir } => hook_token(seat.as_deref(), &data_dir),
+        Command::ClaudeSettings { hook, out } => claude_settings(&hook, out.as_deref()),
+        Command::Devices { command, data_dir } => devices(command, &data_dir),
+        Command::PairingPolicy { command, data_dir } => pairing_policy(command, &data_dir),
+        Command::Vault { command, data_dir } => vault_command(command, &data_dir),
+        Command::Mail(invocation) => mail(invocation).await,
+        Command::Strata { command, data_dir } => excubia_host::strata::run(command, &data_dir),
+        Command::Alfred { command, data_dir } => {
+            excubia_host::alfred_backend::run(command, &data_dir)
+        }
+        Command::AuditTail { n, data_dir } => {
+            for line in excubia_host::audit::tail_lines(&data_dir, n) {
+                println!("{line}");
+            }
+            Ok(())
+        }
+        Command::Run(options) => run(options).await,
+    }
+}

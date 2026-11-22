@@ -1,0 +1,469 @@
+/* Delegation cards in the timeline, the full-record dialog and the project
+   team blocks of the right panel. */
+
+.tone-queued {
+  --delegation-tone: var(--muted);
+}
+
+.tone-running {
+  --delegation-tone: var(--accent);
+}
+
+.tone-waiting {
+  --delegation-tone: var(--warning);
+}
+
+.tone-done {
+  --delegation-tone: var(--done);
+}
+
+.tone-failed {
+  --delegation-tone: var(--blocked);
+}
+
+.tone-cancelled {
+  --delegation-tone: var(--muted);
+}
+
+.tone-interrupted {
+  --delegation-tone: var(--warning);
+}
+
+.tone-unknown {
+  --delegation-tone: var(--unknown);
+}
+
+.delegation-card {
+  --delegation-tone: var(--accent);
+  align-self: stretch;
+  max-width: 94%;
+  padding: 9px 12px;
+  border-left: 2px solid var(--delegation-tone);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.delegation-card.tone-queued {
+  --delegation-tone: var(--muted);
+}
+
+.delegation-card.tone-running {
+  --delegation-tone: var(--accent);
+}
+
+.delegation-card.tone-waiting {
+  --delegation-tone: var(--warning);
+}
+
+.delegation-card.tone-done {
+  --delegation-tone: var(--done);
+}
+
+.delegation-card.tone-failed {
+  --delegation-tone: var(--blocked);
+}
+
+.delegation-card.tone-cancelled {
+  --delegation-tone: var(--muted);
+}
+
+.delegation-card.tone-interrupted {
+  --delegation-tone: var(--warning);
+}
+
+.delegation-card.tone-unknown {
+  --delegation-tone: var(--unknown);
+}
+
+/* The title and the task keep their whole words on up to two lines; the full text is in the title attribute. */
+.delegation-title {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* The title, then the task, then the state and «Ver detalle». */
+.delegation-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.delegation-what {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.delegation-line > .delegation-link,
+.delegation-line > .delegation-attention {
+  flex: none;
+  white-space: nowrap;
+}
+
+.delegation-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--delegation-tone) 42%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--delegation-tone) 11%, var(--surface));
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.delegation-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--delegation-tone);
+}
+
+.tone-running .delegation-dot {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.tone-waiting .delegation-dot,
+.tone-interrupted .delegation-dot {
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+.tone-failed .delegation-dot {
+  background: var(--blocked);
+}
+
+.tone-done .delegation-dot {
+  background: var(--done);
+}
+
+.delegation-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.delegation-actions .btn {
+  min-height: 32px;
+}
+
+.delegation-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.delegation-link:hover {
+  color: var(--text);
+}
+
+.delegation-link:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Quiet like «Ver detalle»: a click only asks to confirm, and red on a look made it read as a danger. */
+.delegation-cancel:hover {
+  color: var(--blocked);
+}
+
+.delegation-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--blocked) 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--blocked) 7%, transparent);
+  color: var(--text-2);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.delegation-confirm-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+/* -- full record ---------------------------------------------------------- */
+
+.delegation-dialog {
+  width: min(660px, calc(100vw - 32px));
+}
+
+.delegation-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.delegation-detail-head h2 {
+  margin: 4px 0 0;
+  font-size: 22px;
+}
+
+.delegation-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: min(54vh, 480px);
+  margin-top: 14px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.delegation-internal {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.delegation-internal > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.delegation-internal .delegation-detail-row {
+  margin-top: 6px;
+}
+
+.delegation-detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.delegation-detail-label {
+  flex: none;
+  width: 92px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.delegation-detail-row span:last-child {
+  overflow-wrap: anywhere;
+}
+
+.delegation-detail-section h3 {
+  margin: 4px 0 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.delegation-detail-section p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.delegation-task {
+  color: var(--text) !important;
+}
+
+.delegation-result {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.delegation-muted {
+  color: var(--muted) !important;
+  font-style: italic;
+}
+
+.delegation-children {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.delegation-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.delegation-child:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.delegation-child:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* -- project team in the right panel ------------------------------------- */
+
+.project-card {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+#side-projects .project-card + .project-card {
+  margin-top: 8px;
+}
+
+.project-lead .side-name {
+  font-weight: 600;
+}
+
+.side-row.is-offline {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.project-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-team {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.project-team .side-row {
+  min-height: 32px;
+  padding: 3px 4px;
+}
+
+.side-empty-project {
+  margin: 0 2px 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+/* «Tareas terminadas ▸» under the Equipo panel: folded; each row is a title, a state and «Ver detalle». */
+.side-finished > summary {
+  width: fit-content;
+  margin-bottom: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.side-finished > summary::-webkit-details-marker {
+  display: none;
+}
+
+.side-finished > summary::after {
+  display: inline-block;
+  margin-left: 6px;
+  content: "▸";
+  transition: transform 150ms ease;
+}
+
+.side-finished[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.side-finished[open] > summary {
+  margin-bottom: 8px;
+}
+
+.side-finished > summary:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.side-finished-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.side-finished-title {
+  flex: 1 1 100px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

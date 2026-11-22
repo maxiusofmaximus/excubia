@@ -1,0 +1,45 @@
+//! A seat does not start without its approval hook (CORE9-F2). Claude skips a
+//! hook it cannot run and then runs the action, so the seat refuses to start
+//! instead of serving turns that nothing would gate.
+
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
+
+use excubia_chat::ChatStore;
+use excubia_seat::{test_profile, SeatConfig, SeatService, TurnEnv};
+use excubia_test_dir::TestDir;
+
+#[test]
+fn a_seat_with_a_missing_hook_does_not_start_and_names_the_hook() {
+    let dir = TestDir::new("seat-missing-hook");
+    let chat = Arc::new(ChatStore::open(&dir.path().join("chat.db")).expect("chat database"));
+    let hook: PathBuf = dir.path().join("excubia-uac-hook-absent");
+    let config = SeatConfig {
+        data_dir: dir.path().to_path_buf(),
+        chat,
+        mcp_command: dir.path().join("excubia-mcp-absent"),
+        tool_url: "http://127.0.0.1:9/internal/chat/tools".to_string(),
+        hook_url: "http://127.0.0.1:9".to_string(),
+        hook_command: hook.clone(),
+        plugin_dir: None,
+        profiles: vec![test_profile("excubia-no-such-cli-anywhere")],
+        queue_capacity: 1,
+        turn_timeout: Duration::from_secs(5),
+        engines: Vec::new(),
+        turn_engine: Arc::new(|| None),
+        turn_env: Arc::new(TurnEnv::default),
+        on_quota_exhausted: Arc::new(|| {}),
+    };
+
+    let runtime = tokio::runtime::Runtime::new().expect("runtime");
+    let outcome = runtime.block_on(async { SeatService::start(config) });
+
+    match outcome {
+        Ok(_) => panic!("the seat started without its approval hook"),
+        Err(error) => assert!(
+            error.message.contains(&hook.display().to_string()),
+            "the error does not name the hook: {error}"
+        ),
+    }
+}

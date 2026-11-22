@@ -1,0 +1,66 @@
+//! `GET /v1/alfred/backend` (`READ_STATE`) and `POST /v1/alfred/backend` (`APPROVE`): which engine
+//! answers Alfred, and the owner's switch between the two. The switch runs on the host in the
+//! background, so the answer never waits for the local model to load.
+
+use axum::body::Bytes;
+use axum::extract::{Extension, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+use excubia_auth::VerifiedDevice;
+use serde::Deserialize;
+use serde_json::Value;
+
+use crate::alfred::Requested;
+use crate::audit::AuditEvent;
+use crate::error::ApiError;
+use crate::routes::parse_body;
+use crate::ApiContext;
+
+#[derive(Deserialize)]
+struct BackendBody {
+    #[serde(default)]
+    backend: Option<Value>,
+}
+
+pub async fn status(State(ctx): State<ApiContext>) -> Json<Value> {
+    Json(ctx.alfred.status().await.to_json())
+}
+
+pub async fn request(
+    State(ctx): State<ApiContext>,
+    Extension(verified): Extension<VerifiedDevice>,
+    body: Bytes,
+) -> Result<Response, ApiError> {
+    let payload: BackendBody = parse_body(&body)?;
+    // Only the engines the status lists can be chosen: an unlisted CLI is refused, never tried.
+    let listed = ctx.alfred.status().await.engines;
+    let backend = match payload.backend.as_ref().and_then(Value::as_str) {
+        Some(name @ ("local" | "claude")) => name.to_owned(),
+        Some(name) if listed.iter().any(|engine| engine.name == name) => name.to_owned(),
+        _ => {
+            return Err(ApiError::action(
+                "invalid_backend",
+                "backend must be local, claude or a listed engine",
+            ))
+        }
+    };
+    let requested = ctx.alfred.request(&backend).await;
+    let outcome = match &requested {
+        Ok(Requested::Unchanged) => "unchanged",
+        Ok(Requested::Started) => "started",
+        Err(_) => "failed",
+    };
+    ctx.audit.record(
+        &AuditEvent::new("alfred.backend", Some(&verified.device_id), outcome)
+            .with("backend", backend.as_str()),
+    );
+    let requested = requested
+        .map_err(|message| ApiError::coded(StatusCode::CONFLICT, "backend_busy", message))?;
+    let code = match requested {
+        Requested::Unchanged => StatusCode::OK,
+        Requested::Started => StatusCode::ACCEPTED,
+    };
+    let status = ctx.alfred.status().await.to_json();
+    Ok((code, Json(status)).into_response())
+}

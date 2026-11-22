@@ -1,0 +1,38 @@
+# Detection rules for opencode.
+# Adapted from herdr (Apache-2.0) src/detect/manifests/opencode.toml (0.9.5);
+# subset of rules. herdr reports opencode's idle state through its installed
+# hook (`pane.report_agent`); hooks are not implemented in this prototype,
+# so an idle opencode may keep reporting `working` (see [NV]).
+# See NOTICE.
+
+id = "opencode"
+version = "2026.10.19.1"
+
+[[rules]]
+id = "permission_required"
+state = "blocked"
+priority = 300
+region = "whole_recent"
+any = [
+  { contains = ["△ Permission required"] },
+  { contains = ["esc dismiss"], any = [{ contains = ["enter confirm"] }, { contains = ["enter submit"] }, { contains = ["enter toggle"] }], all = [{ any = [{ contains = ["↑↓ select"] }, { contains = ["⇆ tab"] }] }] },
+]
+
+[[rules]]
+id = "interrupt_hint_working"
+state = "working"
+priority = 110
+region = "whole_recent"
+any = [
+  { contains = ["esc to interrupt"] },
+  { contains = ["ctrl+c to interrupt"] },
+  { contains = ["press esc to interrupt"] },
+  { line_regex = ['(?i).*opencode.*esc (again to )?interrupt'] },
+]
+
+[[rules]]
+id = "progress_bar_working"
+state = "working"
+priority = 100
+region = "whole_recent"
+regex = ['(■|⬝){4,}']

@@ -1,0 +1,334 @@
+//! `POST /v1/pair`: the one unauthenticated write.
+//!
+//! Gated by a host-printed single-use code, a per-device recovery code, or the
+//! tailnet owner of the source address — never a static secret. A supplied
+//! code that fails answers a uniform `403 pairing_rejected`; a missing code
+//! answers a `{code, message}` object that names the working path and reveals
+//! nothing about owners. Every decision is recorded in the pairing audit.
+
+use axum::body::Bytes;
+use axum::extract::{ConnectInfo, State};
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+use excubia_auth::{Class, Curve, Device, GrantOutcome, Permission};
+use serde::Deserialize;
+use serde_json::{json, Value};
+
+use crate::audit::AuditEvent;
+use crate::error::ApiError;
+use crate::routes::devices::device_sas;
+use crate::routes::parse_body;
+use crate::{ApiContext, PairOutcome, PairVia, PairingAttempt, PeerAddr};
+
+/// The enrollment-body cap of `errors.md` (8 KiB).
+const MAX_PAIR_BODY_BYTES: usize = 8 * 1024;
+const MAX_PUBLIC_KEY_CHARS: usize = 512;
+const MAX_LABEL_CHARS: usize = 64;
+const MAX_CODE_CHARS: usize = 64;
+
+#[derive(Deserialize)]
+struct PairBody {
+    curve: String,
+    public_key: String,
+    #[serde(default)]
+    label: Option<String>,
+    #[serde(default)]
+    code: Option<String>,
+}
+
+/// A pairing the host let through: the device it made or re-keyed, and the
+/// recovery code it must show once.
+struct Granted {
+    device: Device,
+    recovery: String,
+    outcome: PairOutcome,
+    via: PairVia,
+    /// The permissions the tailnet policy granted at once; empty when the device stays pending.
+    auto_granted: Vec<Permission>,
+}
+
+/// What a tailnet pairing gets when the owner chose `tailnet_auto_accept`. Never `approve` or `admin`:
+/// those stay the operator's act.
+// No `send_key` either: typing into an agent's terminal stays an explicit grant.
+const TAILNET_AUTO_GRANT: [Permission; 2] = [Permission::ReadState, Permission::Respond];
+
+/// The granter the pairing audit names for a policy grant (not a device).
+const AUTO_GRANTER: &str = "auto-tailnet";
+
+pub async fn pair(
+    State(ctx): State<ApiContext>,
+    ConnectInfo(PeerAddr { addr, .. }): ConnectInfo<PeerAddr>,
+    body: Bytes,
+) -> Response {
+    if body.len() > MAX_PAIR_BODY_BYTES {
+        return ApiError::body_too_large().into_response();
+    }
+    // Every model failure on this route is the uniform `400 invalid_body`.
+    let payload: PairBody = match parse_body(&body) {
+        Ok(payload) => payload,
+        Err(_) => return ApiError::invalid_body().into_response(),
+    };
+    let Some(curve) = Curve::from_label(&payload.curve) else {
+        return ApiError::invalid_body().into_response();
+    };
+    if payload.public_key.is_empty()
+        || payload.public_key.len() > MAX_PUBLIC_KEY_CHARS
+        || payload
+            .label
+            .as_deref()
+            .is_some_and(|label| label.len() > MAX_LABEL_CHARS)
+        || payload
+            .code
+            .as_deref()
+            .is_some_and(|code| code.len() > MAX_CODE_CHARS)
+    {
+        return ApiError::invalid_body().into_response();
+    }
+
+    let ip = addr.ip().to_string();
+    // `grant` can run the Tailscale CLI (seconds) and touches files: keep it off the async workers.
+    let decision = {
+        let (ctx, ip) = (ctx.clone(), ip.clone());
+        tokio::task::spawn_blocking(move || {
+            let result = grant(&ctx, &ip, curve, &payload);
+            (result, payload)
+        })
+        .await
+    };
+    let Ok((decision, payload)) = decision else {
+        return ApiError::internal("pairing task failed").into_response();
+    };
+    match decision {
+        Ok(granted) => {
+            // Only a new device is shown its string: the Master checks it on the phone.
+            let sas = match granted.outcome {
+                PairOutcome::Paired => device_sas(ctx.host_pin.as_ref(), &granted.device),
+                _ => None,
+            };
+            audit(
+                &ctx,
+                &ip,
+                granted.outcome,
+                granted.via,
+                Some(&granted.device.device_id),
+                granted.device.label.as_deref(),
+                sas,
+            );
+            if !granted.auto_granted.is_empty() {
+                audit_auto_grant(&ctx, &ip, &granted.device, &granted.auto_granted);
+            }
+            pair_response(&granted.device, &granted.recovery).into_response()
+        }
+        Err(error) => {
+            audit(
+                &ctx,
+                &ip,
+                PairOutcome::Rejected,
+                attempted_via(&payload),
+                None,
+                payload.label.as_deref(),
+                None,
+            );
+            error.into_response()
+        }
+    }
+}
+
+/// The decision itself. Nothing here writes the audit: `pair` records each
+/// outcome once, whichever way the decision went.
+fn grant(
+    ctx: &ApiContext,
+    ip: &str,
+    curve: Curve,
+    payload: &PairBody,
+) -> Result<Granted, ApiError> {
+    if let Err(retry_after) = ctx.limiter.allow(&format!("pair:{ip}"), Class::Write) {
+        return Err(ApiError::slow_down(retry_after));
+    }
+
+    // The trust store can be rewritten by the CLI while this server runs.
+    ctx.devices.reload_if_changed();
+    let owner = ctx.tailnet.owner_of(ip).unwrap_or_default();
+    let code = payload.code.as_deref().unwrap_or_default();
+
+    if code.is_empty() {
+        if !ctx.tailnet.is_host_owner(ip) {
+            return Err(empty_code_refusal(ip));
+        }
+        let device = ctx
+            .devices
+            .add_device(curve, &payload.public_key, payload.label.clone(), &owner)
+            .map_err(ApiError::internal)?;
+        let (device, auto_granted) = auto_grant(ctx, device);
+        let mut granted = issue(ctx, device, PairOutcome::Paired, PairVia::Tailnet)?;
+        granted.auto_granted = auto_granted;
+        return Ok(granted);
+    }
+
+    match ctx.devices.enroll(
+        code,
+        curve,
+        &payload.public_key,
+        payload.label.clone(),
+        &owner,
+    ) {
+        Ok(device) => issue(ctx, device, PairOutcome::Paired, PairVia::Code),
+        Err(error) if error.internal => Err(ApiError::internal(error)),
+        // A recovery code re-keys its device; anything else is the uniform refusal.
+        Err(_) => match ctx.devices.use_recovery_code(
+            code,
+            curve,
+            &payload.public_key,
+            payload.label.clone(),
+            &owner,
+        ) {
+            Ok((device, recovery)) => Ok(Granted {
+                device,
+                recovery,
+                outcome: PairOutcome::Recovered,
+                via: PairVia::Recovery,
+                auto_granted: Vec::new(),
+            }),
+            Err(error) if error.internal => Err(ApiError::internal(error)),
+            Err(_) => Err(rejected()),
+        },
+    }
+}
+
+/// The device as it stands after the owner's standing choice. A grant that fails
+/// leaves it pending: the pairing itself still stands.
+fn auto_grant(ctx: &ApiContext, device: Device) -> (Device, Vec<Permission>) {
+    if !ctx.devices.tailnet_auto_accept() {
+        return (device, Vec::new());
+    }
+    match ctx
+        .devices
+        .grant_pending(&device.device_id, &TAILNET_AUTO_GRANT)
+    {
+        Ok(GrantOutcome::Granted(granted)) => (*granted, TAILNET_AUTO_GRANT.to_vec()),
+        Ok(_) => (device, Vec::new()),
+        Err(error) => {
+            eprintln!("api: tailnet auto-grant failed, the device stays pending: {error}");
+            (device, Vec::new())
+        }
+    }
+}
+
+/// A new device gets its first recovery code.
+fn issue(
+    ctx: &ApiContext,
+    device: Device,
+    outcome: PairOutcome,
+    via: PairVia,
+) -> Result<Granted, ApiError> {
+    match ctx.devices.issue_recovery_code(&device.device_id) {
+        Ok(Some(recovery)) => Ok(Granted {
+            device,
+            recovery,
+            outcome,
+            via,
+            auto_granted: Vec::new(),
+        }),
+        Ok(None) => Err(ApiError::internal("device vanished while pairing")),
+        Err(error) => Err(ApiError::internal(error)),
+    }
+}
+
+/// The way a refused attempt was made. A recovery code and a pairing code look
+/// alike until the decision, so a refusal with a code is recorded as `code`.
+fn attempted_via(payload: &PairBody) -> PairVia {
+    if payload.code.as_deref().is_some_and(|code| !code.is_empty()) {
+        PairVia::Code
+    } else {
+        PairVia::Tailnet
+    }
+}
+
+/// One line of the pairing audit. It carries no code and no public key.
+pub(super) fn audit(
+    ctx: &ApiContext,
+    source_ip: &str,
+    outcome: PairOutcome,
+    via: PairVia,
+    device_id: Option<&str>,
+    label: Option<&str>,
+    sas: Option<String>,
+) {
+    let mut attempt = PairingAttempt::new(outcome, via, device_id, label, source_ip);
+    attempt.sas = sas;
+    ctx.pairing_audit.record(&attempt);
+    ctx.audit
+        .record(&AuditEvent::new("pair", device_id, outcome.name()).with("via", via.name()));
+}
+
+/// The pairing audit's line for the policy's grant. Same shape as an admin grant; `granted_by` names the policy.
+fn audit_auto_grant(
+    ctx: &ApiContext,
+    source_ip: &str,
+    device: &Device,
+    permissions: &[Permission],
+) {
+    let mut attempt = PairingAttempt::new(
+        PairOutcome::Granted,
+        PairVia::Tailnet,
+        Some(&device.device_id),
+        device.label.as_deref(),
+        source_ip,
+    );
+    attempt.granted_by = Some(AUTO_GRANTER.to_string());
+    attempt.permissions = permissions
+        .iter()
+        .map(|permission| permission.label().to_string())
+        .collect();
+    ctx.pairing_audit.record(&attempt);
+}
+
+/// Uniform refusal for a supplied code: the caller is never told which check
+/// failed, the same oracle reasoning as the uniform `401`/`403`.
+fn rejected() -> ApiError {
+    ApiError {
+        status: axum::http::StatusCode::FORBIDDEN,
+        body: json!({"detail": "pairing_rejected"}),
+        retry_after: None,
+    }
+}
+
+/// With no code there is only the owner check, and the caller knows it sent
+/// none, so the refusal names the working path. It never reports whose account
+/// owns an address.
+fn empty_code_refusal(ip: &str) -> ApiError {
+    let message = if ip == "127.0.0.1" || ip == "::1" {
+        "no pairing code was provided and this request arrived from a local \
+         address, so it cannot be matched to the host's tailnet owner (a local \
+         proxy makes every request look local); run `excubia-host pair-code` on the \
+         host and enter the code"
+    } else {
+        "no pairing code was provided and this address is not the host's \
+         tailnet owner; run `excubia-host pair-code` on the host and enter the code"
+    };
+    ApiError {
+        status: axum::http::StatusCode::FORBIDDEN,
+        body: json!({"detail": {"code": "pairing_rejected", "message": message}}),
+        retry_after: None,
+    }
+}
+
+/// The recovery code is the one secret here and is returned exactly once:
+/// only a hash is stored, so this is the only moment it can be shown.
+pub(super) fn pair_response(device: &Device, recovery: &str) -> Json<Value> {
+    let mut permissions: Vec<String> = device
+        .permissions
+        .iter()
+        .map(|permission| permission.label().to_string())
+        .collect();
+    permissions.sort();
+    Json(json!({
+        "ok": true,
+        "device_id": device.device_id,
+        "curve": device.curve.label(),
+        "label": device.label,
+        "permissions": permissions,
+        "owner_id": device.owner_id,
+        "recovery_code": recovery,
+    }))
+}

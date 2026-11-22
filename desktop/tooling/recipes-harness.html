@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Recetas · arnés</title>
+  <link rel="stylesheet" href="../ui/base.css">
+  <link rel="stylesheet" href="../ui/pairing.css">
+  <link rel="stylesheet" href="../ui/chat.css">
+  <link rel="stylesheet" href="../ui/thread.css">
+  <link rel="stylesheet" href="../ui/delegation.css">
+  <link rel="stylesheet" href="../ui/agents.css">
+  <link rel="stylesheet" href="../ui/detail.css">
+  <link rel="stylesheet" href="../ui/newconversation.css">
+  <link rel="stylesheet" href="../ui/approvals.css">
+  <link rel="stylesheet" href="../ui/hires.css">
+  <link rel="stylesheet" href="../ui/team-summary.css">
+  <link rel="stylesheet" href="../ui/restore.css">
+  <link rel="stylesheet" href="../ui/plans.css">
+  <link rel="stylesheet" href="../ui/recipes.css">
+  <link rel="stylesheet" href="../ui/onboarding.css">
+  <link rel="stylesheet" href="../ui/palette.css">
+  <link rel="stylesheet" href="../ui/mail.css">
+  <link rel="stylesheet" href="../ui/agenda.css">
+  <link rel="stylesheet" href="../ui/alerts.css">
+  <link rel="stylesheet" href="../ui/devices.css">
+  <link rel="stylesheet" href="../ui/shell.css">
+  <link rel="stylesheet" href="../ui/settings.css">
+  <script src="../ui/palette-data.js"></script>
+  <!-- Puente simulado: debe cargarse antes que cualquier módulo de ../ui (core.js lee window.__TAURI__ al importarse). -->
+  <script src="recipes-harness-bridge.js"></script>
+</head>
+<body>
+  <!-- Mismo marcado que ui/index.html para los dos diálogos de Recetas. -->
+  <dialog id="hire-recipes" class="dialog recipe-dialog" aria-labelledby="hire-recipes-title">
+    <h2 id="hire-recipes-title">Recetas</h2>
+    <p class="dialog-lede">Repite un encargo con un toque o edita su texto. Solo se guarda lo que tú confirmas.</p>
+    <div id="hire-recipes-notice" class="recipe-notice" role="alert" hidden></div>
+    <div id="hire-recipes-body" class="recipe-body"></div>
+    <div class="dialog-actions">
+      <button id="hire-recipes-close" class="btn ghost" type="button">Cerrar</button>
+    </div>
+  </dialog>
+
+  <dialog id="recipe-editor" class="dialog recipe-dialog" aria-labelledby="recipe-editor-title">
+    <form id="recipe-form" class="recipe-form" novalidate>
+      <h2 id="recipe-editor-title">Guardar como receta</h2>
+      <p id="recipe-editor-lede" class="dialog-lede"></p>
+      <label class="field-label" for="recipe-title">Título</label>
+      <input id="recipe-title" type="text" spellcheck="false" autocomplete="off" aria-describedby="recipe-title-count">
+      <p id="recipe-title-count" class="recipe-count"></p>
+      <label class="field-label" for="recipe-body">Texto</label>
+      <textarea id="recipe-body" rows="8" aria-describedby="recipe-body-count"></textarea>
+      <p id="recipe-body-count" class="recipe-count"></p>
+      <div id="recipe-notice" class="recipe-notice" role="alert" hidden></div>
+      <ul id="recipe-reasons" class="recipe-reasons" hidden></ul>
+      <label id="recipe-risk-wrap" class="recipe-risk" hidden>
+        <input id="recipe-risk" type="checkbox">
+        <span>Entiendo y quiero guardarla</span>
+      </label>
+      <div class="dialog-actions">
+        <button id="recipe-retry" class="btn secondary" type="button" hidden>Reintentar</button>
+        <button id="recipe-cancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="recipe-save" class="btn primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="recipes-harness.js"></script>
+</body>
+</html>

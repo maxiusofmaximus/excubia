@@ -1,0 +1,37 @@
+# Detection rules for the fake test agent (this repository's own).
+# Shape follows herdr's manifests (Apache-2.0); patterns are ours.
+# See NOTICE.
+
+id = "fake"
+version = "2026.10.19.1"
+
+[[rules]]
+id = "approval_blocked"
+state = "blocked"
+priority = 900
+region = "after_last_horizontal_rule"
+contains = ["esc to cancel"]
+any = [
+  { contains = ["enter to confirm"] },
+]
+
+[[rules]]
+id = "busy_hint"
+state = "working"
+priority = 400
+region = "bottom_non_empty_lines(3)"
+contains = ["trabajando"]
+
+[[rules]]
+id = "interrupt_working"
+state = "working"
+priority = 500
+region = "whole_recent"
+contains = ["esc to interrupt"]
+
+[[rules]]
+id = "prompt_idle"
+state = "idle"
+priority = 100
+region = "bottom_non_empty_lines(8)"
+line_regex = ['^\s*❯\s*$']

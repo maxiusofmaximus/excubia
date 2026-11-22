@@ -1,0 +1,40 @@
+name: excubia
+description: "Excubia Android client: Flutter UI over the Rust contract core."
+publish_to: 'none'
+version: 2.3.410-alpha.22+2086
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_rust_bridge: 2.13.0
+  apk_core:
+    path: rust_builder
+  flutter_secure_storage: ^11.2.0
+  mobile_scanner: ^7.4.2
+  path_provider: ^2.1.6
+  image_picker: ^1.2.4
+  record: 7.1.2
+  # Time zone data (BSD-2-Clause, free): the company's zone is IANA, and Dart has none.
+  timezone: ^0.11.2
+  # System file dialogs (MIT): pick a .ics and save one, with the bytes in memory.
+  file_picker: ^13.3.0
+  # Opens a chat document with the phone's app for its type. The plugin ships
+  # the FileProvider that covers the app cache.
+  open_filex: ^5.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
+    # Portraits (WebP, square): one still per agent and status at 128 and 384 px,
+    # plus Alfred's blink. Flutter does not register nested folders on its own,
+    # so the folder is listed here.
+    - assets/portraits/

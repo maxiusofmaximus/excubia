@@ -1,0 +1,221 @@
+//! The talk with the host: open an approval, wait for the operator's answer and
+//! consume the approval just before the action runs.
+
+use std::time::{Duration, Instant};
+
+use excubia_chat::action_digest;
+use excubia_seat::env;
+use excubia_seat::http::{self, LoopbackUrl};
+use serde_json::{json, Value};
+
+use super::request::Request;
+use super::Refusal;
+
+/// How often the hook asks the host for the state.
+const POLL_INTERVAL: Duration = Duration::from_millis(250);
+/// One request to the host may not hang the hook for longer than this.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// What the agent reads when nobody answered in time. The operator reads the agent's words, so
+/// it asks for one short sentence in plain Spanish and no second attempt.
+const EXPIRED: &str = "la aprobación caducó sin respuesta y no se ejecutó nada. No lo reintentes \
+     ni busques otra vía; di en una frase corta y en español sencillo que caducó y pregunta si se \
+     vuelve a pedir";
+
+/// What the host answered.
+pub(super) enum Outcome {
+    Allowed,
+    Denied(String),
+}
+
+/// What the hook learns from one poll.
+enum State {
+    Pending,
+    Approved,
+    Refused(String),
+}
+
+pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
+    let base = env::var_or_legacy("EXCUBIA_HOOK_URL", "HN_HOOK_URL")
+        .ok_or_else(|| Refusal::NoDecision("EXCUBIA_HOOK_URL is not set".to_string()))?;
+    let token = env::var_or_legacy("EXCUBIA_HOOK_TOKEN", "HN_HOOK_TOKEN")
+        .ok_or_else(|| Refusal::NoDecision("EXCUBIA_HOOK_TOKEN is not set".to_string()))?;
+    let host = LoopbackUrl::parse(&base).map_err(Refusal::NoDecision)?;
+    let digest = digest_of(request);
+    let body = json!({
+        "kind": request.kind,
+        "tool": request.tool,
+        "summary": request.summary,
+        "headline": request.headline,
+        "action_digest": digest,
+        "cwd": request.cwd,
+        "paths": request.paths,
+        "payload_redacted": request.args,
+        "ttl_seconds": request.ttl_seconds,
+    });
+    let created = http::request(
+        &host.at("/v1/chat/approvals"),
+        "POST",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Excubia-Hook-Token", &token),
+        ],
+        &serde_json::to_vec(&body).map_err(|error| Refusal::NoDecision(error.to_string()))?,
+        REQUEST_TIMEOUT,
+    )
+    .await
+    .map_err(|error| {
+        Refusal::NoDecision(format!("the host of approvals does not answer: {error}"))
+    })?;
+    if !(200..300).contains(&created.status) {
+        return Err(Refusal::NoDecision(format!(
+            "the host of approvals refused the request: HTTP {}",
+            created.status
+        )));
+    }
+    let answer = created.json().map_err(|error| {
+        Refusal::NoDecision(format!("unreadable answer from the host: {error}"))
+    })?;
+    let approval_id = answer
+        .get("approval_id")
+        .and_then(Value::as_str)
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| Refusal::NoDecision("the host did not return an approval id".to_string()))?
+        .to_string();
+    let deadline = Instant::now() + Duration::from_secs(request.ttl_seconds);
+
+    loop {
+        match poll(&host, &token, &approval_id).await? {
+            State::Approved => {
+                consume(&host, &token, &approval_id, &digest).await?;
+                return Ok(Outcome::Allowed);
+            }
+            State::Refused(reason) => return Ok(Outcome::Denied(reason)),
+            State::Pending => {}
+        }
+        if Instant::now() >= deadline {
+            return Ok(Outcome::Denied(EXPIRED.to_string()));
+        }
+        tokio::time::sleep(POLL_INTERVAL).await;
+    }
+}
+
+/// One look at the approval. The poll is bounded by the TTL, and the hook is a
+/// separate process: there is no stream to subscribe to by design.
+async fn poll(host: &LoopbackUrl, token: &str, approval_id: &str) -> Result<State, Refusal> {
+    let answer = http::request(
+        &host.at(&format!("/v1/chat/approvals/{approval_id}")),
+        "GET",
+        &[("X-Excubia-Hook-Token", token)],
+        &[],
+        REQUEST_TIMEOUT,
+    )
+    .await
+    .map_err(|error| {
+        Refusal::NoDecision(format!("the host of approvals does not answer: {error}"))
+    })?;
+    if !(200..300).contains(&answer.status) {
+        return Err(Refusal::NoDecision(format!(
+            "the host of approvals answered HTTP {}",
+            answer.status
+        )));
+    }
+    let state = answer.json().map_err(|error| {
+        Refusal::NoDecision(format!("unreadable answer from the host: {error}"))
+    })?;
+    match state.get("status").and_then(Value::as_str) {
+        Some("pending") => Ok(State::Pending),
+        Some("approved") => Ok(State::Approved),
+        // The operator's words, when he left some, tell the agent why and what to try.
+        Some("denied") => Ok(State::Refused(
+            match state.get("reason").and_then(Value::as_str) {
+                Some(reason) => format!("el operador denegó la acción y dijo: {reason}"),
+                None => "el operador denegó la acción".to_string(),
+            },
+        )),
+        Some("expired") => Ok(State::Refused(EXPIRED.to_string())),
+        Some("consumed") => Ok(State::Refused("la aprobación ya se usó".to_string())),
+        other => Err(Refusal::NoDecision(format!(
+            "the host answered an unknown state: {}",
+            other.unwrap_or("(none)")
+        ))),
+    }
+}
+
+/// Burn the approval just before the action runs. A failure here denies the
+/// action: the approval is single use and the host is the authority.
+async fn consume(
+    host: &LoopbackUrl,
+    token: &str,
+    approval_id: &str,
+    digest: &str,
+) -> Result<(), Refusal> {
+    let body = json!({ "action_digest": digest });
+    let answer = http::request(
+        &host.at(&format!("/v1/chat/approvals/{approval_id}/consume")),
+        "POST",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Excubia-Hook-Token", token),
+        ],
+        &serde_json::to_vec(&body).map_err(|error| Refusal::NoDecision(error.to_string()))?,
+        REQUEST_TIMEOUT,
+    )
+    .await
+    .map_err(|error| Refusal::NoDecision(format!("the approval could not be consumed: {error}")))?;
+    if !(200..300).contains(&answer.status) {
+        return Err(Refusal::NoDecision(format!(
+            "the approval could not be consumed (HTTP {})",
+            answer.status
+        )));
+    }
+    Ok(())
+}
+
+/// The identity of the action. The call id joins it, so a retry in a later task is a
+/// fresh question instead of a spent digest; without one the action alone is the identity.
+pub(super) fn digest_of(request: &Request) -> String {
+    let identity = match &request.call_id {
+        Some(call) => json!({ "args": request.args, "call": call }),
+        None => request.args.clone(),
+    };
+    action_digest(
+        &request.kind,
+        &request.tool,
+        &identity,
+        &request.cwd,
+        &request.paths,
+    )
+}
+
+#[cfg(test)]
+mod digest_tests {
+    use super::*;
+
+    fn write(call: Option<&str>) -> Request {
+        Request {
+            kind: "edit".to_string(),
+            tool: "Write".to_string(),
+            summary: "edit Write".to_string(),
+            headline: None,
+            args: json!({ "file_path": "notas.txt", "content": "hola" }),
+            cwd: "C:/proyecto".to_string(),
+            paths: vec!["C:/proyecto/notas.txt".to_string()],
+            ttl_seconds: 300,
+            call_id: call.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn the_same_write_in_two_calls_is_two_questions_and_one_call_is_one() {
+        assert_ne!(
+            digest_of(&write(Some("toolu_1"))),
+            digest_of(&write(Some("toolu_2")))
+        );
+        assert_eq!(
+            digest_of(&write(Some("toolu_1"))),
+            digest_of(&write(Some("toolu_1")))
+        );
+        assert_eq!(digest_of(&write(None)), digest_of(&write(None)));
+    }
+}

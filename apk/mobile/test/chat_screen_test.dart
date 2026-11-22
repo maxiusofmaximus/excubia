@@ -1,0 +1,1030 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:excubia/ui/widgets/comic/comic_button.dart';
+import 'package:excubia/ui/widgets/comic/comic_portrait.dart';
+import 'package:excubia/core/api/chat_attachment_source.dart';
+import 'package:excubia/core/api/host_client.dart';
+import 'package:excubia/core/state/chat_controller.dart';
+import 'package:excubia/core/state/hires_controller.dart';
+import 'package:excubia/src/rust/api/error.dart' show FailureKind;
+import 'package:excubia/src/rust/api/error/chat.dart';
+import 'package:excubia/src/rust/frb_generated.dart';
+import 'package:excubia/ui/chat/chat_bubbles.dart';
+import 'package:excubia/ui/chat/chat_composer.dart';
+import 'package:excubia/ui/chat/chat_conversation_view.dart';
+import 'package:excubia/ui/chat/chat_screen.dart';
+import 'package:excubia/ui/chat/history_drawer.dart';
+import 'package:excubia/ui/theme.dart';
+import 'package:excubia/ui/widgets/agent_avatar.dart';
+import 'package:excubia/ui/widgets/agent_portrait_card.dart';
+import 'package:excubia/ui/widgets/surface_card.dart';
+
+import 'support/chat_fixtures.dart';
+import 'support/fake_chat_transport.dart';
+import 'support/fake_attachments.dart' show UploadTransport, chatRoutes, png;
+import 'support/fake_team_host.dart';
+import 'support/history_chips.dart';
+
+Map<String, String> conversationRoutes() => {
+  '/v1/chat/bootstrap': bootstrapJson(),
+  '/v1/chat/sections': sectionsJson(const []),
+  '/v1/chat/conversations': conversationsJson(
+    conversations: [
+      {
+        'id': 'cnv_1',
+        'title': 'Plan semanal',
+        'pinned': false,
+        'archived': false,
+        'last_seq': 2,
+        'last_read_seq': 0,
+        'unread': 1,
+        'last_message_at': '2026-10-22T10:00:00.000Z',
+        'created_at': '2026-10-22T10:00:00.000Z',
+        'updated_at': '2026-10-22T10:00:00.000Z',
+      },
+    ],
+  ),
+  '/v1/chat/conversations/cnv_1/timeline': timelineJson([
+    timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+    timelineMessage(
+      seq: 2,
+      id: 'm2',
+      preview: 'Alfred: listo',
+      author: 'agent',
+    ),
+  ]),
+  '/v1/chat/conversations/cnv_1/messages': messagesJson([
+    userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+    agentMessage(seq: 2, id: 'm2', body: 'Alfred: listo'),
+  ]),
+  '/v1/chat/conversations/cnv_1/read': readJson(2),
+};
+
+/// An open turn whose list row carries the host's step, when it has one.
+Map<String, String> stepRoutes(String? progress) => conversationRoutes()
+  ..['/v1/chat/conversations'] = conversationsJson(
+    conversations: [
+      {
+        'id': 'cnv_1',
+        'title': 'Plan semanal',
+        'pinned': false,
+        'archived': false,
+        'last_seq': 2,
+        'last_read_seq': 0,
+        'unread': 0,
+        'active_runs': 1,
+        'progress': ?progress,
+        'last_message_at': '2026-10-22T10:00:00.000Z',
+        'created_at': '2026-10-22T10:00:00.000Z',
+        'updated_at': '2026-10-22T10:00:00.000Z',
+      },
+    ],
+  )
+  ..['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+    {
+      ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+      'turn_state': 'running',
+    },
+  ])
+  ..['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+    userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+  ]);
+
+/// The conversation with a turn open: its list row carries `active_runs`.
+Map<String, String> runningRoutes() => conversationRoutes()
+  ..['/v1/chat/conversations'] = conversationsJson(
+    conversations: [
+      {
+        'id': 'cnv_1',
+        'title': 'Plan semanal',
+        'pinned': false,
+        'archived': false,
+        'last_seq': 2,
+        'last_read_seq': 0,
+        'unread': 0,
+        'active_runs': 1,
+        'last_message_at': '2026-10-22T10:00:00.000Z',
+        'created_at': '2026-10-22T10:00:00.000Z',
+        'updated_at': '2026-10-22T10:00:00.000Z',
+      },
+    ],
+  );
+
+Future<ChatController> pumpChat(
+  WidgetTester tester, {
+  required Map<String, String> routes,
+  FakeChatTransport? transport,
+  HiresController? hires,
+  Future<List<ChatAttachmentSource>> Function()? pickDocuments,
+}) async {
+  final chatTransport = transport ?? FakeChatTransport(routes);
+  final controller = ChatController(chatTransport, dummyTriage());
+  await controller.start();
+  addTearDown(controller.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: buildTheme(),
+      home: ChatScreen(
+        controller: controller,
+        hires: hires ?? HiresController(transport: chatTransport),
+        onOpenTeam: () {},
+        onUnpaired: () async {},
+        pickDocuments: pickDocuments ?? () async => const [],
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return controller;
+}
+
+void main() {
+  setUpAll(() async {
+    await RustLib.init();
+  });
+
+  testWidgets('the empty start screen invites the first goal', (tester) async {
+    await pumpChat(tester, routes: emptyRoutes());
+
+    expect(find.text('¿Qué movemos hoy?'), findsOneWidget);
+    expect(
+      find.text('Cuéntame a qué te dedicas y armo tu equipo'),
+      findsOneWidget,
+    );
+    expect(find.text('Crea el proyecto Demo'), findsNothing);
+    expect(find.byTooltip('Nuevo chat'), findsOneWidget);
+    expect(find.text('Mensaje a Alfred'), findsOneWidget);
+    // Alfred's portraits, the header's and the welcome's, are square and framed.
+    expect(find.byType(ComicPortrait), findsWidgets);
+    expect(find.byType(ClipOval), findsNothing);
+    expect(find.byType(CircleAvatar), findsNothing);
+  });
+
+  testWidgets('with a hired team the start screen offers that trade', (
+    tester,
+  ) async {
+    final hires = HiresController(transport: FakeTeamHost(hires: [bobHire()]));
+    await hires.load();
+    await pumpChat(tester, routes: emptyRoutes(), hires: hires);
+
+    expect(find.text('¿Cómo va el equipo?'), findsOneWidget);
+    expect(
+      find.text('Revisa que todo funcione antes de entregar'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Cuéntame a qué te dedicas y armo tu equipo'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('the team card counts the hired people, not only the live ones', (
+    tester,
+  ) async {
+    final hires = HiresController(transport: FakeTeamHost(hires: [bobHire()]));
+    await hires.load();
+    await pumpChat(tester, routes: emptyRoutes(), hires: hires);
+
+    // Alfred's portrait takes the top of the welcome; the strip is further down.
+    await tester.scrollUntilVisible(
+      find.text('1 en el equipo · 0 activos'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('1 en el equipo · 0 activos'), findsOneWidget);
+    expect(find.text('Sin agentes'), findsNothing);
+  });
+
+  testWidgets('a conversation renders both messages and the composer', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: conversationRoutes());
+
+    expect(find.text('Crea el plan'), findsOneWidget);
+    expect(find.text('Alfred: listo'), findsOneWidget);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.enabled, isTrue);
+  });
+
+  testWidgets('a conversation opens at its last message, not its first', (
+    tester,
+  ) async {
+    final routes = conversationRoutes();
+    final numbered = [
+      for (var n = 1; n <= 40; n++) 'Mensaje número $n de la conversación',
+    ];
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+      for (var n = 1; n <= 40; n++)
+        timelineMessage(seq: n, id: 'm$n', preview: numbered[n - 1]),
+    ]);
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+      for (var n = 1; n <= 40; n++)
+        userMessage(seq: n, id: 'm$n', body: numbered[n - 1]),
+    ]);
+    await pumpChat(tester, routes: routes);
+
+    expect(find.text(numbered.last), findsOneWidget);
+    expect(find.text(numbered.first), findsNothing);
+  });
+
+  testWidgets('the «Revisar borrador» card keeps the bubbles margin', (
+    tester,
+  ) async {
+    final routes = conversationRoutes();
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+      {
+        'seq': 3,
+        'kind': 'mail_draft',
+        'account': 'trabajo',
+        'draft_id': 'dft_1',
+        'to': ['bea@ejemplo.org'],
+        'subject': 'Presupuesto',
+        'preview': 'Hola Bea',
+        'created_at': '2026-10-22T10:00:00.000Z',
+      },
+    ]);
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([]);
+    await pumpChat(tester, routes: routes);
+
+    final card = tester.getRect(
+      find.ancestor(
+        of: find.text('Alfred preparó un borrador'),
+        matching: find.byType(SurfaceCard),
+      ),
+    );
+    final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    expect(card.left, Spacing.lg);
+    expect(card.right, width - Spacing.lg);
+  });
+
+  testWidgets('a failed turn is a card, never an invented reply', (
+    tester,
+  ) async {
+    final routes = conversationRoutes();
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+      timelineMessage(seq: 1, id: 'm1', preview: 'Resume el estado'),
+      timelineMessage(
+        seq: 2,
+        id: 'm2',
+        preview: '',
+        author: 'agent',
+        state: 'failed',
+      ),
+    ]);
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+      userMessage(seq: 1, id: 'm1', body: 'Resume el estado'),
+      agentMessage(seq: 2, id: 'm2', body: '', state: 'failed'),
+    ]);
+    await pumpChat(tester, routes: routes);
+
+    expect(find.text('Alfred terminó sin responder'), findsOneWidget);
+    expect(find.textContaining('no se inventó'), findsOneWidget);
+    expect(find.text('Reintentar'), findsOneWidget);
+  });
+
+  testWidgets('offline, missing seat, busy queue and 403 have distinct cards', (
+    tester,
+  ) async {
+    for (final failure in [
+      ChatFailure(
+        code: 'offline',
+        shownInTimeline: true,
+        keptByHost: false,
+        message: 'Sin conexión con el equipo.',
+        action: 'Reconecta para escribir a Alfred.',
+        kind: FailureKind.retry,
+      ),
+      ChatFailure(
+        code: 'seat_unavailable',
+        shownInTimeline: true,
+        keptByHost: true,
+        message:
+            'Alfred no pudo arrancar: el asiento no tiene un CLI disponible.',
+        action: 'Revisa el motor y el CLI en el host.',
+        kind: FailureKind.retry,
+      ),
+      ChatFailure(
+        code: 'agent_busy',
+        shownInTimeline: true,
+        keptByHost: true,
+        message: 'La cola de Alfred está llena.',
+        action: 'Reintenta en 18 s; el mensaje no se envió.',
+        kind: FailureKind.retry,
+        retryAfter: 18,
+      ),
+      ChatFailure(
+        code: 'forbidden',
+        shownInTimeline: true,
+        keptByHost: false,
+        message: 'Falta el permiso RESPOND para actuar sobre el agente.',
+        action: 'Concédelo en el host: host devices grant <device_id> --permission respond',
+        kind: FailureKind.permission,
+      ),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(),
+          home: Scaffold(
+            body: ChatFailureCard(
+              failure: failure,
+              onRetry: () {},
+              onDismiss: () {},
+            ),
+          ),
+        ),
+      );
+      expect(find.text(failure.message), findsOneWidget);
+      if (failure.code == 'forbidden') {
+        expect(find.text('Copiar comando'), findsOneWidget);
+        expect(find.textContaining('--permission respond'), findsOneWidget);
+      } else if (failure.code == 'offline') {
+        expect(find.text('Reconectar'), findsOneWidget);
+      } else {
+        expect(find.text('Reintentar'), findsOneWidget);
+      }
+    }
+  });
+
+  testWidgets(
+    'the history drawer lists sections and asks the host for a filter',
+    (tester) async {
+      final routes = conversationRoutes();
+      routes['/v1/chat/sections'] = sectionsJson([
+        {'id': 'sec_1', 'name': 'Trabajo', 'order': 1},
+      ]);
+      routes['/v1/chat/conversations'] = conversationsJson(
+        conversations: [
+          {
+            'id': 'cnv_1',
+            'title': 'Plan semanal',
+            'pinned': true,
+            'section_id': 'sec_1',
+            'archived': false,
+            'last_seq': 2,
+            'last_read_seq': 0,
+            'unread': 1,
+            'last_message_at': '2026-10-22T10:00:00.000Z',
+            'created_at': '2026-10-22T10:00:00.000Z',
+            'updated_at': '2026-10-22T10:00:00.000Z',
+          },
+        ],
+      );
+      final transport = FakeChatTransport(routes);
+      final controller = ChatController(transport, dummyTriage());
+      await controller.start();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(),
+          home: Scaffold(
+            body: HistoryDrawer(
+              controller: controller,
+              onOpenTeam: () {},
+              onUnpaired: () async {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Historial'), findsOneWidget);
+      expect(find.text('Plan semanal'), findsOneWidget);
+      await revealHistoryChip(tester, 'Secciones');
+      expect(find.text('Secciones'), findsOneWidget);
+
+      await revealHistoryChip(tester, 'Fijados');
+      await tester.tap(find.text('Fijados'));
+      await tester.pumpAndSettle();
+      expect(
+        transport.calls.any((call) => call.contains('pinned=true')),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets('only the newest own message shows every step of its turn', (
+    tester,
+  ) async {
+    final routes = conversationRoutes();
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+      {
+        ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+        'turn_state': 'failed',
+      },
+      timelineMessage(
+        seq: 2,
+        id: 'm2',
+        preview: 'Alfred: listo',
+        author: 'agent',
+      ),
+      {
+        ...timelineMessage(seq: 3, id: 'm3', preview: 'Ahora el resto'),
+        'turn_state': 'running',
+      },
+    ]);
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+      userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+      agentMessage(seq: 2, id: 'm2', body: 'Alfred: listo'),
+      userMessage(seq: 3, id: 'm3', body: 'Ahora el resto'),
+    ]);
+    await pumpChat(tester, routes: routes);
+
+    expect(find.text('Falló'), findsOneWidget);
+    expect(find.text('Alfred lo está atendiendo'), findsOneWidget);
+  });
+
+  testWidgets('a message without a turn shows no step line', (tester) async {
+    await pumpChat(tester, routes: conversationRoutes());
+
+    expect(find.text('Enviado'), findsNothing);
+    expect(find.text('Respondido'), findsNothing);
+    expect(find.text('Falló'), findsNothing);
+  });
+
+  testWidgets('an open turn shows «trabajando…» in the header', (tester) async {
+    final routes = conversationRoutes();
+    routes['/v1/chat/conversations'] = conversationsJson(
+      conversations: [
+        {
+          'id': 'cnv_1',
+          'title': 'Plan semanal',
+          'pinned': false,
+          'archived': false,
+          'last_seq': 2,
+          'last_read_seq': 0,
+          'unread': 0,
+          'active_runs': 1,
+          'last_message_at': '2026-10-22T10:00:00.000Z',
+          'created_at': '2026-10-22T10:00:00.000Z',
+          'updated_at': '2026-10-22T10:00:00.000Z',
+        },
+      ],
+    );
+    await pumpChat(tester, routes: routes);
+
+    expect(find.text('trabajando…'), findsOneWidget);
+  });
+
+  testWidgets('an open turn shows its step in the header and the history row', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: stepRoutes('Revisando los borradores'));
+
+    expect(find.text('Alfred · Revisando los borradores'), findsOneWidget);
+    await tester.tap(find.byTooltip('Abrir historial'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(HistoryDrawer),
+        matching: find.text('Alfred · Revisando los borradores'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a step is plain text and at most 120 characters', (
+    tester,
+  ) async {
+    const raw = '<b>Hola</b> [x](https://e.x) ';
+    await pumpChat(tester, routes: stepRoutes('$raw${'x' * 200}'));
+
+    final shown = '$raw${'x' * 200}'.substring(0, 120);
+    expect(find.text('Alfred · $shown'), findsOneWidget);
+  });
+
+  testWidgets('a finished turn shows no step, whatever the list still says', (
+    tester,
+  ) async {
+    final routes = stepRoutes('Revisando los borradores');
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+      {
+        ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+        'turn_state': 'completed',
+      },
+      timelineMessage(
+        seq: 2,
+        id: 'm2',
+        preview: 'Alfred: listo',
+        author: 'agent',
+      ),
+    ]);
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+      userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+      agentMessage(seq: 2, id: 'm2', body: 'Alfred: listo'),
+    ]);
+    await pumpChat(tester, routes: routes);
+
+    expect(find.textContaining('Revisando'), findsNothing);
+    expect(find.text('trabajando…'), findsNothing);
+  });
+
+  testWidgets('the step sits under the newest own message while it runs', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: stepRoutes('Redactando la respuesta'));
+
+    expect(find.text('Alfred lo está atendiendo'), findsOneWidget);
+    expect(find.text('Redactando la respuesta'), findsOneWidget);
+  });
+
+  testWidgets('«Ir al final» counts Alfred’s new messages and jumps back', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    List<Map<String, Object?>> timeline(int count) => [
+      for (var n = 1; n <= count; n++)
+        timelineMessage(
+          seq: n,
+          id: 'm$n',
+          preview: 'Mensaje número $n',
+          author: n.isEven ? 'agent' : 'user',
+        ),
+    ];
+    List<Map<String, Object?>> messages(int count) => [
+      for (var n = 1; n <= count; n++)
+        n.isEven
+            ? agentMessage(seq: n, id: 'm$n', body: 'Mensaje número $n')
+            : userMessage(seq: n, id: 'm$n', body: 'Mensaje número $n'),
+    ];
+    final routes = conversationRoutes();
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson(
+      timeline(40),
+    );
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson(
+      messages(40),
+    );
+    final controller = await pumpChat(tester, routes: routes);
+
+    expect(find.bySemanticsLabel(RegExp('Ir al final')), findsNothing);
+
+    await tester.drag(find.byType(ConversationView), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Ir al final'), findsOneWidget);
+
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson(
+      timeline(42),
+    );
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson(
+      messages(42),
+    );
+    await controller.refresh();
+    await tester.pumpAndSettle();
+    expect(
+      find.bySemanticsLabel('Ir al final, 1 mensaje nuevo'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.bySemanticsLabel('Ir al final, 1 mensaje nuevo'));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel(RegExp('Ir al final')), findsNothing);
+    semantics.dispose();
+  });
+
+  testWidgets('an open turn turns the send button into «Detener»', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: runningRoutes());
+
+    expect(find.byTooltip('Detener'), findsOneWidget);
+    expect(find.byIcon(Icons.stop), findsOneWidget);
+    expect(find.byTooltip('Enviar'), findsNothing);
+  });
+
+  testWidgets(
+    'without a turn an empty composer offers the mic, and text brings send',
+    (tester) async {
+      await pumpChat(tester, routes: conversationRoutes());
+
+      expect(find.byIcon(Icons.mic), findsOneWidget);
+      expect(find.byTooltip('Enviar'), findsNothing);
+      expect(find.byTooltip('Detener'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'hola');
+      await tester.pump();
+      expect(find.byIcon(Icons.mic), findsNothing);
+      expect(find.byTooltip('Enviar'), findsOneWidget);
+    },
+  );
+
+  testWidgets('tapping «Detener» asks the host to stop the open turn', (
+    tester,
+  ) async {
+    final routes = runningRoutes();
+    final transport = FakeChatTransport(routes)
+      ..routes['POST /v1/chat/conversations/cnv_1/stop'] = jsonEncode({
+        'ok': true,
+        'stopped': true,
+        'runs': 1,
+      });
+    await pumpChat(tester, routes: routes, transport: transport);
+
+    await tester.tap(find.byTooltip('Detener'));
+    await tester.pumpAndSettle();
+    expect(transport.calls, contains('POST /v1/chat/conversations/cnv_1/stop'));
+  });
+
+  testWidgets(
+    'a device without the respond grant cannot stop and is told why',
+    (tester) async {
+      final routes = runningRoutes();
+      final transport = FakeChatTransport(routes);
+      await pumpChat(tester, routes: routes, transport: transport);
+
+      transport.failure = const HostError(403, '{"detail":"forbidden"}');
+      await tester.tap(find.byTooltip('Detener'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          'No tienes permiso para detener esto desde este dispositivo.',
+        ),
+        findsWidgets,
+      );
+      final stop = tester.widget<ComicButton>(
+        find.widgetWithIcon(ComicButton, Icons.stop),
+      );
+      expect(stop.onPressed, isNull);
+    },
+  );
+
+  testWidgets('the stop button is labelled for assistive tech', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await pumpChat(tester, routes: runningRoutes());
+
+    expect(find.bySemanticsLabel('Detener'), findsOneWidget);
+    semantics.dispose();
+  });
+
+  testWidgets('a draft stays editable while the turn runs', (tester) async {
+    await pumpChat(tester, routes: runningRoutes());
+
+    await tester.enterText(find.byType(TextField), 'Un cambio más');
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.enabled, isTrue);
+    expect(field.controller?.text, 'Un cambio más');
+  });
+
+  testWidgets('files picked together all reach the composer', (tester) async {
+    final controller = await pumpChat(
+      tester,
+      routes: conversationRoutes(),
+      transport: UploadTransport({...conversationRoutes(), ...chatRoutes()}),
+      pickDocuments: () async => [png('a.txt'), png('b.txt')],
+    );
+
+    await tester.tap(find.byIcon(Icons.attach_file));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Archivo'));
+    // An upload's progress bar never settles, so the frames are counted instead.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(controller.attachments.items.length, 2);
+  });
+
+  testWidgets(
+    'a finished turn whose reply is right below shows no «Respondido»',
+    (tester) async {
+      final routes = conversationRoutes();
+      routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+        {
+          ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+          'turn_state': 'completed',
+        },
+        timelineMessage(
+          seq: 2,
+          id: 'm2',
+          preview: 'Alfred: listo',
+          author: 'agent',
+        ),
+      ]);
+      await pumpChat(tester, routes: routes);
+
+      expect(find.text('Respondido'), findsNothing);
+    },
+  );
+
+  testWidgets('a finished turn with no reply below still says «Respondido»', (
+    tester,
+  ) async {
+    final routes = conversationRoutes();
+    routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+      {
+        ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+        'turn_state': 'completed',
+      },
+    ]);
+    routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+      userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+    ]);
+    await pumpChat(tester, routes: routes);
+
+    expect(find.text('Respondido'), findsOneWidget);
+  });
+
+  testWidgets('Alfred’s reply has a copy icon, and only Alfred’s reply', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: conversationRoutes());
+
+    expect(find.byTooltip('Copiar respuesta'), findsOneWidget);
+    expect(
+      tester.getSize(find.byTooltip('Copiar respuesta')).height,
+      greaterThanOrEqualTo(44),
+    );
+    expect(find.text('Copiar'), findsNothing);
+  });
+
+  testWidgets('the copy icon puts the reply on the clipboard and says so', (
+    tester,
+  ) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await pumpChat(tester, routes: conversationRoutes());
+
+    await tester.tap(find.byTooltip('Copiar respuesta'));
+    await tester.pump();
+
+    expect(copied, 'Alfred: listo');
+    expect(find.text('Copiado'), findsOneWidget);
+  });
+
+  testWidgets(
+    'a long press on Alfred’s reply offers copy and select, not share',
+    (tester) async {
+      await pumpChat(tester, routes: conversationRoutes());
+
+      await tester.longPress(find.textContaining('Alfred: listo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Copiar'), findsOneWidget);
+      expect(find.text('Seleccionar texto'), findsOneWidget);
+      expect(find.textContaining('Compartir'), findsNothing);
+    },
+  );
+
+  testWidgets('«Seleccionar texto» shows the reply as selectable text', (
+    tester,
+  ) async {
+    await pumpChat(tester, routes: conversationRoutes());
+
+    await tester.longPress(find.textContaining('Alfred: listo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Seleccionar texto'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<SelectableText>(find.byType(SelectableText).last).data,
+      'Alfred: listo',
+    );
+  });
+
+  group('Alfred’s face in the chat', () {
+    testWidgets(
+      'on a short phone the whole portrait shows under the header, centred with its name',
+      (tester) async {
+        _screen(tester, const Size(360, 640));
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        final card = find.byType(AgentPortraitCard);
+        final view = tester.getRect(find.byType(SingleChildScrollView).first);
+        final portrait = tester.getRect(card);
+        expect(tester.getSize(card).width, 110);
+        expect(portrait.top, greaterThanOrEqualTo(view.top + Spacing.sm));
+        expect(portrait.bottom, lessThanOrEqualTo(view.bottom));
+        final axis = tester.getCenter(card).dx;
+        expect(
+          tester
+              .getCenter(
+                find.descendant(of: card, matching: find.text('Alfred')),
+              )
+              .dx,
+          closeTo(axis, 1),
+        );
+        expect(
+          tester.getCenter(find.text('¿Qué movemos hoy?')).dx,
+          closeTo(axis, 1),
+        );
+      },
+    );
+
+    testWidgets('on a tall phone the portrait is the full card, shown whole', (
+      tester,
+    ) async {
+      _screen(tester, const Size(412, 915));
+      await pumpChat(tester, routes: emptyConversationRoutes());
+
+      final card = find.byType(AgentPortraitCard);
+      final view = tester.getRect(find.byType(SingleChildScrollView).first);
+      expect(tester.getSize(card).width, 150);
+      expect(
+        tester.getRect(card).top,
+        greaterThanOrEqualTo(view.top + Spacing.sm),
+      );
+      expect(tester.getRect(card).bottom, lessThanOrEqualTo(view.bottom));
+    });
+
+    testWidgets('on a short phone the three starter chips are reachable', (
+      tester,
+    ) async {
+      _screen(tester, const Size(360, 640));
+      await pumpChat(tester, routes: emptyConversationRoutes());
+
+      final view = find.byType(SingleChildScrollView).first;
+      for (final text in const [
+        'Cuéntame a qué te dedicas y armo tu equipo',
+        '¿Qué puedes hacer por mí?',
+        'Apunta una nota para mañana',
+      ]) {
+        await tester.ensureVisible(find.text(text));
+        await tester.pump();
+        expect(
+          tester.getRect(find.text(text)).bottom,
+          lessThanOrEqualTo(tester.getRect(view).bottom),
+          reason: text,
+        );
+      }
+    });
+
+    testWidgets(
+      'on a tall phone the three starter chips show whole, no scroll',
+      (tester) async {
+        _screen(tester, const Size(412, 915));
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        final view = tester.getRect(find.byType(SingleChildScrollView).first);
+        final composer = tester.getRect(find.byType(ChatComposer));
+        final last = tester.getRect(find.text('Apunta una nota para mañana'));
+        expect(
+          last.bottom,
+          lessThanOrEqualTo(view.bottom),
+          reason:
+              'chip bottom ${last.bottom}, view bottom ${view.bottom}, '
+              'composer top ${composer.top}',
+        );
+      },
+    );
+
+    testWidgets(
+      'a new conversation opens with his portrait and the goal line',
+      (tester) async {
+        _screen(tester, const Size(400, 900));
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        expect(find.byType(AgentPortraitCard), findsOneWidget);
+        expect(find.text('¿Qué movemos hoy?'), findsOneWidget);
+        expect(
+          find.text(
+            'Conversación nueva con Alfred. Escribe el primer mensaje.',
+          ),
+          findsNothing,
+        );
+        expect(tester.getSize(find.byType(AgentPortraitCard)).width, 150);
+      },
+    );
+
+    testWidgets(
+      'with the keyboard up the portrait steps aside, the chips stay',
+      (tester) async {
+        _screen(tester, const Size(400, 900), keyboard: 300);
+        await pumpChat(tester, routes: emptyConversationRoutes());
+
+        expect(find.byType(AgentPortraitCard), findsNothing);
+        expect(find.text('¿Qué movemos hoy?'), findsOneWidget);
+        expect(find.byType(TextField), findsOneWidget);
+      },
+    );
+
+    testWidgets('the portrait comes back when the keyboard closes', (
+      tester,
+    ) async {
+      _screen(tester, const Size(400, 900), keyboard: 300);
+      await pumpChat(tester, routes: emptyConversationRoutes());
+      expect(find.byType(AgentPortraitCard), findsNothing);
+
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(AgentPortraitCard), findsOneWidget);
+    });
+
+    testWidgets('on a short screen the welcome portrait is smaller', (
+      tester,
+    ) async {
+      _screen(tester, const Size(400, 600));
+      await pumpChat(tester, routes: emptyConversationRoutes());
+
+      expect(tester.getSize(find.byType(AgentPortraitCard)).width, 110);
+    });
+
+    testWidgets('Alfred’s reply shows his face beside his name, once', (
+      tester,
+    ) async {
+      await pumpChat(tester, routes: conversationRoutes());
+
+      final faces = find.byWidgetPredicate(
+        (w) => w is AgentAvatar && w.size == 44,
+      );
+      expect(faces, findsOneWidget);
+      expect(tester.widget<AgentAvatar>(faces).characterId, 'alfred');
+    });
+
+    testWidgets('the head shows thinking while his turn waits for a reply', (
+      tester,
+    ) async {
+      await pumpChat(tester, routes: stepRoutes(null));
+
+      expect(_headLook(tester), AgentLook.thinking);
+    });
+
+    testWidgets('the head shows working while he runs a step', (tester) async {
+      await pumpChat(tester, routes: stepRoutes('Redactando la respuesta'));
+
+      expect(_headLook(tester), AgentLook.working);
+    });
+
+    testWidgets('the head shows error once the newest turn failed', (
+      tester,
+    ) async {
+      final routes = conversationRoutes();
+      routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([
+        {
+          ...timelineMessage(seq: 1, id: 'm1', preview: 'Crea el plan'),
+          'turn_state': 'failed',
+        },
+      ]);
+      routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([
+        userMessage(seq: 1, id: 'm1', body: 'Crea el plan'),
+      ]);
+      await pumpChat(tester, routes: routes);
+
+      expect(_headLook(tester), AgentLook.error);
+    });
+
+    testWidgets('a finished conversation keeps the plain face', (tester) async {
+      await pumpChat(tester, routes: conversationRoutes());
+
+      expect(_headLook(tester), AgentLook.idle);
+    });
+  });
+}
+
+/// A conversation with no message yet: the welcome is what the timeline shows.
+Map<String, String> emptyConversationRoutes() {
+  final routes = conversationRoutes();
+  routes['/v1/chat/conversations'] = conversationsJson(
+    conversations: [
+      {
+        'id': 'cnv_1',
+        'title': 'Nuevo chat',
+        'pinned': false,
+        'archived': false,
+        'last_seq': 0,
+        'last_read_seq': 0,
+        'unread': 0,
+        'last_message_at': '2026-10-22T10:00:00.000Z',
+        'created_at': '2026-10-22T10:00:00.000Z',
+        'updated_at': '2026-10-22T10:00:00.000Z',
+      },
+    ],
+  );
+  routes['/v1/chat/conversations/cnv_1/timeline'] = timelineJson([]);
+  routes['/v1/chat/conversations/cnv_1/messages'] = messagesJson([]);
+  return routes;
+}
+
+/// The phone-sized surface a test asks for, with the keyboard's inset if given.
+void _screen(WidgetTester tester, Size size, {double keyboard = 0}) {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetViewInsets);
+}
+
+/// The look the head's face shows: the one 32 dp avatar in the chat header.
+AgentLook _headLook(WidgetTester tester) =>
+    tester
+        .widget<AgentAvatar>(
+          find.byWidgetPredicate((w) => w is AgentAvatar && w.size == 64),
+        )
+        .look ??
+    AgentLook.idle;

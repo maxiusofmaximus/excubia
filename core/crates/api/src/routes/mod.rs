@@ -1,0 +1,122 @@
+//! Route handlers, one module per surface.
+
+mod actions;
+mod agenda;
+mod alerts;
+mod alfred;
+mod basic;
+mod calendar;
+mod calendar_ics;
+mod catalog;
+mod chat;
+mod contacts;
+mod devices;
+mod doc_tools;
+mod events;
+mod hires;
+mod hooks;
+mod mail;
+mod mail_send;
+mod notes;
+mod onboarding;
+mod pair;
+mod pairing_policy;
+mod pake;
+mod plans;
+mod recipes;
+mod restore;
+mod roles;
+mod schedules;
+mod vault;
+mod voice;
+mod workspaces;
+
+pub use actions::{keys, read, respond, seen, stop};
+pub use agenda::agenda_routes;
+pub use alfred::{request as alfred_request, status as alfred_status};
+pub use basic::{health, state};
+pub use calendar_ics::{IMPORT_PATH, MAX_ICS_BODY_BYTES};
+pub use catalog::{fix as catalog_fix, list as catalog, set_default as catalog_set_default};
+pub use chat::{
+    approval_settings as chat_approval_settings, approval_state as chat_approval_state,
+    attachment_content as chat_attachment_content, attachment_preview as chat_attachment_preview,
+    bootstrap as chat_bootstrap, bulk_delete as chat_bulk_delete_conversations,
+    cancel_conversation as chat_cancel_conversation,
+    cancel_delegation as chat_cancel_delegation,
+    change_approval_settings as chat_change_approval_settings,
+    complete_attachment as chat_complete_attachment, consume_approval as chat_consume_approval,
+    conversation_counts as chat_conversation_counts, conversations as chat_conversations,
+    create as chat_create_conversation, create_approval as chat_create_approval,
+    create_attachment as chat_create_attachment, create_project as chat_create_project,
+    decide_approval as chat_decide_approval, delegation as chat_delegation,
+    delete_attachment as chat_delete_attachment, delete_conversation as chat_delete_conversation,
+    list_approvals as chat_approvals, messages as chat_messages, read as chat_read,
+    sections as chat_sections, send as chat_send_message, show as chat_conversation,
+    show_attachment as chat_attachment, stop_conversation as chat_stop_conversation,
+    timeline as chat_timeline, tool as chat_tool, update as chat_update_conversation,
+    upload_chunk as chat_upload_chunk, upsert as chat_upsert_section,
+};
+pub use devices::{device_sas, grant_device, list_devices, revoke_device};
+pub use doc_tools::list as doc_tools;
+pub use events::events;
+pub use hires::{
+    create as create_hire, dismiss as dismiss_hire, list as list_hires, team_summary,
+    update as update_hire,
+};
+pub use hooks::report as hook_report;
+pub use mail::{
+    accounts as mail_accounts, login_start as mail_login_start, login_status as mail_login_status,
+};
+pub use mail_send::{
+    draft_review as mail_draft_review, draft_update as mail_draft_update,
+    send_cancel as mail_send_cancel, send_disable as mail_send_disable,
+    send_draft as mail_send_draft, send_enable_start as mail_send_enable_start,
+    send_enable_status as mail_send_enable_status, send_status as mail_send_status,
+};
+pub use onboarding::{complete as complete_onboarding, state as onboarding_state};
+pub use pair::pair;
+pub use pairing_policy::{get_pairing_policy, set_pairing_policy};
+pub use vault::{
+    finish as vault_finish, init as vault_init, status as vault_status, INIT_PATH as VAULT_INIT_PATH,
+    MAX_VAULT_BODY_BYTES,
+};
+pub use pake::{admin_routes as pake_admin_routes, routes as pake_routes};
+pub use plans::{
+    approve as approve_plan, list as list_plans, reject as reject_plan,
+    request_changes as request_plan_changes,
+};
+pub use recipes::{
+    create as create_recipe, delete as delete_recipe, draft as draft_recipe, list as list_recipes,
+    run as run_recipe, update as update_recipe,
+};
+pub use restore::{
+    changes as restore_changes, points as restore_points, restore as restore_point, RestoreRefusal,
+};
+pub use roles::list as role_catalog;
+pub use schedules::{
+    create as create_schedule, delete as delete_schedule, list as list_schedules,
+    pause as pause_schedule, resume as resume_schedule, run_now as run_schedule_now,
+    runs as schedule_runs, update as update_schedule,
+};
+pub use voice::transcribe as transcribe_voice;
+pub use workspaces::create as create_workspace;
+
+use axum::body::Bytes;
+use serde::de::DeserializeOwned;
+
+use crate::error::ApiError;
+
+/// Parse the exact bytes that were signed. The contract does not require a
+/// content type, so this never looks at one: a correctly signed body sent
+/// without `application/json` is still valid.
+pub(crate) fn parse_body<T: DeserializeOwned>(bytes: &Bytes) -> Result<T, ApiError> {
+    let bytes = if bytes.is_empty() {
+        b"{}".as_slice()
+    } else {
+        bytes.as_ref()
+    };
+    serde_json::from_slice(bytes).map_err(|error| match error.classify() {
+        serde_json::error::Category::Data => ApiError::invalid_body_model(error.to_string()),
+        _ => ApiError::invalid_body(),
+    })
+}

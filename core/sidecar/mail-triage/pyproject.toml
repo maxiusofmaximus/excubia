@@ -1,0 +1,32 @@
+[project]
+name = "excubia-mail-triage"
+version = "0.1.0"
+description = "Sidecar local de Laya para el triaje de correo (modo sombra)"
+requires-python = ">=3.10"
+dependencies = [
+    "laya==0.4.18",
+    "torch>=2.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "psutil>=6",
+]
+
+[tool.uv]
+# Blackwell (RTX 5070, sm_120) necesita CUDA 12.8+; el índice por defecto de PyPI trae torch solo CPU en Windows.
+package = false
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+[tool.pytest.ini_options]
+markers = ["model: usa el modelo Laya real (se salta si no está en caché)"]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,323 @@
+.view-detail {
+  padding-top: 34px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.detail-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.detail-title h1 {
+  margin-top: 7px;
+  font-size: 24px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--text-2);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.meta {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.status-label {
+  flex: none;
+  margin-left: auto;
+  padding-top: 5px;
+  color: var(--status-color, var(--unknown));
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 14px;
+}
+
+.detail-live {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.btn.destructive {
+  background: color-mix(in srgb, var(--blocked) 14%, transparent);
+  border-color: color-mix(in srgb, var(--blocked) 45%, transparent);
+  color: var(--blocked);
+}
+
+.btn.destructive:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--blocked) 22%, transparent);
+  border-color: color-mix(in srgb, var(--blocked) 65%, transparent);
+}
+
+.stop-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--blocked) 35%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--blocked) 6%, transparent);
+  color: var(--blocked);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.stop-confirm-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+#stop-result.is-error {
+  color: var(--blocked);
+}
+
+#stop-result.is-ok {
+  color: var(--done);
+}
+
+/* -- composer ------------------------------------------------------------ */
+
+.composer {
+  margin-bottom: 16px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.composer.is-ready {
+  background:
+    color-mix(in srgb, var(--accent) 5%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
+.composer-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.composer-head .field-label {
+  margin: 0;
+}
+
+.composer-head .hint {
+  margin: 0;
+  text-align: right;
+}
+
+/* «Controles» and «Salida del agente» stay folded until the operator asks; the ▸ turns when open. */
+.composer-controls > summary,
+.output-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.composer-controls > summary::-webkit-details-marker,
+.output-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.composer-controls > summary {
+  width: fit-content;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.composer-controls[open] > summary {
+  margin-bottom: 10px;
+}
+
+.composer-controls > summary::after,
+.output-panel > summary::after {
+  color: var(--muted);
+  content: "▸";
+  transition: transform 150ms ease;
+}
+
+.composer-controls[open] > summary::after,
+.output-panel[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.composer-controls > summary:focus-visible,
+.output-panel > summary:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* The state dot is not read by the operator: the state word stands beside it. */
+.detail-project > .status-dot {
+  display: none;
+}
+
+#respond-text {
+  width: 100%;
+  min-height: 82px;
+  padding: 11px 13px;
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  caret-color: var(--accent-text);
+}
+
+#respond-text::placeholder {
+  color: var(--muted);
+}
+
+#respond-text:focus-visible {
+  outline: none;
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+#respond-text:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.quick-keys {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.composer .btn:disabled {
+  opacity: 0.45;
+}
+
+#composer-result.is-ok {
+  color: var(--done);
+}
+
+#composer-result.is-error {
+  color: var(--blocked);
+}
+
+/* -- output -------------------------------------------------------------- */
+
+.output-panel {
+  overflow: hidden;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.output-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.output-head span:last-child {
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.output-panel pre {
+  margin: 0;
+  padding: 16px;
+  max-height: calc(100vh - 430px);
+  min-height: 180px;
+  overflow: auto;
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: 12.3px;
+  line-height: 1.58;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.output-panel pre.is-loading {
+  color: var(--muted);
+}
+
+@media (max-width: 680px) {
+  .detail-header {
+    flex-wrap: wrap;
+  }
+
+  .status-label {
+    margin-left: 54px;
+  }
+
+  .composer-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .composer-head .hint {
+    text-align: left;
+  }
+}

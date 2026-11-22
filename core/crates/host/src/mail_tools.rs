@@ -1,0 +1,558 @@
+//! The `mail.*` tools a chat turn may call (MAIL1D §3): list the accounts, create,
+//! update and read a draft, attach a file to a draft; and read the inbox (MAIL-LECTURA):
+//! list a folder, read one received message, triage a folder (`mail_triage`). Each call
+//! refreshes the token of the account it names, saves the rotated tokens and then talks
+//! to Graph. Nothing here sends mail or changes a received message: the surface has no
+//! send, and the ledger keeps what this host made, so a draft is only ever changed by the
+//! host that made it.
+
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+
+use excubia_chat::{ChatStore, SeatActor, ToolError, ToolErrorKind, ToolReply};
+use excubia_crafting::{safe_name, Document, ReadOpts};
+use excubia_mail::attach::{attach_chat_file, attach_file, AttachContext};
+use excubia_mail::auth;
+use excubia_mail::{
+    Account, AccountStore, ActionLog, AuditLog, DraftInput, DraftMeta, GraphClient, HttpTransport,
+    Ledger, MailError, PathPolicy, ReadRecord, Redacted, RulesClient, DEFAULT_MAX_ATTACHMENT_BYTES,
+    MAX_READ_BYTES,
+};
+use excubia_seat::{
+    AttachSource, AttachmentRead, DraftFields, DraftRef, InboxQuery, MailAttach, MailCall,
+    MessageRef,
+};
+use serde_json::{json, Value};
+
+use crate::attachment_guard::{sniff, Quarantine};
+use crate::chat_file;
+use crate::craft::Craft;
+use crate::doc_tools::{kind_label, read_document};
+use crate::mail_approval::ChatApprovalGate;
+use crate::mail_cli::ACCOUNTS_DIR;
+use crate::mail_draft_input::{attachment_warning, input, HtmlOrigin};
+use crate::mail_move_pick::ambiguous_reply;
+use crate::mail_read;
+use crate::mail_routes::{message_of, parts, FALLBACK_MESSAGE};
+use crate::mail_send::MailSends;
+use crate::mail_shadow::Shadow;
+use crate::mail_style::{self, PROFILE_FILE, WORD_LIST_FILE};
+use crate::team_errors::tool_chat_error;
+
+/// The ledger of what this host created, in the data dir and never in memory:
+/// ownership must survive a restart, or a draft could no longer be changed.
+pub const LEDGER_FILE: &str = "mail/ledger.sqlite";
+/// Where the private copy of an approved file waits for its upload.
+pub const SCRATCH_DIR: &str = "mail/scratch";
+/// The folder where `mail.attachment_read` keeps one copy per read, removed when the read ends.
+pub const QUARANTINE_DIR: &str = "mail/quarantine";
+
+/// Opens the ledger the drafts and the sends share.
+pub fn open_ledger(data_dir: &Path) -> Result<Ledger, MailError> {
+    let ledger_path = data_dir.join(LEDGER_FILE);
+    if let Some(parent) = ledger_path.parent() {
+        create_dir(parent)?;
+    }
+    Ledger::open(&ledger_path)
+}
+
+pub struct MailTools {
+    transport: Arc<dyn HttpTransport>,
+    pub(crate) store: Arc<AccountStore>,
+    client_id: Option<String>,
+    ledger: Ledger,
+    pub(crate) audit: AuditLog,
+    /// The moves the host made, for `mail.undo`. Beside the audit log, in the accounts folder.
+    pub(crate) actions: ActionLog,
+    pub(crate) policy: PathPolicy,
+    pub(crate) scratch: PathBuf,
+    pub(crate) chat: Arc<ChatStore>,
+    workspaces_root: PathBuf,
+    pub(crate) sends: MailSends,
+    /// The operator's word list the style check reads on each draft (`estilo/tecnicas.txt`).
+    word_list: PathBuf,
+    /// The operator's style rules, read by `style.get` (`estilo/estilo.md`).
+    pub(crate) profile: PathBuf,
+    /// Held while approved writing rules are applied, so one line is never written twice.
+    pub(crate) style_lock: Mutex<()>,
+    /// The triage sidecar in shadow mode. Off unless the host was started with `--mail-sidecar`.
+    pub(crate) shadow: Option<Arc<Shadow>>,
+    /// The document CLIs `mail.attachment_read` reads with. Without them the tool is unavailable.
+    pub(crate) craft: Option<Arc<Craft>>,
+    pub(crate) quarantine: PathBuf,
+}
+
+impl MailTools {
+    /// The tools of a host, with the account store and registration of
+    /// `mail_routes`. `workspaces_root` is the folder a file may be attached
+    /// from without asking. `sends` is the host's send service: a change to a
+    /// draft settles its open question there.
+    pub fn open(
+        data_dir: &Path,
+        chat: Arc<ChatStore>,
+        workspaces_root: &Path,
+        sends: MailSends,
+    ) -> Result<Self, MailError> {
+        let (store, client_id, transport) = parts(data_dir)?;
+        Self::new(
+            Arc::new(transport),
+            Arc::new(store),
+            client_id,
+            data_dir,
+            chat,
+            workspaces_root,
+            sends,
+        )
+    }
+
+    pub fn new(
+        transport: Arc<dyn HttpTransport>,
+        store: Arc<AccountStore>,
+        client_id: Option<String>,
+        data_dir: &Path,
+        chat: Arc<ChatStore>,
+        workspaces_root: &Path,
+        sends: MailSends,
+    ) -> Result<Self, MailError> {
+        let scratch = data_dir.join(SCRATCH_DIR);
+        create_dir(&scratch)?;
+        create_dir(workspaces_root)?;
+        mail_style::seed_word_list(data_dir)?;
+        mail_style::seed_profile(data_dir)?;
+        let tools = Self {
+            transport,
+            store,
+            client_id,
+            ledger: sends.ledger(),
+            audit: AuditLog::new(&data_dir.join(ACCOUNTS_DIR)),
+            actions: ActionLog::new(&data_dir.join(ACCOUNTS_DIR)),
+            policy: PathPolicy::new(workspaces_root, DEFAULT_MAX_ATTACHMENT_BYTES)?,
+            scratch,
+            chat,
+            workspaces_root: workspaces_root.to_path_buf(),
+            sends,
+            word_list: data_dir.join(WORD_LIST_FILE),
+            profile: data_dir.join(PROFILE_FILE),
+            style_lock: Mutex::new(()),
+            shadow: None,
+            craft: None,
+            quarantine: data_dir.join(QUARANTINE_DIR),
+        };
+        // A line approved before the host stopped is written now, before Alfred drafts again.
+        tools.apply_approved_rules();
+        Ok(tools)
+    }
+
+    /// Adds the triage sidecar in shadow mode: each triage then also feeds the shadow log.
+    pub fn with_shadow(mut self, shadow: Arc<Shadow>) -> Self {
+        self.shadow = Some(shadow);
+        self
+    }
+
+    /// Adds the document CLIs, which `mail.attachment_read` needs.
+    pub fn with_craft(mut self, craft: Arc<Craft>) -> Self {
+        self.craft = Some(craft);
+        self
+    }
+
+    /// `style.get`: the operator's writing rules. Read-only, no network.
+    pub fn style(&self) -> Result<ToolReply, ToolError> {
+        self.apply_approved_rules();
+        mail_style::read_profile(&self.profile)
+    }
+
+    /// Runs one `mail.*` call for `actor`. Failures carry the stable code and a
+    /// fixed message, never the address, path or token behind them.
+    pub async fn call(&self, actor: &SeatActor, call: MailCall) -> Result<ToolReply, ToolError> {
+        match &call {
+            MailCall::DraftCreate(fields) => {
+                self.check_recipients(actor, fields)?;
+                mail_style::check_draft(&self.word_list, fields)?;
+            }
+            MailCall::DraftUpdate(update) => {
+                self.check_recipients(actor, &update.fields)?;
+                mail_style::check_draft(&self.word_list, &update.fields)?;
+            }
+            _ => {}
+        }
+        let outcome = match call {
+            MailCall::Accounts => self.accounts(),
+            MailCall::DraftCreate(fields) => self.create(actor, &fields).await,
+            MailCall::DraftUpdate(update) => {
+                self.update(actor, &update.draft_id, &update.fields).await
+            }
+            MailCall::DraftGet(reference) => self.get(&reference).await,
+            MailCall::AttachFile(file) => self.attach(actor, &file).await,
+            MailCall::InboxList(query) => self.inbox(&query).await,
+            MailCall::MessageGet(reference) => self.message(&reference).await,
+            MailCall::Triage(query) => self.triage(&query).await,
+            MailCall::Folders(query) => self.folders(&query).await,
+            MailCall::Organize(call) => self.organize(actor, call).await,
+            MailCall::RuleList(query) => self.rule_list(&query).await,
+            MailCall::RuleCreate(rule) => self.rule_create(actor, &rule).await,
+            MailCall::AttachmentRead(read) => return self.attachment(&read).await,
+        };
+        outcome
+            .map(|result| ToolReply { result })
+            .map_err(tool_error)
+    }
+
+    /// A draft reaches only addresses of the address book, or ones the user wrote
+    /// literally in this conversation (F3B), which the book then keeps. The check runs
+    /// before a token is refreshed or Graph is called, and the refusal names no address.
+    fn check_recipients(&self, actor: &SeatActor, fields: &DraftFields) -> Result<(), ToolError> {
+        let recipients: Vec<String> = fields.to.iter().chain(&fields.cc).cloned().collect();
+        let refused = self
+            .chat
+            .admit_recipients(actor, &recipients)
+            .map_err(tool_chat_error)?;
+        if refused.is_empty() {
+            return Ok(());
+        }
+        Err(ToolError::invalid(
+            "unknown_recipient",
+            "to",
+            "an address is not in the address book and the user did not write it in this conversation: find the contact with contact.find, or ask the user and save it with contact.save",
+        ))
+    }
+
+    fn accounts(&self) -> Result<Value, MailError> {
+        let accounts = self.store.all()?;
+        let listed: Vec<Value> = accounts
+            .iter()
+            .map(|account| {
+                json!({
+                    "label": account.label,
+                    "tenant": account.tenant.as_str(),
+                    "upn": account.upn,
+                })
+            })
+            .collect();
+        Ok(json!({ "ok": true, "accounts": listed }))
+    }
+
+    async fn create(&self, actor: &SeatActor, fields: &DraftFields) -> Result<Value, MailError> {
+        let draft = input(fields, HtmlOrigin::Owner)?;
+        let access = self.session(&fields.account).await?;
+        let client = self.client(&access, &fields.account);
+        let meta = client.create_draft(&draft).await?;
+        self.show(actor, &fields.account, &meta.id, &draft)?;
+        Ok(draft_reply(&meta, &fields.body))
+    }
+
+    async fn update(
+        &self,
+        actor: &SeatActor,
+        draft_id: &str,
+        fields: &DraftFields,
+    ) -> Result<Value, MailError> {
+        let draft = input(fields, HtmlOrigin::Owner)?;
+        let access = self.session(&fields.account).await?;
+        let client = self.client(&access, &fields.account);
+        let meta = client.update_draft(draft_id, &draft).await?;
+        self.sends.draft_changed(&fields.account, draft_id)?;
+        self.show(actor, &fields.account, draft_id, &draft)?;
+        Ok(draft_reply(&meta, &fields.body))
+    }
+
+    /// The chat card of a draft the turn wrote (MAILUX-HOST §A). A turn outside a
+    /// conversation has no card to write.
+    fn show(
+        &self,
+        actor: &SeatActor,
+        account: &str,
+        draft_id: &str,
+        draft: &DraftInput,
+    ) -> Result<(), MailError> {
+        let conversation =
+            (!actor.conversation_id.is_empty()).then_some(actor.conversation_id.as_str());
+        self.sends.show_draft(
+            conversation,
+            account,
+            draft_id,
+            &draft.to,
+            &draft.subject,
+            &draft.body,
+        )
+    }
+
+    async fn get(&self, reference: &DraftRef) -> Result<Value, MailError> {
+        let access = self.session(&reference.account).await?;
+        let client = self.client(&access, &reference.account);
+        let meta = client.get_draft_meta(&reference.draft_id).await?;
+        let (body, body_truncated) = client.get_draft_body(&reference.draft_id).await?;
+        let mut reply = draft_json(&meta);
+        reply["draft"]["body"] = json!(body);
+        reply["draft"]["body_truncated"] = json!(body_truncated);
+        reply["untrusted_content"] = json!(true);
+        Ok(reply)
+    }
+
+    async fn attach(&self, actor: &SeatActor, file: &MailAttach) -> Result<Value, MailError> {
+        let access = self.session(&file.account).await?;
+        let client = self.client(&access, &file.account);
+        let gate = self
+            .gate(&actor.conversation_id)
+            .for_draft(&file.account, &file.draft_id);
+        let ctx = AttachContext {
+            client: &client,
+            account: &file.account,
+            policy: &self.policy,
+            approval: &gate,
+            audit: &self.audit,
+            scratch: &self.scratch,
+        };
+        let attached = match &file.source {
+            AttachSource::Path(path) => {
+                match attach_file(&ctx, &file.draft_id, Path::new(path)).await {
+                    Err(MailError::ApprovalPending) if gate.asked().is_some() => {
+                        return Ok(json!({
+                            "ok": true,
+                            "status": "pending_approval",
+                            "approval_id": gate.asked(),
+                            "message": "The file is outside the workspace. The draft stays as it is; the host attaches the file when the operator approves the card, and tells this conversation.",
+                        }));
+                    }
+                    attached => attached?,
+                }
+            }
+            AttachSource::Chat(id) => {
+                let stored = chat_file::resolve(&self.chat, &actor.conversation_id, id)?;
+                attach_chat_file(&ctx, &file.draft_id, &stored.path, &stored.name).await?
+            }
+        };
+        self.sends.draft_changed(&file.account, &file.draft_id)?;
+        Ok(json!({
+            "ok": true,
+            "attachment": {
+                "id": attached.attachment_id,
+                "name": attached.name,
+                "size": attached.size,
+                "sha256": attached.sha256,
+            },
+        }))
+    }
+
+    /// One GET for the listing, then the read is audited by account and tool only.
+    async fn inbox(&self, query: &InboxQuery) -> Result<Value, MailError> {
+        let access = self.session(&query.account).await?;
+        let client = self.client(&access, &query.account);
+        let items = client
+            .list_inbox(
+                query.folder.graph_name(),
+                query.limit,
+                query.unread_only,
+                query.from.as_deref(),
+            )
+            .await?;
+        self.audit
+            .append(&ReadRecord::new(&query.account, "mail.inbox_list", None))?;
+        Ok(mail_read::inbox_reply(&items))
+    }
+
+    /// Reads one received message and its checks, then audits the read by its id.
+    async fn message(&self, reference: &MessageRef) -> Result<Value, MailError> {
+        let access = self.session(&reference.account).await?;
+        let client = self.client(&access, &reference.account);
+        let message = client.read_message(&reference.message_id).await?;
+        self.audit.append(&ReadRecord::new(
+            &reference.account,
+            "mail.message_get",
+            Some(&reference.message_id),
+        ))?;
+        Ok(mail_read::message_reply(&message))
+    }
+
+    /// `mail.attachment_read` (TASK-ATT1): the text of one file attachment of a received
+    /// message. The bytes pass the barriers of `attachment_guard`, are read from a copy in
+    /// the quarantine that is removed when this call returns, and the read is audited by
+    /// attachment id only.
+    async fn attachment(&self, read: &AttachmentRead) -> Result<ToolReply, ToolError> {
+        let craft = self
+            .craft
+            .as_ref()
+            .ok_or_else(|| tool_unavailable("No se pudo leer el documento"))?;
+        let access = self.session(&read.account).await.map_err(tool_error)?;
+        let client = self.client(&access, &read.account);
+        let file = client
+            .fetch_attachment(&read.message_id, &read.attachment_id, MAX_READ_BYTES)
+            .await
+            .map_err(tool_error)?;
+        let kind = sniff(&file.bytes, &file.name)?;
+        let name = safe_name(&file.name, kind.extension());
+        let quarantine = Quarantine::open(&self.quarantine)
+            .map_err(|_| tool_unavailable("No se pudo leer el documento"))?;
+        let path = quarantine
+            .write(&name, &file.bytes)
+            .map_err(|_| tool_unavailable("No se pudo leer el documento"))?;
+        let doc = Document {
+            path,
+            name: name.clone(),
+            mime: kind.mime().to_string(),
+        };
+        let opts = ReadOpts {
+            sheet: read.sheet.clone(),
+            range: read.range.clone(),
+            page: read.page,
+        };
+        let out = read_document(craft, doc, opts).await?;
+        // The copy goes now, with its folder: the read is over.
+        drop(quarantine);
+        self.audit
+            .append(&ReadRecord::new(
+                "",
+                "mail.attachment_read",
+                Some(&read.attachment_id),
+            ))
+            .map_err(|_| tool_unavailable("No se pudo guardar la lectura en el registro"))?;
+        Ok(ToolReply {
+            result: json!({
+                "ok": true,
+                "untrusted_content": true,
+                "from_mail": true,
+                "name": name,
+                "kind": kind_label(kind),
+                "text": out.text,
+                "truncated": out.truncated,
+                "parts": out.pages_or_sheets,
+            }),
+        })
+    }
+
+    /// Refreshes the account's token for this call and saves the rotated pair,
+    /// so the next call starts from the newest refresh token.
+    pub(crate) async fn session(&self, label: &str) -> Result<String, MailError> {
+        let client_id = self.client_id.as_deref().ok_or(MailError::NotConfigured)?;
+        let account = self.store.load(label)?.ok_or_else(|| {
+            MailError::InvalidInput(Redacted::new("no account with that label is signed in"))
+        })?;
+        let refresh = account
+            .tokens
+            .refresh_token()
+            .ok_or(MailError::AuthRequired)?;
+        let tokens =
+            auth::refresh(self.transport.as_ref(), client_id, account.tenant, refresh).await?;
+        let access = tokens.access_token().to_owned();
+        self.store.save(&account.renewed(tokens))?;
+        Ok(access)
+    }
+
+    /// Refreshes the rules consent of the account and saves the rotated pair. The
+    /// login and send consents are kept as they were.
+    pub(crate) async fn rules_session(&self, label: &str) -> Result<Account, MailError> {
+        let client_id = self.client_id.as_deref().ok_or(MailError::NotConfigured)?;
+        let account = self.store.load(label)?.ok_or_else(|| {
+            MailError::InvalidInput(Redacted::new("no account with that label is signed in"))
+        })?;
+        let rules = account.rules.as_ref().ok_or(MailError::RulesNotEnabled)?;
+        let refresh = rules.refresh_token().ok_or(MailError::AuthRequired)?;
+        let tokens =
+            auth::refresh_rules(self.transport.as_ref(), client_id, account.tenant, refresh)
+                .await?;
+        let renewed = account.with_rules(tokens);
+        self.store.save(&renewed)?;
+        Ok(renewed)
+    }
+
+    /// The rules primitives over this host's transport, bound to `account` and its
+    /// rules consent.
+    pub(crate) fn rules_client<'a>(
+        &'a self,
+        account: &'a Account,
+    ) -> Result<RulesClient<'a>, MailError> {
+        RulesClient::new(self.transport.as_ref(), account)
+    }
+
+    /// The ledger this host's drafts are recorded in. The send service shares it,
+    /// so a draft's owner and its sends are read from the same rows.
+    pub fn ledger(&self) -> Ledger {
+        self.ledger.clone()
+    }
+
+    pub(crate) fn client<'a>(&'a self, access: &'a str, account: &'a str) -> GraphClient<'a> {
+        GraphClient::new(self.transport.as_ref(), access, &self.ledger, account)
+    }
+
+    /// The operator's question for a file outside the workspace, asked in the
+    /// conversation of the turn that wants it.
+    fn gate(&self, conversation_id: &str) -> ChatApprovalGate<'_> {
+        let gate = ChatApprovalGate::new(
+            self.chat.as_ref(),
+            self.workspaces_root.display().to_string(),
+        );
+        if conversation_id.is_empty() {
+            gate
+        } else {
+            gate.in_conversation(conversation_id)
+        }
+    }
+}
+
+fn tool_unavailable(message: &str) -> ToolError {
+    ToolError {
+        kind: ToolErrorKind::Unavailable,
+        code: "tool_failed",
+        field: None,
+        message: message.to_string(),
+    }
+}
+
+fn create_dir(path: &Path) -> Result<(), MailError> {
+    std::fs::create_dir_all(path)
+        .map_err(|error| MailError::Store(Redacted::new(error.to_string())))
+}
+
+/// The reply of a draft create or update: the metadata, plus a warning when the body
+/// promises a file the draft does not carry.
+fn draft_reply(meta: &DraftMeta, body: &str) -> Value {
+    let mut reply = draft_json(meta);
+    if let Some(warning) = attachment_warning(body, &meta.attachment_names) {
+        reply["warnings"] = json!([warning]);
+    }
+    reply
+}
+
+/// The metadata the tools return: no body, the draft's own recipients and the
+/// names of its attachments.
+fn draft_json(meta: &DraftMeta) -> Value {
+    json!({
+        "ok": true,
+        "draft": {
+            "id": meta.id,
+            "subject": meta.subject,
+            "to": meta.to,
+            "cc": meta.cc,
+            "is_draft": meta.is_draft,
+            "attachments": meta.attachment_names,
+        },
+    })
+}
+
+/// Refusals the caller can fix by changing its request; everything else is the
+/// host or Graph failing.
+pub(crate) fn tool_error(error: MailError) -> ToolError {
+    let code = error.code();
+    if !error.is_refusal() {
+        // The tool message is fixed on purpose; the operator still needs the real cause in the host log.
+        eprintln!("mail tool failure {code}: {error}");
+    }
+    let kind = if error.is_refusal() {
+        ToolErrorKind::Invalid
+    } else {
+        ToolErrorKind::Unavailable
+    };
+    // The fixed fallback carries the stable code (never the cause), so a failure can be told apart.
+    let fixed = message_of(code);
+    let message = if fixed == FALLBACK_MESSAGE {
+        format!("{fixed} ({code})")
+    } else {
+        fixed.to_owned()
+    };
+    let (field, message) = ambiguous_reply(&error).unwrap_or((None, message));
+    ToolError {
+        kind,
+        code,
+        field,
+        message,
+    }
+}

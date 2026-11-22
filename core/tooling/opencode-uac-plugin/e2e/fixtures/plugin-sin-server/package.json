@@ -1,0 +1,5 @@
+{
+  "name": "plugin-sin-server-control",
+  "private": true,
+  "type": "module"
+}

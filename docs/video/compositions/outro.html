@@ -1,0 +1,93 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: Inter, sans-serif;
+      color: #f3e3c0;
+    }
+    #outro-flash {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(900px 600px at 50% 40%, rgba(242, 169, 59, 0.5), rgba(242, 169, 59, 0) 70%);
+    }
+    #outro-brand {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+    #outro-icon {
+      width: 150px;
+      height: 150px;
+    }
+    #outro-name {
+      font-size: 128px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+    }
+    #outro-tag {
+      margin-top: 28px;
+      font-size: 56px;
+      font-weight: 700;
+    }
+    #outro-chips {
+      display: flex;
+      gap: 24px;
+      margin-top: 44px;
+    }
+    .outro-chip {
+      padding: 14px 30px;
+      border: 2px solid #f2a93b;
+      border-radius: 999px;
+      font-size: 34px;
+      font-weight: 700;
+      color: #f2a93b;
+    }
+    #outro-cmd {
+      margin-top: 56px;
+      padding: 22px 24px;
+      border: 2px solid #2a3b66;
+      border-radius: 14px;
+      background: #14213d;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 28px;
+      white-space: nowrap;
+    }
+    #outro-url {
+      margin-top: 30px;
+      font-size: 38px;
+      color: #a9b6d3;
+    }
+  </style>
+  <div id="root" data-composition-id="outro" data-width="1920" data-height="1080">
+    <div id="outro-flash"></div>
+    <div id="outro-brand">
+      <img id="outro-icon" src="assets/img/icon.svg" alt="" />
+      <div id="outro-name">EXCUBIA</div>
+    </div>
+    <div id="outro-tag">Tus agentes trabajan. Tú mandas.</div>
+    <div id="outro-chips">
+      <div class="outro-chip" id="outro-chip-1">Núcleo en tu PC</div>
+      <div class="outro-chip" id="outro-chip-2">App Android</div>
+      <div class="outro-chip" id="outro-chip-3">App de escritorio</div>
+    </div>
+    <div id="outro-cmd">irm https://raw.githubusercontent.com/maxiusofmaximus/excubia/main/desktop/scripts/install.ps1 | iex</div>
+    <div id="outro-url">github.com/maxiusofmaximus/excubia</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#outro-flash", { opacity: 1, scale: 0.6 }, { opacity: 0, scale: 1.6, duration: 1.2, ease: "power2.out" }, 0);
+    tl.fromTo("#outro-brand", { opacity: 0, scale: 1.35 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power4.out" }, 0);
+    tl.fromTo("#outro-tag", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.7);
+    tl.fromTo(".outro-chip", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.8)", stagger: 0.18 }, 1.4);
+    tl.fromTo("#outro-cmd", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 2.5);
+    tl.fromTo("#outro-url", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 3.1);
+    tl.fromTo("#outro-brand", { y: 0 }, { y: -8, duration: 3.5, ease: "sine.inOut" }, 3.4);
+    tl.fromTo("#root", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "power2.in", immediateRender: false }, 6.95);
+    window.__timelines["outro"] = tl;
+  </script>
+</template>

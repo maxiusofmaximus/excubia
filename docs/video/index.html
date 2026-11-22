@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #0b1426;
+        --surface: #14213d;
+        --line: #2a3b66;
+        --ink: #f3e3c0;
+        --muted: #a9b6d3;
+        --brass: #f2a93b;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+        font-family: Inter, sans-serif;
+        color: var(--ink);
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+      }
+      #ground {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(1200px 800px at 50% 38%, #1a2b52 0%, #0b1426 70%);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="32.5" data-width="1920" data-height="1080">
+      <div id="ground"></div>
+
+      <div id="intro" data-composition-id="intro" data-composition-src="compositions/intro.html" data-start="0" data-duration="5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="chat" data-composition-id="chat" data-composition-src="compositions/chat.html" data-start="5" data-duration="7.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="team" data-composition-id="team" data-composition-src="compositions/team.html" data-start="12.5" data-duration="7.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="approval" data-composition-id="approval" data-composition-src="compositions/approval.html" data-start="20" data-duration="5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="outro" data-composition-id="outro" data-composition-src="compositions/outro.html" data-start="25" data-duration="7.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- Sonido: los picos de los efectos caen un fotograma después de su imagen. -->
+      <audio id="music" class="clip" src="assets/audio/music.mp3" data-start="0" data-duration="32.5" data-track-index="2" data-volume="0.8" data-fade-out="1.2"></audio>
+      <audio id="sfx-cut-1" class="clip" src="assets/audio/whoosh-a.mp3" data-start="4.68" data-duration="0.7" data-track-index="3" data-volume="0.45"></audio>
+      <audio id="sfx-cut-2" class="clip" src="assets/audio/whoosh-b.mp3" data-start="12.18" data-duration="0.7" data-track-index="3" data-volume="0.45"></audio>
+      <audio id="sfx-cut-3" class="clip" src="assets/audio/whoosh-a.mp3" data-start="19.68" data-duration="0.7" data-track-index="3" data-volume="0.45"></audio>
+      <audio id="sfx-pop" class="clip" src="assets/audio/pop.mp3" data-start="22.03" data-duration="0.09" data-track-index="3" data-volume="0.6"></audio>
+      <audio id="sfx-impact" class="clip" src="assets/audio/impact.mp3" data-start="23.83" data-duration="2.5" data-track-index="4" data-volume="0.6"></audio>
+    </div>
+    <script>
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

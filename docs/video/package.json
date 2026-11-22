@@ -1,0 +1,11 @@
+{
+  "name": "video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm dlx hyperframes@0.9.35 preview",
+    "check": "pnpm dlx hyperframes@0.9.35 check",
+    "render": "pnpm dlx hyperframes@0.9.35 render",
+    "publish": "pnpm dlx hyperframes@0.9.35 publish"
+  }
+}

@@ -1,0 +1,81 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: Inter, sans-serif;
+      color: #f3e3c0;
+    }
+    #team-copy {
+      position: absolute;
+      left: 150px;
+      top: 300px;
+      width: 500px;
+    }
+    #team-kicker {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: #f2a93b;
+    }
+    #team-title {
+      margin-top: 22px;
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 1.08;
+    }
+    #team-sub {
+      margin-top: 30px;
+      font-size: 36px;
+      line-height: 1.35;
+      color: #a9b6d3;
+    }
+    /* Capturas reales de la app de escritorio (1180 × 780), una sobre otra. */
+    #team-window {
+      position: absolute;
+      left: 700px;
+      top: 188px;
+      width: 1064px;
+      height: 705px;
+      border: 2px solid #2a3b66;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55);
+    }
+    #team-shots,
+    #team-shot-a,
+    #team-shot-b {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1060px;
+      height: 701px;
+    }
+  </style>
+  <div id="root" data-composition-id="team" data-width="1920" data-height="1080">
+    <div id="team-copy">
+      <div id="team-kicker">EL EQUIPO</div>
+      <div id="team-title">Tus agentes, en tu PC</div>
+      <div id="team-sub">Los agentes de línea de comandos que ya tienes instalados, trabajando en tus carpetas.</div>
+    </div>
+    <div id="team-window">
+      <div id="team-shots">
+        <img id="team-shot-a" src="assets/img/equipo.png" alt="" />
+        <img id="team-shot-b" src="assets/img/nueva-conversacion.png" alt="" />
+      </div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#root", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0);
+    tl.fromTo("#team-window", { x: 160, opacity: 0 }, { x: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 0.05);
+    tl.fromTo("#team-kicker", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, 0.4);
+    tl.fromTo("#team-title", { opacity: 0, x: -40, filter: "blur(8px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out" }, 0.6);
+    tl.fromTo("#team-sub", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.3);
+    tl.fromTo("#team-shot-b", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 3.4);
+    // Acercamiento al diálogo real, dentro del marco.
+    tl.fromTo("#team-shots", { scale: 1 }, { scale: 1.32, duration: 1.4, ease: "power2.inOut" }, 3.7);
+    tl.fromTo("#root", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 7.15);
+    window.__timelines["team"] = tl;
+  </script>
+</template>

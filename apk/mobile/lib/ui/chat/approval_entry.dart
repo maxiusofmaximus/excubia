@@ -1,0 +1,66 @@
+import 'package:flutter/material.dart';
+import 'package:excubia/src/rust/api/chat/model_team.dart';
+
+import '../../core/state/approvals_controller.dart';
+import '../theme.dart';
+import 'approval_settings_screen.dart';
+
+/// Opens Ajustes → Aprobaciones from the chat header.
+void openApprovalSettings(
+  BuildContext context, {
+  required ApprovalsController approvals,
+  required String? conversationId,
+  required List<ChatProject> projects,
+  ChatSeat? alfred,
+}) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => ApprovalSettingsScreen(
+        approvals: approvals,
+        conversationId: conversationId,
+        projects: projects,
+        alfred: alfred,
+      ),
+    ),
+  );
+}
+
+/// The shield of the chat header, with the approvals waiting for this user.
+class ApprovalsHeaderButton extends StatelessWidget {
+  const ApprovalsHeaderButton({
+    super.key,
+    required this.pending,
+    required this.onPressed,
+  });
+
+  final int pending;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    // Hidden, not removed: with nothing waiting the header keeps no empty slot.
+    if (pending <= 0) return const SizedBox.shrink();
+    // The count is in the label, so a screen reader says «1 permiso pendiente», not «1».
+    final label = pending == 1
+        ? '1 permiso pendiente'
+        : '$pending permisos pendientes';
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onPressed,
+      excludeSemantics: true,
+      child: SizedBox(
+        width: 48,
+        child: IconButton(
+          tooltip: label,
+          onPressed: onPressed,
+          icon: Badge(
+            label: Text('$pending'),
+            child: const Icon(Icons.shield_outlined),
+          ),
+          color: context.colors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
