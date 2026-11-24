@@ -21,32 +21,42 @@ if (-not $CoreDir) {
 if (-not (Test-Path (Join-Path $CoreDir "Cargo.toml"))) {
   throw "no encuentro el worktree del núcleo en $CoreDir"
 }
-
+$CoreDir = (Resolve-Path $CoreDir).Path
 $targetDir = Join-Path $desktop "target\host"
 $triple = (& rustc -vV | Select-String '^host: ').ToString().Split(' ')[1].Trim()
 if (-not $triple) { throw "no pude leer el target triple de rustc" }
 
 $env:CARGO_BUILD_JOBS = "4"
-Write-Output "compilando excubia-host + excubia-mcp + excubia-media-worker ($Profile) desde $CoreDir"
+Write-Output "compilando excubia-host + excubia-mcp + excubia-media-worker ($Profile, $triple) desde $CoreDir"
 $buildArgs = @()
 if ($Profile -eq "release") { $buildArgs += "--release" }
-& cargo build @buildArgs -p excubia-host -p excubia-seat -p excubia-media --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
-if ($LASTEXITCODE -ne 0) { throw "cargo build falló con $LASTEXITCODE" }
+# Cargo lee .cargo/config.toml desde el directorio de trabajo: compilar dentro de
+# desktop/ hace que el núcleo hermano use el mismo CRT estático que la app, desde
+# cualquier carpeta. Push/Pop limita el cambio de directorio a este bloque.
+Push-Location $desktop
+try {
+  & cargo build @buildArgs --target $triple -p excubia-host -p excubia-seat -p excubia-media --bins --manifest-path (Join-Path $CoreDir "Cargo.toml") --target-dir $targetDir
+  $cargoExit = $LASTEXITCODE
+} finally {
+  Pop-Location
+}
+if ($cargoExit -ne 0) { throw "cargo build falló con $cargoExit" }
 
-$built = Join-Path $targetDir "$Profile\excubia-host.exe"
+$outDir = Join-Path $targetDir "$triple\$Profile"
+$built = Join-Path $outDir "excubia-host.exe"
 if (-not (Test-Path $built)) { throw "no se generó $built" }
 # Alfred drives the host through this shim; without it every chat send is
 # `409 seat_unavailable`.
-$mcp = Join-Path $targetDir "$Profile\excubia-mcp.exe"
+$mcp = Join-Path $outDir "excubia-mcp.exe"
 if (-not (Test-Path $mcp)) { throw "no se generó $mcp" }
 
 # Every image attachment is decoded in this child process, next to the host;
 # without it each upload fails with `500 internal error`.
-$worker = Join-Path $targetDir "$Profile\excubia-media-worker.exe"
+$worker = Join-Path $outDir "excubia-media-worker.exe"
 if (-not (Test-Path $worker)) { throw "no se generó $worker" }
 
 # The host refuses to start Alfred's seat without the approval hook next to it.
-$hook = Join-Path $targetDir "$Profile\excubia-uac-hook.exe"
+$hook = Join-Path $outDir "excubia-uac-hook.exe"
 if (-not (Test-Path $hook)) { throw "no se generó $hook" }
 
 $destDir = Join-Path $desktop "src-tauri\binaries"
@@ -73,8 +83,8 @@ Copy-Item (Join-Path $pluginSource "src") (Join-Path $pluginDest "src") -Recurse
 
 # `cargo build`/`cargo run` do not lay out externalBin: leave a copy next to
 # the app binaries so development runs find it too.
-foreach ($appProfile in @("debug", "release")) {
-  $appDir = Join-Path $desktop "target\$appProfile"
+# Dev runs (target\<profile>) and `tauri build --target` output (target\<triple>\<profile>).
+foreach ($appDir in @((Join-Path $desktop "target\debug"), (Join-Path $desktop "target\release"), (Join-Path $desktop "target\$triple\debug"), (Join-Path $desktop "target\$triple\release"))) {
   if (Test-Path $appDir) {
     Copy-Item $built (Join-Path $appDir "excubia-host-$triple.exe") -Force
     Copy-Item $mcp (Join-Path $appDir "excubia-mcp-$triple.exe") -Force

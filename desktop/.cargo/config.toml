@@ -1,0 +1,5 @@
+# CRT estático en Windows MSVC: el instalador no necesita VCRUNTIME140.dll.
+# Cargo busca esta config desde el directorio de trabajo, por eso
+# scripts/build-host.ps1 entra en desktop/ antes de compilar el núcleo hermano.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
