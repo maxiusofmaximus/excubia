@@ -1,13 +1,14 @@
 // The page viewer of a document, free of the DOM: which documents open it, the page and
 // its end, the six pages kept in memory, what each refusal of the host means and the keys.
 import { extensionOf } from "./chatattach-model.js";
+import { t } from "./i18n.js";
 
 export const PREVIEW_EXTENSIONS = ["xlsx", "docx", "pdf"];
 export const PREVIEW_CACHE_SIZE = 6;
 
-const TOOL_MISSING_TEXT = "Falta una herramienta de documentos en este PC.";
-const EMPTY_TEXT = "Este documento no tiene páginas que mostrar.";
-const OTHER_TEXT = "No se pudo mostrar la página. Reinténtalo.";
+const TOOL_MISSING_TEXT = t("preview.tool_missing");
+const EMPTY_TEXT = t("preview.empty");
+const OTHER_TEXT = t("preview.other");
 
 // Only the documents the host can draw a page of. Anything else keeps the card's old behaviour.
 export function opensPreview(name) {
@@ -41,7 +42,7 @@ export function markLastPage(state, requested) {
 }
 
 export function pageLabel(page) {
-  return `Página ${page}`;
+  return t("preview.page", { n: page });
 }
 
 // What a failed page request means. `end` marks the last page, `fallback` hands the file

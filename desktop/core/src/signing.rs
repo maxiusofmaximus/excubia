@@ -34,7 +34,12 @@ pub(crate) fn unix_seconds() -> Result<u64> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
-        .map_err(|error| CoreError::Protocol(format!("reloj del sistema: {error}")))
+        .map_err(|error| {
+            CoreError::Protocol(format!(
+                "{}: {error}",
+                crate::ui_lang::pick("reloj del sistema", "system clock"),
+            ))
+        })
 }
 
 /// Base64 of 16 random bytes, unique per request.

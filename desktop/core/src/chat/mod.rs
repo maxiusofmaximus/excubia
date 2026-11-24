@@ -52,6 +52,8 @@ pub use team_summary::*;
 
 use serde_json::{Map, Value};
 
+use crate::ui_lang::{self, pick};
+
 /// `Keep` must stay distinguishable from `Clear`: an absent `section_id`
 /// keeps the current section, an explicit `null` removes it.
 #[derive(Debug, Clone, Default)]
@@ -98,13 +100,21 @@ impl ConversationPatch {
 pub fn validate_client_id(client_id: &str) -> ChatResult<()> {
     if client_id.is_empty() || client_id.len() > 128 {
         return Err(ChatFailure::Invalid {
-            message: "El identificador del envío debe tener entre 1 y 128 caracteres.".to_string(),
+            message: pick(
+                "El identificador del envío debe tener entre 1 y 128 caracteres.",
+                "The send identifier must be between 1 and 128 characters.",
+            )
+            .to_string(),
             field: Some("client_id".to_string()),
         });
     }
     if client_id.chars().any(char::is_control) {
         return Err(ChatFailure::Invalid {
-            message: "El identificador del envío contiene caracteres no válidos.".to_string(),
+            message: pick(
+                "El identificador del envío contiene caracteres no válidos.",
+                "The send identifier contains characters that are not valid.",
+            )
+            .to_string(),
             field: Some("client_id".to_string()),
         });
     }
@@ -122,9 +132,34 @@ pub fn validate_prefixed_id(id: &str, prefix: &str, label: &str) -> ChatResult<(
     if valid {
         Ok(())
     } else {
+        let message = if ui_lang::current().is_en() {
+            format!("The {} identifier is not valid.", english_label(label))
+        } else {
+            format!("El identificador de {label} no es válido.")
+        };
         Err(ChatFailure::Invalid {
-            message: format!("El identificador de {label} no es válido."),
+            message,
             field: None,
         })
+    }
+}
+
+/// The English word for a label the callers pass in Spanish. An unknown label
+/// stays as it is.
+fn english_label(label: &str) -> &str {
+    match label {
+        "aprobación" => "approval",
+        "regla" => "rule",
+        "adjunto" => "attachment",
+        "conversación" => "conversation",
+        "delegación" => "delegation",
+        "contratación" => "hire",
+        "mensaje" => "message",
+        "plan" => "plan",
+        "proyecto" => "project",
+        "receta" => "recipe",
+        "tarea" => "task",
+        "sección" => "section",
+        other => other,
     }
 }

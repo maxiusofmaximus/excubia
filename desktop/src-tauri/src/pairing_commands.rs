@@ -4,6 +4,7 @@
 use std::sync::Arc;
 
 use excubia_desktop_core::validate_device_label;
+use excubia_desktop_core::ui_lang::pick;
 use excubia_desktop_core::{pair_through_link, PairLink};
 use serde::Serialize;
 use tauri::{AppHandle, State};
@@ -38,7 +39,7 @@ pub async fn pair_link(
 ) -> Result<PairOutcome, String> {
     let shared = state.inner().clone();
     let identity = shared.settings()?.identity;
-    let label = validate_device_label(&label).map_err(|error| error.to_string())?;
+    let label = validate_device_label(&label).map_err(|error| error.pairing_message())?;
     let link = PairLink::parse_now(&link).map_err(|error| error.pairing_message())?;
     let paired = pair_through_link(&link, &identity.public_key_b64(), &label)
         .await
@@ -78,14 +79,19 @@ pub async fn pair_link(
 pub async fn lan_pairing(state: State<'_, Shared>) -> Result<LanPairing, String> {
     let shared = state.inner().clone();
     if !lock(&shared.inner).config.lan_pairing {
-        return Err("Activa el emparejamiento por red local antes de mostrar el QR.".to_string());
+        return Err(pick(
+            "Activa el emparejamiento por red local antes de mostrar el QR.",
+            "Turn on local network pairing before showing the QR.",
+        )
+        .to_string());
     }
     let binds = lan::pairing_binds();
     if binds.is_empty() {
-        return Err(
-            "No encuentro una dirección de red local privada ni de Tailscale en este equipo."
-                .to_string(),
-        );
+        return Err(pick(
+            "No encuentro una dirección de red local privada ni de Tailscale en este equipo.",
+            "No private local network or Tailscale address was found on this PC.",
+        )
+        .to_string());
     }
     let addresses: Vec<String> = binds.iter().map(ToString::to_string).collect();
     let mut args = vec!["pair-code"];
@@ -116,10 +122,18 @@ pub async fn pake_pairing(state: State<'_, Shared>) -> Result<PakePairing, Strin
         (inner.config.lan_pairing, inner.host.clone())
     };
     if !lan_pairing {
-        return Err("Activa el emparejamiento por red local antes de mostrar el QR.".to_string());
+        return Err(pick(
+            "Activa el emparejamiento por red local antes de mostrar el QR.",
+            "Turn on local network pairing before showing the QR.",
+        )
+        .to_string());
     }
     let HostStatus::Ready { port } = host else {
-        return Err("El host local aún no está listo; espera un momento.".to_string());
+        return Err(pick(
+            "El host local aún no está listo; espera un momento.",
+            "The local host is not ready yet; wait a moment.",
+        )
+        .to_string());
     };
     let stdout = shared
         .run_host_cli(&["pair-code", "--pake", "--uri", "--port", &port.to_string()])

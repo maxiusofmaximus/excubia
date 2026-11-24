@@ -9,6 +9,12 @@ export function keyAction(key, event = {}) {
   return modified && String(key).toLowerCase() === "b" ? "toggle" : null;
 }
 
+// Esc closes one layer: an open row menu (it sits over the drawer) first, then the drawer.
+export function escapeTarget({ menu = false, drawer = false } = {}) {
+  if (menu) return "menu";
+  return drawer ? "drawer" : null;
+}
+
 // Where the drawer stands after an action.
 export function drawerNext(open, action) {
   if (action === "open") return true;

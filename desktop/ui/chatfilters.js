@@ -1,4 +1,5 @@
 import { $, invoke, toast } from "./core.js";
+import { t } from "./i18n.js";
 import { chipName, chipsFor, filterArgs } from "./chat-filter-model.js";
 
 // The history filter: one discreet control that shows the filter in use, and a
@@ -10,7 +11,7 @@ export function renderFilters(chat) {
   const chips = chipsFor(chat.counts);
   bar.classList.toggle("hidden", !chips.length);
   const current = chips.find((chip) => chip.id === chat.filter) || chips[0];
-  $("chat-filter-label").textContent = current ? current.label : "Todos";
+  $("chat-filter-label").textContent = current ? current.label : t("drawer.filter_all");
   $("chat-filter-toggle").classList.toggle("is-filtered", chat.filter !== "all");
   const menu = $("chat-filter-menu");
   menu.replaceChildren();

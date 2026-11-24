@@ -1,11 +1,11 @@
 // Approval cards for the operator's level, and the one-line timeline record
 // for what was decided below him. Everything the agent wrote goes in as text.
 
+import { locale, t } from "./i18n.js";
 import {
   canAlwaysAllow,
   canApproveMove,
   CHECKING_TEXT,
-  cardCommand,
   commandText,
   conversationProject,
   currentDeviceId,
@@ -69,7 +69,7 @@ function actionButton(label, action, id, className, disabled) {
 // A batch says how many mails stay checked, and needs one of them to move.
 function approveButton(entry, open, unchecked) {
   const className = "btn primary btn-small approval-btn";
-  if (!isMoveBatch(entry)) return actionButton("Permitir una vez", "approve", entry.id, className, !open);
+  if (!isMoveBatch(entry)) return actionButton(t("approval.allow_once"), "approve", entry.id, className, !open);
   const label = moveApproveLabel(entry, unchecked);
   return actionButton(label, "approve", entry.id, className, !open || !canApproveMove(entry, unchecked));
 }
@@ -82,10 +82,10 @@ function actionsRow(entry, status, mine) {
   const open = status === "pending" && !mine.busy;
   const ghost = "btn ghost btn-small approval-btn";
   row.append(approveButton(entry, open, mine.unchecked));
-  if (canAlwaysAllow(entry)) row.append(actionButton("Siempre en esta tarea", "approve-task", entry.id, ghost, !open));
+  if (canAlwaysAllow(entry)) row.append(actionButton(t("approval.allow_task"), "approve-task", entry.id, ghost, !open));
   row.append(
-    actionButton("Denegar", "deny", entry.id, ghost, !open),
-    actionButton("Denegar con motivo…", "deny-reason", entry.id, ghost, !open),
+    actionButton(t("approval.deny"), "deny", entry.id, ghost, !open),
+    actionButton(t("approval.deny_reason"), "deny-reason", entry.id, ghost, !open),
   );
   return row;
 }
@@ -103,7 +103,7 @@ function forbiddenNote() {
   const box = element("div", "approval-error");
   box.setAttribute("role", "alert");
   box.append(
-    element("p", null, "Este equipo no tiene el permiso APPROVE: no puede decidir esta aprobación."),
+    element("p", null, t("approval.no_permission")),
     element("code", "approval-grant", grantCommand(currentDeviceId())),
   );
   return box;
@@ -118,13 +118,13 @@ export function renderApprovalCard(entry, now = Date.now(), context = "") {
 function plainActions(entry, open, ttl) {
   const row = element("div", "approval-actions");
   const ghost = "btn ghost approval-btn";
-  row.append(actionButton("Permitir", "approve", entry.id, "btn primary approval-btn", !open));
-  row.append(actionButton("Denegar", "deny", entry.id, ghost, !open));
+  row.append(actionButton(t("approval.allow"), "approve", entry.id, "btn primary approval-btn", !open));
+  row.append(actionButton(t("approval.deny"), "deny", entry.id, ghost, !open));
   const more = element("details", "approval-more");
-  more.append(element("summary", ghost, "Más opciones ▾"));
+  more.append(element("summary", ghost, t("approval.more")));
   const menu = element("div", "approval-more-menu");
-  if (canAlwaysAllow(entry)) menu.append(actionButton("Siempre en esta tarea", "approve-task", entry.id, ghost, !open));
-  menu.append(actionButton("Denegar con motivo…", "deny-reason", entry.id, ghost, !open));
+  if (canAlwaysAllow(entry)) menu.append(actionButton(t("approval.allow_task"), "approve-task", entry.id, ghost, !open));
+  menu.append(actionButton(t("approval.deny_reason"), "deny-reason", entry.id, ghost, !open));
   more.append(menu);
   row.append(more, ttl);
   return row;
@@ -136,14 +136,14 @@ function plainDetails(entry) {
   let tech = null;
   if (technical.length) {
     tech = element("details", "approval-tech");
-    tech.append(element("summary", null, "Detalles técnicos ▸"));
+    tech.append(element("summary", null, t("approval.tech_details")));
     const techFacts = element("dl", "approval-facts");
     for (const [label, value] of technical) fact(techFacts, label, value);
     tech.append(techFacts);
   }
   if (!shown.length) return tech;
   const box = element("details", "approval-details");
-  box.append(element("summary", null, "Detalles"));
+  box.append(element("summary", null, t("approval.details")));
   const facts = element("dl", "approval-facts");
   for (const [label, value] of shown) fact(facts, label, value);
   box.append(facts);
@@ -159,6 +159,7 @@ function renderPlainCard(entry, now) {
   const meta = statusMeta(status, entry);
   const card = element("article", `approval-card plain tone-${meta.tone}`);
   card.dataset.approval = id;
+  card.dataset.stamp = t("approval.stamp");
   cardEntries.set(card, { entry, context: "" });
 
   if (status !== "pending") {
@@ -169,12 +170,10 @@ function renderPlainCard(entry, now) {
   const project = conversationProject(entry.conversation_id);
   if (project) card.append(element("p", "approval-where", project));
   if (entry.question) card.append(element("p", "approval-question", entry.question));
-  // The command (unless it is a look's) and the folder's name stay on the card; the full path waits under «Detalles».
-  const command = cardCommand(entry);
-  if (command) card.append(element("pre", "approval-command", command));
+  // The folder's name stays on the card; the command and the full path wait under «Detalles técnicos».
   const folder = projectFolder(entry.cwd);
   if (folder) {
-    const where = element("p", "approval-where", `Carpeta: ${folder}`);
+    const where = element("p", "approval-where", t("approval.folder", { folder }));
     where.title = entry.cwd;
     card.append(where);
   }
@@ -200,14 +199,15 @@ function renderMailCard(entry, now = Date.now(), context = "") {
   const meta = statusMeta(status, entry);
   const card = element("article", `approval-card tone-${meta.tone}`);
   card.dataset.approval = id;
+  card.dataset.stamp = t("approval.stamp");
   cardEntries.set(card, { entry, context });
 
   const head = element("div", "approval-head");
   const batch = isMoveBatch(entry);
   const titleWrap = element("div", "approval-title-wrap");
   titleWrap.append(
-    element("p", "approval-kicker", "PERMISO"),
-    element("h3", "approval-title", batch ? moveTitle(entry) : `${seatName(entry)} necesita permiso`),
+    element("p", "approval-kicker", t("approval.kicker")),
+    element("h3", "approval-title", batch ? moveTitle(entry) : t("approval.needs_permission", { seat: seatName(entry) })),
   );
   head.append(titleWrap, chip(meta.label, `status tone-${meta.tone}`));
   card.append(head);
@@ -216,7 +216,7 @@ function renderMailCard(entry, now = Date.now(), context = "") {
   // A batch lists its mails in place of the command; a request for lack of information asks its question there.
   if (batch) card.append(moveBatch(entry, status, mine.unchecked));
   else if (entry.question) card.append(element("p", "approval-question", entry.question));
-  else card.append(element("pre", "approval-command", commandText(entry) || "Sin comando"));
+  else card.append(element("pre", "approval-command", commandText(entry) || t("approval.no_command")));
 
   const chips = element("div", "approval-chips");
   if (entry.cwd) {
@@ -226,13 +226,13 @@ function renderMailCard(entry, now = Date.now(), context = "") {
   }
   const badge = riskBadge(entry);
   if (badge) chips.append(chip(badge, `risk risk-${entry.risk}`));
-  if (entry.escalated_from) chips.append(chip("Lo pidió Alfred", "level"));
+  if (entry.escalated_from) chips.append(chip(t("approval.escalated"), "level"));
   card.append(chips);
   if (isMailSend(entry) && entry.details) card.append(mailDigest(entry.details));
 
   const footer = element("div", "approval-footer");
   const digest = element("code", "approval-digest", shortDigest(entry.action_digest));
-  digest.setAttribute("aria-label", "Código de la acción");
+  digest.setAttribute("aria-label", t("approval.digest_label"));
   footer.append(digest);
   if (status === "pending") {
     const checking = isChecking(entry, now);
@@ -244,7 +244,7 @@ function renderMailCard(entry, now = Date.now(), context = "") {
 
   if (mine.forbidden) card.append(forbiddenNote());
   if (status === "pending") card.append(actionsRow(entry, status, mine));
-  else if (status === "expired") card.append(element("p", "approval-result", "Se agotó el tiempo: no se ejecutó."));
+  else if (status === "expired") card.append(element("p", "approval-result", t("approval.expired")));
   else card.append(element("p", "approval-result", resultText(status, entry)));
 
   return card;
@@ -267,9 +267,9 @@ function fact(list, label, value) {
 function lineDetail(entry, meta) {
   const detail = element("div", "approval-line-detail");
   const facts = element("dl", "approval-facts");
-  fact(facts, "Estado", meta.label);
+  fact(facts, t("approval.fact_status"), meta.label);
   if (entry.created_at) {
-    fact(facts, "Hora", new Date(entry.created_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }));
+    fact(facts, t("approval.fact_time"), new Date(entry.created_at).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }));
   }
   detail.append(facts);
   return detail;

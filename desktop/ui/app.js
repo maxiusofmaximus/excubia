@@ -40,6 +40,7 @@ import { openNotes } from "./agenda-notes.js";
 import { openCalendar } from "./calendar.js";
 import { openAlerts } from "./alerts.js";
 import { installSettings, openSettings } from "./settings.js";
+import { applyDom, lang, t } from "./i18n.js";
 
 // The team shows in Equipo and in the suggestions of the empty chat.
 function teamChanged() {
@@ -49,6 +50,7 @@ function teamChanged() {
 }
 
 async function boot() {
+  applyDom();
   installChatHandlers();
   installPairHandlers();
   installAgentHandlers();
@@ -96,8 +98,16 @@ async function boot() {
 
   if (!invoke || !listen) {
     showView("pair");
-    showPairError("No se pudo cargar el puente de Tauri. Abre la aplicación de escritorio.");
+    showPairError(t("app.bridge_failed"));
     return;
+  }
+
+  // The backend's native texts (notifications) follow the language. A failure here must not
+  // block the start: it is logged and the app starts anyway.
+  try {
+    await invoke("set_ui_lang", { lang: lang() });
+  } catch (error) {
+    console.error("set_ui_lang failed", error);
   }
 
   await listen("hn-connection", (event) => {
@@ -133,6 +143,8 @@ async function boot() {
 
   try {
     const state = await invoke("bootstrap");
+    // A host event that arrived while bootstrap was in flight is newer than its snapshot.
+    state.host = app.boot?.host ?? state.host;
     app.boot = state;
     app.connection = state.connection || { kind: "idle" };
     app.state = readableState(state.state);

@@ -17,6 +17,7 @@ import {
   modeWords,
   ruleSentence,
 } from "./alerts-model.js";
+import { t } from "./i18n.js";
 
 let rules = [];
 let mode = "all";
@@ -43,11 +44,11 @@ function ruleRow(rule) {
   const toggle = element("input");
   toggle.type = "checkbox";
   toggle.checked = rule.enabled;
-  toggle.setAttribute("aria-label", `Regla activa: ${sentence}`);
+  toggle.setAttribute("aria-label", t("alerts.rule_active_label", { sentence }));
   toggle.addEventListener("change", () => changeEnabled(rule, toggle));
   const switchLabel = element("label", "alert-switch");
-  switchLabel.append(toggle, element("span", null, rule.enabled ? "Activa" : "Pausada"));
-  const remove = element("button", "btn ghost btn-small", "Borrar");
+  switchLabel.append(toggle, element("span", null, rule.enabled ? t("alerts.on") : t("alerts.paused")));
+  const remove = element("button", "btn ghost btn-small", t("alerts.delete"));
   remove.type = "button";
   remove.addEventListener("click", () => askDelete(row, rule));
   row.append(element("span", "alert-sentence", sentence), switchLabel, remove);
@@ -84,9 +85,9 @@ async function changeEnabled(rule, toggle) {
 
 // The row asks in place: «¿Borrar esta regla?» with «Sí, borrar» and «No».
 function askDelete(row, rule) {
-  const ask = element("p", "alert-ask", "¿Borrar esta regla?");
-  const yes = element("button", "btn primary btn-small", "Sí, borrar");
-  const no = element("button", "btn ghost btn-small", "No");
+  const ask = element("p", "alert-ask", t("alerts.delete_ask"));
+  const yes = element("button", "btn primary btn-small", t("alerts.delete_yes"));
+  const no = element("button", "btn ghost btn-small", t("alerts.delete_no"));
   yes.type = "button";
   no.type = "button";
   yes.addEventListener("click", () => deleteRule(rule));
@@ -128,7 +129,7 @@ async function createRule(event) {
   const problem = $("alerts-form-problem");
   const button = $("btn-alert-create");
   problem.hidden = true;
-  setBusy(button, true, "Creando…");
+  setBusy(button, true, t("alerts.creating"));
   try {
     const rule = await invoke("alert_rule_create", { draft: formDraft() });
     rules = [...rules, rule];
@@ -145,7 +146,7 @@ async function createRule(event) {
 // The team's names fill the agent list; without them the form still offers «Cualquiera».
 async function fillAgents() {
   const select = $("alerts-agent");
-  select.replaceChildren(new Option("Cualquiera", ""));
+  select.replaceChildren(new Option(t("alerts.any_agent_option"), ""));
   try {
     const hires = await invoke("team_hires");
     for (const name of hiredNames(hires.hires)) select.append(new Option(name, name));
@@ -158,7 +159,7 @@ async function loadAll() {
   const status = $("alerts-status");
   $("alerts-problem").hidden = true;
   status.hidden = false;
-  status.textContent = "Cargando avisos…";
+  status.textContent = t("alerts.loading");
   try {
     const [nextMode, nextRules] = await Promise.all([invoke("alert_mode"), invoke("alert_rules")]);
     paintMode(nextMode);
@@ -179,9 +180,8 @@ export function openAlerts() {
 }
 
 export function installAlerts() {
-  $("alerts-empty").replaceChildren(
-    emptyState({ icon: "alerts", text: EMPTY_RULES_TEXT, action: "Nueva regla" }, () => $("alerts-kind").focus()),
-  );
+  // The rule form is always on the right, so the empty state needs no button of its own.
+  $("alerts-empty").replaceChildren(emptyState({ icon: "alerts", text: EMPTY_RULES_TEXT }));
   $("alerts-guarantee").textContent = GUARANTEE_TEXT;
   for (const input of modeInputs()) input.addEventListener("change", () => changeMode(input));
   $("alerts-kind").addEventListener("change", paintKind);

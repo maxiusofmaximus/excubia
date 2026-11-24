@@ -95,11 +95,18 @@ pub async fn chat_attachment_open(
     let cache = app
         .path()
         .app_cache_dir()
-        .map_err(|error| open_failure(format!("No se encontró la carpeta temporal: {error}")))?;
+        .map_err(|error| open_failure(format!("{}: {error}", localized("No se encontró la carpeta temporal", "The temporary folder was not found"))))?;
     let path = documents::stage(&cache, &attachment_id, file.name.as_deref(), &file.bytes)
-        .map_err(|error| open_failure(format!("No se pudo guardar el archivo: {error}")))?;
-    documents::open_with_system(&path)
-        .map_err(|_| open_failure("No hay ninguna aplicación que pueda abrir este archivo.".into()))
+        .map_err(|error| open_failure(format!("{}: {error}", localized("No se pudo guardar el archivo", "The file could not be saved"))))?;
+    documents::open_with_system(&path).map_err(|_| {
+        open_failure(
+            excubia_desktop_core::ui_lang::pick(
+                "No hay ninguna aplicación que pueda abrir este archivo.",
+                "No application can open this file.",
+            )
+            .into(),
+        )
+    })
 }
 
 /// Saves a document under the name the operator picks. `false` when the dialog was closed.
@@ -120,9 +127,20 @@ pub async fn chat_attachment_save(
     else {
         return Ok(false);
     };
-    std::fs::write(&path, &file.bytes)
-        .map_err(|error| open_failure(format!("No se pudo guardar el archivo: {error}")))?;
+    std::fs::write(&path, &file.bytes).map_err(|error| {
+        open_failure(format!(
+            "{}: {error}",
+            localized(
+                "No se pudo guardar el archivo",
+                "The file could not be saved"
+            )
+        ))
+    })?;
     Ok(true)
+}
+
+fn localized(es: &'static str, en: &'static str) -> &'static str {
+    excubia_desktop_core::ui_lang::pick(es, en)
 }
 
 fn open_failure(message: String) -> ChatFailure {

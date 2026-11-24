@@ -106,7 +106,7 @@ pub async fn run_event_loop(
             tokio::select! {
                 _ = cancel.cancelled() => return,
                 _ = &mut idle => {
-                    break "El PC dejó de enviar datos.".to_string();
+                    break crate::ui_lang::pick("El PC dejó de enviar datos.", "The PC stopped sending data.").to_string();
                 }
                 item = stream.next() => {
                     match item {
@@ -123,10 +123,14 @@ pub async fn run_event_loop(
                             }
                         }
                         Some(Err(error)) => {
-                            break format!("Se perdió la conexión: {error}");
+                            break if crate::ui_lang::current().is_en() {
+                                format!("The connection was lost: {error}")
+                            } else {
+                                format!("Se perdió la conexión: {error}")
+                            };
                         }
                         None => {
-                            break "El PC cerró la conexión.".to_string();
+                            break crate::ui_lang::pick("El PC cerró la conexión.", "The PC closed the connection.").to_string();
                         }
                     }
                 }
@@ -209,12 +213,18 @@ async fn emit_if_applied(
 fn fatal_reason(error: &crate::error::CoreError) -> String {
     match error {
         crate::error::CoreError::Unauthorized => {
-            "El PC ya no confía en este dispositivo. Vuelve a emparejarlo.".to_string()
+            crate::ui_lang::pick(
+                "El PC ya no confía en este dispositivo. Vuelve a emparejarlo.",
+                "The PC no longer trusts this device. Pair it again.",
+            )
+            .to_string()
         }
-        crate::error::CoreError::Forbidden => {
-            "Este dispositivo no tiene permiso para leer el estado.".to_string()
-        }
-        other => other.to_string(),
+        crate::error::CoreError::Forbidden => crate::ui_lang::pick(
+            "Este dispositivo no tiene permiso para leer el estado.",
+            "This device does not have permission to read the state.",
+        )
+        .to_string(),
+        other => other.describe(crate::error::WriteAction::Read).text(),
     }
 }
 

@@ -3,8 +3,9 @@
 // call is injected, so the tests can run without the screen.
 
 import { errorMessage } from "./format.js";
+import { t } from "./i18n.js";
 
-export const SAVED_TEXT = "Borrador guardado. Si cambias el borrador hay que aprobar el envío de nuevo.";
+export const SAVED_TEXT = t("mail.edit.saved");
 
 export function createDraftEditor({ invoke, forget }) {
   return async function save(account, draftId, { subject, body }, reload) {

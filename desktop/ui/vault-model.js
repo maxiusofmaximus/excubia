@@ -2,6 +2,8 @@
 // packed records the host expects: i32 x LE, i32 y LE, u64 micros LE (16 bytes each). The
 // recovery challenge asks for three words of the phrase; nothing here keeps the phrase.
 
+import { t } from "./i18n.js";
+
 export const SAMPLES_NEEDED = 2048;
 // shortcut: the host route takes 64 KiB; 3 000 records (48 000 bytes, 64 000 base64 chars) fit
 // it. Past that the pool stops growing, which is more than the 2 048 the host counts.
@@ -63,7 +65,7 @@ function toBase64(bytes) {
 // Three different positions (1..24), in order, for the user to rewrite. `seed` makes the
 // choice repeatable in tests; the screen leaves it out.
 export function confirmChallenge(phrase, seed = Math.floor(Math.random() * 0x100000000)) {
-  if (splitWords(phrase).length !== PHRASE_WORDS) throw new Error("La frase no tiene 24 palabras.");
+  if (splitWords(phrase).length !== PHRASE_WORDS) throw new Error(t("vault.err_phrase_length"));
   let state = seed >>> 0;
   const next = () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -100,10 +102,10 @@ function normalizeWord(text) {
 // The words the screen shows for a refused protect call; `error` is the typed failure
 // from the desktop bridge (`code` for a vault refusal).
 const PROTECT_ERRORS = {
-  vault_samples_insufficient: "Faltó movimiento, inténtalo otra vez.",
-  vault_already_protected: "Tu historial ya está cifrado.",
+  vault_samples_insufficient: t("vault.err_samples"),
+  vault_already_protected: t("vault.err_already"),
 };
-const PROTECT_FALLBACK = "No se pudo proteger el historial; no se cambió nada. Reinicia Excubia y vuelve a intentarlo.";
+const PROTECT_FALLBACK = t("vault.err_protect_fallback");
 
 export function protectErrorText(error) {
   return PROTECT_ERRORS[error?.code] || PROTECT_FALLBACK;
@@ -111,7 +113,5 @@ export function protectErrorText(error) {
 
 
 export function finishErrorText(error) {
-  return error?.code === "vault_no_backup"
-    ? "Ya no queda copia sin cifrar."
-    : "No se pudo borrar la copia. Inténtalo otra vez.";
+  return error?.code === "vault_no_backup" ? t("vault.err_no_backup") : t("vault.err_finish");
 }

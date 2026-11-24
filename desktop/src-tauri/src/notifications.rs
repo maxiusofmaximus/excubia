@@ -1,4 +1,5 @@
 use excubia_desktop_core::state::AgentStatus;
+use excubia_desktop_core::ui_lang::{self, UiLang};
 use excubia_desktop_core::AgentAlert;
 use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
@@ -21,11 +22,17 @@ pub fn show_alerts(app: &AppHandle, alerts: &[AgentAlert]) {
 }
 
 fn compose(alerts: &[AgentAlert]) -> (String, String, Option<&str>) {
+    compose_in(alerts, ui_lang::current())
+}
+
+fn compose_in(alerts: &[AgentAlert], lang: UiLang) -> (String, String, Option<&str>) {
     match alerts {
         [alert] => {
-            let title = match alert.status {
-                AgentStatus::Blocked => format!("Necesita tu atención: {}", alert.project),
-                _ => format!("Terminó: {}", alert.project),
+            let title = match (alert.status, lang.is_en()) {
+                (AgentStatus::Blocked, false) => format!("Necesita tu atención: {}", alert.project),
+                (AgentStatus::Blocked, true) => format!("Needs your attention: {}", alert.project),
+                (_, false) => format!("Terminó: {}", alert.project),
+                (_, true) => format!("Finished: {}", alert.project),
             };
             (title, alert.title.clone(), Some(alert.pane_id.as_str()))
         }
@@ -34,12 +41,14 @@ fn compose(alerts: &[AgentAlert]) -> (String, String, Option<&str>) {
                 .iter()
                 .filter(|alert| alert.status == AgentStatus::Blocked)
                 .count();
-            let title = if blocked == many.len() {
-                format!("{} agentes necesitan tu atención", many.len())
-            } else if blocked == 0 {
-                format!("{} agentes terminaron", many.len())
-            } else {
-                format!("{} agentes cambiaron de estado", many.len())
+            let count = many.len();
+            let title = match (blocked == count, blocked == 0, lang.is_en()) {
+                (true, _, false) => format!("{count} agentes necesitan tu atención"),
+                (true, _, true) => format!("{count} agents need your attention"),
+                (_, true, false) => format!("{count} agentes terminaron"),
+                (_, true, true) => format!("{count} agents finished"),
+                (_, _, false) => format!("{count} agentes cambiaron de estado"),
+                (_, _, true) => format!("{count} agents changed state"),
             };
             let body = many
                 .iter()
@@ -101,5 +110,20 @@ mod tests {
         ];
         let (title, _, _) = compose(&alerts);
         assert_eq!(title, "2 agentes cambiaron de estado");
+    }
+
+    #[test]
+    fn english_titles_follow_the_language_they_are_given() {
+        let one = [alert("w1:p1", AgentStatus::Blocked)];
+        let (title, _, pane_id) = compose_in(&one, UiLang::En);
+        assert_eq!(title, "Needs your attention: excubia");
+        assert_eq!(pane_id, Some("w1:p1"));
+
+        let grouped = [
+            alert("w1:p1", AgentStatus::Done),
+            alert("w1:p2", AgentStatus::Done),
+        ];
+        let (title, _, _) = compose_in(&grouped, UiLang::En);
+        assert_eq!(title, "2 agents finished");
     }
 }

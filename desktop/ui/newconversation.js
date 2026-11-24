@@ -1,9 +1,9 @@
 import { $, invoke, toast } from "./core.js";
 import { errorMessage } from "./format.js";
 import { openDetail } from "./detail.js";
+import { t } from "./i18n.js";
 
-const NO_AGENTS =
-  "No encontré ningún agente instalado: instala uno de claude, codex, commandcode, gemini u opencode y vuelve a intentarlo.";
+const NO_AGENTS = t("newconv.no_agents");
 
 let submitting = false;
 
@@ -54,16 +54,16 @@ async function loadCatalog() {
       const note = document.createElement("span");
       note.className = "nc-agent-note";
       note.textContent = !agent.runnable
-        ? agent.problem || "no se puede usar en este equipo"
+        ? agent.problem || t("newconv.note_unusable")
         : agent.is_default
-          ? "por defecto"
-          : "disponible";
+          ? t("newconv.note_default")
+          : t("newconv.note_available");
       label.append(radio, name, note);
       if (agent.runnable && !agent.is_default) {
         const make = document.createElement("button");
         make.type = "button";
         make.className = "nc-agent-make-default";
-        make.textContent = "Usar por defecto";
+        make.textContent = t("newconv.make_default");
         make.addEventListener("click", (event) => {
           // The button sits inside the label: it must not also pick the radio.
           event.preventDefault();
@@ -110,7 +110,7 @@ async function openCreated(paneId) {
     if (await openDetail(paneId)) return;
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
-  toast("Conversación creada; aparecerá en la lista");
+  toast(t("newconv.created_later"));
 }
 
 async function submit(event) {
@@ -124,7 +124,7 @@ async function submit(event) {
     return;
   }
   if (!cwd) {
-    showError("Elige la carpeta de trabajo.");
+    showError(t("newconv.pick_folder_required"));
     return;
   }
 
@@ -132,7 +132,7 @@ async function submit(event) {
   const button = $("nc-submit");
   const original = button.textContent;
   button.disabled = true;
-  button.textContent = "Creando…";
+  button.textContent = t("newconv.creating");
   showError("");
   try {
     const created = await invoke("create_conversation", {
@@ -141,7 +141,7 @@ async function submit(event) {
       label: label || null,
     });
     $("new-conversation").close();
-    toast("Conversación creada");
+    toast(t("newconv.created"));
     await openCreated(created.pane_id);
   } catch (error) {
     showError(errorMessage(error));

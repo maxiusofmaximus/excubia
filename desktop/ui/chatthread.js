@@ -1,3 +1,4 @@
+import { locale, t } from "./i18n.js";
 import { $, invoke } from "./core.js";
 import { paintAvatar } from "./avatar.js";
 import { installLinkOpener, renderMarkdown } from "./markdown.js";
@@ -45,7 +46,7 @@ function messageNode(message, alfredName, line = null, detail = null, continued 
   const column = element("div", "msg-column");
   const author = element("span", "msg-author");
   if (user) {
-    author.append(element("span", "you", "TÚ"));
+    author.append(element("span", "you", t("chat.thread.you")));
   } else {
     author.textContent = alfredName || "Alfred";
   }
@@ -65,10 +66,10 @@ function messageNode(message, alfredName, line = null, detail = null, continued 
   const meta = element("div", "msg-meta");
   meta.append(element("span", null, formatTime(message.created_at)));
   if (!user && (message.state === "failed" || message.state === "interrupted")) {
-    meta.append(element("span", "failed", message.state === "interrupted" ? "interrumpido" : "falló"));
+    meta.append(element("span", "failed", message.state === "interrupted" ? t("chat.thread.interrupted") : t("chat.thread.failed")));
   }
   if (message.id) {
-    const reply = element("button", "msg-reply", "Responder");
+    const reply = element("button", "msg-reply", t("chat.thread.reply"));
     reply.type = "button";
     reply.dataset.replyId = message.id;
     meta.append(reply);
@@ -93,12 +94,12 @@ function messageNode(message, alfredName, line = null, detail = null, continued 
 function quickRepliesNode(items, disabled) {
   const row = element("div", "quick-replies");
   row.setAttribute("role", "group");
-  row.setAttribute("aria-label", "Respuestas rápidas");
+  row.setAttribute("aria-label", t("chat.thread.quick_replies_aria"));
   for (const text of items) {
     const button = element("button", "quick-reply", text);
     button.type = "button";
     button.dataset.quickReply = text;
-    button.setAttribute("aria-label", `Responder: ${text}`);
+    button.setAttribute("aria-label", t("chat.thread.quick_reply_aria", { text }));
     button.disabled = disabled;
     row.append(button);
   }
@@ -112,21 +113,25 @@ function failedTurnNode(message, alfredName) {
   const body = element("div", "error-body");
   const who = alfredName || "Alfred";
   body.append(
-    element("h3", null, `${who} terminó sin responder`),
+    element("h3", null, t("chat.thread.failed_title", { who })),
     element(
       "p",
       null,
-      "El turno falló antes de llamar a chat.reply; no se inventó una respuesta. El proyecto, las tarjetas y el historial se conservan.",
+      t("chat.thread.failed_body"),
     ),
   );
   const actions = element("div", "error-actions");
   actions.append(
-    action("Reintentar", { retrySeq: String(message.seq) }, "btn primary btn-small"),
-    action("Abrir equipo", { action: "open-team" }, "btn secondary btn-small"),
+    action(t("chat.thread.retry"), { retrySeq: String(message.seq) }, "btn primary btn-small"),
+    action(t("chat.thread.open_team"), { action: "open-team" }, "btn secondary btn-small"),
   );
   body.append(actions);
   body.append(
-    element("p", "error-meta", `${message.id} · estado ${message.state} · ${formatTime(message.created_at)}`),
+    element(
+      "p",
+      "error-meta",
+      t("chat.thread.error_meta", { id: message.id, state: message.state, time: formatTime(message.created_at) }),
+    ),
   );
   card.append(icon, body);
   return card;
@@ -134,9 +139,9 @@ function failedTurnNode(message, alfredName) {
 
 function noteNode(entry) {
   const note = element("div", "timeline-note");
-  const mark = element("span", "note-mark", entry.kind === "card" ? "DELEG" : "HOST");
+  const mark = element("span", "note-mark", entry.kind === "card" ? t("chat.note.delegation") : t("chat.note.host"));
   const text = element("span");
-  const title = entry.title || entry.summary || entry.preview || "Entrada del timeline";
+  const title = entry.title || entry.summary || entry.preview || t("chat.thread.entry_fallback");
   text.append(element("strong", null, title));
   if (entry.summary && entry.title) text.append(document.createTextNode(` · ${entry.summary}`));
   if (entry.status) text.append(document.createTextNode(` · ${entry.status}`));
@@ -159,10 +164,10 @@ function pendingNode(pending, alfredName) {
   meta.replaceChildren();
   meta.append(element("span", null, formatTime(new Date(pending.createdAt).toISOString())));
   if (pending.state === "sending") {
-    meta.append(element("span", null, "Enviando…"));
+    meta.append(element("span", null, t("chat.thread.sending")));
   } else if (pending.state === "failed") {
-    meta.append(element("span", "failed", "Falló"));
-    const retry = element("button", "inline-retry", "Reintentar");
+    meta.append(element("span", "failed", t("chat.thread.failed_cap")));
+    const retry = element("button", "inline-retry", t("chat.thread.retry"));
     retry.type = "button";
     retry.dataset.retryPending = pending.clientId;
     meta.append(retry);
@@ -239,9 +244,9 @@ export function renderThread(chat) {
   if (!chat.conversation) {
     timeline.classList.add("hidden");
     empty.classList.remove("hidden");
-    $("empty-chat-title").textContent = "¿Qué movemos hoy?";
+    $("empty-chat-title").textContent = t("chat.empty.title");
     $("empty-chat-body").textContent =
-      "Dime un objetivo y reparto el trabajo entre Ernesto y su equipo. Yo te traigo el resultado.";
+      t("chat.empty.body");
     $("chat-title").textContent = alfredName;
     // No thread is open, so the strip shows every approval of the operator.
     setThreadApprovals([]);
@@ -251,9 +256,9 @@ export function renderThread(chat) {
   if (!chat.entries.length && !chat.pending.length) {
     timeline.classList.add("hidden");
     empty.classList.remove("hidden");
-    $("empty-chat-title").textContent = "¿Qué movemos hoy?";
+    $("empty-chat-title").textContent = t("chat.empty.title");
     $("empty-chat-body").textContent =
-      "Dime un objetivo y reparto el trabajo entre Ernesto y su equipo. Yo te traigo el resultado.";
+      t("chat.empty.body");
   } else {
     empty.classList.add("hidden");
     timeline.classList.remove("hidden");
@@ -261,7 +266,7 @@ export function renderThread(chat) {
 
   if (chat.nextBeforeSeq) {
     const tools = element("div", "timeline-tools");
-    tools.append(action("Cargar mensajes anteriores", { action: "load-more" }, "btn ghost btn-small"));
+    tools.append(action(t("chat.thread.load_more"), { action: "load-more" }, "btn ghost btn-small"));
     timeline.append(tools);
   }
 
@@ -344,10 +349,12 @@ export function renderThread(chat) {
         renderFailure(pending.failure, {
           pendingId: pending.clientId,
           retrySeconds: busySeconds(pending),
-          meta: `intento ${new Date(pending.createdAt).toLocaleTimeString("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
+          meta: t("chat.thread.attempt", {
+            time: new Date(pending.createdAt).toLocaleTimeString(locale(), {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          }),
         }),
       );
     }
@@ -359,14 +366,14 @@ export function renderThread(chat) {
     icon.setAttribute("aria-hidden", "true");
     const body = element("div", "error-body");
     body.append(
-      element("h3", null, "No se pudo completar la delegación"),
-      element("p", null, chat.delegationError.message || "El PC rechazó la operación."),
+      element("h3", null, t("chat.thread.delegation_failed")),
+      element("p", null, chat.delegationError.message || t("chat.thread.pc_rejected")),
     );
     if (chat.delegationError.code) {
       body.append(element("code", null, chat.delegationError.code));
     }
     const actions = element("div", "error-actions");
-    const dismiss = element("button", "btn ghost btn-small", "Cerrar aviso");
+    const dismiss = element("button", "btn ghost btn-small", t("chat.thread.dismiss"));
     dismiss.type = "button";
     dismiss.dataset.action = "dismiss-delegation-error";
     actions.append(dismiss);
@@ -380,7 +387,7 @@ export function renderThread(chat) {
     const dots = element("span", "dots");
     for (let index = 0; index < 3; index += 1) dots.append(element("span"));
     const step = openStep(chat);
-    waiting.append(dots, element("span", null, step ? `${alfredName} · ${step}` : `${alfredName} está trabajando…`));
+    waiting.append(dots, element("span", null, step ? `${alfredName} · ${step}` : t("chat.thread.working", { name: alfredName })));
     timeline.append(waiting);
   }
 
@@ -388,8 +395,8 @@ export function renderThread(chat) {
     timeline.append(
       noteNode({
         kind: "host",
-        title: "Conversación archivada",
-        summary: "solo lectura hasta que la desarchives",
+        title: t("chat.thread.archived"),
+        summary: t("chat.thread.archived_hint"),
       }),
     );
   }

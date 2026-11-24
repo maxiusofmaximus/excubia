@@ -2,6 +2,7 @@
 // «‹» and «›» move the range; «Cargar más» pages with `after`. A stale page never
 // replaces a newer one, and a row written here updates the list without a new read.
 
+import { t } from "./i18n.js";
 import { $, invoke } from "./core.js";
 import { element } from "./chatdom.js";
 import { button } from "./agenda-ui.js";
@@ -44,7 +45,7 @@ export function createCalendarList({ onOpen }) {
 
   function emptyNode() {
     return emptyState(
-      { icon: "calendar", text: emptyListText(false), action: "Nuevo evento" },
+      { icon: "calendar", text: emptyListText(false), action: t("calendar.new") },
       () => $("btn-calendar-new").click(),
     );
   }
@@ -55,8 +56,8 @@ export function createCalendarList({ onOpen }) {
     const row = button("", "agenda-row", () => onOpen(event, zone));
     if (rowKey(event) === selectedKey) row.setAttribute("aria-current", "true");
     const meta = element("span", "agenda-row-meta", [data.time, data.place].filter(Boolean).join(" · "));
-    if (data.reminder) meta.append(" ", element("span", "agenda-badge", "Aviso"));
-    if (data.repeats) meta.append(" ", element("span", "agenda-badge", "Se repite"));
+    if (data.reminder) meta.append(" ", element("span", "agenda-badge", t("calendarform.reminder")));
+    if (data.repeats) meta.append(" ", element("span", "agenda-badge", t("calendarlist.repeats")));
     row.append(element("span", "agenda-row-title", data.title), meta);
     item.append(row);
     return item;
@@ -99,7 +100,7 @@ export function createCalendarList({ onOpen }) {
 
   async function load() {
     const current = ++token;
-    note("Cargando eventos…");
+    note(t("calendarlist.loading"));
     drawRange();
     try {
       const page = await fetchPage(null);

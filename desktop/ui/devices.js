@@ -28,9 +28,10 @@ import {
   seenText,
   shortDeviceId,
 } from "./devices-model.js";
+import { t } from "./i18n.js";
 
-const LOADING = "Cargando dispositivos…";
-const EMPTY = "No hay dispositivos emparejados.";
+const LOADING = t("devices.loading");
+const EMPTY = t("devices.empty");
 
 // A list that starts after a newer one must not overwrite it.
 let token = 0;
@@ -43,14 +44,14 @@ function setStatus(content) {
 }
 
 function emptyNode() {
-  return emptyState({ icon: "devices", text: EMPTY, action: "Actualizar" }, loadDevices);
+  return emptyState({ icon: "devices", text: EMPTY, action: t("agents.refresh") }, loadDevices);
 }
 
 function paint(list) {
   const groups = orderDevices(list.devices, list.this_device);
   $("devices-list").replaceChildren(...groups.active.map((device) => row(device, list.this_device)));
   $("devices-revoked").replaceChildren(...groups.revoked.map((device) => row(device, list.this_device)));
-  $("devices-revoked-summary").textContent = `Revocados (${groups.revoked.length})`;
+  $("devices-revoked-summary").textContent = t("devices.revoked_count", { n: groups.revoked.length });
   $("devices-revoked-group").hidden = groups.revoked.length === 0;
   setStatus(list.devices.length ? "" : emptyNode());
 }
@@ -78,16 +79,16 @@ function row(device, thisDevice) {
   const mine = device.device_id === thisDevice;
 
   const title = element("p", "device-title");
-  title.append(element("strong", null, device.label || "Sin nombre"));
-  if (mine) title.append(element("span", "device-tag", "Este equipo"));
-  if (device.revoked) title.append(element("span", "device-tag is-revoked", "Revocado"));
+  title.append(element("strong", null, device.label || t("devices.no_name")));
+  if (mine) title.append(element("span", "device-tag", t("devices.this_device_tag")));
+  if (device.revoked) title.append(element("span", "device-tag is-revoked", t("devices.revoked_tag")));
 
-  const facts = [deviceKind(device.label || ""),seenText(device.last_seen_at), `Alta ${addedText(device.created_at)}`];
+  const facts = [deviceKind(device.label || ""), seenText(device.last_seen_at), t("devices.added", { date: addedText(device.created_at) })];
   const id = element("p", "device-id");
   id.append(
     element("code", null, shortDeviceId(device.device_id)),
     " ",
-    button("Copiar ID", "btn ghost btn-small", () => copyText(device.device_id, "ID copiado")),
+    button(t("devices.copy_id"), "btn ghost btn-small", () => copyText(device.device_id, t("devices.id_copied"))),
   );
   item.append(
     title,
@@ -95,21 +96,22 @@ function row(device, thisDevice) {
     permissionRow(device),
     id,
   );
+  const local = app.boot?.mode === "local";
   if (canApprove(device, thisDevice)) item.append(approveBlock(device));
-  if (!device.revoked) item.append(revokeControl(device, canRevoke(device, thisDevice, app.boot?.mode === "local"), mine));
-  if (mine) item.append(notice(app.boot?.mode === "local" ? SERVER_DEVICE_REASON : THIS_DEVICE_REASON, "agenda-hint"));
+  // The action is not drawn where the host would refuse it; the reason line below says why.
+  if (canRevoke(device, thisDevice, local)) item.append(revokeControl(device, mine));
+  if (mine) item.append(notice(local ? SERVER_DEVICE_REASON : THIS_DEVICE_REASON, "agenda-hint"));
   return item;
 }
 
 // The first button opens a confirmation; the confirmation is the only way to send the action.
-function confirmControl({ askLabel, askClass, sendLabel, warning, allowed = true, send }) {
+function confirmControl({ askLabel, askClass, sendLabel, warning, send }) {
   const wrap = element("div", "device-revoke");
   const problem = notice("");
   const box = element("div", "agenda-confirm");
   box.setAttribute("role", "alertdialog");
   const ask = button(askLabel, askClass, () => show(true));
-  ask.disabled = !allowed;
-  const cancel = button("Cancelar", "btn ghost btn-small", () => show(false));
+  const cancel = button(t("common.cancel"), "btn ghost btn-small", () => show(false));
   const confirm = button(sendLabel, askClass, () => send(confirm, problem));
   box.append(element("p", null, warning), actionRow(cancel, confirm), problem);
 
@@ -123,17 +125,16 @@ function confirmControl({ askLabel, askClass, sendLabel, warning, allowed = true
   return wrap;
 }
 
-function revokeControl(device, allowed, mine) {
+function revokeControl(device, mine) {
   return confirmControl({
-    askLabel: mine ? "Revocar este equipo" : "Revocar",
+    askLabel: mine ? t("devices.revoke_this") : t("devices.revoke"),
     askClass: "btn danger btn-small",
-    sendLabel: mine ? "Revocar este equipo" : "Revocar dispositivo",
+    sendLabel: mine ? t("devices.revoke_this") : t("devices.revoke_device"),
     warning: mine ? OWN_REVOKE_WARNING : REVOKE_WARNING,
-    allowed,
     send: (confirm, problem) =>
       mine
         ? revokeThisDevice(device, confirm, problem)
-        : runAction(device, confirm, problem, "devices_revoke", {}, "Dispositivo revocado"),
+        : runAction(device, confirm, problem, "devices_revoke", {}, t("devices.revoked_done")),
   });
 }
 
@@ -149,7 +150,7 @@ async function revokeThisDevice(device, confirm, problem) {
     return;
   }
   await forgetPairing();
-  toast("Este equipo ya no está vinculado. Introduce un código nuevo del PC.");
+  toast(t("devices.own_unlinked"));
 }
 
 // The permissions of a device as chips: granted ✓ on a filled chip, the others «–» as an outline.
@@ -167,7 +168,7 @@ function permissionRow(device) {
 // A pending device: its verification string to compare, the permissions it gets, and the approval.
 function approveBlock(device) {
   const block = element("div", "device-approve");
-  block.append(element("p", "device-approve-title", "Pendiente de aprobación"));
+  block.append(element("p", "device-approve-title", t("devices.pending")));
   if (device.sas) block.append(element("p", "device-sas", groupSas(device.sas)), element("p", "agenda-row-meta", SAS_HINT));
   else block.append(element("p", "agenda-row-meta", NO_SAS_HINT));
 
@@ -186,18 +187,18 @@ function approveBlock(device) {
   block.append(
     group,
     confirmControl({
-      askLabel: "Aprobar",
+      askLabel: t("devices.perm_approve"),
       askClass: "btn secondary btn-small",
-      sendLabel: "Aprobar dispositivo",
+      sendLabel: t("devices.approve_device"),
       warning: APPROVE_WARNING,
       send: (confirm, problem) => {
         const permissions = checkedPermissions(group);
         if (!permissions.length) {
-          problem.textContent = "Marca al menos un permiso.";
+          problem.textContent = t("devices.pick_permission");
           problem.hidden = false;
           return;
         }
-        return runAction(device, confirm, problem, "devices_grant", { permissions }, "Dispositivo aprobado");
+        return runAction(device, confirm, problem, "devices_grant", { permissions }, t("devices.approved_done"));
       },
     }),
   );

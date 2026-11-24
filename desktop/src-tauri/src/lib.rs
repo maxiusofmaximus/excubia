@@ -27,7 +27,7 @@ use std::time::SystemTime;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
-use app_state::{lock, AppState};
+use app_state::AppState;
 
 pub fn run() {
     // WebView2 keeps cookies, storage and the mic permission in its own folder; move it too.
@@ -50,11 +50,9 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            // The local host starts on the first `bootstrap`, after the shell sent its language.
             let state = Arc::new(AppState::new(app.handle()));
             app.manage(state.clone());
-            if lock(&state.inner).config.local {
-                state.start_local_host(app.handle().clone());
-            }
             let handle = app.handle().clone();
             let registered = app.notification().on_action(move |performed| {
                 if performed.action_id() != "tap" {
@@ -95,6 +93,7 @@ pub fn run() {
             commands::send_keys,
             commands::mark_seen,
             commands::set_notifications,
+            commands::set_ui_lang,
             commands::use_local_host,
             commands::use_remote_host,
             commands::restart_host,

@@ -6,17 +6,16 @@ import { DAYS } from "./calendar-recurrence-model.js";
 import { friendlyError } from "./friendly-error.js";
 import { BODY_MAX, TITLE_MAX, SECRET_TEXT, recipeFailureText } from "./recipe-model.js";
 import { planFailureText } from "./plan-model.js";
+import { t } from "./i18n.js";
 
 export const PLAN_STEP_LIMIT = 3;
 export const ACTIVE_LIMIT = 20;
 
-export const PC_OFF_NOTE =
-  "Se ejecuta con tu PC encendido.";
-export const PERMISSION_TEXT =
-  "Este dispositivo no tiene el permiso APPROVE: puedes ver las tareas, pero no cambiarlas ni lanzarlas.";
-export const PLAN_NEEDED_TEXT = "Este encargo es largo: antes de programarlo hay que aprobar un plan.";
-export const NO_PROJECTS_TEXT = "Aún no tienes proyectos";
-export const NO_PROJECTS_HELP = "Pídele a Alfred que cree un proyecto y vuelve aquí para programar la tarea.";
+export const PC_OFF_NOTE = t("agents.schedules_note");
+export const PERMISSION_TEXT = t("schedule.permission");
+export const PLAN_NEEDED_TEXT = t("schedule.plan_needed");
+export const NO_PROJECTS_TEXT = t("schedule.no_projects");
+export const NO_PROJECTS_HELP = t("schedule.no_projects_help");
 
 const lower = (text) => text.toLocaleLowerCase("es");
 
@@ -31,40 +30,38 @@ export function conversationChoices(conversations, projects) {
       return [chat.id, label];
     });
 }
-export const PLAN_EXTRA_TEXT =
-  "Un plan que toca correo o internet nunca se aprueba solo: lo confirmas tú en «Planes propuestos».";
-export const PLAN_NOT_APPROVED_TEXT =
-  "Ese plan no sirve para este encargo: tiene que estar aprobado, ser de esta conversación y no usarlo otro programado.";
-export const PLAN_EXPIRED_TEXT = "Cambiaste el texto: hay que aprobar un plan nuevo.";
-const ARCHIVED_TEXT = "Esta conversación está archivada. Desarchívala para programar tareas en ella.";
-const NOT_FOUND_TEXT = "Esa tarea ya no existe. Se quitará de la lista.";
+export const PLAN_EXTRA_TEXT = t("schedule.plan_extra");
+export const PLAN_NOT_APPROVED_TEXT = t("schedule.plan_not_approved");
+export const PLAN_EXPIRED_TEXT = t("schedule.plan_expired");
+const ARCHIVED_TEXT = t("schedule.archived");
+const NOT_FOUND_TEXT = t("schedule.not_found");
 
 export const KINDS = [
-  { value: "once", label: "Una vez" },
-  { value: "daily", label: "Cada día" },
-  { value: "weekly", label: "Cada semana" },
-  { value: "monthly", label: "Cada mes" },
+  { value: "once", label: t("schedule.kind_once") },
+  { value: "daily", label: t("schedule.kind_daily") },
+  { value: "weekly", label: t("schedule.kind_weekly") },
+  { value: "monthly", label: t("schedule.kind_monthly") },
 ];
 
-const MONTHS = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sept.", "oct.", "nov.", "dic."];
-const WEEKDAYS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MONTHS = Array.from({ length: 12 }, (_, i) => t(`schedule.month_${i + 1}`));
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) => t(`schedule.wd_${i}`));
 const RANK = { active: 0, paused: 1, done: 2 };
-const STATUS = { active: "Activa", paused: "En pausa", done: "Hecha" };
+const STATUS = { active: t("schedule.status_active"), paused: t("schedule.status_paused"), done: t("schedule.status_done") };
 const OUTCOME = {
-  started: "Se lanzó",
-  skipped_overlap: "Omitida: ya hay una en marcha",
-  skipped_cap: "Omitida: tope de ejecuciones",
-  missed_offline: "Perdida: tu PC estaba apagado",
-  failed: "Falló",
+  started: t("schedule.outcome_started"),
+  skipped_overlap: t("schedule.outcome_overlap"),
+  skipped_cap: t("schedule.outcome_cap"),
+  missed_offline: t("schedule.outcome_offline"),
+  failed: t("schedule.outcome_failed"),
 };
 const REASON_TEXT = {
-  rule: "La repetición no es válida. Elige una de la lista.",
-  time: "La hora o la zona no son válidas.",
-  steps: "El número de pasos no es válido.",
-  recipe: "Esa receta ya no existe.",
-  title: "Ponle un título a la tarea.",
-  body: "Escribe el encargo.",
-  content: "Escribe el encargo.",
+  rule: t("schedule.reason_rule"),
+  time: t("schedule.reason_time"),
+  steps: t("schedule.reason_steps"),
+  recipe: t("schedule.reason_recipe"),
+  title: t("schedule.reason_title"),
+  body: t("schedule.reason_body"),
+  content: t("schedule.reason_body"),
 };
 
 // Characters, not UTF-16 units, as the rest of the app counts text.
@@ -75,7 +72,7 @@ export const outcomeLabel = (outcome) => OUTCOME[outcome] ?? "";
 
 function listWords(words) {
   if (words.length < 2) return words.join("");
-  return `${words.slice(0, -1).join(", ")} y ${words[words.length - 1]}`;
+  return `${words.slice(0, -1).join(", ")}${t("schedule.and")}${words[words.length - 1]}`;
 }
 
 // «9:00», «18:30»: the clock without its leading zero.
@@ -87,7 +84,7 @@ const clock = (time) => {
 // «12 de nov.», «1 de sept.»
 export function dateSentence(day) {
   const [, month, date] = day.split("-").map(Number);
-  return `${date} de ${MONTHS[month - 1]}`;
+  return t("schedule.date_sentence", { d: date, m: MONTHS[month - 1] });
 }
 
 // The rule the form means, as RFC 5545 for the host. A one-time task has none.
@@ -101,12 +98,12 @@ export function ruleFor({ kind, days }) {
 
 // The sentence of a schedule that the form and the list both read the same way.
 export function ruleSentence({ kind, startDate, time, days }) {
-  const at = `a las ${clock(time)}`;
-  if (kind === "once") return `El ${dateSentence(startDate)} ${at}`;
-  if (kind === "daily") return `Todos los días ${at}`;
-  if (kind === "monthly") return `El ${Number(startDate.slice(8, 10))} de cada mes ${at}`;
+  const at = t("schedule.at", { time: clock(time) });
+  if (kind === "once") return t("schedule.once", { date: dateSentence(startDate), at });
+  if (kind === "daily") return t("schedule.every_day", { at });
+  if (kind === "monthly") return t("schedule.monthly", { day: Number(startDate.slice(8, 10)), at });
   const names = DAYS.filter((day) => days.includes(day.code)).map((day) => day.name);
-  return names.length ? `Cada ${listWords(names)} ${at}` : `Cada semana ${at}`;
+  return names.length ? t("schedule.weekly", { days: listWords(names), at }) : t("schedule.weekly_empty", { at });
 }
 
 // The same sentence for a schedule the host sent, read back from its rule text.
@@ -158,12 +155,12 @@ function instantOf(day, time, zone) {
 
 function zoneProblem(zone) {
   const name = zone.trim();
-  if (!name) return "Escribe una zona, como Europe/Madrid.";
+  if (!name) return t("schedule.zone_empty");
   try {
     new Intl.DateTimeFormat("es", { timeZone: name });
     return null;
   } catch {
-    return "Esa zona no existe. Usa un nombre como Europe/Madrid.";
+    return t("schedule.zone_unknown");
   }
 }
 
@@ -180,24 +177,24 @@ function validDay(day) {
 // What is wrong with the form, field by field. An empty object means it can be sent.
 export function formProblems(form, nowMs) {
   const problems = {};
-  if (!form.title.trim()) problems.title = "Ponle un título a la tarea.";
-  else if (count(form.title.trim()) > TITLE_MAX) problems.title = `El título admite ${TITLE_MAX} caracteres como máximo.`;
+  if (!form.title.trim()) problems.title = t("schedule.reason_title");
+  else if (count(form.title.trim()) > TITLE_MAX) problems.title = t("schedule.title_too_long", { max: TITLE_MAX });
   if (form.source === "recipe") {
-    if (!form.recipeId) problems.recipe = "Elige una receta.";
+    if (!form.recipeId) problems.recipe = t("schedule.recipe_pick");
   } else if (!form.body.trim()) {
-    problems.body = "Escribe el encargo.";
+    problems.body = t("schedule.reason_body");
   } else if (count(form.body) > BODY_MAX) {
-    problems.body = `El encargo admite ${BODY_MAX} caracteres como máximo.`;
+    problems.body = t("schedule.body_too_long", { max: BODY_MAX });
   }
-  if (!form.conversationId) problems.conversation = "Elige una conversación con proyecto.";
-  if (!validDay(form.startDate)) problems.startDate = "Elige la fecha de inicio.";
-  if (!TIME_PATTERN.test(form.time)) problems.time = "Escribe la hora como 09:00.";
+  if (!form.conversationId) problems.conversation = t("schedule.conversation_pick");
+  if (!validDay(form.startDate)) problems.startDate = t("schedule.start_pick");
+  if (!TIME_PATTERN.test(form.time)) problems.time = t("schedule.time_format");
   const zone = zoneProblem(form.timezone);
   if (zone) problems.timezone = zone;
-  if (form.kind === "weekly" && form.days.length === 0) problems.days = "Elige al menos un día.";
+  if (form.kind === "weekly" && form.days.length === 0) problems.days = t("schedule.days_pick");
   if (form.kind === "once" && !problems.startDate && !problems.time && !zone) {
     if (instantOf(form.startDate, form.time, form.timezone) <= nowMs) {
-      problems.startDate = "Esa fecha y hora ya pasaron. Elige una futura.";
+      problems.startDate = t("schedule.past_time");
     }
   }
   return problems;
@@ -242,16 +239,16 @@ function zoneStamp(iso, zone) {
 }
 
 export function nextRunText(iso, zone) {
-  return iso ? zoneStamp(iso, zone) : "Sin próxima ejecución";
+  return iso ? zoneStamp(iso, zone) : t("schedule.no_next_run");
 }
 
 // A paused task never runs, so it shows no next run even when the host still sends one.
 export function scheduleNextText(item) {
-  return item.status === "paused" ? "en pausa" : nextRunText(item.next_run_at, item.timezone);
+  return item.status === "paused" ? t("schedule.next_paused") : nextRunText(item.next_run_at, item.timezone);
 }
 
 export function lastRunText(iso, zone) {
-  return iso ? zoneStamp(iso, zone) : "Todavía no se ha ejecutado";
+  return iso ? zoneStamp(iso, zone) : t("schedule.never_ran");
 }
 
 // Active first, then paused, then done; among the active, the soonest run first.
@@ -278,10 +275,10 @@ export function scheduleFailureText(error) {
 }
 
 function scheduleCodeText({ code, reason }) {
-  if (code === "invalid_schedule") return REASON_TEXT[reason] ?? "Revisa los datos de la tarea.";
-  if (code === "schedule_limit") return `Ya tienes ${ACTIVE_LIMIT} tareas activas. Pausa o borra una para programar otra.`;
-  if (code === "schedule_done") return "Esta tarea ya se hizo y no se puede cambiar.";
-  if (code === "schedule_no_future_run") return "Esa fecha y hora ya pasaron. Elige una futura.";
+  if (code === "invalid_schedule") return REASON_TEXT[reason] ?? t("schedule.reason_fallback");
+  if (code === "schedule_limit") return t("schedule.limit", { n: ACTIVE_LIMIT });
+  if (code === "schedule_done") return t("schedule.done");
+  if (code === "schedule_no_future_run") return t("schedule.past_time");
   if (code === "no_such_schedule") return NOT_FOUND_TEXT;
   return friendlyError({ kind: "scheduleRefused" });
 }

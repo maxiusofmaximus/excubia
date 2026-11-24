@@ -2,6 +2,7 @@
 // them. The host keeps instants in UTC; the screen shows and edits them in the company's
 // zone. Local limits mirror the host's; the host still has the last word.
 
+import { locale, t } from "./i18n.js";
 import { agendaErrorText, permissionText } from "./agenda-model.js";
 
 export const EVENT_LIMITS = { title: 120, location: 200, notesBytes: 4 * 1024 };
@@ -22,24 +23,24 @@ export const COMMON_ZONES = [
 ];
 
 const REMINDERS = [
-  { minutes: null, label: "Ninguno" },
-  { minutes: 5, label: "5 min antes" },
-  { minutes: 15, label: "15 min antes" },
-  { minutes: 30, label: "30 min antes" },
-  { minutes: 60, label: "60 min antes" },
-  { minutes: 1440, label: "1 día antes" },
+  { minutes: null, label: t("calendar.reminder_none") },
+  { minutes: 5, label: t("calendar.reminder_min", { n: 5 }) },
+  { minutes: 15, label: t("calendar.reminder_min", { n: 15 }) },
+  { minutes: 30, label: t("calendar.reminder_min", { n: 30 }) },
+  { minutes: 60, label: t("calendar.reminder_min", { n: 60 }) },
+  { minutes: 1440, label: t("calendar.reminder_day") },
 ];
 
 // The reminder the form offers, plus the one the event already has when the list lacks it.
 export function reminderChoices(current) {
   if (current === null || REMINDERS.some((choice) => choice.minutes === current)) return REMINDERS;
-  const extra = { minutes: current, label: `${current} min antes` };
+  const extra = { minutes: current, label: t("calendar.reminder_min", { n: current }) };
   return [...REMINDERS, extra].sort((a, b) => (a.minutes ?? -1) - (b.minutes ?? -1));
 }
 
 export function reminderLabel(minutes) {
   const choice = REMINDERS.find((entry) => entry.minutes === (minutes ?? null));
-  return choice ? choice.label : `${minutes} min antes`;
+  return choice ? choice.label : t("calendar.reminder_min", { n: minutes });
 }
 
 // A select holds text; «» is no reminder.
@@ -49,10 +50,10 @@ export function reminderFromSelect(text) {
 
 // The four ranges of the list. `days` is null for the calendar month.
 export const RANGES = [
-  { id: "day", label: "Hoy", days: 1 },
-  { id: "week", label: "7 días", days: 7 },
-  { id: "thirty", label: "30 días", days: 30 },
-  { id: "month", label: "Mes", days: null },
+  { id: "day", label: t("calendar.range_day"), days: 1 },
+  { id: "week", label: t("calendar.range_week"), days: 7 },
+  { id: "thirty", label: t("calendar.range_thirty"), days: 30 },
+  { id: "month", label: t("calendar.range_month"), days: null },
 ];
 
 const rangeOf = (id) => RANGES.find((range) => range.id === id);
@@ -129,9 +130,9 @@ export function shiftAnchor(id, anchor, step) {
   return addDays(anchor, step * rangeOf(id).days);
 }
 
-const shortDate = (day) => dayDate(day).toLocaleDateString("es-ES", { day: "numeric", month: "short", timeZone: "UTC" });
+const shortDate = (day) => dayDate(day).toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: "UTC" });
 const longDate = (day) =>
-  dayDate(day).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+  dayDate(day).toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 
 export function windowLabel({ from, to }) {
   const last = addDays(to, -1);
@@ -160,7 +161,7 @@ export function groupByDay(events, zone) {
 export function eventRow(event, zone) {
   return {
     id: event.id,
-    time: event.all_day ? "Todo el día" : localClock(occurrenceOf(event), zone),
+    time: event.all_day ? t("calendar.all_day") : localClock(occurrenceOf(event), zone),
     title: event.title,
     place: event.location || "",
     reminder: typeof event.reminder_minutes === "number",
@@ -171,19 +172,17 @@ export function eventRow(event, zone) {
 // The page after `page`: the host sends its cursor only while the page is truncated.
 export const nextCursor = (page) => (page.truncated ? page.next : null);
 
-export const emptyListText = (hasMore) =>
-  hasMore ? "Hay demasiados eventos en este periodo, acota las fechas." : "No hay eventos en este periodo.";
+export const emptyListText = (hasMore) => (hasMore ? t("calendar.empty_more") : t("calendar.empty_none"));
 
 // A series goes whole: its delete says so, since no single repetition can be removed.
-export const deleteQuestion = (event) =>
-  event.recurrence ? "Se borran todas las repeticiones. No se puede deshacer." : "Se borra para siempre. No se puede deshacer.";
+export const deleteQuestion = (event) => (event.recurrence ? t("calendar.delete_series") : t("calendar.delete_once"));
 
 // «29 oct, 09:30 – 10:00», «29 oct, 22:00 – 30 oct, 01:30», «29 oct – 31 oct» for whole days.
 export function whenText(event, zone) {
   const first = localDate(event.start_utc, zone);
   if (event.all_day) {
     const last = lastDay(event, zone);
-    return last > first ? `${shortDate(first)} – ${shortDate(last)}` : `${shortDate(first)}, todo el día`;
+    return last > first ? `${shortDate(first)} – ${shortDate(last)}` : t("calendar.when_all_day", { date: shortDate(first) });
   }
   const start = `${shortDate(first)}, ${localClock(event.start_utc, zone)}`;
   if (!event.end_utc) return start;
@@ -216,52 +215,52 @@ const TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 // The first problem of an event draft, or null. Times compare as text: both shapes sort right.
 export function eventProblem(draft) {
   const title = draft.title.trim();
-  if (!title) return problem("title", "Escribe un título.");
+  if (!title) return problem("title", t("calendar.title_required"));
   if ([...title].length > EVENT_LIMITS.title) {
-    return problem("title", `El título admite ${EVENT_LIMITS.title} caracteres como máximo.`);
+    return problem("title", t("calendar.title_too_long", { max: EVENT_LIMITS.title }));
   }
   const pattern = draft.all_day ? DAY_PATTERN : TIME_PATTERN;
   if (!pattern.test(draft.start)) {
-    return problem("start", draft.all_day ? "Elige el día." : "Elige la fecha y la hora.");
+    return problem("start", t(draft.all_day ? "calendar.start_day_required" : "calendar.start_required"));
   }
   if (draft.end !== null) {
     if (!pattern.test(draft.end)) {
-      return problem("end", draft.all_day ? "Elige el último día." : "Elige la fecha y la hora del fin.");
+      return problem("end", t(draft.all_day ? "calendar.end_day_required" : "calendar.end_required"));
     }
     const late = draft.all_day ? draft.end < draft.start : draft.end <= draft.start;
     if (late) {
-      return problem("end", draft.all_day ? "El último día no puede ser anterior al primero." : "El fin debe ser posterior al inicio.");
+      return problem("end", t(draft.all_day ? "calendar.end_day_order" : "calendar.end_order"));
     }
   }
   if ([...draft.location].length > EVENT_LIMITS.location) {
-    return problem("location", `El lugar admite ${EVENT_LIMITS.location} caracteres como máximo.`);
+    return problem("location", t("calendar.location_too_long", { max: EVENT_LIMITS.location }));
   }
   if (new TextEncoder().encode(draft.notes).length > EVENT_LIMITS.notesBytes) {
-    return problem("notes", "Las notas admiten 4 KiB como máximo.");
+    return problem("notes", t("calendar.notes_too_long"));
   }
   return null;
 }
 
 export function zoneProblem(name) {
-  return name.trim() ? null : "Escribe una zona, como Europe/Madrid.";
+  return name.trim() ? null : t("calendar.zone_required");
 }
 
 const CALENDAR_REFUSALS = {
-  timezone_unset: "Falta la zona horaria de la empresa. Fíjala antes de crear eventos.",
-  timezone_already_set: "La empresa ya tiene zona horaria y no se puede cambiar.",
-  invalid_zone: "Esa zona no existe. Usa un nombre como Europe/Madrid.",
-  invalid_local_time: "Esa hora no existe por el cambio de horario.",
-  unsupported_recurrence: "Esa repetición todavía no está soportada.",
-  invalid_recurrence: "La repetición no es válida.",
-  calendar_limit: `Ya tienes ${CALENDAR_LIMIT} eventos. Borra alguno antes de crear otro.`,
+  timezone_unset: t("calendar.err_timezone_unset"),
+  timezone_already_set: t("calendar.err_timezone_already_set"),
+  invalid_zone: t("calendar.zone_unknown"),
+  invalid_local_time: t("calendar.err_invalid_local_time"),
+  unsupported_recurrence: t("calendar.err_unsupported_recurrence"),
+  invalid_recurrence: t("calendar.err_invalid_recurrence"),
+  calendar_limit: t("calendar.err_calendar_limit", { n: CALENDAR_LIMIT }),
 };
 
 const FIELD_REFUSALS = {
-  start: "La fecha de inicio no es válida.",
-  end: "El fin no es válido: debe ser posterior al inicio.",
-  to: "El periodo no es válido.",
-  timezone: "Esa zona no existe. Usa un nombre como Europe/Madrid.",
-  recurrence: "La repetición no es válida.",
+  start: t("calendar.err_start_invalid"),
+  end: t("calendar.err_end_invalid"),
+  to: t("calendar.err_period_invalid"),
+  timezone: t("calendar.zone_unknown"),
+  recurrence: t("calendar.err_invalid_recurrence"),
 };
 
 // The operator's words for a failure of the calendar; the agenda's own for the rest.

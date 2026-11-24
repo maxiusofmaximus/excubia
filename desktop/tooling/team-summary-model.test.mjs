@@ -14,6 +14,7 @@ import {
   waitingText,
 } from "../ui/team-summary-model.js";
 import { OFFLINE_TEXT, REJECTED_TEXT } from "../ui/friendly-error.js";
+import { setLang } from "../ui/i18n.js";
 
 const NOW = Date.UTC(2026, 10, 5, 12, 0, 0);
 const MIN = 60_000;
@@ -111,4 +112,63 @@ test("un fallo de lectura usa las palabras del resto de la app: sin permiso espe
   assert.deepEqual(summaryFailure({ kind: "offline" }), { text: OFFLINE_TEXT, retry: true });
   assert.deepEqual(summaryFailure({ kind: "rejected" }), { text: REJECTED_TEXT, retry: true });
   assert.equal(summaryFailure(new Error("boom")).retry, true);
+});
+
+// A hired professional («hire_1», role «bob») and the Spanish headlines the host writes for the card.
+const team = {
+  hires: [{ id: "hire_1", role: "bob" }],
+  catalog: { roles: [{ id: "bob", name: "Bob", title: "Desarrollo de software" }] },
+};
+const HOST_HEADLINES = [
+  ["Espera tu visto bueno para ejecutar un comando", "Waiting for your OK to run a command"],
+  ["Espera tu visto bueno para usar internet", "Waiting for your OK to use the internet"],
+  ["Espera tu visto bueno para cambiar ficheros", "Waiting for your OK to change files"],
+  ["Espera tu visto bueno para usar una herramienta", "Waiting for your OK to use a tool"],
+  ["Espera tu visto bueno para un plan de 4 pasos", "Waiting for your OK on a 4-step plan"],
+  ["Espera tu visto bueno para un plan de 1 pasos", "Waiting for your OK on a 1-step plan"],
+  ["Trabajando desde hace 12 min", "Working for 12 min"],
+  ["Necesita ayuda", "Needs help"],
+  ["Terminó", "Done"],
+  ["Sin actividad", "Idle"],
+  // Not fixed headlines: kept exactly as the host sent them.
+  ["Espera tu visto bueno de la factura", "Espera tu visto bueno de la factura"],
+  ["Revisando el presupuesto", "Revisando el presupuesto"],
+];
+
+test("en: la tarjeta de un contratado sale en inglés: oficio por ID y titulares fijos traducidos", () => {
+  try {
+    setLang("en");
+    for (const [host, english] of HOST_HEADLINES) {
+      const view = memberView(member({ agent_id: "hire_1", status: "working", headline: host }), NOW, team);
+      assert.equal(view.role, "Software development", host);
+      assert.equal(view.headline, english, host);
+    }
+  } finally {
+    setLang("es");
+  }
+});
+
+test("en: un contratado o un oficio que no se conocen conservan el título del host", () => {
+  try {
+    setLang("en");
+    assert.equal(memberView(member({ agent_id: "hire_9" }), NOW, team).role, "Programador");
+    assert.equal(memberView(member({ agent_id: "hire_1" }), NOW).role, "Programador");
+    const unknownRole = { hires: [{ id: "hire_1", role: "sin_oficio" }], catalog: team.catalog };
+    assert.equal(memberView(member({ agent_id: "hire_1" }), NOW, unknownRole).role, "Programador");
+  } finally {
+    setLang("es");
+  }
+});
+
+test("es: la misma tarjeta muestra el texto del host, palabra por palabra", () => {
+  try {
+    setLang("es");
+    for (const [host] of HOST_HEADLINES) {
+      const view = memberView(member({ agent_id: "hire_1", status: "working", headline: host }), NOW, team);
+      assert.equal(view.role, "Desarrollo de software", host);
+      assert.equal(view.headline, host);
+    }
+  } finally {
+    setLang("es");
+  }
 });

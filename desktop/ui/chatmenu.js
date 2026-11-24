@@ -1,7 +1,9 @@
 // The conversation menu, the menu of several picked rows and the small dialogs (rename,
 // section, delete). The factory keeps the chat state in one place instead of importing it back.
 
+import { t } from "./i18n.js";
 import { $, invoke, toast } from "./core.js";
+import { conversationTitle } from "./chat-row-model.js";
 import {
   ARCHIVE_BATCH,
   ARCHIVE_PAUSE_MS,
@@ -47,17 +49,17 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
     const menu = $("chat-menu");
     menu.replaceChildren();
     menu.append(
-      menuItem(conversation.pinned ? "☆ Dejar de fijar" : "★ Fijar", "pin"),
-      menuItem("✎ Renombrar", "rename"),
-      menuItem("▸ Mover a sección…", "section"),
+      menuItem(conversation.pinned ? t("chatmenu.unpin") : t("chatmenu.pin"), "pin"),
+      menuItem(t("chatmenu.rename"), "rename"),
+      menuItem(t("chatmenu.section"), "section"),
     );
     menu.append(document.createElement("hr"));
     menu.append(
-      menuItem(conversation.archived ? "↩ Desarchivar" : "⧉ Archivar", "archive", {
+      menuItem(conversation.archived ? t("chatmenu.unarchive") : t("chatmenu.archive"), "archive", {
         danger: !conversation.archived,
       }),
-      menuItem("⊘ Cancelar las tareas en curso", "cancel-delegations", { danger: true }),
-      menuItem("🗑 Eliminar…", "delete", { danger: true }),
+      menuItem(t("chatmenu.cancel_delegations"), "cancel-delegations", { danger: true }),
+      menuItem(t("chatmenu.delete"), "delete", { danger: true }),
     );
     chat.menuFor = conversation;
     show(anchor.getBoundingClientRect());
@@ -75,12 +77,12 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
     menu.replaceChildren();
     menu.append(
       allArchived
-        ? menuItem(`↩ Desarchivar ${ids.length}`, "many-unarchive")
-        : menuItem(`⧉ Archivar ${ids.length}`, "many-archive"),
-      menuItem(`🗑 Eliminar ${ids.length}…`, "many-delete", { danger: true }),
+        ? menuItem(t("chatmenu.unarchive_many", { n: ids.length }), "many-unarchive")
+        : menuItem(t("chatmenu.archive_many", { n: ids.length }), "many-archive"),
+      menuItem(t("chatmenu.delete_many", { n: ids.length }), "many-delete", { danger: true }),
     );
     menu.append(document.createElement("hr"));
-    menu.append(menuItem("Quitar selección", "many-clear"));
+    menu.append(menuItem(t("chatmenu.clear_selection"), "many-clear"));
     menuIds = ids;
     chat.menuFor = null;
     show({ right: point.x, bottom: point.y });
@@ -112,7 +114,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
       await patch(
         conversation,
         { pinned: !conversation.pinned },
-        conversation.pinned ? "Conversación desfijada" : "Conversación fijada",
+        conversation.pinned ? t("chatmenu.unpinned") : t("chatmenu.pinned"),
       );
     } else if (action === "rename") {
       openRename(conversation);
@@ -122,7 +124,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
       await patch(
         conversation,
         { archived: !conversation.archived },
-        conversation.archived ? "Conversación desarchivada" : "Conversación archivada",
+        conversation.archived ? t("chatmenu.unarchived") : t("chatmenu.archived"),
       );
     } else if (action === "cancel-delegations") {
       $("delegation-kill").showModal();
@@ -136,10 +138,10 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
     deleting = ids;
     const only = ids.length === 1 ? picked(ids)[0] : null;
     $("chat-delete-title").textContent =
-      ids.length > 1 ? `¿Eliminar ${ids.length} conversaciones?` : "Eliminar conversación";
+      ids.length > 1 ? t("chatmenu.delete_title_many", { n: ids.length }) : t("chatdelete.title");
     $("chat-delete-lede").textContent = only
-      ? `«${only.title}» se borra para siempre, con sus mensajes y adjuntos. No se puede deshacer.`
-      : "Se borran para siempre, con sus mensajes y adjuntos. No se puede deshacer.";
+      ? t("chatmenu.delete_lede_named", { title: conversationTitle(only) })
+      : t("chatdelete.lede");
     $("chat-delete").showModal();
   }
 
@@ -179,11 +181,11 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
     else if (failed.length) {
       toast(
         failed.length === 1
-          ? "No se pudo eliminar 1: tiene trabajo en curso"
-          : `No se pudieron eliminar ${failed.length}: tienen trabajo en curso`,
+          ? t("chatmenu.delete_failed.one")
+          : t("chatmenu.delete_failed.other", { n: failed.length }),
       );
     } else if (deleted.size) {
-      toast(deleted.size === 1 ? "Conversación eliminada" : `${deleted.size} conversaciones eliminadas`);
+      toast(deleted.size === 1 ? t("chatmenu.deleted.one") : t("chatmenu.deleted.other", { n: deleted.size }));
     }
     await refresh();
     render();
@@ -198,7 +200,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
       render();
       return;
     }
-    if (targets.length > ARCHIVE_BATCH) toast(`Archivar en tandas: ${ARCHIVE_BATCH} cada minuto.`);
+    if (targets.length > ARCHIVE_BATCH) toast(t("chatmenu.archive_batches", { n: ARCHIVE_BATCH }));
     let done = 0;
     chat.bulkProgress = { done, total: targets.length, archived };
     render();
@@ -210,7 +212,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
     }
     chat.bulkProgress = null;
     render();
-    toast(archived ? `${done} archivadas` : `${done} desarchivadas`);
+    toast(archived ? t("chatmenu.archived_count", { n: done }) : t("chatmenu.unarchived_count", { n: done }));
   }
 
   function openRename(conversation) {
@@ -226,7 +228,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
     event.preventDefault();
     const title = $("chat-rename-input").value.trim();
     if (!title) {
-      $("chat-rename-error").textContent = "Escribe un título.";
+      $("chat-rename-error").textContent = t("chatmenu.title_required");
       $("chat-rename-error").classList.remove("hidden");
       return;
     }
@@ -236,7 +238,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
         )
       : null;
     $("chat-rename").close();
-    if (conversation) patch(conversation, { title }, "Título actualizado");
+    if (conversation) patch(conversation, { title }, t("chatmenu.title_saved"));
   }
 
   function fillSections(selected) {
@@ -244,7 +246,7 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
     select.replaceChildren();
     const none = document.createElement("option");
     none.value = "";
-    none.textContent = "— Elegir sección —";
+    none.textContent = t("chatmenu.pick_section");
     select.append(none);
     for (const section of chat.home ? chat.home.sections : []) {
       const option = document.createElement("option");
@@ -275,16 +277,16 @@ export function createChatMenu({ chat, render, patch, failure, refresh }) {
         chat.home.sections.push(section);
       }
       if (!sectionId) {
-        $("chat-section-error").textContent = "Elige una sección o escribe un nombre.";
+        $("chat-section-error").textContent = t("chatmenu.section_required");
         $("chat-section-error").classList.remove("hidden");
         return;
       }
       $("chat-section").close();
       if (chat.sectionFor) {
-        await patch(chat.sectionFor, { sectionId }, "Conversación movida de sección");
+        await patch(chat.sectionFor, { sectionId }, t("chatmenu.section_moved"));
       } else {
         render();
-        toast("Sección creada");
+        toast(t("chatmenu.section_created"));
       }
     } catch (error) {
       $("chat-section-error").textContent = failure(error).message;

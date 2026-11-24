@@ -387,3 +387,8 @@ summary:focus-visible {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ui/lang-boot.js hides the static Spanish markup for an English start until i18n.applyDom runs. */
+html.i18n-pending body {
+  visibility: hidden;
+}

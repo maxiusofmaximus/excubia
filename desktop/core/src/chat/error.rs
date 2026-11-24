@@ -13,6 +13,7 @@ use super::restore::restore_refusal;
 use super::schedule::schedule_refusal;
 use crate::client::status_error;
 use crate::error::{CoreError, WriteAction};
+use crate::ui_lang::{self, pick};
 
 pub type ChatResult<T> = Result<T, ChatFailure>;
 
@@ -158,22 +159,22 @@ impl ChatFailure {
             let code = code.as_deref();
             return match status {
                 404 => ChatFailure::NotFound {
-                    message: "Esa conversación ya no existe en el host.".to_string(),
+                    message: pick("Esa conversación ya no existe en el host.", "That conversation no longer exists on the host.").to_string(),
                 },
                 409 => match code.unwrap_or(message).trim() {
                     "seat_unavailable" => ChatFailure::SeatUnavailable {
-                        message: "El host no encuentra un CLI con MCP. El historial se conserva y no se perdió ningún mensaje."
+                        message: pick("El host no encuentra un CLI con MCP. El historial se conserva y no se perdió ningún mensaje.", "The host cannot find a CLI with MCP. The history is kept and no message was lost.")
                             .to_string(),
-                        action: "Revisa el motor y el CLI en el equipo del host.".to_string(),
+                        action: pick("Revisa el motor y el CLI en el equipo del host.", "Check the engine and the CLI on the host PC.").to_string(),
                     },
                     "agent_busy" => ChatFailure::AgentBusy {
-                        message: "Tu mensaje no se envió. Reinténtalo cuando termine el turno actual."
+                        message: pick("Tu mensaje no se envió. Reinténtalo cuando termine el turno actual.", "Your message was not sent. Try again when the current turn finishes.")
                             .to_string(),
                         retry_after_secs: None,
                         status: *status,
                     },
                     "conversation_archived" => ChatFailure::Archived {
-                        message: "Esta conversación está archivada. Desarchívala para escribir."
+                        message: pick("Esta conversación está archivada. Desarchívala para escribir.", "This conversation is archived. Unarchive it to write.")
                             .to_string(),
                     },
                     other if delegation_text(other).is_some() => ChatFailure::DelegationRefused {
@@ -182,12 +183,12 @@ impl ChatFailure {
                         status: *status,
                     },
                     other => ChatFailure::Host {
-                        message: format!("El host rechazó la petición: {other}"),
+                        message: host_rejected(other),
                         status: *status,
                     },
                 },
                 422 if code == Some("unknown_reply_to") => ChatFailure::UnknownReplyTo {
-                    message: "Ese mensaje ya no está en la conversación.".to_string(),
+                    message: pick("Ese mensaje ya no está en la conversación.", "That message is no longer in the conversation.").to_string(),
                 },
                 422 => {
                     let info = error.describe(action);
@@ -197,7 +198,7 @@ impl ChatFailure {
                     }
                 }
                 429 => ChatFailure::AgentBusy {
-                    message: "El host está limitando las peticiones. Espera y reinténtalo."
+                    message: pick("El host está limitando las peticiones. Espera y reinténtalo.", "The host is limiting requests. Wait and try again.")
                         .to_string(),
                     retry_after_secs: None,
                     status: *status,
@@ -224,14 +225,14 @@ impl ChatFailure {
                 }
             }
             CoreError::Transport(_) => ChatFailure::Offline {
-                message: "Sin conexión con el host. Lo cargado sigue siendo legible.".to_string(),
+                message: pick("Sin conexión con el host. Lo cargado sigue siendo legible.", "No connection to the host. What is loaded is still readable.").to_string(),
             },
             CoreError::InvalidInput(message) => ChatFailure::Invalid {
                 message: message.clone(),
                 field: None,
             },
             other => ChatFailure::Protocol {
-                message: other.to_string(),
+                message: other.describe(action).text(),
             },
         }
     }
@@ -300,31 +301,31 @@ pub(super) fn status_failure(
     }
     if status == StatusCode::TOO_MANY_REQUESTS {
         return ChatFailure::AgentBusy {
-            message: "El host está limitando las peticiones. Tu mensaje no se envió.".to_string(),
+            message: pick("El host está limitando las peticiones. Tu mensaje no se envió.", "The host is limiting requests. Your message was not sent.").to_string(),
             retry_after_secs,
             status: status.as_u16(),
         };
     }
     if status == StatusCode::NOT_FOUND && detail.as_deref() == Some("no_such_delegation") {
         return ChatFailure::NotFound {
-            message: "Esa delegación ya no existe en el host.".to_string(),
+            message: pick("Esa delegación ya no existe en el host.", "That delegation no longer exists on the host.").to_string(),
         };
     }
     if status == StatusCode::CONFLICT {
         return match detail.as_deref().unwrap_or("") {
             "seat_unavailable" => ChatFailure::SeatUnavailable {
-                message: "El host no encuentra un CLI con MCP. El historial se conserva y no se perdió ningún mensaje."
+                message: pick("El host no encuentra un CLI con MCP. El historial se conserva y no se perdió ningún mensaje.", "The host cannot find a CLI with MCP. The history is kept and no message was lost.")
                     .to_string(),
-                action: "Revisa el motor y el CLI en el equipo del host.".to_string(),
+                action: pick("Revisa el motor y el CLI en el equipo del host.", "Check the engine and the CLI on the host PC.").to_string(),
             },
             "agent_busy" => ChatFailure::AgentBusy {
-                message: "Tu mensaje no se envió. Reinténtalo cuando termine el turno actual."
+                message: pick("Tu mensaje no se envió. Reinténtalo cuando termine el turno actual.", "Your message was not sent. Try again when the current turn finishes.")
                     .to_string(),
                 retry_after_secs,
                 status: status.as_u16(),
             },
             "conversation_archived" => ChatFailure::Archived {
-                message: "Esta conversación está archivada. Desarchívala para escribir.".to_string(),
+                message: pick("Esta conversación está archivada. Desarchívala para escribir.", "This conversation is archived. Unarchive it to write.").to_string(),
             },
             code if delegation_text(code).is_some() => ChatFailure::DelegationRefused {
                 code: code.to_string(),
@@ -359,19 +360,31 @@ pub(super) fn detail_code(body: &[u8]) -> Option<String> {
 fn error_message(body: &[u8]) -> String {
     let value: Value = serde_json::from_slice(body).ok().unwrap_or(Value::Null);
     match value.get("detail") {
-        Some(Value::String(text)) => format!("El host rechazó la petición: {text}"),
+        Some(Value::String(text)) => host_rejected(text),
         Some(Value::Object(fields)) => fields
             .get("message")
             .and_then(Value::as_str)
-            .map(|text| format!("El host rechazó la petición: {text}"))
-            .unwrap_or_else(|| "El host rechazó la petición.".to_string()),
-        _ => "El host rechazó la petición.".to_string(),
+            .map(|text| host_rejected(text))
+            .unwrap_or_else(|| pick("El host rechazó la petición.", "The host rejected the request.").to_string()),
+        _ => pick("El host rechazó la petición.", "The host rejected the request.").to_string(),
     }
 }
 
 pub(crate) fn protocol(error: impl std::fmt::Display) -> ChatFailure {
-    ChatFailure::Protocol {
-        message: format!("respuesta inesperada del host: {error}"),
+    let message = if ui_lang::current().is_en() {
+        format!("unexpected reply from the host: {error}")
+    } else {
+        format!("respuesta inesperada del host: {error}")
+    };
+    ChatFailure::Protocol { message }
+}
+
+/// The host refused a request with no typed rule of its own; its text follows.
+fn host_rejected(detail: &str) -> String {
+    if ui_lang::current().is_en() {
+        format!("The host rejected the request: {detail}")
+    } else {
+        format!("El host rechazó la petición: {detail}")
     }
 }
 
@@ -392,6 +405,17 @@ mod tests {
                 assert!(message.contains("Otro dispositivo"));
             }
             other => panic!("se esperaba ApprovalConflict, llegó {other:?}"),
+        }
+    }
+
+    #[test]
+    fn an_unexpected_reply_is_worded_in_the_shell_language_not_as_a_debug_string() {
+        // The default language is Spanish; this only reads it, never sets it.
+        match ChatFailure::from_core(&CoreError::Protocol("x".to_string()), false) {
+            ChatFailure::Protocol { message } => {
+                assert_eq!(message, "Respuesta inesperada del PC: x")
+            }
+            other => panic!("se esperaba Protocol, llegó {other:?}"),
         }
     }
 

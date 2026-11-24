@@ -22,6 +22,8 @@ import {
   scheduleFailureText,
   stepCount,
 } from "./schedule-model.js";
+import { t } from "./i18n.js";
+import { roleLabel } from "./catalog-labels.js";
 
 // Which control each problem marks. A problem with no control (the plan) is only listed.
 const FIELD_IDS = {
@@ -129,7 +131,7 @@ function fill(initial) {
 
 // Fills a select with its choices; a value that is no longer among them stays, labelled as gone.
 function choose(select, pairs, selected, placeholder) {
-  const shown = !selected || pairs.some(([value]) => value === selected) ? pairs : [...pairs, [selected, "Ya no disponible"]];
+  const shown = !selected || pairs.some(([value]) => value === selected) ? pairs : [...pairs, [selected, t("schedule.gone")]];
   const first = placeholder ? [new Option(placeholder, "")] : [];
   select.replaceChildren(...first, ...shown.map(([value, label]) => new Option(label, value)));
   select.value = selected ?? "";
@@ -151,8 +153,8 @@ function showProblems(problems) {
 }
 
 function paintSteps(form) {
-  const plural = form.steps === 1 ? "paso" : "pasos";
-  $("schedule-steps").textContent = `${form.steps} ${plural}`;
+  $("schedule-steps").textContent =
+    form.steps === 1 ? t("schedule.steps_one") : t("schedule.steps_other", { n: form.steps });
   $("schedule-plan-wrap").hidden = !needsPlan(form.steps);
 }
 
@@ -189,7 +191,7 @@ async function loadRecipes(role, selected) {
   const current = view;
   const recipes = view.recipes;
   if (!role) {
-    choose($("schedule-recipe"), [], "", "Elige una receta");
+    choose($("schedule-recipe"), [], "", t("schedule.pick_recipe"));
     return paint();
   }
   try {
@@ -199,7 +201,7 @@ async function loadRecipes(role, selected) {
       $("schedule-recipe"),
       recipes.get(role).map((recipe) => [recipe.id, recipe.title]),
       selected,
-      "Elige una receta",
+      t("schedule.pick_recipe"),
     );
   } catch (error) {
     if (view === current) showNotice(scheduleFailureText(error));
@@ -218,13 +220,13 @@ async function loadChoices(initial) {
       invoke("plans"),
     ]);
     if (view !== current) return;
-    const titles = new Map(catalog.roles.map((role) => [role.id, role.title]));
+    const titles = new Map(catalog.roles.map((role) => [role.id, roleLabel(role)]));
     const oficios = new Map();
     for (const hire of activeHires(team.hires)) {
-      if (!oficios.has(hire.role)) oficios.set(hire.role, `${hire.name} · ${titles.get(hire.role) ?? "Oficio"}`);
+      if (!oficios.has(hire.role)) oficios.set(hire.role, `${hire.name} · ${titles.get(hire.role) ?? t("schedule.role_fallback")}`);
     }
     const role = initial.role || (oficios.keys().next().value ?? "");
-    choose($("schedule-role"), [...oficios], role, "Elige un oficio");
+    choose($("schedule-role"), [...oficios], role, t("schedule.pick_role"));
     const chats = conversationChoices(home.conversations, home.bootstrap.projects);
     view.noProjects = chats.length === 0;
     $("schedule-conversation-hint").textContent = view.noProjects ? NO_PROJECTS_HELP : "";
@@ -232,10 +234,10 @@ async function loadChoices(initial) {
       $("schedule-conversation"),
       chats,
       initial.conversationId,
-      view.noProjects ? NO_PROJECTS_TEXT : "Elige una conversación con proyecto",
+      view.noProjects ? NO_PROJECTS_TEXT : t("schedule.pick_conversation"),
     );
     const approved = plans.filter((plan) => plan.status === "approved").map((plan) => [plan.id, plan.summary]);
-    choose($("schedule-plan"), approved, initial.planId, approved.length ? "Elige un plan aprobado" : "No hay planes aprobados");
+    choose($("schedule-plan"), approved, initial.planId, approved.length ? t("schedule.pick_plan") : t("schedule.no_plans"));
     view.ready = true;
     paint();
     await loadRecipes(role, initial.recipeId);
@@ -259,7 +261,7 @@ async function submit(event) {
   if (!view?.ready) return;
   const form = readForm();
   const problems = formProblems(form, Date.now());
-  if (!form.role) problems.role = "Elige un oficio del equipo.";
+  if (!form.role) problems.role = t("schedule.pick_role_required");
   if (needsPlan(form.steps) && !form.planId) problems.plan = PLAN_NEEDED_TEXT;
   if (Object.keys(problems).length) {
     showNotice(null);
@@ -269,7 +271,7 @@ async function submit(event) {
   const { schedule, onSaved } = view;
   const draft = payloadOf(form);
   view.busy = true;
-  setBusy($("schedule-save"), true, "Guardando…");
+  setBusy($("schedule-save"), true, t("schedule.saving"));
   paint();
   try {
     const saved = schedule
@@ -324,7 +326,7 @@ export function openScheduleEditor({ schedule, onSaved }) {
   wire();
   const initial = initialOf(schedule);
   view = { schedule, onSaved, ready: false, locked: false, busy: false, noProjects: false, recipes: new Map() };
-  $("schedule-editor-title").textContent = schedule ? "Editar tarea" : "Programar una tarea";
+  $("schedule-editor-title").textContent = schedule ? t("schedule.edit_title") : t("schedule.new_title");
   setBusy($("schedule-save"), false);
   fill(initial);
   showNotice(null);

@@ -6,7 +6,6 @@ import {
   canApproveMove,
   canAlwaysAllow,
   canApproveTask,
-  cardCommand,
   commandText,
   conversationContext,
   conversationProject,
@@ -213,12 +212,12 @@ test("a simple delete names its files from the command: two at most, then how ma
   assert.deepEqual(detailFacts({ ...bob, payload_redacted: { command: "rm README.md" } }).shown, []);
 });
 
-test("a delete the title cannot name says so, and its whole command stays on the card", () => {
+test("a delete the title cannot name says so, and its whole command sits under «Detalles técnicos»", () => {
   const bob = { seat_id: "ag_bob", tool: "Bash", headline: "Limpiar la carpeta" };
   for (const command of ["rm -rf *", "rm -rf", "rm -rf .", "echo $(rm x.txt)", "if test -f x; then rm x.txt; fi"]) {
     const entry = { ...bob, payload_redacted: { command } };
     assert.equal(humanHeadline(entry), "Bob quiere borrar archivos", command);
-    assert.equal(cardCommand(entry), command, command);
+    assert.equal(detailFacts(entry).technical[0][1], command, command);
   }
   assert.equal(humanHeadline({ ...bob, payload_redacted: { command: "pwd && ls -la" } }), "Bob quiere mirar el proyecto");
 });
@@ -236,8 +235,8 @@ test("a compound command names the simple delete and says other commands run too
   assert.equal(titled("pwd && rm x.txt"), "Bob quiere borrar «x.txt»");
   assert.equal(titled("rm a.txt || echo no"), "Bob quiere borrar «a.txt»");
   assert.equal(titled("cat README.md && rm README.md"), "Bob quiere borrar «README.md»");
-  // The card shows the whole command, so the title's «y ejecutar más comandos» is never the only trace.
-  assert.equal(cardCommand({ ...bob, payload_redacted: { command: exact } }), exact);
+  // The technical level shows the whole command, so the title's «y ejecutar más comandos» is never the only trace.
+  assert.equal(detailFacts({ ...bob, payload_redacted: { command: exact } }).technical[0][1], exact);
 });
 
 test("a look names the one file it reads, or the project; a write or a run never looks like one", () => {
@@ -298,11 +297,21 @@ test("a timeline line never shows the tool's name: it names the action its card 
   rememberAction({ id: "apr_line_2", tool: "Bash", seat_id: "ag_bob", payload_redacted: { command: "rm README.md" } });
   assert.equal(lineSummary("Pendiente: command Bash", "apr_line_2"), "");
   assert.equal(lineSummary("Operador denegó: command Bash", "apr_line_2"), "Denegaste: borrar «README.md»");
-  assert.equal(lineSummary("Operador aprobó: command Bash", "apr_line_2"), "Aprobaste: borrar «README.md»");
+  assert.equal(lineSummary("Operador aprobó: command Bash", "apr_line_2"), "Aprobado: borrar «README.md»");
   assert.equal(lineSummary("Host expiró: command Bash", "apr_line_2"), "Caducó sin respuesta: borrar «README.md»");
   // A sentence the host wrote without a tool name stays as it is.
   assert.equal(lineSummary("Caducó sin respuesta", "apr_line_2"), "Caducó sin respuesta");
   assert.equal(lineSummary("", "apr_line_2"), "");
+});
+
+test("an approval line says «Aprobado» and what it was; the tool's name («edit Write») never reaches the thread", () => {
+  rememberAction({ id: "apr_write_1", tool: "Write", seat_id: "ag_bob", paths: ["C:/x/permisos-p6.txt"] });
+  assert.equal(lineSummary("Operador aprobó: edit Write", "apr_write_1"), "Aprobado: guardar «permisos-p6.txt»");
+  rememberAction({ id: "apr_shell_1", tool: "PowerShell", seat_id: "ag_bob", payload_redacted: { command: "Get-Date" } });
+  assert.equal(lineSummary("Operador aprobó: command PowerShell", "apr_shell_1"), "Aprobado: ejecutar un comando");
+  // Without the card's phrase, the line says only «Aprobado».
+  assert.equal(lineSummary("Operador aprobó: edit Write", "apr_never_seen"), "Aprobado");
+  assert.equal(lineSummary("Operador aprobó: command Bash", "apr_never_seen"), "Aprobado");
 });
 
 test("a denial its card already settles is not said twice on the timeline", () => {
@@ -531,7 +540,7 @@ test("a web search says what it looks for, a page says its address; without the 
   const fetch = { ...bob, tool: "WebFetch", summary: "Abrir página: https://example.com/guia" };
   assert.equal(humanHeadline(fetch), "Bob quiere abrir una página: https://example.com/guia");
   assert.equal(humanHeadline({ ...bob, tool: "WebFetch" }), "Bob quiere usar una herramienta");
-  assert.equal(cardCommand(search), "");
+  assert.equal(detailFacts(search).technical.some(([label]) => label === "Comando"), false, "a search runs no command");
 });
 
 test("the strip counts the open conversation's requests and those with none, never another's", () => {
@@ -548,41 +557,55 @@ test("a request waits only while pending and not answered here", () => {
   assert.equal(isPendingHere({ id: "apr_strip_3", status: "pending" }), false);
 });
 
-test("a shell request uses the agent's headline, except a delete, which is named from the command", () => {
+test("a shell request says «ejecutar un comando», except a delete or a look, which are named from the command", () => {
   const shell = { tool: "Bash", agent_label: "Ernesto", headline: "Crear redi-uno.txt con el texto uno", summary: "printf 'uno' > redi-uno.txt" };
-  assert.match(humanHeadline(shell), /quiere crear redi-uno\.txt con el texto uno$/);
+  assert.equal(humanHeadline(shell), "Ernesto quiere ejecutar un comando");
   const lie = { ...shell, summary: "rm -rf README.md", paths: ["C:/x/README.md"] };
   assert.match(humanHeadline(lie), /quiere borrar «README\.md»$/);
 });
 
-test("an English headline from the agent never reaches the card or its line: its verb and file name the action", () => {
+test("an agent's headline never names a shell request: the card says «ejecutar un comando», its English sentence stays under the details", () => {
   const write = { tool: "Bash", agent_label: "Ernesto", headline: 'create redi-ocho.txt with text "uno" and verify', summary: "" };
-  assert.equal(humanHeadline(write), "Ernesto quiere guardar «redi-ocho.txt»");
-  assert.equal(settledLine("approved", { ...write, scope: "once" }), "✓ Permitido · guardar «redi-ocho.txt»");
+  assert.equal(humanHeadline(write), "Ernesto quiere ejecutar un comando");
+  assert.equal(settledLine("approved", { ...write, scope: "once" }), "✓ Permitido · ejecutar un comando");
   assert.equal(detailFacts(write).technical[0][1], 'create redi-ocho.txt with text "uno" and verify');
   const run = { tool: "Bash", agent_label: "Ernesto", headline: "run the test suite", summary: "" };
   assert.equal(humanHeadline(run), "Ernesto quiere ejecutar un comando");
-  assert.equal(humanHeadline({ ...run, paths: ["C:/p/build.log"] }), "Ernesto quiere ejecutar «build.log»");
+  assert.equal(humanHeadline({ ...run, paths: ["C:/p/build.log"] }), "Ernesto quiere ejecutar un comando");
+  assert.equal(humanHeadline({ ...run, headline: "Ejecutar las pruebas" }), "Ernesto quiere ejecutar un comando");
+  // A headline that says delete keeps «borrar», even when the command does not show it.
   assert.equal(humanHeadline({ ...run, headline: "delete old notes", paths: ["C:/p/a.txt"] }), "Ernesto quiere borrar «a.txt»");
-  assert.equal(humanHeadline({ ...run, headline: "Ejecutar las pruebas" }), "Ernesto quiere ejecutar las pruebas");
+  assert.equal(humanHeadline({ ...run, headline: "remove the cache" }), "Ernesto quiere borrar archivos");
   // An English sentence that opens with no known verb is still English.
   const odd = { ...run, headline: "read-only check of workspaces and search for bench-proj" };
   assert.equal(humanHeadline(odd), "Ernesto quiere ejecutar un comando");
-  assert.equal(humanHeadline({ ...odd, paths: ["C:/p/a.txt"] }), "Ernesto quiere ejecutar «a.txt»");
+  assert.equal(humanHeadline({ ...odd, paths: ["C:/p/a.txt"] }), "Ernesto quiere ejecutar un comando");
 });
 
-test("a look keeps its command under «Detalles técnicos», first; a risky or branch-changing line is no look", () => {
+test("every shell command sits under «Detalles técnicos», first, look or not; a risky or branch-changing line is no look", () => {
   const command = 'pwd && echo "--- LS ---" && ls -la && git branch --show-current && git status --short --branch && git log --oneline -n 5';
   const ernesto = { tool: "Bash", agent_label: "Ernesto", cwd: "C:/p/bench", risk: "low", payload_redacted: { command } };
   assert.equal(humanHeadline(ernesto), "Ernesto quiere mirar el proyecto");
   assert.equal(riskNote(ernesto), "");
-  assert.equal(cardCommand(ernesto), "");
   assert.deepEqual(detailFacts(ernesto).technical[0], ["Comando", command]);
   const high = { ...ernesto, risk: "high" };
   assert.equal(humanHeadline(high), "Ernesto quiere ejecutar un comando");
   assert.equal(riskNote(high), "Puede cambiar o borrar archivos.");
-  assert.equal(cardCommand(high), command);
-  assert.equal(detailFacts(high).technical.some(([label]) => label === "Comando"), false);
+  assert.deepEqual(detailFacts(high).technical[0], ["Comando", command]);
+});
+
+test("a PowerShell command's card says «ejecutar un comando», never «guardar»; a Write still says «guardar»", () => {
+  const write = { tool: "Write", agent_label: "Ernesto", paths: ["C:/p/comando-p8.txt"] };
+  assert.equal(humanHeadline(write), "Ernesto quiere guardar «comando-p8.txt»");
+  const shell = {
+    tool: "PowerShell",
+    agent_label: "Ernesto",
+    headline: "create comando-p8.txt with text hola",
+    paths: ["C:/p/comando-p8.txt"],
+    payload_redacted: { command: "Set-Content -Path C:\\p\\comando-p8.txt -Value hola" },
+  };
+  assert.equal(humanHeadline(shell), "Ernesto quiere ejecutar un comando");
+  assert.equal(settledLine("approved", { ...shell, scope: "once" }), "✓ Permitido · ejecutar un comando");
 });
 
 test("«git branch» is a look only when it lists; a name or a delete flag changes branches", () => {

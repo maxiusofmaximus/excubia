@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use excubia_desktop_core::chat::ChatEvent;
 use excubia_desktop_core::state::StateSnapshot;
 use excubia_desktop_core::stream::{run_event_loop, ConnectionStatus, EventSink, StreamOptions};
-use excubia_desktop_core::TransitionTracker;
+use excubia_desktop_core::{TransitionTracker, WriteAction};
 use tauri::{AppHandle, Emitter};
 use tokio_util::sync::CancellationToken;
 
@@ -23,12 +23,16 @@ impl AppState {
             !inner.config.local || inner.runtime_url.is_some()
         };
         if !local_ready {
-            return Err("el host local todavía está arrancando".to_string());
+            return Err(excubia_desktop_core::ui_lang::pick(
+                "el host local todavía está arrancando",
+                "the local host is still starting",
+            )
+            .to_string());
         }
         let client = self
             .settings()?
             .client()
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| error.describe(WriteAction::Read).text())?;
         let cancel = CancellationToken::new();
         if let Some(previous) = lock(&self.cancel).replace(cancel.clone()) {
             previous.cancel();

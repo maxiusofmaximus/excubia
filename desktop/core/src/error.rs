@@ -2,6 +2,7 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::transport::tls_failure;
+use crate::ui_lang::{self, UiLang};
 
 mod host;
 #[cfg(test)]
@@ -122,61 +123,125 @@ impl CoreError {
         }
     }
 
+    /// The operator's words for this failure, in the shell's current language.
     pub fn describe(&self, action: WriteAction) -> ErrorInfo {
+        self.describe_in(action, ui_lang::current())
+    }
+
+    pub fn describe_in(&self, action: WriteAction, lang: UiLang) -> ErrorInfo {
         match self {
             CoreError::Unauthorized => ErrorInfo {
-                message: "El PC ya no confía en este dispositivo.".to_string(),
-                action: Some("Vuelve a emparejarlo desde Avanzado.".to_string()),
+                message: lang
+                    .pick(
+                        "El PC ya no confía en este dispositivo.",
+                        "The PC no longer trusts this device.",
+                    )
+                    .to_string(),
+                action: Some(
+                    lang.pick(
+                        "Vuelve a emparejarlo desde Avanzado.",
+                        "Pair it again from Advanced.",
+                    )
+                    .to_string(),
+                ),
             },
-            CoreError::Forbidden => forbidden_info(action),
+            CoreError::Forbidden => forbidden_info(action, lang),
             CoreError::Status {
                 status: 422, field, ..
-            } => invalid_field_info(field.as_deref()),
+            } => invalid_field_info(field.as_deref(), lang),
             CoreError::Status {
                 status: 409,
                 message,
                 ..
             } => match action {
-                WriteAction::CreateWorkspace => create_refused_info(message),
-                WriteAction::Stop => stop_refused_info(message),
-                _ => refusal_info(message),
+                WriteAction::CreateWorkspace => create_refused_info(message, lang),
+                WriteAction::Stop => stop_refused_info(message, lang),
+                _ => refusal_info(message, lang),
             },
             CoreError::Status { status: 429, .. } => ErrorInfo {
-                message: "El PC está limitando las peticiones.".to_string(),
-                action: Some("Espera unos segundos y vuelve a intentarlo.".to_string()),
+                message: lang
+                    .pick(
+                        "El PC está limitando las peticiones.",
+                        "The PC is limiting requests.",
+                    )
+                    .to_string(),
+                action: Some(
+                    lang.pick(
+                        "Espera unos segundos y vuelve a intentarlo.",
+                        "Wait a few seconds and try again.",
+                    )
+                    .to_string(),
+                ),
             },
             CoreError::Status {
                 status: 400,
                 code,
                 message,
                 ..
-            } => bad_request_info(code.as_deref(), message),
+            } => bad_request_info(code.as_deref(), message, lang),
             CoreError::Status { status: 413, .. } => ErrorInfo {
-                message: "El mensaje es demasiado largo para el PC.".to_string(),
-                action: Some("Acórtalo y vuelve a intentarlo.".to_string()),
+                message: lang
+                    .pick(
+                        "El mensaje es demasiado largo para el PC.",
+                        "The message is too long for the PC.",
+                    )
+                    .to_string(),
+                action: Some(
+                    lang.pick(
+                        "Acórtalo y vuelve a intentarlo.",
+                        "Shorten it and try again.",
+                    )
+                    .to_string(),
+                ),
             },
             CoreError::Status {
                 status, message, ..
             } if *status >= 500 => ErrorInfo {
-                message: format!("El PC tuvo un fallo interno ({status}: {message})."),
-                action: Some("Vuelve a intentarlo en unos segundos.".to_string()),
+                message: if lang.is_en() {
+                    format!("The PC had an internal failure ({status}: {message}).")
+                } else {
+                    format!("El PC tuvo un fallo interno ({status}: {message}).")
+                },
+                action: Some(
+                    lang.pick(
+                        "Vuelve a intentarlo en unos segundos.",
+                        "Try again in a few seconds.",
+                    )
+                    .to_string(),
+                ),
             },
             CoreError::Status {
                 status, message, ..
             } => ErrorInfo {
-                message: format!("El PC respondió {status}: {message}"),
-                action: Some("Vuelve a intentarlo.".to_string()),
+                message: if lang.is_en() {
+                    format!("The PC responded {status}: {message}")
+                } else {
+                    format!("El PC respondió {status}: {message}")
+                },
+                action: Some(lang.pick("Vuelve a intentarlo.", "Try again.").to_string()),
             },
             CoreError::Transport(_) => ErrorInfo {
-                message: "Sin conexión con el PC.".to_string(),
-                action: Some("Comprueba la red y vuelve a intentarlo.".to_string()),
+                message: lang
+                    .pick("Sin conexión con el PC.", "No connection to the PC.")
+                    .to_string(),
+                action: Some(
+                    lang.pick(
+                        "Comprueba la red y vuelve a intentarlo.",
+                        "Check the network and try again.",
+                    )
+                    .to_string(),
+                ),
             },
             CoreError::PairingRejected(message) => ErrorInfo {
                 message: message.clone(),
                 action: None,
             },
             CoreError::Protocol(message) => ErrorInfo {
-                message: format!("Respuesta inesperada del PC: {message}"),
+                message: if lang.is_en() {
+                    format!("Unexpected reply from the PC: {message}")
+                } else {
+                    format!("Respuesta inesperada del PC: {message}")
+                },
                 action: None,
             },
             CoreError::InvalidInput(message) => ErrorInfo {
@@ -188,26 +253,71 @@ impl CoreError {
                 action: None,
             },
             CoreError::PinMismatch => ErrorInfo {
-                message: "La huella del host no coincide.".to_string(),
+                message: lang
+                    .pick(
+                        "La huella del host no coincide.",
+                        "The host fingerprint does not match.",
+                    )
+                    .to_string(),
                 action: Some(
-                    "No te conectes a esta red. Si el host cambió, genera un enlace nuevo."
-                        .to_string(),
+                    lang.pick(
+                        "No te conectes a esta red. Si el host cambió, genera un enlace nuevo.",
+                        "Do not connect on this network. If the host changed, generate a new link.",
+                    )
+                    .to_string(),
                 ),
             },
             CoreError::CertificateExpired => ErrorInfo {
-                message: "El certificado del host ha caducado.".to_string(),
-                action: Some("Genera un enlace nuevo en el host.".to_string()),
+                message: lang
+                    .pick(
+                        "El certificado del host ha caducado.",
+                        "The host certificate has expired.",
+                    )
+                    .to_string(),
+                action: Some(
+                    lang.pick(
+                        "Genera un enlace nuevo en el host.",
+                        "Generate a new link on the host.",
+                    )
+                    .to_string(),
+                ),
             },
             CoreError::CertificateNotYetValid => ErrorInfo {
-                message: "El certificado del host aún no es válido.".to_string(),
-                action: Some("Revisa la hora de este equipo y vuelve a intentarlo.".to_string()),
+                message: lang
+                    .pick(
+                        "El certificado del host aún no es válido.",
+                        "The host certificate is not valid yet.",
+                    )
+                    .to_string(),
+                action: Some(
+                    lang.pick(
+                        "Revisa la hora de este equipo y vuelve a intentarlo.",
+                        "Check the time on this device and try again.",
+                    )
+                    .to_string(),
+                ),
             },
             CoreError::LinkExpired => ErrorInfo {
-                message: "El enlace de emparejamiento ha caducado.".to_string(),
-                action: Some("Genera uno nuevo en el host.".to_string()),
+                message: lang
+                    .pick(
+                        "El enlace de emparejamiento ha caducado.",
+                        "The pairing link has expired.",
+                    )
+                    .to_string(),
+                action: Some(
+                    lang.pick(
+                        "Genera uno nuevo en el host.",
+                        "Generate a new one on the host.",
+                    )
+                    .to_string(),
+                ),
             },
             CoreError::LinkInvalid(message) => ErrorInfo {
-                message: format!("El enlace de emparejamiento no es válido: {message}."),
+                message: if lang.is_en() {
+                    format!("The pairing link is not valid: {message}.")
+                } else {
+                    format!("El enlace de emparejamiento no es válido: {message}.")
+                },
                 action: None,
             },
         }

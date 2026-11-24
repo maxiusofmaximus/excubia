@@ -16,6 +16,7 @@ import { dropAttachmentsOutside } from "./chatattach.js";
 import { renderJump } from "./chatjump.js";
 import { chat, applyFeed, connection, failure, lastSeq, offline } from "./chatstate.js";
 import { applyProgress, syncProgress } from "./chat-progress-model.js";
+import { t } from "./i18n.js";
 
 export { chat, filters };
 
@@ -69,7 +70,7 @@ export function renderChat() {
   ensureBusyTicker();
   // The archive link is there only when something is archived (or the list shows it).
   const archived = chat.home ? chat.home.archived.length : 0;
-  $("btn-archived").textContent = `Archivados (${archived})`;
+  $("btn-archived").textContent = t("chat.archived_count", { n: archived });
   $("btn-archived").classList.toggle("hidden", archived === 0 && !chat.showArchived);
   $("btn-archived").classList.toggle("is-active", chat.showArchived);
 }
@@ -151,7 +152,7 @@ export async function selectConversation(id, options = {}) {
     const restored = loadCache(chat, id);
     if (!restored || !chat.conversation || chat.conversation.id !== id) {
       const cached = chat.home && chat.home.conversations.find((row) => row.id === id);
-      chat.conversation = cached || { id, title: "Conversación", archived: false, last_read_seq: 0 };
+      chat.conversation = cached || { id, title: t("chat.untitled"), archived: false, last_read_seq: 0 };
       chat.entries = [];
     }
     renderChat();

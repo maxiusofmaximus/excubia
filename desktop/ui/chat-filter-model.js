@@ -2,10 +2,12 @@
 // their counts, free of the DOM so the tests can run them. `counts` is the
 // reply of `GET …/counts`: null on an older host, undefined until it loads.
 
+import { t } from "./i18n.js";
+
 export const FILTERS = [
-  { id: "all", label: "Todos" },
-  { id: "attention", label: "Pendientes de ti" },
-  { id: "working", label: "En curso" },
+  { id: "all", label: t("drawer.filter_all") },
+  { id: "attention", label: t("chatfilter.attention") },
+  { id: "working", label: t("chatfilter.working") },
 ];
 
 // Only «Pendientes de ti» shows a number, and only while it is above zero.
@@ -31,8 +33,8 @@ export function chipName(chip) {
 }
 
 export const EMPTY_TEXT = {
-  attention: "Nada pendiente de ti.",
-  working: "Ningún agente está trabajando ahora.",
+  attention: t("chatfilter.empty_attention"),
+  working: t("chatfilter.empty_working"),
 };
 
 // The request for a filter the host answers; «Todos» reads the home list.

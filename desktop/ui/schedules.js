@@ -20,9 +20,11 @@ import {
   sortSchedules,
   statusLabel,
 } from "./schedule-model.js";
+import { t } from "./i18n.js";
+import { roleLabel } from "./catalog-labels.js";
 
-const EMPTY_TEXT = "Pídele a tu equipo que haga algo cada semana o cada día.";
-const LOAD_TEXT = "No se pudieron cargar las tareas. Inténtalo de nuevo.";
+const EMPTY_TEXT = t("schedules.empty");
+const LOAD_TEXT = t("schedules.load_failed");
 
 // `items` stays null until the first answer. `lines` is the last answer to «Lanzar ahora» by id;
 // `runs` the history by id, present only while its panel is open.
@@ -63,14 +65,14 @@ function restoreFocus(saved) {
 const isOpen = (id) => Object.hasOwn(state.runs, id);
 
 function roleTitle(roleId) {
-  return state.roles.get(roleId) || "Oficio";
+  return state.roles.get(roleId) || t("schedules.role_fallback");
 }
 
 function timesOf(item) {
   const times = element("dl", "schedule-times");
   for (const [label, value] of [
-    ["Próxima", scheduleNextText(item)],
-    ["Última", lastRunText(item.last_run_at, item.timezone)],
+    [t("schedules.next_label"), scheduleNextText(item)],
+    [t("schedules.last_label"), lastRunText(item.last_run_at, item.timezone)],
   ]) {
     const pair = element("div", "schedule-time");
     pair.append(element("dt", null, label), element("dd", null, value));
@@ -82,7 +84,7 @@ function timesOf(item) {
 // The switch that pauses or resumes; a finished task has none.
 function switchOf(item) {
   const on = item.status === "active";
-  const node = tagged(element("button", "schedule-switch", on ? "Activa" : "En pausa"), "switch", item.id);
+  const node = tagged(element("button", "schedule-switch", on ? t("schedules.active") : t("schedules.paused")), "switch", item.id);
   node.type = "button";
   node.setAttribute("role", "switch");
   node.setAttribute("aria-checked", String(on));
@@ -94,14 +96,18 @@ function switchOf(item) {
 function actionsOf(item) {
   const row = element("div", "schedule-actions");
   const off = state.locked || state.busy.has(item.id);
-  const run = tagged(button("Lanzar ahora", "btn secondary btn-small", () => runNow(item)), "run", item.id);
-  const edit = tagged(button("Editar", "btn ghost btn-small", () => editSchedule(item)), "edit", item.id);
+  const run = tagged(button(t("schedules.run_now"), "btn secondary btn-small", () => runNow(item)), "run", item.id);
+  const edit = tagged(button(t("schedules.edit"), "btn ghost btn-small", () => editSchedule(item)), "edit", item.id);
   const history = tagged(
-    button(isOpen(item.id) ? "Ocultar historial" : "Historial", "btn ghost btn-small", () => toggleHistory(item)),
+    button(
+      isOpen(item.id) ? t("schedules.hide_history") : t("schedules.history"),
+      "btn ghost btn-small",
+      () => toggleHistory(item),
+    ),
     "history",
     item.id,
   );
-  const remove = tagged(button("Borrar", "btn ghost btn-small", () => askDelete(item)), "delete", item.id);
+  const remove = tagged(button(t("schedules.delete"), "btn ghost btn-small", () => askDelete(item)), "delete", item.id);
   for (const control of [run, edit, remove]) control.disabled = off;
   if (item.status === "done") {
     const done = element("span", "schedule-status", statusLabel("done"));
@@ -124,11 +130,11 @@ function runLine(id) {
 function historyList(item) {
   const runs = state.runs[item.id];
   const box = element("div", "schedule-history");
-  box.append(element("h4", "schedule-history-title", "Últimas ejecuciones"));
+  box.append(element("h4", "schedule-history-title", t("schedules.history_title")));
   if (!runs) {
-    box.append(element("p", "schedule-muted", "Cargando el historial…"));
+    box.append(element("p", "schedule-muted", t("schedules.history_loading")));
   } else if (runs.length === 0) {
-    box.append(element("p", "schedule-muted", "Todavía no hay ejecuciones."));
+    box.append(element("p", "schedule-muted", t("schedules.history_empty")));
   } else {
     const list = element("ul", "schedule-runs");
     list.setAttribute("role", "list");
@@ -158,7 +164,7 @@ function rowFor(item) {
 
 function bodyNodes() {
   if (state.items === null) {
-    return state.error ? [errorState(LOAD_TEXT, refreshSchedules)] : [loadingBlock("Cargando tareas")];
+    return state.error ? [errorState(LOAD_TEXT, refreshSchedules)] : [loadingBlock(t("schedules.loading"))];
   }
   if (state.items.length === 0) {
     // The one «Programar una tarea» is the button in Automatizar's head, always in view.
@@ -191,7 +197,7 @@ function paint() {
   paintNotice();
   $("team-schedules-body").replaceChildren(...bodyNodes());
   restoreFocus(saved);
-  $("team-schedules-count").textContent = state.items?.length ? `${state.items.length} en tu equipo` : "";
+  $("team-schedules-count").textContent = state.items?.length ? t("schedules.count", { n: state.items.length }) : "";
 }
 
 // Reads the list, and the oficio titles once; a failed read keeps the list already on screen.
@@ -203,7 +209,7 @@ export async function refreshSchedules() {
     if (state.roles.size === 0) {
       try {
         const catalog = await invoke("team_roles");
-        state.roles = new Map(catalog.roles.map((role) => [role.id, role.title]));
+        state.roles = new Map(catalog.roles.map((role) => [role.id, roleLabel(role)]));
       } catch {
         // The titles are cosmetic: a failed read must not hide the list. roleTitle() falls back until the next poll.
       }
@@ -236,7 +242,7 @@ async function setPaused(item, on) {
   try {
     replaceItem(await invoke("schedule_set_paused", { id: item.id, paused: on }));
     state.notice = "";
-    toast(on ? "Tarea en pausa" : "Tarea activa");
+    toast(on ? t("schedules.toast_paused") : t("schedules.toast_active"));
   } catch (error) {
     writeFailed(error);
   } finally {
@@ -248,13 +254,13 @@ async function setPaused(item, on) {
 // «Lanzar ahora»: one run on the host's own rules. A skipped run is said as such, never queued.
 async function runNow(item) {
   state.busy.add(item.id);
-  state.lines[item.id] = { text: "Lanzando la tarea…" };
+  state.lines[item.id] = { text: t("schedules.launching") };
   paint();
   try {
     const launch = await invoke("schedule_run_now", { id: item.id });
     state.lines[item.id] = launch.run
       ? { text: outcomeLabel(launch.run.outcome), error: launch.run.outcome === "failed" }
-      : { text: `Encargo lanzado · ${statusMeta(launch.status ?? "queued").label}` };
+      : { text: t("schedules.launched", { status: statusMeta(launch.status ?? "queued").label }) };
     if (isOpen(item.id) && state.runs[item.id]) state.runs[item.id] = await invoke("schedule_runs", { id: item.id });
   } catch (error) {
     if (error && error.kind === "forbidden") {
@@ -305,7 +311,7 @@ async function remove(item) {
     await invoke("schedule_delete", { id: item.id });
     state.confirm = null;
     state.items = state.items.filter((other) => other.id !== item.id);
-    toast("Tarea borrada");
+    toast(t("schedules.toast_deleted"));
     paint();
   } catch (error) {
     if (error && error.kind === "forbidden") state.locked = true;
@@ -325,6 +331,6 @@ function editSchedule(item) {
 
 export function installSchedules() {
   if (!$("team-schedules-body")) return;
-  $("team-schedules-body").replaceChildren(loadingBlock("Cargando tareas"));
+  $("team-schedules-body").replaceChildren(loadingBlock(t("schedules.loading")));
   $("team-schedules-new").addEventListener("click", newSchedule);
 }

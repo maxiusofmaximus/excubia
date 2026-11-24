@@ -9,13 +9,15 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::ui_lang::{self, UiLang};
+
 pub use approval::{MailApprovalDetails, MailMoveItem};
 
 pub type MailResult<T> = Result<T, MailFailure>;
 
 /// A refused or failed mail call. `code` is the contract's code, or `forbidden` and
 /// `unauthorized` for the two statuses that carry none. `message` is already in
-/// Spanish, so the screen never shows a raw code.
+/// the operator's language (see `ui_lang`), so the screen never shows a raw code.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MailFailure {
     pub code: String,
@@ -36,13 +38,22 @@ impl MailFailure {
 
 fn message_for(code: &str, retry_after_secs: Option<u64>) -> String {
     match (code, retry_after_secs) {
-        ("mail_send_rate_limited", Some(seconds)) => format!(
-            "{} Vuelve a intentarlo en {} min.",
-            mail_text(code).unwrap_or_default(),
-            seconds.div_ceil(60).max(1)
-        ),
+        ("mail_send_rate_limited", Some(seconds)) => {
+            let minutes = seconds.div_ceil(60).max(1);
+            let text = mail_text(code).unwrap_or_default();
+            if ui_lang::current().is_en() {
+                format!("{text} Try again in {minutes} min.")
+            } else {
+                format!("{text} Vuelve a intentarlo en {minutes} min.")
+            }
+        }
         _ => mail_text(code)
-            .unwrap_or("El host no pudo completar la operación de correo.")
+            .unwrap_or_else(|| {
+                ui_lang::pick(
+                    "El host no pudo completar la operación de correo.",
+                    "The host could not complete the mail operation.",
+                )
+            })
             .to_string(),
     }
 }
@@ -50,34 +61,38 @@ fn message_for(code: &str, retry_after_secs: Option<u64>) -> String {
 /// What the operator reads for each code. `None` means the code is not one of
 /// this contract's, so the caller falls back to a generic code.
 pub fn mail_text(code: &str) -> Option<&'static str> {
+    mail_text_in(code, ui_lang::current())
+}
+
+pub fn mail_text_in(code: &str, lang: UiLang) -> Option<&'static str> {
     Some(match code {
-        "mail_not_configured" => "El correo aún no está configurado en tu equipo. Falta registrar la aplicación de Microsoft; quien administra el equipo puede hacerlo.",
-        "mail_invalid_input" => "Los datos enviados no son válidos. Revísalos y vuelve a intentarlo.",
-        "mail_invalid_config" => "La configuración de correo del host no es válida. Quien administra el equipo debe revisarla.",
-        "mail_unavailable" => "Microsoft o la red no responden. Reinténtalo más tarde.",
-        "mail_auth_failed" => "Microsoft rechazó la sesión de esta cuenta. Vuelve a conectarla.",
-        "mail_auth_required" => "Esta cuenta necesita volver a conectarse.",
-        "mail_login_expired" => "El código caducó antes de usarlo. Empieza de nuevo.",
-        "mail_login_denied" => "No se completó el inicio de sesión. Empieza de nuevo si quieres conectar la cuenta.",
-        "mail_admin_consent_required" => "La organización de esta cuenta exige que un administrador apruebe la aplicación.",
-        "mail_app_not_registered" => "Microsoft no reconoce la aplicación de correo de este equipo. Revisa su registro.",
-        "mail_graph_error" => "Microsoft devolvió un error al leer o enviar el correo.",
-        "mail_bad_response" => "El host respondió algo que no podemos leer.",
-        "mail_unknown_draft" => "Ese borrador no lo creó este equipo, así que no se puede enviar desde aquí.",
-        "mail_use_upload_session" => "El adjunto es demasiado grande para subirlo de una vez.",
-        "mail_path_rejected" => "La ruta del adjunto no es válida.",
-        "mail_approval_denied" => "El envío no se aprobó, o la aprobación caducó. No se envió nada.",
-        "mail_approval_unavailable" => "No se pudo pedir la aprobación al host. Reinténtalo luego.",
-        "mail_content_changed" => "El archivo cambió después de aprobarlo. No se envió nada.",
-        "mail_upload_failed" => "No se pudo subir el adjunto. El borrador no cambió.",
-        "mail_store_error" => "El almacén de cuentas del host falló. Quien administra el equipo debe revisarlo.",
-        "mail_send_not_enabled" => "Esta cuenta no tiene permiso para enviar. Activa «Permitir enviar» en Ajustes → Correo.",
-        "mail_approval_stale" => "La aprobación ya se usó o el borrador cambió después de aprobarlo. No se envió nada: pide la aprobación de nuevo.",
-        "mail_approval_pending" => "Todavía esperando tu aprobación.",
-        "mail_send_rate_limited" => "Se alcanzó el límite de envíos por hora.",
-        "local_setup" => "La configuración local de este equipo no está lista. Reinicia la aplicación.",
-        "forbidden" => "Este equipo no tiene permiso para gestionar el correo. Quien administra el equipo puede concedérselo.",
-        "unauthorized" => "El host no reconoce este equipo. Vuelve a emparejarlo.",
+        "mail_not_configured" => lang.pick("El correo aún no está configurado en tu equipo. Falta registrar la aplicación de Microsoft; quien administra el equipo puede hacerlo.", "Mail is not set up on your PC yet. The Microsoft app registration is missing; whoever manages this PC can do it."),
+        "mail_invalid_input" => lang.pick("Los datos enviados no son válidos. Revísalos y vuelve a intentarlo.", "The data sent is not valid. Check it and try again."),
+        "mail_invalid_config" => lang.pick("La configuración de correo del host no es válida. Quien administra el equipo debe revisarla.", "The host's mail settings are not valid. Whoever manages this PC should check them."),
+        "mail_unavailable" => lang.pick("Microsoft o la red no responden. Reinténtalo más tarde.", "Microsoft or the network is not responding. Try again later."),
+        "mail_auth_failed" => lang.pick("Microsoft rechazó la sesión de esta cuenta. Vuelve a conectarla.", "Microsoft rejected this account's session. Connect it again."),
+        "mail_auth_required" => lang.pick("Esta cuenta necesita volver a conectarse.", "This account needs to connect again."),
+        "mail_login_expired" => lang.pick("El código caducó antes de usarlo. Empieza de nuevo.", "The code expired before it was used. Start again."),
+        "mail_login_denied" => lang.pick("No se completó el inicio de sesión. Empieza de nuevo si quieres conectar la cuenta.", "The sign-in was not completed. Start again if you want to connect the account."),
+        "mail_admin_consent_required" => lang.pick("La organización de esta cuenta exige que un administrador apruebe la aplicación.", "This account's organization requires an administrator to approve the app."),
+        "mail_app_not_registered" => lang.pick("Microsoft no reconoce la aplicación de correo de este equipo. Revisa su registro.", "Microsoft does not recognize this PC's mail app. Check its registration."),
+        "mail_graph_error" => lang.pick("Microsoft devolvió un error al leer o enviar el correo.", "Microsoft returned an error while reading or sending the mail."),
+        "mail_bad_response" => lang.pick("El host respondió algo que no podemos leer.", "The host replied with something we cannot read."),
+        "mail_unknown_draft" => lang.pick("Ese borrador no lo creó este equipo, así que no se puede enviar desde aquí.", "This PC did not create that draft, so it cannot be sent from here."),
+        "mail_use_upload_session" => lang.pick("El adjunto es demasiado grande para subirlo de una vez.", "The attachment is too large to upload at once."),
+        "mail_path_rejected" => lang.pick("La ruta del adjunto no es válida.", "The attachment path is not valid."),
+        "mail_approval_denied" => lang.pick("El envío no se aprobó, o la aprobación caducó. No se envió nada.", "The send was not approved, or the approval expired. Nothing was sent."),
+        "mail_approval_unavailable" => lang.pick("No se pudo pedir la aprobación al host. Reinténtalo luego.", "The approval could not be requested from the host. Try again later."),
+        "mail_content_changed" => lang.pick("El archivo cambió después de aprobarlo. No se envió nada.", "The file changed after it was approved. Nothing was sent."),
+        "mail_upload_failed" => lang.pick("No se pudo subir el adjunto. El borrador no cambió.", "The attachment could not be uploaded. The draft did not change."),
+        "mail_store_error" => lang.pick("El almacén de cuentas del host falló. Quien administra el equipo debe revisarlo.", "The host's account store failed. Whoever manages this PC should check it."),
+        "mail_send_not_enabled" => lang.pick("Esta cuenta no tiene permiso para enviar. Activa «Permitir enviar» en Ajustes → Correo.", "This account is not allowed to send. Turn on \"Allow sending\" in Settings → Email."),
+        "mail_approval_stale" => lang.pick("La aprobación ya se usó o el borrador cambió después de aprobarlo. No se envió nada: pide la aprobación de nuevo.", "The approval was already used, or the draft changed after it was approved. Nothing was sent: ask for approval again."),
+        "mail_approval_pending" => lang.pick("Todavía esperando tu aprobación.", "Still waiting for your approval."),
+        "mail_send_rate_limited" => lang.pick("Se alcanzó el límite de envíos por hora.", "The hourly send limit was reached."),
+        "local_setup" => lang.pick("La configuración local de este equipo no está lista. Reinicia la aplicación.", "This PC's local setup is not ready. Restart the app."),
+        "forbidden" => lang.pick("Este equipo no tiene permiso para gestionar el correo. Quien administra el equipo puede concedérselo.", "This PC does not have permission to manage mail. Whoever manages this PC can grant it."),
+        "unauthorized" => lang.pick("El host no reconoce este equipo. Vuelve a emparejarlo.", "The host does not recognize this PC. Pair it again."),
         _ => return None,
     })
 }

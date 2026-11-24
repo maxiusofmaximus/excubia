@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
+use excubia_desktop_core::ui_lang::Localized;
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::mpsc::UnboundedSender;
@@ -29,7 +30,7 @@ pub enum HostEvent {
     Ready { port: u16 },
     Exited { code: Option<i32> },
     Restarting { delay: Duration },
-    Failed { error: String },
+    Failed { error: Localized },
 }
 
 #[derive(Debug, Clone)]
@@ -87,7 +88,7 @@ async fn run(config: HostConfig, events: UnboundedSender<HostEvent>, shutdown: C
                     }
                     Err(error) => {
                         let _ = events.send(HostEvent::Failed {
-                            error: error.to_string(),
+                            error: error.to_string().into(),
                         });
                     }
                 }
@@ -109,7 +110,10 @@ async fn run(config: HostConfig, events: UnboundedSender<HostEvent>, shutdown: C
     }
 }
 
-async fn launch(config: &HostConfig, events: &UnboundedSender<HostEvent>) -> Result<Child, String> {
+async fn launch(
+    config: &HostConfig,
+    events: &UnboundedSender<HostEvent>,
+) -> Result<Child, Localized> {
     if let Some(parent) = config.log_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
@@ -125,7 +129,7 @@ async fn launch(config: &HostConfig, events: &UnboundedSender<HostEvent>) -> Res
 
     let mut child = command
         .spawn()
-        .map_err(|error| format!("no se pudo lanzar {}: {error}", config.binary.display()))?;
+        .map_err(|error| launch_failed(&config.binary, &error))?;
     if let Some(stdout) = child.stdout.take() {
         forward(stdout, config.log_path.clone(), Some(events.clone()));
     }
@@ -133,6 +137,18 @@ async fn launch(config: &HostConfig, events: &UnboundedSender<HostEvent>) -> Res
         forward(stderr, config.log_path.clone(), None);
     }
     Ok(child)
+}
+
+/// The launch failure in both languages; the OS error text stays as the OS gave it.
+fn launch_failed(binary: &Path, error: &std::io::Error) -> Localized {
+    let binary = binary.display().to_string();
+    let error = error.to_string();
+    Localized::build(|lang| {
+        format!(
+            "{} {binary}: {error}",
+            lang.pick("no se pudo lanzar", "could not launch")
+        )
+    })
 }
 
 /// Copies one child stream to the app log and reports the first "listening on"
@@ -226,6 +242,7 @@ pub fn uac_plugin_path(exe_dir: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use excubia_desktop_core::ui_lang::UiLang;
     use tokio::sync::mpsc;
 
     fn config(program: &str, args: &[&str]) -> HostConfig {
@@ -239,6 +256,20 @@ mod tests {
                 args.join("-").replace(['/', '\\', ' ', ':', '(', ')'], "_")
             )),
         }
+    }
+
+    #[test]
+    fn a_launch_failure_is_kept_in_both_languages() {
+        let error = std::io::Error::new(std::io::ErrorKind::NotFound, "no such file");
+        let failure = launch_failed(Path::new("C:/core/excubia-host.exe"), &error);
+        assert_eq!(
+            failure.text(UiLang::Es),
+            "no se pudo lanzar C:/core/excubia-host.exe: no such file"
+        );
+        assert_eq!(
+            failure.text(UiLang::En),
+            "could not launch C:/core/excubia-host.exe: no such file"
+        );
     }
 
     #[test]

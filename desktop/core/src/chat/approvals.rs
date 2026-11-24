@@ -11,6 +11,7 @@ use super::error::{ChatFailure, ChatResult};
 use super::{validate_client_id, validate_prefixed_id};
 use crate::client::HostClient;
 use crate::mail::MailApprovalDetails;
+use crate::ui_lang::pick;
 
 /// The modes the operator can set. `delegated` lets the policy, the scorer and
 /// the lead decide first; `always_user` sends every approval to the operator.
@@ -262,7 +263,11 @@ fn decision_body(decision: &str, client_id: &str, exclude: &[String]) -> ChatRes
     validate_client_id(client_id)?;
     if !matches!(decision, "approve" | "deny") {
         return Err(ChatFailure::Invalid {
-            message: "La decisión debe ser permitir o denegar.".to_string(),
+            message: pick(
+                "La decisión debe ser permitir o denegar.",
+                "The decision must be allow or deny.",
+            )
+            .to_string(),
             field: Some("decision".to_string()),
         });
     }
@@ -270,7 +275,11 @@ fn decision_body(decision: &str, client_id: &str, exclude: &[String]) -> ChatRes
     if !exclude.is_empty() {
         if decision != "approve" {
             return Err(ChatFailure::Invalid {
-                message: "Solo se pueden dejar correos fuera al permitir.".to_string(),
+                message: pick(
+                    "Solo se pueden dejar correos fuera al permitir.",
+                    "Emails can only be left out when allowing.",
+                )
+                .to_string(),
                 field: Some("exclude".to_string()),
             });
         }
@@ -287,8 +296,11 @@ fn validate_exclude(exclude: &[String]) -> ChatResult<()> {
             .any(|id| id.is_empty() || id.chars().count() > MAX_EXCLUDE_ID);
     if bad {
         return Err(ChatFailure::Invalid {
-            message: "Se pueden dejar fuera hasta 20 correos, con identificadores válidos."
-                .to_string(),
+            message: pick(
+                "Se pueden dejar fuera hasta 20 correos, con identificadores válidos.",
+                "Up to 20 emails can be left out, with valid identifiers.",
+            )
+            .to_string(),
             field: Some("exclude".to_string()),
         });
     }
@@ -299,7 +311,11 @@ fn mode_body(client_id: &str, mode: &str, project_id: Option<&str>) -> ChatResul
     validate_client_id(client_id)?;
     if !APPROVAL_MODES.contains(&mode) {
         return Err(ChatFailure::Invalid {
-            message: "El modo de aprobación no es válido.".to_string(),
+            message: pick(
+                "El modo de aprobación no es válido.",
+                "The approval mode is not valid.",
+            )
+            .to_string(),
             field: Some("mode".to_string()),
         });
     }

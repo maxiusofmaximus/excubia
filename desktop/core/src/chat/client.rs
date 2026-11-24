@@ -12,6 +12,7 @@ use super::error::{decode, protocol, ChatFailure, ChatResult};
 use super::model::*;
 use super::{validate_client_id, validate_prefixed_id, ConversationPatch};
 use crate::client::HostClient;
+use crate::ui_lang::pick;
 use crate::error::CoreError;
 
 const CHAT_TIMEOUT: Duration = Duration::from_secs(20);
@@ -229,7 +230,7 @@ impl HostClient {
         let text = text.trim();
         if text.is_empty() && attachments.is_empty() {
             return Err(ChatFailure::Invalid {
-                message: "El mensaje está vacío.".to_string(),
+                message: pick("El mensaje está vacío.", "The message is empty.").to_string(),
                 field: Some("text".to_string()),
             });
         }
@@ -284,7 +285,7 @@ impl HostClient {
         let name = name.trim();
         if name.is_empty() {
             return Err(ChatFailure::Invalid {
-                message: "La sección necesita un nombre.".to_string(),
+                message: pick("La sección necesita un nombre.", "The section needs a name.").to_string(),
                 field: Some("name".to_string()),
             });
         }

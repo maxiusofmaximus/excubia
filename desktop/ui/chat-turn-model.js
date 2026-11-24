@@ -1,3 +1,5 @@
+import { t } from "./i18n.js";
+
 // The chat's turn rules, kept free of the DOM so the tests can run them: the
 // state of a message's turn, the line under the operator's last message, when
 // Alfred counts as working, the «ir al final» counter and the words of a stop.
@@ -42,15 +44,15 @@ export function answeredAfter(entries, index) {
 // message still waiting (answered = false); the other states only on the last one.
 // No state means no line.
 export function turnStatusLine(turn, alfredName, isLast, answered = false) {
-  if (turn === "failed") return { text: "Falló", failed: true };
-  if (turn === "queued" && !answered) return { text: "En cola", failed: false };
+  if (turn === "failed") return { text: t("chat.turn.failed"), failed: true };
+  if (turn === "queued" && !answered) return { text: t("chat.turn.queued"), failed: false };
   if (!turn || !isLast) return null;
   if (turn === "running") {
-    const text = alfredName ? `${alfredName} lo está atendiendo` : "Atendiendo";
+    const text = alfredName ? t("chat.turn.working_named", { name: alfredName }) : t("chat.turn.working");
     return { text, failed: false };
   }
-  if (turn === "completed") return { text: "Respondido", failed: false };
-  if (turn === "interrupted") return { text: "Detenido", failed: false };
+  if (turn === "completed") return { text: t("chat.turn.completed"), failed: false };
+  if (turn === "interrupted") return { text: t("chat.turn.interrupted"), failed: false };
   return null;
 }
 
@@ -74,8 +76,8 @@ export function unseenCount(entries, fromSeq) {
 }
 
 export function jumpLabel(count) {
-  if (count === 0) return "Ir al final";
-  return `Ir al final, ${count === 1 ? "1 mensaje nuevo" : `${count} mensajes nuevos`}`;
+  if (count === 0) return t("chat.jump.bottom");
+  return count === 1 ? t("chat.jump.new_one") : t("chat.jump.new_other", { n: count });
 }
 
 // The send button turns into «Detener» while a turn is open and the field is empty.
@@ -88,11 +90,11 @@ export function composerMode({ inFlight, offline, sent, denied, hasDraft }) {
 
 // Words for a failed stop. A host without the route answers 404 or 405.
 export function stopFailureText(failure) {
-  if (failure.kind === "forbidden") return "No tienes permiso para detener esto desde este dispositivo.";
+  if (failure.kind === "forbidden") return t("chat.stop.forbidden");
   if (failure.kind === "notFound" || (failure.kind === "host" && [404, 405].includes(failure.status))) {
-    return "Este equipo no admite detener todavía.";
+    return t("chat.stop.unsupported");
   }
-  return "No se pudo detener. Inténtalo de nuevo.";
+  return t("chat.stop.failed");
 }
 
 // A finished delegation's report stays on its card («Ver detalle» holds it whole), so

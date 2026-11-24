@@ -23,6 +23,7 @@ import {
   safeName,
   sizeLabel,
 } from "./chatattach-model.js";
+import { t } from "./i18n.js";
 
 const items = [];
 let ensureConversation = null;
@@ -54,8 +55,8 @@ export function installAttachments({ ensureConversation: create }) {
   attach = element("button", "attach-btn");
   attach.type = "button";
   attach.id = "btn-attach";
-  attach.title = "Adjuntar imagen o archivo";
-  attach.setAttribute("aria-label", "Adjuntar imagen o archivo");
+  attach.title = t("chatattach.attach");
+  attach.setAttribute("aria-label", t("chatattach.attach"));
   attach.innerHTML = PICTURE_ICON;
   $("btn-send").before(attach);
 
@@ -191,7 +192,7 @@ function clearNotice() {
 function noticeNodes() {
   if (!notice) return [];
   const close = action("×", { attachAction: "dismiss" }, "attach-notice-close");
-  close.setAttribute("aria-label", "Cerrar aviso");
+  close.setAttribute("aria-label", t("chatattach.close_notice"));
   return [element("span", null, notice), close];
 }
 
@@ -334,13 +335,13 @@ function rowNode(item) {
     const bar = element("progress", "attach-progress");
     bar.max = 100;
     if (item.state === "uploading") bar.setAttribute("value", String(progressPercent(item.sent, item.size)));
-    bar.setAttribute("aria-label", `Progreso de ${item.name}`);
+    bar.setAttribute("aria-label", t("chatattach.progress_aria", { name: item.name }));
     text.append(bar);
   }
 
   const actions = element("div", "attach-actions");
-  if (canRetry(item)) actions.append(rowButton("Reintentar", "retry", item));
-  actions.append(rowButton("Quitar", "remove", item));
+  if (canRetry(item)) actions.append(rowButton(t("agents.retry"), "retry", item));
+  actions.append(rowButton(t("chatattach.remove"), "remove", item));
   row.append(thumb, text, actions);
   return row;
 }
@@ -356,7 +357,7 @@ function pictureThumb(item) {
   const picture = item.preview && !item.broken ? previewImage(item) : pictureFallbackNode();
   if (!item.blob) return picture;
   const open = action("", { attachAction: "open", attachId: item.localId }, "attach-open");
-  open.setAttribute("aria-label", `Ver ${item.name}`);
+  open.setAttribute("aria-label", t("chatattach.view_aria", { name: item.name }));
   open.append(picture);
   return open;
 }

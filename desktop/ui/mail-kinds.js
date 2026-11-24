@@ -3,11 +3,12 @@
 
 import { element } from "./approval-card.js";
 import { SIGN_IN_KINDS, radioStep } from "./mail-model.js";
+import { t } from "./i18n.js";
 
 export function kindPicker() {
   const group = element("div", "mail-kinds");
   group.setAttribute("role", "radiogroup");
-  group.setAttribute("aria-label", "Tipo de cuenta");
+  group.setAttribute("aria-label", t("mailkinds.label"));
   const options = Object.entries(SIGN_IN_KINDS).map(([kind, { label }]) => {
     const option = element("button", "mail-kind");
     option.type = "button";

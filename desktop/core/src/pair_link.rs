@@ -9,6 +9,7 @@ use excubia_pin::{unix_now, PairingLink, PinError, PinSet};
 use crate::client::{pair_device, PairResponse};
 use crate::error::{CoreError, Result};
 use crate::transport::{pinned_base_url, Transport};
+use crate::ui_lang::{self, pick};
 
 /// A link that is current and well formed. Its code is still unspent: the
 /// host decides whether it is accepted.
@@ -36,7 +37,11 @@ impl PairLink {
         // legacy: the core reads herdr-notify:// only to migrate; the desktop refuses it, as 2.0 does.
         if uri.trim().starts_with("herdr-notify://") {
             return Err(CoreError::LinkInvalid(
-                "el enlace es de una versión anterior y ya no se admite".to_string(),
+                pick(
+                    "el enlace es de una versión anterior y ya no se admite",
+                    "the link is from an older version and is no longer supported",
+                )
+                .to_string(),
             ));
         }
         let link = PairingLink::parse(uri.trim()).map_err(invalid)?;
@@ -45,7 +50,7 @@ impl PairLink {
         }
         if link.addresses.is_empty() {
             return Err(CoreError::LinkInvalid(
-                "el enlace no indica ninguna dirección".to_string(),
+                pick("el enlace no indica ninguna dirección", "the link names no address").to_string(),
             ));
         }
         Ok(Self {
@@ -78,7 +83,7 @@ pub async fn pair_through_link(
         }
     }
     Err(failure.unwrap_or_else(|| {
-        CoreError::LinkInvalid("el enlace no indica ninguna dirección".to_string())
+        CoreError::LinkInvalid(pick("el enlace no indica ninguna dirección", "the link names no address").to_string())
     }))
 }
 
@@ -93,12 +98,24 @@ fn is_next_candidate(error: &CoreError) -> bool {
 }
 
 fn invalid(error: PinError) -> CoreError {
+    let en = ui_lang::current().is_en();
     CoreError::LinkInvalid(match error {
+        PinError::UnsupportedLinkVersion(version) if en => {
+            format!("version {version} is not supported; update Excubia")
+        }
         PinError::UnsupportedLinkVersion(version) => {
             format!("la versión {version} no es compatible; actualiza Excubia")
         }
-        PinError::MalformedFingerprint => "la huella del host no es válida".to_string(),
-        _ => "faltan datos o el formato no es válido".to_string(),
+        PinError::MalformedFingerprint => pick(
+            "la huella del host no es válida",
+            "the host fingerprint is not valid",
+        )
+        .to_string(),
+        _ => pick(
+            "faltan datos o el formato no es válido",
+            "data is missing or the format is not valid",
+        )
+        .to_string(),
     })
 }
 

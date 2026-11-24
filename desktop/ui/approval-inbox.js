@@ -4,6 +4,7 @@
 // line) is never out of sight.
 
 import { $, invoke } from "./core.js";
+import { t } from "./i18n.js";
 import { element, renderApprovalCard } from "./approval-card.js";
 import {
   conversationContext,
@@ -41,7 +42,7 @@ function strip() {
   if (existing) return existing;
   const node = element("section", "approval-inbox");
   node.id = "approval-inbox";
-  node.setAttribute("aria-label", "Aprobaciones pendientes de ti");
+  node.setAttribute("aria-label", t("approval.inbox_label"));
   const timeline = $("chat-timeline");
   timeline.parentNode.insertBefore(node, timeline);
   return node;
@@ -64,9 +65,9 @@ export function renderInbox() {
   node.hidden = waiting === 0;
   node.replaceChildren();
   if (!waiting) return;
-  node.append(element("h2", "approval-inbox-title", `Pendientes de ti · ${waiting}`));
+  node.append(element("h2", "approval-inbox-title", t("approval.inbox_title", { n: waiting })));
   for (const entry of rows) {
-    const context = conversationContext(entry.conversation_id) || "Sin conversación";
+    const context = conversationContext(entry.conversation_id) || t("approval.no_conversation");
     node.append(renderApprovalCard(entry, now, context));
   }
 }

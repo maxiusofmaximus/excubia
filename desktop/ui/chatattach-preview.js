@@ -19,6 +19,7 @@ import {
   previousPage,
   startPreview,
 } from "./chatattach-preview-model.js";
+import { t } from "./i18n.js";
 
 const cache = createPageCache(PREVIEW_CACHE_SIZE);
 let viewer = null;
@@ -30,7 +31,7 @@ let session = null;
 export function openPreview({ conversationId, attachment, returnTo, fallback }) {
   if (!viewer) viewer = buildViewer();
   session = { conversationId, attachment, returnTo, fallback, state: startPreview(), loading: false };
-  const name = attachment.name || "Documento";
+  const name = attachment.name || t("preview.doc_fallback");
   viewer.title.textContent = name;
   viewer.node.setAttribute("aria-label", name);
   viewer.status.textContent = "";
@@ -46,18 +47,18 @@ function buildViewer() {
   node.setAttribute("role", "dialog");
   node.setAttribute("aria-modal", "true");
   const title = element("span", "doc-preview-title");
-  const close = button("Cerrar", "btn secondary btn-small");
+  const close = button(t("common.close"), "btn secondary btn-small");
   const picture = element("img", "doc-preview-page");
   picture.hidden = true;
   picture.alt = "";
   const message = element("p", "doc-preview-message");
   message.setAttribute("aria-live", "polite");
-  const retry = button("Reintentar", "btn secondary btn-small");
-  const previous = button("Anterior", "btn secondary btn-small");
+  const retry = button(t("recipe.retry"), "btn secondary btn-small");
+  const previous = button(t("preview.previous"), "btn secondary btn-small");
   const label = element("span", "doc-preview-label");
-  const next = button("Siguiente", "btn secondary btn-small");
-  const open = button("Abrir con el programa del sistema", "btn secondary btn-small");
-  const save = button("Guardar", "btn secondary btn-small");
+  const next = button(t("onboarding.next"), "btn secondary btn-small");
+  const open = button(t("preview.open_system"), "btn secondary btn-small");
+  const save = button(t("common.save"), "btn secondary btn-small");
   const status = element("p", "doc-preview-status");
   status.setAttribute("aria-live", "polite");
 
@@ -103,7 +104,7 @@ function showPage() {
     return;
   }
   current.loading = true;
-  showMessage(current, "Cargando la página…", false);
+  showMessage(current, t("preview.loading"), false);
   invoke("chat_attachment_preview", {
     conversationId: current.conversationId,
     attachmentId: current.attachment.id,
@@ -124,7 +125,10 @@ function showImage(current, url) {
   if (session !== current) return;
   current.loading = false;
   viewer.picture.src = url;
-  viewer.picture.alt = `${pageLabel(current.state.page)} de ${current.attachment.name || "documento"}`;
+  viewer.picture.alt = t("preview.alt", {
+    page: pageLabel(current.state.page),
+    name: current.attachment.name || t("preview.doc_fallback_lower"),
+  });
   viewer.picture.hidden = false;
   viewer.message.hidden = true;
   viewer.retry.hidden = true;
@@ -176,7 +180,7 @@ function go(direction) {
 async function openWithSystem() {
   const current = session;
   if (!current) return;
-  viewer.status.textContent = "Abriendo…";
+  viewer.status.textContent = t("preview.opening");
   try {
     await invoke("chat_attachment_open", {
       conversationId: current.conversationId,
@@ -196,7 +200,7 @@ async function saveCopy() {
       conversationId: current.conversationId,
       attachmentId: current.attachment.id,
     });
-    if (session === current) viewer.status.textContent = saved ? "Archivo guardado." : "";
+    if (session === current) viewer.status.textContent = saved ? t("preview.saved") : "";
   } catch (error) {
     if (session === current) viewer.status.textContent = failure(error).message;
   }

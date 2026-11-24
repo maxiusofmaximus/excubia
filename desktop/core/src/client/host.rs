@@ -8,6 +8,7 @@ use super::errors::{expect_json, status_error};
 use super::validate::validate_pane_id;
 use crate::error::{CoreError, Result};
 use crate::identity::DeviceIdentity;
+use crate::ui_lang::{self, pick};
 use crate::signing;
 use crate::state::StateSnapshot;
 use crate::transport::{plain_host_is_safe, Transport};
@@ -205,9 +206,11 @@ impl HostClient {
         if response.ok {
             Ok(())
         } else {
-            Err(CoreError::Protocol(format!(
-                "el PC no confirmó la acción {name}"
-            )))
+            Err(CoreError::Protocol(if ui_lang::current().is_en() {
+                format!("the PC did not confirm the action {name}")
+            } else {
+                format!("el PC no confirmó la acción {name}")
+            }))
         }
     }
 
@@ -223,16 +226,22 @@ impl HostClient {
         if read.pane_id.is_empty() || read.pane_id == pane_id {
             Ok(read.text)
         } else {
-            Err(CoreError::Protocol(format!(
-                "el PC respondió por otro panel: {}",
-                read.pane_id
-            )))
+            Err(CoreError::Protocol(if ui_lang::current().is_en() {
+                format!("the PC responded from another pane: {}", read.pane_id)
+            } else {
+                format!("el PC respondió por otro panel: {}", read.pane_id)
+            }))
         }
     }
 
     fn url(&self, path: &str) -> Result<Url> {
-        Url::parse(&format!("{}{path}", self.base_url))
-            .map_err(|error| CoreError::InvalidInput(format!("Dirección del PC: {error}")))
+        Url::parse(&format!("{}{path}", self.base_url)).map_err(|error| {
+            CoreError::InvalidInput(if ui_lang::current().is_en() {
+                format!("PC address: {error}")
+            } else {
+                format!("Dirección del PC: {error}")
+            })
+        })
     }
 
     /// One signed request for the modules that own their own wire shapes
@@ -305,7 +314,7 @@ pub fn normalize_endpoint(raw: &str, transport: &Transport) -> Result<String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Err(CoreError::InvalidInput(
-            "escribe la dirección del PC".to_string(),
+            pick("escribe la dirección del PC", "enter the PC address").to_string(),
         ));
     }
     let with_scheme = if trimmed.contains("://") {
@@ -313,22 +322,41 @@ pub fn normalize_endpoint(raw: &str, transport: &Transport) -> Result<String> {
     } else {
         format!("http://{trimmed}")
     };
-    let mut url = Url::parse(&with_scheme)
-        .map_err(|error| CoreError::InvalidInput(format!("Dirección del PC: {error}")))?;
+    let mut url = Url::parse(&with_scheme).map_err(|error| {
+        CoreError::InvalidInput(if ui_lang::current().is_en() {
+            format!("PC address: {error}")
+        } else {
+            format!("Dirección del PC: {error}")
+        })
+    })?;
     let host = url
         .host_str()
         .filter(|_| matches!(url.scheme(), "http" | "https"))
         .ok_or_else(|| {
-            CoreError::InvalidInput("la URL debe ser http:// o https:// con un host".to_string())
+            CoreError::InvalidInput(
+                pick(
+                    "la URL debe ser http:// o https:// con un host",
+                    "the URL must be http:// or https:// with a host",
+                )
+                .to_string(),
+            )
         })?;
     if !transport.accepts_scheme(url.scheme()) {
         return Err(CoreError::InvalidInput(
-            "un enlace de emparejamiento solo usa https://".to_string(),
+            pick(
+                "un enlace de emparejamiento solo usa https://",
+                "a pairing link only uses https://",
+            )
+            .to_string(),
         ));
     }
     if url.scheme() == "http" && !plain_host_is_safe(host) {
         return Err(CoreError::InvalidInput(
-            "sin cifrar solo llega a loopback o a la tailnet; para la red local usa el enlace de emparejamiento del host".to_string(),
+            pick(
+                "sin cifrar solo llega a loopback o a la tailnet; para la red local usa el enlace de emparejamiento del host",
+                "unencrypted traffic only reaches loopback or the tailnet; for the local network use the pairing link from the host",
+            )
+            .to_string(),
         ));
     }
     url.set_query(None);

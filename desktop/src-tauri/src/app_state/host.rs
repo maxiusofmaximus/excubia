@@ -2,12 +2,13 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use serde::Serialize;
+use excubia_desktop_core::ui_lang::{self, Localized};
+use serde::{Serialize, Serializer};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
-use super::{lock, AppState};
+use super::{claims_boot, lock, AppState};
 use crate::app_folders::{local_dir, roaming_dir};
 use crate::host_process::{self, HostConfig, HostEvent};
 use crate::lan;
@@ -21,10 +22,27 @@ pub enum HostStatus {
     Disabled,
     Starting,
     Ready { port: u16 },
-    Failed { error: String },
+    Failed {
+        /// Kept in both languages; written in the language current at each send.
+        #[serde(serialize_with = "shown_text")]
+        error: Localized,
+    },
+}
+
+fn shown_text<S: Serializer>(text: &Localized, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(text.text(ui_lang::current()))
 }
 
 impl AppState {
+    /// Starts the local host from the first bootstrap only. The shell sends its language
+    /// before bootstrap, so a startup failure is worded in that language. A reload starts nothing.
+    pub fn boot_local_host(self: &Arc<Self>, app: AppHandle) {
+        let local = lock(&self.inner).config.local;
+        if claims_boot(&self.boot_claimed, local) {
+            self.start_local_host(app);
+        }
+    }
+
     /// Spawns the bundled core and, once it is listening, pairs this device
     /// automatically and connects. The user never sees a code in local mode.
     pub fn start_local_host(self: &Arc<Self>, app: AppHandle) {
@@ -110,13 +128,25 @@ impl AppState {
         }
     }
 
-    fn fail_host(&self, app: &AppHandle, error: String) {
+    fn fail_host(&self, app: &AppHandle, error: impl Into<Localized>) {
         let status = HostStatus::Failed {
-            error: error.clone(),
+            error: error.into(),
         };
         lock(&self.inner).host = status.clone();
         let _ = app.emit("hn-host", status);
     }
+}
+
+/// The sidecar is missing from the app folder. Both wordings are kept, so a later language change still reads right.
+fn missing_binary(exe_dir: &std::path::Path) -> Localized {
+    Localized::build(|lang| {
+        format!(
+            "{} {}; {}",
+            lang.pick("no encuentro el núcleo local en", "the local core is not in"),
+            exe_dir.display(),
+            lang.pick("ejecuta scripts/build-host.ps1", "run scripts/build-host.ps1"),
+        )
+    })
 }
 
 /// The app-owned data directory the local host (and its `agents.toml`) uses.
@@ -128,17 +158,21 @@ pub fn host_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// The sidecar plus the app-owned data and log directories.
-fn host_config_for(app: &AppHandle, pairing_binds: &[SocketAddr]) -> Result<HostConfig, String> {
+fn host_config_for(app: &AppHandle, pairing_binds: &[SocketAddr]) -> Result<HostConfig, Localized> {
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|exe| exe.parent().map(|parent| parent.to_path_buf()))
-        .ok_or_else(|| "no pude resolver el directorio de la aplicación".to_string())?;
-    let binary = host_process::host_binary_path(&exe_dir).ok_or_else(|| {
-        format!(
-            "no encuentro el núcleo local en {}; ejecuta scripts/build-host.ps1",
-            exe_dir.display()
-        )
-    })?;
+        .ok_or_else(|| {
+            Localized::build(|lang| {
+                lang.pick(
+                    "no pude resolver el directorio de la aplicación",
+                    "could not find the application directory",
+                )
+                .to_string()
+            })
+        })?;
+    let binary = host_process::host_binary_path(&exe_dir)
+        .ok_or_else(|| missing_binary(&exe_dir))?;
     let data_dir = host_data_dir(app)?;
     crate::agents_seed::seed_for_env(&data_dir);
     let log_dir = match super::profile_root() {
@@ -181,4 +215,30 @@ fn host_config_for(app: &AppHandle, pairing_binds: &[SocketAddr]) -> Result<Host
         data_dir,
         log_path,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use excubia_desktop_core::ui_lang::UiLang;
+    use std::path::Path;
+
+    #[test]
+    fn a_missing_sidecar_stored_once_reads_in_the_language_asked_for() {
+        // Stored as a Spanish-start failure, then read after a switch to English: no reload of the host, no global set.
+        let status = HostStatus::Failed {
+            error: missing_binary(Path::new("C:/app")),
+        };
+        let HostStatus::Failed { error } = status else {
+            panic!("expected a failed host");
+        };
+        assert_eq!(
+            error.text(UiLang::Es),
+            "no encuentro el núcleo local en C:/app; ejecuta scripts/build-host.ps1"
+        );
+        assert_eq!(
+            error.text(UiLang::En),
+            "the local core is not in C:/app; run scripts/build-host.ps1"
+        );
+    }
 }

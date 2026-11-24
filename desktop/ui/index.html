@@ -32,91 +32,93 @@
   <link rel="stylesheet" href="comic.css">
   <script src="palette-data.js"></script>
   <script src="palette-boot.js"></script>
+  <script src="lang-boot.js"></script>
 </head>
 <body>
   <div class="app">
     <section id="view-pair" class="view view-pair">
-      <button id="btn-pair-top-back" class="icon-btn pair-top-back" type="button" title="Volver al chat" aria-label="Volver al chat">←</button>
+      <button id="btn-pair-top-back" class="icon-btn pair-top-back" type="button" title="Volver al chat" data-i18n-title="pair.back_to_chat" aria-label="Volver al chat" data-i18n-aria-label="pair.back_to_chat">←</button>
       <div class="brand">
         <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
         <span>Excubia</span>
       </div>
 
       <div class="pair-intro">
-        <h1 id="pair-title">Vincula este equipo con tu Excubia</h1>
-        <p id="pair-lede" class="lede">Introduce el código que muestra tu Excubia. Alfred y el equipo se actualizarán en vivo.</p>
+        <h1 id="pair-title" data-i18n="pair.title">Vincula este equipo con tu Excubia</h1>
+        <p id="pair-lede" class="lede" data-i18n="pair.lede">Introduce el código que muestra tu Excubia. Alfred y el equipo se actualizarán en vivo.</p>
       </div>
 
-      <p id="plain-warning" class="warning hidden" role="note">La conexión con este PC no va cifrada. Solo es aceptable en este equipo o en una red privada de confianza.</p>
+      <p id="plain-warning" class="warning hidden" role="note" data-i18n="pair.plain_warning">La conexión con este PC no va cifrada. Solo es aceptable en este equipo o en una red privada de confianza.</p>
 
       <div id="local-card" class="card local-card hidden">
-        <p id="local-status" class="hint">Arrancando Excubia en este equipo…</p>
-        <button id="btn-restart-host" class="btn ghost btn-block hidden" type="button">Reiniciar Excubia</button>
-        <button id="btn-use-remote" class="btn secondary btn-block" type="button">Vincular con otro equipo</button>
+        <p id="local-status" class="hint" data-i18n="pair.local_starting">Arrancando Excubia en este equipo…</p>
+        <button id="btn-restart-host" class="btn ghost btn-block hidden" type="button" data-i18n="pair.restart_host">Reiniciar Excubia</button>
+        <button id="btn-use-remote" class="btn secondary btn-block" type="button" data-i18n="pair.use_remote">Vincular con otro equipo</button>
       </div>
 
       <form id="pair-form" class="card" novalidate>
-        <label class="field-label" for="pair-code">Código de emparejamiento</label>
+        <label class="field-label" for="pair-code" data-i18n="pair.code_label">Código de emparejamiento</label>
         <input id="pair-code" class="code-input" type="text" inputmode="text" autocomplete="off"
                autocapitalize="characters" spellcheck="false" maxlength="64" placeholder="HJKQ2ZP4"
                aria-describedby="pair-hint">
-        <p id="pair-hint" class="hint">Déjalo vacío para vincularlo automáticamente desde tu red de casa, oficina o una red privada.</p>
-        <button id="btn-pair" class="btn primary btn-block" type="submit">Emparejar</button>
+        <p id="pair-hint" class="hint" data-i18n="pair.code_hint">Déjalo vacío para vincularlo automáticamente desde tu red de casa, oficina o una red privada.</p>
+        <button id="btn-pair" class="btn primary btn-block" type="submit" data-i18n="pair.submit">Emparejar</button>
         <p id="pair-error" class="form-error hidden" role="alert"></p>
       </form>
 
       <form id="link-form" class="card" novalidate>
-        <label class="field-label" for="pair-link">Enlace de emparejamiento</label>
+        <label class="field-label" for="pair-link" data-i18n="pair.link_label">Enlace de emparejamiento</label>
         <textarea id="pair-link" class="link-input" rows="2" spellcheck="false" autocomplete="off"
                   placeholder="excubia://pair?v=1&amp;c=…" aria-describedby="link-hint"></textarea>
-        <p id="link-hint" class="hint">Pega el enlace que muestra el PC con <code>host pair-code --lan</code>. Caduca y sirve una sola vez.</p>
-        <button id="btn-pair-link" class="btn primary btn-block" type="submit">Emparejar con el enlace</button>
+        <p id="link-hint" class="hint"><span data-i18n="pair.link_hint_a">Pega el enlace que muestra el PC con</span> <code>host pair-code --lan</code>. <span data-i18n="pair.link_hint_b">Caduca y sirve una sola vez.</span></p>
+        <button id="btn-pair-link" class="btn primary btn-block" type="submit" data-i18n="pair.link_submit">Emparejar con el enlace</button>
         <p id="link-error" class="form-error hidden" role="alert"></p>
       </form>
 
       <section id="lan-card" class="card lan-card">
         <div class="lan-head">
-          <h2>Emparejar el móvil en la red local</h2>
+          <h2 id="lan-title" data-i18n="pair.lan_title">Emparejar el móvil en la red local</h2>
           <label class="switch" for="lan-toggle">
-            <input id="lan-toggle" type="checkbox" role="switch">
-            <span>Activado</span>
+            <input id="lan-toggle" type="checkbox" role="switch" aria-labelledby="lan-title">
+            <span id="lan-on" class="hidden" data-i18n="pair.lan_on">Activado</span>
+            <span id="lan-off" data-i18n="pair.lan_off">Desactivado</span>
           </label>
         </div>
-        <p class="hint">Activa esta opción para que el PC acepte móviles en la red local. La conexión va cifrada y el móvil comprueba un código antes de enviar nada.</p>
-        <button id="btn-show-lan" class="btn secondary btn-block" type="button" disabled>Mostrar código QR</button>
-        <button id="btn-show-pake" class="btn secondary btn-block" type="button" disabled>Mostrar QR sin dirección</button>
-        <p class="hint">El móvil encuentra el PC solo en la red local; el QR lleva el código de vinculación, no la dirección.</p>
+        <p class="hint" data-i18n="pair.lan_hint">Activa esta opción para que el PC acepte móviles en la red local. La conexión va cifrada y el móvil comprueba un código antes de enviar nada.</p>
+        <button id="btn-show-lan" class="btn secondary btn-block" type="button" disabled data-i18n="pair.show_qr">Mostrar código QR</button>
+        <button id="btn-show-pake" class="btn secondary btn-block" type="button" disabled data-i18n="pair.show_qr_no_address">Mostrar QR sin dirección</button>
+        <p class="hint" data-i18n="pair.qr_hint">El móvil encuentra el PC solo en la red local; el QR lleva el código de vinculación, no la dirección.</p>
         <p id="lan-error" class="form-error hidden" role="alert"></p>
       </section>
 
       <details id="advanced" class="advanced">
         <summary>
-          <span>Más opciones</span>
+          <span data-i18n="pair.advanced">Más opciones</span>
         </summary>
         <div class="advanced-body">
           <div class="field">
-            <span class="field-label">Código de comprobación</span>
-            <code id="fingerprint" class="fingerprint">Generando…</code>
-            <p class="hint">Compáralo con el que muestre el PC antes de continuar.</p>
+            <span class="field-label" data-i18n="pair.check_code">Código de comprobación</span>
+            <code id="fingerprint" class="fingerprint" data-i18n="pair.generating">Generando…</code>
+            <p class="hint" data-i18n="pair.check_code_hint">Compáralo con el que muestre el PC antes de continuar.</p>
           </div>
 
           <div class="field">
-            <label class="field-label" for="device-label">Nombre de este equipo</label>
+            <label class="field-label" for="device-label" data-i18n="pair.device_label">Nombre de este equipo</label>
             <input id="device-label" type="text" autocomplete="off" spellcheck="false"
                    maxlength="64" aria-describedby="device-label-hint">
-            <p id="device-label-hint" class="hint">Se envía al PC al emparejar; por defecto, el nombre del equipo.</p>
+            <p id="device-label-hint" class="hint" data-i18n="pair.device_label_hint">Se envía al PC al emparejar; por defecto, el nombre del equipo.</p>
           </div>
 
           <div class="field">
             <label class="switch" for="notifications-toggle">
               <input id="notifications-toggle" type="checkbox" role="switch">
-              <span>Avisos del sistema</span>
+              <span data-i18n="pair.notifications">Avisos del sistema</span>
             </label>
-            <p class="hint">Avisa cuando un agente pasa a bloqueado o termina. Se guarda en este equipo.</p>
+            <p class="hint" data-i18n="pair.notifications_hint">Avisa cuando un agente pasa a bloqueado o termina. Se guarda en este equipo.</p>
           </div>
 
-          <button id="btn-pair-back" class="btn ghost btn-block" type="button">Volver al chat</button>
-          <button id="btn-use-local" class="btn ghost btn-block hidden" type="button">Volver a usar Excubia de este equipo</button>
+          <button id="btn-pair-back" class="btn ghost btn-block" type="button" data-i18n="pair.back_to_chat">Volver al chat</button>
+          <button id="btn-use-local" class="btn ghost btn-block hidden" type="button" data-i18n="pair.use_local">Volver a usar Excubia de este equipo</button>
         </div>
       </details>
 
@@ -126,7 +128,7 @@
           <rect x="4" y="10" width="16" height="10" rx="2"></rect>
           <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
         </svg>
-        La clave privada queda protegida por tu cuenta de Windows y nunca se escribe en el disco.
+        <span data-i18n="pair.secure_note">La clave privada queda protegida por tu cuenta de Windows y nunca se escribe en el disco.</span>
       </p>
     </section>
 
@@ -142,13 +144,13 @@
           <path d="m9 12 2 2 4-4"></path>
         </svg>
       </div>
-      <h1>Guarda este código</h1>
-      <p class="lede">El PC solo lo muestra una vez. Sirve para volver a emparejar este equipo si pierdes el acceso al PC.</p>
+      <h1 data-i18n="recovery.title">Guarda este código</h1>
+      <p class="lede" data-i18n="recovery.lede">El PC solo lo muestra una vez. Sirve para volver a emparejar este equipo si pierdes el acceso al PC.</p>
       <div class="card recovery-card">
         <div id="recovery-code" class="recovery-code">—</div>
-        <button id="btn-copy-recovery" class="btn ghost btn-block" type="button">Copiar código</button>
-        <p id="recovery-note" class="hint">No se volverá a mostrar.</p>
-        <button id="btn-recovery-continue" class="btn primary btn-block" type="button">Ya lo he guardado · Continuar</button>
+        <button id="btn-copy-recovery" class="btn ghost btn-block" type="button" data-i18n="recovery.copy">Copiar código</button>
+        <p id="recovery-note" class="hint" data-i18n="recovery.note">No se volverá a mostrar.</p>
+        <button id="btn-recovery-continue" class="btn primary btn-block" type="button" data-i18n="recovery.continue">Ya lo he guardado · Continuar</button>
       </div>
     </section>
 
@@ -157,38 +159,38 @@
         <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
         <span>Excubia</span>
       </div>
-      <h1>Escanea con el móvil</h1>
-      <p class="lede">Usa un móvil conectado a la misma red local. El código sirve una sola vez.</p>
+      <h1 data-i18n="lan.title">Escanea con el móvil</h1>
+      <p class="lede" data-i18n="lan.lede">Usa un móvil conectado a la misma red local. El código sirve una sola vez.</p>
       <div class="card lan-card">
         <img id="lan-qr" class="lan-qr" width="240" height="240"
-             alt="Código QR del enlace de emparejamiento de la red local">
+             alt="Código QR del enlace de emparejamiento de la red local" data-i18n-alt="lan.qr_alt">
         <p id="lan-expiry" class="hint" role="status"></p>
-        <p class="hint">Si el móvil avisa de que el código no coincide, no te conectes a esa red.</p>
-        <button id="btn-lan-new" class="btn secondary btn-block" type="button">Generar otro código</button>
-        <button id="btn-lan-back" class="btn ghost btn-block" type="button">Volver</button>
+        <p class="hint" data-i18n="lan.mismatch_hint">Si el móvil avisa de que el código no coincide, no te conectes a esa red.</p>
+        <button id="btn-lan-new" class="btn secondary btn-block" type="button" data-i18n="lan.new_code">Generar otro código</button>
+        <button id="btn-lan-back" class="btn ghost btn-block" type="button" data-i18n="lan.back">Volver</button>
       </div>
     </section>
 
     <section id="view-chat" class="view view-chat hidden">
 
       <div id="chat-shell" class="chat-shell">
-        <main id="chat-main" class="thread" aria-label="Conversación con Alfred">
+        <main id="chat-main" class="thread" aria-label="Conversación con Alfred" data-i18n-aria-label="chat.thread_label">
           <header class="thread-head">
             <button id="btn-history-toggle" class="icon-btn drawer-toggle" type="button" data-drawer-toggle
-                    aria-expanded="false" aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
+                    aria-expanded="false" aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
             <div class="thread-title">
-              <button id="btn-chat-team" class="thread-team" type="button" title="Abrir el equipo" aria-label="Abrir el equipo">
+              <button id="btn-chat-team" class="thread-team" type="button" title="Abrir el equipo" data-i18n-title="chat.open_team" aria-label="Abrir el equipo" data-i18n-aria-label="chat.open_team">
                 <span id="chat-avatar" class="avatar" aria-hidden="true">A</span>
               </button>
               <div>
                 <h1 id="chat-title">Alfred</h1>
-                <p id="chat-subtitle" class="subtitle">Cargando…</p>
+                <p id="chat-subtitle" class="subtitle" data-i18n="chat.loading">Cargando…</p>
               </div>
             </div>
             <div class="thread-actions">
-              <span id="chat-connection" class="chip idle" role="status" title="Estado de la conexión">
+              <span id="chat-connection" class="chip idle" role="status" title="Estado de la conexión" data-i18n-title="chat.connection_title">
                 <span class="chip-dot" aria-hidden="true"></span>
-                <span class="chip-label">Sin conectar</span>
+                <span class="chip-label" data-i18n="chat.not_connected">Sin conectar</span>
               </span>
             </div>
           </header>
@@ -196,29 +198,29 @@
           <div id="chat-banner" class="chat-banner hidden" role="status"></div>
 
           <div id="chat-timeline" class="timeline" role="log" aria-live="polite"
-               aria-label="Mensajes de la conversación"></div>
+               aria-label="Mensajes de la conversación" data-i18n-aria-label="chat.timeline_label"></div>
 
           <div id="chat-empty" class="chat-empty hidden">
             <div id="empty-alfred" class="avatar empty-alfred" aria-hidden="true">A</div>
             <div id="empty-alfred-name" class="empty-alfred-name">Alfred</div>
-            <h2 id="empty-chat-title">¿Qué movemos hoy?</h2>
-            <p id="empty-chat-body">Dime un objetivo y reparto el trabajo entre Ernesto y su equipo. Yo te traigo el resultado.</p>
+            <h2 id="empty-chat-title" data-i18n="chat.empty_title">¿Qué movemos hoy?</h2>
+            <p id="empty-chat-body" data-i18n="chat.empty_body">Dime un objetivo y me encargo de él. Yo te traigo el resultado.</p>
             <div id="chat-suggestions" class="suggestions" role="list"></div>
           </div>
 
-          <button id="chat-jump" class="chat-jump hidden" type="button" aria-label="Ir al final">↓</button>
+          <button id="chat-jump" class="chat-jump hidden" type="button" aria-label="Ir al final" data-i18n-aria-label="chat.jump_label">↓</button>
           <div id="bubble-menu" class="bubble-menu hidden" role="menu">
-            <button type="button" role="menuitem" data-reply-id="">Responder</button>
+            <button type="button" role="menuitem" data-reply-id="" data-i18n="chat.reply">Responder</button>
           </div>
 
           <form id="chat-composer" class="chat-composer" novalidate>
             <div id="chat-reply" class="chat-reply hidden" role="status">
               <span id="chat-reply-text"></span>
-              <button id="btn-reply-cancel" class="chat-reply-cancel" type="button" aria-label="Quitar la cita">✕</button>
+              <button id="btn-reply-cancel" class="chat-reply-cancel" type="button" aria-label="Quitar la cita" data-i18n-aria-label="chat.remove_quote">✕</button>
             </div>
-            <label class="sr-only" for="chat-input">Mensaje a Alfred</label>
-            <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Mensaje a Alfred"></textarea>
-            <button id="btn-send" class="send-btn" type="submit" title="Enviar mensaje" aria-label="Enviar mensaje">
+            <label class="sr-only" for="chat-input" data-i18n="chat.input_label">Mensaje a Alfred</label>
+            <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Mensaje a Alfred" data-i18n-placeholder="chat.input_placeholder"></textarea>
+            <button id="btn-send" class="send-btn" type="submit" title="Enviar mensaje" data-i18n-title="chat.send" aria-label="Enviar mensaje" data-i18n-aria-label="chat.send">
               <svg class="icon-send" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 19V5"></path>
@@ -229,15 +231,15 @@
                 <rect x="6" y="6" width="12" height="12" rx="2"></rect>
               </svg>
             </button>
-            <p id="chat-hint" class="composer-hint is-keys">Enter envía · Shift+Enter salto de línea</p>
+            <p id="chat-hint" class="composer-hint is-keys" data-i18n="chat.hint">Enter envía · Shift+Enter salto de línea</p>
           </form>
         </main>
 
         <!-- The team panel is gone from the chat: its content lives in the Equipo section. The
              nodes stay, hidden, because chatlist.js and delegations.js still write into them. -->
-        <aside id="chat-side" class="side" aria-label="Equipo" hidden>
+        <aside id="chat-side" class="side" aria-label="Equipo" data-i18n-aria-label="chat.team_heading" hidden>
           <div class="side-head">
-            <h2>Equipo</h2>
+            <h2 data-i18n="chat.team_heading">Equipo</h2>
           </div>
           <div id="side-body" class="side-body">
             <div class="side-card">
@@ -245,23 +247,23 @@
                 <span id="side-alfred-avatar" class="avatar" aria-hidden="true">A</span>
                 <div>
                   <strong id="side-alfred-name">Alfred</strong>
-                  <span id="side-alfred-status" class="side-meta">CTO · disponible</span>
+                  <span id="side-alfred-status" class="side-meta" data-i18n="side.status">CTO · disponible</span>
                 </div>
               </div>
             </div>
             <div class="side-section">
               <div class="side-head-row">
-                <h3>Proyectos</h3>
-                <button id="btn-new-project" class="btn ghost btn-small" type="button">+ Proyecto</button>
+                <h3 data-i18n="side.projects">Proyectos</h3>
+                <button id="btn-new-project" class="btn ghost btn-small" type="button" data-i18n="side.new_project">+ Proyecto</button>
               </div>
               <div id="side-projects" class="side-list"></div>
             </div>
             <div id="side-team-section" class="side-section">
-              <h3>Equipo del proyecto</h3>
+              <h3 data-i18n="side.project_team">Equipo del proyecto</h3>
               <div id="side-team" class="side-list"></div>
             </div>
             <details id="side-finished" class="side-section side-finished hidden">
-              <summary>Tareas terminadas</summary>
+              <summary data-i18n="side.finished">Tareas terminadas</summary>
               <div id="side-finished-list" class="side-list"></div>
             </details>
           </div>
@@ -273,18 +275,19 @@
 
       <header class="view-head">
         <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
-                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
+                aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
         <div>
-          <h1>Equipo</h1>
-          <p id="agents-subtitle" class="subtitle">Cargando estado…</p>
+          <h1 data-i18n="agents.title">Equipo</h1>
+          <p id="agents-subtitle" class="subtitle" data-i18n="agents.loading">Cargando estado…</p>
         </div>
         <div class="view-actions">
-          <span id="connection-chip" class="chip idle" role="status" title="Estado de la conexión">
+          <span id="connection-chip" class="chip idle" role="status" title="Estado de la conexión" data-i18n-title="chat.connection_title">
             <span class="chip-dot" aria-hidden="true"></span>
-            <span class="chip-label">Sin conectar</span>
+            <span class="chip-label" data-i18n="chat.not_connected">Sin conectar</span>
           </span>
-          <button id="btn-new" class="btn primary btn-small" type="button">Nueva conversación</button>
-          <button id="btn-refresh" class="icon-btn" type="button" title="Actualizar" aria-label="Actualizar">
+          <button id="btn-hire" class="btn secondary btn-small hidden" type="button" data-i18n="agents.hire">Contratar</button>
+          <button id="btn-new" class="btn primary btn-small" type="button" data-i18n="agents.new_chat">Nueva conversación</button>
+          <button id="btn-refresh" class="icon-btn" type="button" title="Actualizar" data-i18n-title="agents.refresh" aria-label="Actualizar" data-i18n-aria-label="agents.refresh">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 11a8 8 0 1 0-2.3 5.7"></path>
@@ -295,16 +298,16 @@
       </header>
 
       <div id="stale-banner" class="stale hidden" role="status">
-        <span id="stale-text">Sin conexión con el PC. Mostrando el último estado conocido.</span>
+        <span id="stale-text" data-i18n="agents.stale">Sin conexión con el PC. Mostrando el último estado conocido.</span>
         <span class="stale-actions">
-          <button id="btn-stale-retry" class="btn ghost btn-small" type="button">Reintentar</button>
-          <button id="btn-stale-pair" class="btn ghost btn-small hidden" type="button">Volver a emparejar</button>
+          <button id="btn-stale-retry" class="btn ghost btn-small" type="button" data-i18n="agents.retry">Reintentar</button>
+          <button id="btn-stale-pair" class="btn ghost btn-small hidden" type="button" data-i18n="agents.pair_again">Volver a emparejar</button>
         </span>
       </div>
 
       <section id="team-summary" class="team-summary" aria-labelledby="team-summary-title">
         <div class="team-summary-head">
-          <h2 id="team-summary-title">Tu equipo</h2>
+          <h2 id="team-summary-title" data-i18n="agents.summary_title">Tu equipo</h2>
           <p id="team-summary-count" class="team-summary-count" aria-live="polite"></p>
         </div>
         <div id="team-summary-body"></div>
@@ -312,7 +315,7 @@
 
       <section id="team-plans" class="team-plans" aria-labelledby="team-plans-title" hidden>
         <div class="team-plans-head">
-          <h2 id="team-plans-title" tabindex="-1">Planes propuestos</h2>
+          <h2 id="team-plans-title" tabindex="-1" data-i18n="agents.plans_title">Planes propuestos</h2>
           <p id="team-plans-count" class="team-plans-count" aria-live="polite"></p>
         </div>
         <p id="team-plans-notice" class="team-plans-notice" role="status" hidden></p>
@@ -321,38 +324,42 @@
 
       <section id="team-schedules" class="team-schedules" aria-labelledby="team-schedules-title">
         <div class="team-schedules-head">
-          <h2 id="team-schedules-title">Automatizar</h2>
+          <h2 id="team-schedules-title" data-i18n="agents.schedules_title">Automatizar</h2>
           <p id="team-schedules-count" class="team-schedules-count" aria-live="polite"></p>
-          <button id="team-schedules-new" class="btn primary btn-small" type="button">Programar una tarea</button>
+          <button id="team-schedules-new" class="btn primary btn-small" type="button" data-i18n="agents.schedule_new">Programar una tarea</button>
         </div>
-        <p class="team-schedules-note">Se ejecuta con tu PC encendido.</p>
+        <p class="team-schedules-note" data-i18n="agents.schedules_note">Se ejecuta con tu PC encendido.</p>
         <p id="team-schedules-notice" class="team-schedules-notice" role="status" hidden></p>
         <div id="team-schedules-body"></div>
       </section>
 
-      <section id="team-hires" class="team-section" aria-labelledby="team-title">
+      <section id="team-hires" class="team-section hidden" aria-labelledby="team-title">
         <div class="team-head">
-          <h2 id="team-title">Contratados</h2>
-          <button id="btn-hire" class="btn primary btn-small hidden" type="button">Contratar</button>
+          <h2 id="team-title" data-i18n="agents.hires_title">Contratados</h2>
         </div>
         <div id="team-hires-body"></div>
       </section>
 
-      <div id="agents-loading" class="loading-list" aria-label="Cargando agentes">
+      <div id="agents-loading" class="loading-list" aria-label="Cargando agentes" data-i18n-aria-label="agents.loading_label">
         <div class="skeleton-row"></div>
         <div class="skeleton-row"></div>
         <div class="skeleton-row"></div>
       </div>
 
-      <ul id="agent-list" class="agent-list hidden" role="list"></ul>
+      <section id="team-sessions" class="team-section hidden" aria-labelledby="team-sessions-title">
+        <div class="team-head">
+          <h2 id="team-sessions-title" data-i18n="agents.sessions_title">Sesiones de agentes</h2>
+        </div>
+        <ul id="agent-list" class="agent-list hidden" role="list"></ul>
+      </section>
 
       <div id="agents-empty" class="empty-state hidden">
         <svg class="state-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"></path><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.8c1.8.6 3 2.2 3 5.2"></path></svg>
-        <h2 id="empty-title">Ningún agente en marcha</h2>
-        <p id="empty-body">Cuando arranques un agente aparecerá aquí en cuanto lo detecte.</p>
+        <h2 id="empty-title" data-i18n="agents.empty_title">Ningún agente en marcha</h2>
+        <p id="empty-body" data-i18n="agents.empty_body">Cuando arranques un agente aparecerá aquí en cuanto lo detecte.</p>
         <div class="empty-actions">
-          <button id="btn-empty-action" class="btn secondary btn-small" type="button">Actualizar</button>
-          <button id="btn-empty-pair" class="btn ghost hidden" type="button">Volver a emparejar</button>
+          <button id="btn-empty-action" class="btn secondary btn-small" type="button" data-i18n="agents.refresh">Actualizar</button>
+          <button id="btn-empty-pair" class="btn ghost hidden" type="button" data-i18n="agents.pair_again">Volver a emparejar</button>
         </div>
       </div>
     </section>
@@ -360,39 +367,39 @@
     <section id="view-settings" class="view view-settings hidden" aria-labelledby="settings-title">
       <header class="view-head">
         <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
-                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
-        <h1 id="settings-title">Ajustes</h1>
+                aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
+        <h1 id="settings-title" data-i18n="settings.title">Ajustes</h1>
       </header>
       <div class="settings-list">
         <div id="settings-appearance" class="settings-card"></div>
         <div id="settings-approvals" class="settings-card"></div>
         <div id="settings-mail" class="settings-card"></div>
         <section id="settings-security" class="settings-card hidden" aria-labelledby="settings-security-title">
-          <h2 id="settings-security-title">Seguridad</h2>
-          <p class="vault-row-title">Historial cifrado</p>
+          <h2 id="settings-security-title" data-i18n="settings.security">Seguridad</h2>
+          <p class="vault-row-title" data-i18n="settings.vault_title">Historial cifrado</p>
           <p id="vault-state" class="hint"></p>
           <p id="vault-backup" class="hint hidden"></p>
-          <button id="btn-vault-protect" class="btn primary hidden" type="button">Proteger historial</button>
-          <button id="btn-vault-finish" class="btn secondary hidden" type="button">Borrar la copia sin cifrar</button>
+          <button id="btn-vault-protect" class="btn primary hidden" type="button" data-i18n="settings.vault_protect">Proteger historial</button>
+          <button id="btn-vault-finish" class="btn secondary hidden" type="button" data-i18n="settings.vault_finish">Borrar la copia sin cifrar</button>
         </section>
         <section class="settings-card" aria-labelledby="settings-alerts-title">
-          <h2 id="settings-alerts-title">Avisos</h2>
-          <p class="hint">Qué te avisa Excubia cuando un agente pide algo o termina.</p>
-          <button id="btn-settings-alerts" class="btn secondary" type="button">Abrir avisos</button>
+          <h2 id="settings-alerts-title" data-i18n="settings.alerts">Avisos</h2>
+          <p class="hint" data-i18n="settings.alerts_hint">Qué te avisa Excubia cuando un agente pide algo o termina.</p>
+          <button id="btn-settings-alerts" class="btn secondary" type="button" data-i18n="settings.open_alerts">Abrir avisos</button>
         </section>
         <section class="settings-card" aria-labelledby="settings-devices-title">
-          <h2 id="settings-devices-title">Dispositivos</h2>
-          <p class="hint">Los equipos que pueden entrar en este PC. Un dispositivo revocado deja de entrar.</p>
-          <button id="btn-settings-devices" class="btn secondary" type="button">Abrir dispositivos</button>
+          <h2 id="settings-devices-title" data-i18n="settings.devices">Dispositivos</h2>
+          <p class="hint" data-i18n="settings.devices_hint">Los equipos que pueden entrar en este PC. Un dispositivo revocado deja de entrar.</p>
+          <button id="btn-settings-devices" class="btn secondary" type="button" data-i18n="settings.open_devices">Abrir dispositivos</button>
         </section>
         <section class="settings-card" aria-labelledby="settings-connection-title">
-          <h2 id="settings-connection-title">Conexión</h2>
-          <p class="hint">Vincula este equipo con otro PC o vuelve a usar Excubia de aquí.</p>
-          <button id="btn-settings-connect" class="btn secondary" type="button">Vincular con otro equipo</button>
+          <h2 id="settings-connection-title" data-i18n="settings.connection">Conexión</h2>
+          <p class="hint" data-i18n="settings.connection_hint">Vincula este equipo con otro PC o vuelve a usar Excubia de aquí.</p>
+          <button id="btn-settings-connect" class="btn secondary" type="button" data-i18n="pair.use_remote">Vincular con otro equipo</button>
         </section>
         <section class="settings-card" aria-labelledby="settings-about-title">
-          <h2 id="settings-about-title">Acerca de</h2>
-          <p class="about-line"><strong>Excubia</strong> · <span id="app-version">Cargando versión…</span></p>
+          <h2 id="settings-about-title" data-i18n="settings.about">Acerca de</h2>
+          <p class="about-line"><strong>Excubia</strong> · <span id="app-version" data-i18n="settings.version_loading">Cargando versión…</span></p>
         </section>
       </div>
     </section>
@@ -405,38 +412,38 @@
         </div>
       </header>
       <div class="palette-intro">
-        <h1 id="palette-title">Elige tu paleta</h1>
-        <p class="lede">Puedes cambiarla cuando quieras en Ajustes. Se aplica al instante.</p>
+        <h1 id="palette-title" data-i18n="palette.title">Elige tu paleta</h1>
+        <p class="lede" data-i18n="palette.lede">Puedes cambiarla cuando quieras en Ajustes. Se aplica al instante.</p>
       </div>
       <div id="first-run-palette"></div>
       <div class="palette-actions">
-        <button id="palette-continue" class="btn primary" type="button">Continuar</button>
-        <p class="palette-step">Antes de empezar · 1 de 4</p>
+        <button id="palette-continue" class="btn primary" type="button" data-i18n="palette.continue">Continuar</button>
+        <p class="palette-step" data-i18n="palette.step">Antes de empezar · 1 de 4</p>
       </div>
     </section>
 
-    <section id="view-onboarding" class="view view-onboarding hidden" aria-label="Primeros pasos">
+    <section id="view-onboarding" class="view view-onboarding hidden" aria-label="Primeros pasos" data-i18n-aria-label="onboarding.title">
       <header class="onboarding-head">
-        <p class="eyebrow">Primeros pasos</p>
+        <p class="eyebrow" data-i18n="onboarding.title">Primeros pasos</p>
         <p id="onboarding-progress" class="hint" aria-live="polite"></p>
       </header>
       <div id="onboarding-body" class="onboarding-body"></div>
       <p id="onboarding-error" class="form-error hidden" role="alert"></p>
       <div class="onboarding-actions">
-        <button id="onboarding-skip" class="btn ghost" type="button">Saltar</button>
+        <button id="onboarding-skip" class="btn ghost" type="button" data-i18n="onboarding.skip">Saltar</button>
         <span class="onboarding-nav">
-          <button id="onboarding-back" class="btn secondary" type="button">Atrás</button>
-          <button id="onboarding-next" class="btn primary" type="button">Siguiente</button>
+          <button id="onboarding-back" class="btn secondary" type="button" data-i18n="onboarding.back">Atrás</button>
+          <button id="onboarding-next" class="btn primary" type="button" data-i18n="onboarding.next">Siguiente</button>
         </span>
       </div>
     </section>
 
     <section id="view-mail" class="view view-mail hidden" aria-labelledby="mail-draft-title">
       <header class="detail-header">
-        <button id="btn-mail-back" class="icon-btn" type="button" title="Volver a ajustes de correo" aria-label="Volver a ajustes de correo">←</button>
+        <button id="btn-mail-back" class="icon-btn" type="button" title="Volver a ajustes de correo" data-i18n-title="mail.back_settings" aria-label="Volver a ajustes de correo" data-i18n-aria-label="mail.back_settings">←</button>
         <div class="detail-title">
-          <p class="eyebrow">Borrador</p>
-          <h1 id="mail-draft-title" tabindex="-1">Borrador de correo</h1>
+          <p class="eyebrow" data-i18n="mail.eyebrow">Borrador</p>
+          <h1 id="mail-draft-title" tabindex="-1" data-i18n="mail.draft_title">Borrador de correo</h1>
           <p id="mail-draft-account" class="meta"></p>
         </div>
       </header>
@@ -444,172 +451,172 @@
       <div id="mail-draft-error" class="form-error hidden" role="alert"></div>
 
       <dl id="mail-draft-fields" class="mail-draft-fields"></dl>
-      <span id="mail-body-label" class="field-label">Cuerpo</span>
+      <span id="mail-body-label" class="field-label" data-i18n="mail.body">Cuerpo</span>
       <div id="mail-draft-body" class="mail-body" tabindex="0"></div>
       <div id="mail-draft-attachments" class="mail-attachments"></div>
 
-      <section id="mail-edit" class="mail-edit hidden" aria-label="Editar borrador">
-        <label class="field-label" for="mail-edit-subject">Asunto</label>
+      <section id="mail-edit" class="mail-edit hidden" aria-label="Editar borrador" data-i18n-aria-label="mail.edit_label">
+        <label class="field-label" for="mail-edit-subject" data-i18n="mail.subject">Asunto</label>
         <input id="mail-edit-subject" type="text" autocomplete="off">
-        <label class="field-label" for="mail-edit-body">Cuerpo</label>
+        <label class="field-label" for="mail-edit-body" data-i18n="mail.body">Cuerpo</label>
         <textarea id="mail-edit-body" rows="12"></textarea>
         <div class="mail-send-actions">
-          <button id="btn-mail-save" class="btn primary" type="button">Guardar</button>
-          <button id="btn-mail-edit-cancel" class="btn ghost" type="button">Cancelar</button>
+          <button id="btn-mail-save" class="btn primary" type="button" data-i18n="mail.save">Guardar</button>
+          <button id="btn-mail-edit-cancel" class="btn ghost" type="button" data-i18n="mail.cancel">Cancelar</button>
         </div>
       </section>
 
-      <section id="mail-send" class="mail-send" aria-label="Envío del borrador">
+      <section id="mail-send" class="mail-send" aria-label="Envío del borrador" data-i18n-aria-label="mail.send_label">
         <p id="mail-status" class="mail-status" role="status" aria-live="polite"></p>
         <p id="mail-countdown" class="mail-countdown" role="timer"></p>
         <div class="mail-send-actions">
-          <button id="btn-mail-send" class="btn primary" type="button">Enviar…</button>
-          <button id="btn-mail-cancel" class="btn destructive hidden" type="button">Cancelar envío</button>
-          <button id="btn-mail-settings" class="btn ghost hidden" type="button">Ir a ajustes de correo</button>
-          <button id="btn-mail-edit" class="btn secondary hidden" type="button">Editar</button>
-          <button id="btn-mail-changes" class="btn ghost hidden" type="button">Pedir cambios a Alfred</button>
-          <button id="btn-mail-decline" class="btn ghost hidden" type="button">No enviar</button>
+          <button id="btn-mail-send" class="btn primary" type="button" data-i18n="mail.send">Enviar…</button>
+          <button id="btn-mail-cancel" class="btn destructive hidden" type="button" data-i18n="mail.cancel_send">Cancelar envío</button>
+          <button id="btn-mail-settings" class="btn ghost hidden" type="button" data-i18n="mail.go_settings">Ir a ajustes de correo</button>
+          <button id="btn-mail-edit" class="btn secondary hidden" type="button" data-i18n="mail.edit">Editar</button>
+          <button id="btn-mail-changes" class="btn ghost hidden" type="button" data-i18n="mail.ask_changes">Pedir cambios a Alfred</button>
+          <button id="btn-mail-decline" class="btn ghost hidden" type="button" data-i18n="mail.decline">No enviar</button>
         </div>
         <p id="mail-send-hint" class="hint"></p>
       </section>
     </section>
 
-    <section id="view-contacts" class="view view-agenda hidden" aria-label="Contactos">
+    <section id="view-contacts" class="view view-agenda hidden" aria-label="Contactos" data-i18n-aria-label="contacts.title">
       <header class="view-head">
         <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
-                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
-        <h1>Agenda</h1>
+                aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
+        <h1 data-i18n="agenda.title">Agenda</h1>
       </header>
-      <nav class="agenda-tabs" aria-label="Agenda">
-        <button class="agenda-tab" type="button" data-agenda="calendar">Calendario</button>
-        <button class="agenda-tab" type="button" data-agenda="notes">Notas</button>
-        <button class="agenda-tab" type="button" data-agenda="contacts" aria-current="page">Contactos</button>
+      <nav class="agenda-tabs" aria-label="Agenda" data-i18n-aria-label="agenda.label">
+        <button class="agenda-tab" type="button" data-agenda="calendar" data-i18n="agenda.tab_calendar">Calendario</button>
+        <button class="agenda-tab" type="button" data-agenda="notes" data-i18n="agenda.tab_notes">Notas</button>
+        <button class="agenda-tab" type="button" data-agenda="contacts" aria-current="page" data-i18n="agenda.tab_contacts">Contactos</button>
       </nav>
       <div class="agenda-shell">
         <div class="agenda-list-pane">
           <div class="agenda-head">
-            <button id="btn-contact-new" class="btn primary btn-small" type="button">Nuevo contacto</button>
+            <button id="btn-contact-new" class="btn primary btn-small" type="button" data-i18n="contacts.new">Nuevo contacto</button>
           </div>
           <label class="search">
-            <span class="sr-only">Buscar contactos</span>
-            <input id="contacts-search" type="search" placeholder="Buscar por nombre o alias…" autocomplete="off" spellcheck="false">
+            <span class="sr-only" data-i18n="contacts.search_label">Buscar contactos</span>
+            <input id="contacts-search" type="search" placeholder="Buscar por nombre o alias…" data-i18n-placeholder="contacts.search_placeholder" autocomplete="off" spellcheck="false">
           </label>
           <div id="contacts-status" class="agenda-status" role="status" hidden></div>
           <ul id="contacts-list" class="agenda-list"></ul>
-          <button id="contacts-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
+          <button id="contacts-more" class="btn secondary btn-block" type="button" hidden data-i18n="agenda.load_more">Cargar más</button>
         </div>
         <section id="contacts-panel" class="agenda-panel" aria-labelledby="contacts-panel-title" hidden>
           <div class="agenda-panel-head">
             <h2 id="contacts-panel-title"></h2>
-            <button id="contacts-panel-close" class="icon-btn" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+            <button id="contacts-panel-close" class="icon-btn" type="button" title="Cerrar" data-i18n-title="agenda.close" aria-label="Cerrar" data-i18n-aria-label="agenda.close">×</button>
           </div>
           <div id="contacts-panel-body" class="agenda-panel-body"></div>
         </section>
       </div>
     </section>
 
-    <section id="view-notes" class="view view-agenda hidden" aria-label="Notas">
+    <section id="view-notes" class="view view-agenda hidden" aria-label="Notas" data-i18n-aria-label="agenda.notes_label">
       <header class="view-head">
         <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
-                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
-        <h1>Agenda</h1>
+                aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
+        <h1 data-i18n="agenda.title">Agenda</h1>
       </header>
-      <nav class="agenda-tabs" aria-label="Agenda">
-        <button class="agenda-tab" type="button" data-agenda="calendar">Calendario</button>
-        <button class="agenda-tab" type="button" data-agenda="notes" aria-current="page">Notas</button>
-        <button class="agenda-tab" type="button" data-agenda="contacts">Contactos</button>
+      <nav class="agenda-tabs" aria-label="Agenda" data-i18n-aria-label="agenda.label">
+        <button class="agenda-tab" type="button" data-agenda="calendar" data-i18n="agenda.tab_calendar">Calendario</button>
+        <button class="agenda-tab" type="button" data-agenda="notes" aria-current="page" data-i18n="agenda.tab_notes">Notas</button>
+        <button class="agenda-tab" type="button" data-agenda="contacts" data-i18n="agenda.tab_contacts">Contactos</button>
       </nav>
       <div class="agenda-shell">
         <div class="agenda-list-pane">
           <div class="agenda-head">
-            <button id="btn-note-new" class="btn primary btn-small" type="button">Nueva nota</button>
+            <button id="btn-note-new" class="btn primary btn-small" type="button" data-i18n="notes.new">Nueva nota</button>
           </div>
           <label class="search">
-            <span class="sr-only">Buscar en asuntos y textos</span>
-            <input id="notes-search" type="search" placeholder="Buscar en asuntos y textos…" autocomplete="off" spellcheck="false">
+            <span class="sr-only" data-i18n="notes.search_label">Buscar en asuntos y textos</span>
+            <input id="notes-search" type="search" placeholder="Buscar en asuntos y textos…" data-i18n-placeholder="notes.search_placeholder" autocomplete="off" spellcheck="false">
           </label>
           <div id="notes-status" class="agenda-status" role="status" hidden></div>
           <ul id="notes-list" class="agenda-list"></ul>
-          <button id="notes-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
+          <button id="notes-more" class="btn secondary btn-block" type="button" hidden data-i18n="agenda.load_more">Cargar más</button>
         </div>
         <section id="notes-panel" class="agenda-panel" aria-labelledby="notes-panel-title" hidden>
           <div class="agenda-panel-head">
             <h2 id="notes-panel-title"></h2>
-            <button id="notes-panel-close" class="icon-btn" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+            <button id="notes-panel-close" class="icon-btn" type="button" title="Cerrar" data-i18n-title="agenda.close" aria-label="Cerrar" data-i18n-aria-label="agenda.close">×</button>
           </div>
           <div id="notes-panel-body" class="agenda-panel-body"></div>
         </section>
       </div>
     </section>
 
-    <section id="view-calendar" class="view view-agenda hidden" aria-label="Calendario">
+    <section id="view-calendar" class="view view-agenda hidden" aria-label="Calendario" data-i18n-aria-label="agenda.calendar_label">
       <header class="view-head">
         <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
-                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
-        <h1>Agenda</h1>
+                aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
+        <h1 data-i18n="agenda.title">Agenda</h1>
       </header>
-      <nav class="agenda-tabs" aria-label="Agenda">
-        <button class="agenda-tab" type="button" data-agenda="calendar" aria-current="page">Calendario</button>
-        <button class="agenda-tab" type="button" data-agenda="notes">Notas</button>
-        <button class="agenda-tab" type="button" data-agenda="contacts">Contactos</button>
+      <nav class="agenda-tabs" aria-label="Agenda" data-i18n-aria-label="agenda.label">
+        <button class="agenda-tab" type="button" data-agenda="calendar" aria-current="page" data-i18n="agenda.tab_calendar">Calendario</button>
+        <button class="agenda-tab" type="button" data-agenda="notes" data-i18n="agenda.tab_notes">Notas</button>
+        <button class="agenda-tab" type="button" data-agenda="contacts" data-i18n="agenda.tab_contacts">Contactos</button>
       </nav>
       <div class="agenda-shell">
         <div class="agenda-list-pane">
           <div class="agenda-head">
-            <button id="btn-calendar-new" class="btn primary btn-small" type="button">Nuevo evento</button>
+            <button id="btn-calendar-new" class="btn primary btn-small" type="button" data-i18n="calendar.new">Nuevo evento</button>
           </div>
           <details id="calendar-more" class="calendar-more">
-            <summary class="btn ghost btn-small">Más ▾</summary>
-            <div class="calendar-tools" role="group" aria-label="Archivo de calendario">
-              <button id="btn-calendar-import" class="btn ghost btn-small" type="button">Importar calendario (.ics)</button>
-              <label class="calendar-scope"><span>Qué exportar</span>
+            <summary class="btn ghost btn-small" data-i18n="calendar.more">Más ▾</summary>
+            <div class="calendar-tools" role="group" aria-label="Archivo de calendario" data-i18n-aria-label="calendar.file_label">
+              <button id="btn-calendar-import" class="btn ghost btn-small" type="button" data-i18n="calendar.import">Importar calendario (.ics)</button>
+              <label class="calendar-scope"><span data-i18n="calendar.export_scope">Qué exportar</span>
                 <select id="calendar-export-scope" class="agenda-select">
-                  <option value="range">Rango visible</option>
-                  <option value="all">Todo</option>
+                  <option value="range" data-i18n="calendar.scope_range">Rango visible</option>
+                  <option value="all" data-i18n="calendar.scope_all">Todo</option>
                 </select>
               </label>
-              <button id="btn-calendar-export" class="btn ghost btn-small" type="button">Exportar calendario (.ics)</button>
-              <p id="calendar-tools-hint" class="agenda-muted" hidden>Fija antes la zona horaria.</p>
+              <button id="btn-calendar-export" class="btn ghost btn-small" type="button" data-i18n="calendar.export">Exportar calendario (.ics)</button>
+              <p id="calendar-tools-hint" class="agenda-muted" hidden data-i18n="calendar.tools_hint">Fija antes la zona horaria.</p>
             </div>
           </details>
-          <section id="calendar-ics-result" class="calendar-ics" aria-label="Resultado del archivo .ics" hidden>
+          <section id="calendar-ics-result" class="calendar-ics" aria-label="Resultado del archivo .ics" data-i18n-aria-label="calendar.ics_result_label" hidden>
             <p id="calendar-ics-summary" role="status"></p>
             <p id="calendar-ics-problem" class="agenda-error" role="status" hidden></p>
             <details id="calendar-ics-skipped" hidden>
-              <summary>Omitidos</summary>
+              <summary data-i18n="calendar.skipped">Omitidos</summary>
               <ul id="calendar-ics-skipped-list"></ul>
               <p id="calendar-ics-more" class="agenda-muted" hidden></p>
             </details>
           </section>
           <p id="calendar-zone-hint" class="agenda-hint" hidden></p>
           <details id="calendar-zone" class="calendar-zone" hidden>
-            <summary id="calendar-zone-summary">Zona horaria</summary>
-            <p class="agenda-muted">Los eventos se muestran y se editan en esa zona de la empresa. Se fija una sola vez.</p>
-            <label class="agenda-label" for="calendar-zone-input">Zona</label>
+            <summary id="calendar-zone-summary" data-i18n="calendar.zone">Zona horaria</summary>
+            <p class="agenda-muted" data-i18n="calendar.zone_hint">Los eventos se muestran y se editan en esa zona de la empresa. Se fija una sola vez.</p>
+            <label class="agenda-label" for="calendar-zone-input" data-i18n="calendar.zone_label">Zona</label>
             <input id="calendar-zone-input" type="text" list="calendar-zones" placeholder="Europe/Madrid" autocomplete="off" spellcheck="false">
             <datalist id="calendar-zones"></datalist>
             <p id="calendar-zone-problem" class="agenda-error" role="status" hidden></p>
-            <button id="btn-calendar-zone" class="btn primary btn-small" type="button">Guardar zona</button>
+            <button id="btn-calendar-zone" class="btn primary btn-small" type="button" data-i18n="calendar.zone_save">Guardar zona</button>
           </details>
-          <div class="calendar-range" role="group" aria-label="Periodo">
-            <button id="calendar-range-day" class="btn ghost btn-small" type="button" aria-pressed="false">Hoy</button>
-            <button id="calendar-range-week" class="btn ghost btn-small" type="button" aria-pressed="false">7 días</button>
-            <button id="calendar-range-thirty" class="btn ghost btn-small" type="button" aria-pressed="true">30 días</button>
-            <button id="calendar-range-month" class="btn ghost btn-small" type="button" aria-pressed="false">Mes</button>
+          <div class="calendar-range" role="group" aria-label="Periodo" data-i18n-aria-label="calendar.range_label">
+            <button id="calendar-range-day" class="btn ghost btn-small" type="button" aria-pressed="false" data-i18n="calendar.range_day">Hoy</button>
+            <button id="calendar-range-week" class="btn ghost btn-small" type="button" aria-pressed="false" data-i18n="calendar.range_week">7 días</button>
+            <button id="calendar-range-thirty" class="btn ghost btn-small" type="button" aria-pressed="true" data-i18n="calendar.range_thirty">30 días</button>
+            <button id="calendar-range-month" class="btn ghost btn-small" type="button" aria-pressed="false" data-i18n="calendar.range_month">Mes</button>
           </div>
           <div class="calendar-nav">
-            <button id="calendar-prev" class="icon-btn" type="button" title="Periodo anterior" aria-label="Periodo anterior">‹</button>
+            <button id="calendar-prev" class="icon-btn" type="button" title="Periodo anterior" data-i18n-title="calendar.prev" aria-label="Periodo anterior" data-i18n-aria-label="calendar.prev">‹</button>
             <p id="calendar-range-label" class="agenda-muted"></p>
-            <button id="calendar-next" class="icon-btn" type="button" title="Periodo siguiente" aria-label="Periodo siguiente">›</button>
+            <button id="calendar-next" class="icon-btn" type="button" title="Periodo siguiente" data-i18n-title="calendar.next" aria-label="Periodo siguiente" data-i18n-aria-label="calendar.next">›</button>
           </div>
           <div id="calendar-status" class="agenda-status" role="status" hidden></div>
           <ul id="calendar-list" class="agenda-list"></ul>
-          <button id="calendar-load-more" class="btn secondary btn-block" type="button" hidden>Cargar más</button>
+          <button id="calendar-load-more" class="btn secondary btn-block" type="button" hidden data-i18n="agenda.load_more">Cargar más</button>
         </div>
         <section id="calendar-panel" class="agenda-panel" aria-labelledby="calendar-panel-title" hidden>
           <div class="agenda-panel-head">
             <h2 id="calendar-panel-title"></h2>
-            <button id="calendar-panel-close" class="icon-btn" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+            <button id="calendar-panel-close" class="icon-btn" type="button" title="Cerrar" data-i18n-title="agenda.close" aria-label="Cerrar" data-i18n-aria-label="agenda.close">×</button>
           </div>
           <div id="calendar-panel-body" class="agenda-panel-body"></div>
         </section>
@@ -617,37 +624,37 @@
       </div>
     </section>
 
-    <section id="view-devices" class="view view-agenda hidden" aria-label="Dispositivos">
+    <section id="view-devices" class="view view-agenda hidden" aria-label="Dispositivos" data-i18n-aria-label="devices.label">
       <header class="view-head">
         <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
-                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
-        <h1>Dispositivos</h1>
+                aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
+        <h1 data-i18n="devices.title">Dispositivos</h1>
       </header>
       <div class="agenda-shell devices-shell">
         <div class="agenda-list-pane">
-          <p class="agenda-muted">Los equipos que pueden entrar en este PC. Un dispositivo revocado deja de entrar.</p>
+          <p class="agenda-muted" data-i18n="settings.devices_hint">Los equipos que pueden entrar en este PC. Un dispositivo revocado deja de entrar.</p>
           <div id="devices-status" class="agenda-status" role="status" hidden></div>
           <ul id="devices-list" class="agenda-list"></ul>
           <details id="devices-revoked-group" class="devices-revoked" hidden>
-            <summary id="devices-revoked-summary">Revocados</summary>
+            <summary id="devices-revoked-summary" data-i18n="devices.revoked">Revocados</summary>
             <ul id="devices-revoked" class="agenda-list"></ul>
           </details>
         </div>
       </div>
     </section>
 
-    <section id="view-alerts" class="view view-agenda hidden" aria-label="Avisos">
+    <section id="view-alerts" class="view view-agenda hidden" aria-label="Avisos" data-i18n-aria-label="alerts.label">
       <header class="view-head">
         <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="false"
-                aria-controls="app-drawer" title="Menú" aria-label="Abrir el menú">☰</button>
-        <h1>Avisos</h1>
+                aria-controls="app-drawer" title="Menú" data-i18n-title="chat.menu" aria-label="Abrir el menú" data-i18n-aria-label="chat.open_menu">☰</button>
+        <h1 data-i18n="alerts.title">Avisos</h1>
       </header>
       <div class="agenda-shell alerts-shell">
         <div class="agenda-list-pane">
           <fieldset class="alerts-mode">
-            <legend>Qué avisa</legend>
-            <label class="alerts-option"><input type="radio" name="alerts-mode" value="all"> <span>Avisar de todo</span></label>
-            <label class="alerts-option"><input type="radio" name="alerts-mode" value="rules_only"> <span>Solo lo que yo elija</span></label>
+            <legend data-i18n="alerts.what">Qué avisa</legend>
+            <label class="alerts-option"><input type="radio" name="alerts-mode" value="all"> <span data-i18n="alerts.all">Avisar de todo</span></label>
+            <label class="alerts-option"><input type="radio" name="alerts-mode" value="rules_only"> <span data-i18n="alerts.rules_only">Solo lo que yo elija</span></label>
             <p id="alerts-mode-phrase" class="agenda-muted"></p>
             <p id="alerts-mode-problem" class="agenda-error" role="status" hidden></p>
           </fieldset>
@@ -659,34 +666,34 @@
         </div>
         <section class="agenda-panel alerts-form-pane" aria-labelledby="alerts-new-title">
           <div class="agenda-panel-head">
-            <h2 id="alerts-new-title">Nueva regla</h2>
+            <h2 id="alerts-new-title" data-i18n="alerts.new_rule">Nueva regla</h2>
           </div>
           <form id="alerts-form" class="alerts-form">
-            <label>Tipo
+            <label><span data-i18n="alerts.kind">Tipo</span>
               <select id="alerts-kind" class="agenda-select">
-                <option value="agent">Agente</option>
-                <option value="reminder">Recordatorio</option>
+                <option value="agent" data-i18n="alerts.kind_agent">Agente</option>
+                <option value="reminder" data-i18n="alerts.kind_reminder">Recordatorio</option>
               </select>
             </label>
-            <label id="alerts-agent-field">Agente
+            <label id="alerts-agent-field"><span data-i18n="alerts.agent">Agente</span>
               <select id="alerts-agent" class="agenda-select">
-                <option value="">Cualquiera</option>
+                <option value="" data-i18n="alerts.any">Cualquiera</option>
               </select>
             </label>
-            <label id="alerts-when-field">Cuándo
+            <label id="alerts-when-field"><span data-i18n="alerts.when">Cuándo</span>
               <select id="alerts-when" class="agenda-select">
-                <option value="blocked">Se bloquea</option>
-                <option value="done">Termina</option>
+                <option value="blocked" data-i18n="alerts.when_blocked">Se bloquea</option>
+                <option value="done" data-i18n="alerts.when_done">Termina</option>
               </select>
             </label>
-            <label>Acción
+            <label><span data-i18n="alerts.action">Acción</span>
               <select id="alerts-action" class="agenda-select">
-                <option value="notify">Avisar</option>
-                <option value="mute">Silenciar</option>
+                <option value="notify" data-i18n="alerts.action_notify">Avisar</option>
+                <option value="mute" data-i18n="alerts.action_mute">Silenciar</option>
               </select>
             </label>
             <p id="alerts-form-problem" class="agenda-error" role="status" hidden></p>
-            <button id="btn-alert-create" class="btn primary btn-block" type="submit">Crear regla</button>
+            <button id="btn-alert-create" class="btn primary btn-block" type="submit" data-i18n="alerts.create">Crear regla</button>
           </form>
         </section>
       </div>
@@ -694,37 +701,37 @@
 
     <section id="view-detail" class="view view-detail hidden">
       <header class="detail-header">
-        <button id="btn-back" class="icon-btn" type="button" title="Volver a la lista" aria-label="Volver a la lista">←</button>
+        <button id="btn-back" class="icon-btn" type="button" title="Volver a la lista" data-i18n-title="detail.back" aria-label="Volver a la lista" data-i18n-aria-label="detail.back">←</button>
         <div class="detail-title">
           <div class="detail-project">
             <span id="detail-dot" class="status-dot" aria-hidden="true"></span>
-            <span id="detail-project">Agente</span>
+            <span id="detail-project" data-i18n="detail.project">Agente</span>
           </div>
-          <h1 id="detail-task">Detalle</h1>
+          <h1 id="detail-task" data-i18n="detail.title">Detalle</h1>
           <p id="detail-meta" class="meta"></p>
         </div>
         <span id="detail-status" class="status-label">—</span>
         <details id="detail-menu" class="agent-menu detail-menu hidden">
-          <summary class="agent-menu-toggle" title="Más de este agente" aria-label="Más de este agente">⋯</summary>
+          <summary class="agent-menu-toggle" title="Más de este agente" data-i18n-title="detail.more_agent" aria-label="Más de este agente" data-i18n-aria-label="detail.more_agent">⋯</summary>
           <div class="agent-menu-panel">
-            <p id="detail-restored" class="agent-menu-note hidden">Restaurado</p>
+            <p id="detail-restored" class="agent-menu-note hidden" data-i18n="detail.restored">Restaurado</p>
             <p id="detail-unknown" class="agent-menu-note hidden"></p>
           </div>
         </details>
       </header>
 
       <div class="detail-actions">
-        <button id="btn-read" class="btn secondary btn-small" type="button">Actualizar salida</button>
-        <button id="btn-stop" class="btn destructive btn-small" type="button">Detener agente</button>
-        <button id="btn-new-here" class="btn primary btn-small hidden" type="button">Nueva conversación aquí</button>
+        <button id="btn-read" class="btn secondary btn-small" type="button" data-i18n="detail.read">Actualizar salida</button>
+        <button id="btn-stop" class="btn destructive btn-small" type="button" data-i18n="detail.stop">Detener agente</button>
+        <button id="btn-new-here" class="btn primary btn-small hidden" type="button" data-i18n="detail.new_here">Nueva conversación aquí</button>
         <span id="detail-live" class="detail-live"></span>
       </div>
 
-      <div id="stop-confirm" class="stop-confirm hidden" role="group" aria-label="Confirmar detención">
-        <span>¿Detener este agente? Se cerrará su proceso y el panel desaparecerá.</span>
+      <div id="stop-confirm" class="stop-confirm hidden" role="group" aria-label="Confirmar detención" data-i18n-aria-label="detail.confirm_label">
+        <span data-i18n="detail.stop_question">¿Detener este agente? Se cerrará su proceso y el panel desaparecerá.</span>
         <span class="stop-confirm-actions">
-          <button id="btn-stop-cancel" class="btn ghost btn-small" type="button">Cancelar</button>
-          <button id="btn-stop-confirm" class="btn destructive btn-small" type="button">Detener</button>
+          <button id="btn-stop-cancel" class="btn ghost btn-small" type="button" data-i18n="common.cancel">Cancelar</button>
+          <button id="btn-stop-confirm" class="btn destructive btn-small" type="button" data-i18n="detail.stop_confirm">Detener</button>
         </span>
       </div>
       <p id="stop-result" class="hint hidden" role="status"></p>
@@ -733,22 +740,22 @@
 
       <section id="composer" class="composer">
         <div class="composer-head">
-          <span id="composer-hint" class="hint">Disponible cuando el agente está bloqueado.</span>
+          <span id="composer-hint" class="hint" data-i18n="detail.composer_hint">Disponible cuando el agente está bloqueado.</span>
         </div>
         <details class="composer-controls">
-          <summary>Controles</summary>
-          <span class="field-label">Responder</span>
+          <summary data-i18n="detail.controls">Controles</summary>
+          <span class="field-label" data-i18n="detail.reply">Responder</span>
           <textarea id="respond-text" rows="3" spellcheck="false"
-                    placeholder="Escribe una respuesta para el agente…"></textarea>
+                    placeholder="Escribe una respuesta para el agente…" data-i18n-placeholder="detail.reply_placeholder"></textarea>
           <div class="composer-actions">
-            <button id="btn-respond" class="btn primary btn-small" type="button">Enviar</button>
-            <span class="quick-keys" role="group" aria-label="Teclas rápidas">
-              <button class="btn ghost btn-small key" data-key="enter" type="button">Aprobar ⏎</button>
-              <button class="btn ghost btn-small key" data-key="esc" type="button">Rechazar ⎋</button>
-              <button class="btn ghost btn-small key" data-key="up" type="button" aria-label="Flecha arriba">↑</button>
-              <button class="btn ghost btn-small key" data-key="down" type="button" aria-label="Flecha abajo">↓</button>
-              <button class="btn ghost btn-small key" data-key="left" type="button" aria-label="Flecha izquierda">←</button>
-              <button class="btn ghost btn-small key" data-key="right" type="button" aria-label="Flecha derecha">→</button>
+            <button id="btn-respond" class="btn primary btn-small" type="button" data-i18n="detail.send">Enviar</button>
+            <span class="quick-keys" role="group" aria-label="Teclas rápidas" data-i18n-aria-label="detail.keys_label">
+              <button class="btn ghost btn-small key" data-key="enter" type="button" data-i18n="detail.key_approve">Aprobar ⏎</button>
+              <button class="btn ghost btn-small key" data-key="esc" type="button" data-i18n="detail.key_reject">Rechazar ⎋</button>
+              <button class="btn ghost btn-small key" data-key="up" type="button" aria-label="Flecha arriba" data-i18n-aria-label="detail.key_up">↑</button>
+              <button class="btn ghost btn-small key" data-key="down" type="button" aria-label="Flecha abajo" data-i18n-aria-label="detail.key_down">↓</button>
+              <button class="btn ghost btn-small key" data-key="left" type="button" aria-label="Flecha izquierda" data-i18n-aria-label="detail.key_left">←</button>
+              <button class="btn ghost btn-small key" data-key="right" type="button" aria-label="Flecha derecha" data-i18n-aria-label="detail.key_right">→</button>
             </span>
           </div>
           <p id="composer-result" class="hint" role="status"></p>
@@ -757,176 +764,170 @@
 
       <details class="output-panel">
         <summary class="output-head">
-          <span>Salida del agente</span>
-          <span id="output-meta">Solo lectura</span>
+          <span data-i18n="detail.output">Salida del agente</span>
+          <span id="output-meta" data-i18n="detail.output_meta">Solo lectura</span>
         </summary>
-        <pre id="detail-output">Leyendo…</pre>
+        <pre id="detail-output" data-i18n="detail.output_loading">Leyendo…</pre>
       </details>
     </section>
   </div>
 
   <!-- Outside .app, which is inert while the drawer is open: the menu of a row of the history opens over the drawer. -->
-  <div id="chat-menu" class="menu hidden" role="menu" aria-label="Acciones de la conversación"></div>
+  <div id="chat-menu" class="menu hidden" role="menu" aria-label="Acciones de la conversación" data-i18n-aria-label="chat.menu_label"></div>
 
   <div id="drawer-veil" class="drawer-veil" hidden></div>
-  <aside id="app-drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Menú de Excubia" hidden>
-    <nav id="app-nav" class="app-nav" aria-label="Secciones">
+  <aside id="app-drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Menú de Excubia" data-i18n-aria-label="drawer.label" hidden>
+    <nav id="app-nav" class="app-nav" aria-label="Secciones" data-i18n-aria-label="drawer.sections">
       <div class="brand app-brand">
         <img class="brand-mark" src="brand.png" alt="" width="28" height="28" />
         <span class="nav-label">Excubia</span>
+        <!-- The ☰ that closes the drawer: the chat's ☰ sits under the drawer while it is open. -->
+        <button class="icon-btn drawer-toggle" type="button" data-drawer-toggle aria-expanded="true"
+                aria-controls="app-drawer" title="Cerrar el menú" data-i18n-title="drawer.close" aria-label="Cerrar el menú" data-i18n-aria-label="drawer.close">☰</button>
       </div>
-      <button id="btn-drawer-search" class="drawer-search" type="button" title="Buscar conversaciones y órdenes (Ctrl+K)">
-        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
-             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="m20 20-3.4-3.4"></path>
-        </svg>
-        <span>Buscar…</span>
-        <kbd>Ctrl+K</kbd>
-      </button>
       <button id="nav-chat" class="nav-item" type="button" data-nav="chat" title="Chat" aria-label="Chat">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>
         <span class="nav-label">Chat</span>
         <span id="nav-badge-chat" class="nav-badge hidden"></span>
       </button>
-      <button id="nav-agents" class="nav-item" type="button" data-nav="agents" title="Equipo" aria-label="Equipo">
+      <button id="nav-agents" class="nav-item" type="button" data-nav="agents" title="Equipo" data-i18n-title="agents.title" aria-label="Equipo" data-i18n-aria-label="agents.title">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"></path><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.8c1.8.6 3 2.2 3 5.2"></path></svg>
-        <span class="nav-label">Equipo</span>
+        <span class="nav-label" data-i18n="agents.title">Equipo</span>
       </button>
-      <button id="nav-agenda" class="nav-item" type="button" data-nav="agenda" title="Agenda" aria-label="Agenda">
+      <button id="nav-agenda" class="nav-item" type="button" data-nav="agenda" title="Agenda" data-i18n-title="agenda.title" aria-label="Agenda" data-i18n-aria-label="agenda.title">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
-        <span class="nav-label">Agenda</span>
+        <span class="nav-label" data-i18n="agenda.title">Agenda</span>
       </button>
 
-      <aside id="chat-history" class="history" aria-label="Historial de conversaciones">
+      <aside id="chat-history" class="history" aria-label="Historial de conversaciones" data-i18n-aria-label="drawer.history_label">
         <div class="history-head">
-          <h2>Historial</h2>
+          <h2 data-i18n="drawer.history">Historial</h2>
         </div>
-        <button id="btn-new-chat" class="btn primary btn-block" type="button">+ Nuevo chat</button>
+        <button id="btn-new-chat" class="btn primary btn-block" type="button" data-i18n="drawer.new_chat">+ Nuevo chat</button>
         <label class="search">
-          <span class="sr-only">Buscar en títulos y mensajes</span>
+          <span class="sr-only" data-i18n="drawer.search_label">Buscar en títulos y mensajes</span>
           <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
                stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
             <circle cx="11" cy="11" r="7"></circle>
             <path d="m20 20-3.4-3.4"></path>
           </svg>
-          <input id="chat-search" type="search" placeholder="Buscar…" autocomplete="off" spellcheck="false">
+          <input id="chat-search" type="search" placeholder="Buscar…" data-i18n-placeholder="drawer.search_placeholder" autocomplete="off" spellcheck="false">
         </label>
         <div id="chat-filters" class="chat-filters hidden">
           <button id="chat-filter-toggle" class="chat-filter-toggle" type="button" aria-haspopup="menu"
                   aria-expanded="false" aria-controls="chat-filter-menu">
-            <span id="chat-filter-label">Todos</span>
+            <span id="chat-filter-label" data-i18n="drawer.filter_all">Todos</span>
             <span class="chat-filter-caret" aria-hidden="true">▾</span>
           </button>
-          <div id="chat-filter-menu" class="chat-filter-menu hidden" role="menu" aria-label="Filtrar conversaciones"></div>
+          <div id="chat-filter-menu" class="chat-filter-menu hidden" role="menu" aria-label="Filtrar conversaciones" data-i18n-aria-label="drawer.filter_label"></div>
         </div>
-        <div id="chat-select-bar" class="chat-select-bar hidden" role="toolbar" aria-label="Conversaciones seleccionadas">
+        <div id="chat-select-bar" class="chat-select-bar hidden" role="toolbar" aria-label="Conversaciones seleccionadas" data-i18n-aria-label="drawer.selected_label">
           <span id="chat-select-count" class="chat-select-count" aria-live="polite"></span>
-          <button id="btn-select-delete" class="chat-select-action danger" type="button">Eliminar</button>
-          <button id="btn-select-cancel" class="chat-select-action" type="button">Cancelar</button>
+          <button id="btn-select-delete" class="chat-select-action danger" type="button" data-i18n="drawer.delete">Eliminar</button>
+          <button id="btn-select-cancel" class="chat-select-action" type="button" data-i18n="common.cancel">Cancelar</button>
         </div>
-        <div id="chat-groups" class="chat-groups" role="listbox" aria-multiselectable="true" aria-label="Conversaciones"></div>
+        <div id="chat-groups" class="chat-groups" role="listbox" aria-multiselectable="true" aria-label="Conversaciones" data-i18n-aria-label="drawer.conversations_label"></div>
         <div class="history-foot">
-          <button id="btn-archived" class="linkish hidden" type="button">Archivados (0)</button>
+          <button id="btn-archived" class="linkish hidden" type="button" data-i18n="drawer.archived">Archivados (0)</button>
         </div>
       </aside>
 
-      <button id="nav-settings" class="nav-item" type="button" data-nav="settings" title="Ajustes" aria-label="Ajustes">
+      <button id="nav-settings" class="nav-item" type="button" data-nav="settings" title="Ajustes" data-i18n-title="settings.title" aria-label="Ajustes" data-i18n-aria-label="settings.title">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"></path></svg>
-        <span class="nav-label">Ajustes</span>
+        <span class="nav-label" data-i18n="settings.title">Ajustes</span>
       </button>
     </nav>
   </aside>
 
   <dialog id="new-conversation" class="dialog">
     <form id="new-conversation-form" method="dialog" novalidate>
-      <h2>Nueva conversación</h2>
-      <p class="dialog-lede">Elige un agente del catálogo de tu PC y la carpeta donde trabajará.</p>
+      <h2 data-i18n="newconv.title">Nueva conversación</h2>
+      <p class="dialog-lede" data-i18n="newconv.lede">Elige un agente del catálogo de tu PC y la carpeta donde trabajará.</p>
 
-      <span class="field-label">Agente</span>
-      <div id="nc-agents" class="nc-agents" role="radiogroup" aria-label="Agente"></div>
+      <span class="field-label" data-i18n="newconv.agent">Agente</span>
+      <div id="nc-agents" class="nc-agents" role="radiogroup" aria-label="Agente" data-i18n-aria-label="newconv.agent"></div>
 
-      <label class="field-label" for="nc-cwd">Carpeta de trabajo</label>
+      <label class="field-label" for="nc-cwd" data-i18n="newconv.cwd">Carpeta de trabajo</label>
       <div class="nc-cwd-row">
         <input id="nc-cwd" class="mono-input" type="text" spellcheck="false" placeholder="D:\Documentos\Projects\mi-repo">
-        <button id="btn-pick-folder" class="btn secondary btn-small" type="button">Elegir carpeta…</button>
+        <button id="btn-pick-folder" class="btn secondary btn-small" type="button" data-i18n="newconv.pick">Elegir carpeta…</button>
       </div>
 
-      <label class="field-label" for="nc-label">Etiqueta <span class="nc-optional">(opcional)</span></label>
-      <input id="nc-label" type="text" maxlength="64" spellcheck="false" placeholder="Qué va a hacer el agente">
+      <label class="field-label" for="nc-label"><span data-i18n="newconv.label">Etiqueta</span> <span class="nc-optional" data-i18n="newconv.optional">(opcional)</span></label>
+      <input id="nc-label" type="text" maxlength="64" spellcheck="false" placeholder="Qué va a hacer el agente" data-i18n-placeholder="newconv.label_placeholder">
 
       <p id="nc-error" class="form-error hidden" role="alert"></p>
 
       <div class="dialog-actions">
-        <button id="nc-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="nc-submit" class="btn primary" type="submit">Crear conversación</button>
+        <button id="nc-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="nc-submit" class="btn primary" type="submit" data-i18n="newconv.create">Crear conversación</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="chat-rename" class="dialog chat-dialog">
     <form id="chat-rename-form" method="dialog" novalidate>
-      <h2>Renombrar conversación</h2>
-      <label class="field-label" for="chat-rename-input">Título</label>
+      <h2 data-i18n="chatrename.title">Renombrar conversación</h2>
+      <label class="field-label" for="chat-rename-input" data-i18n="chatrename.label">Título</label>
       <input id="chat-rename-input" type="text" maxlength="120" spellcheck="false" autocomplete="off">
       <p id="chat-rename-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="chat-rename-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="chat-rename-save" class="btn primary" type="submit">Guardar</button>
+        <button id="chat-rename-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="chat-rename-save" class="btn primary" type="submit" data-i18n="common.save">Guardar</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="approval-reason" class="dialog chat-dialog" aria-labelledby="approval-reason-title">
     <form method="dialog">
-      <h2 id="approval-reason-title">Denegar con motivo</h2>
-      <label class="field-label" for="approval-reason-input">Motivo para el agente</label>
+      <h2 id="approval-reason-title" data-i18n="approval.deny_reason_title">Denegar con motivo</h2>
+      <label class="field-label" for="approval-reason-input" data-i18n="approval.reason_label">Motivo para el agente</label>
       <textarea id="approval-reason-input" maxlength="300" rows="3" required spellcheck="true"></textarea>
       <div class="dialog-actions">
-        <button class="btn ghost" type="submit" value="cancel" formnovalidate>Cancelar</button>
-        <button class="btn primary" type="submit" value="deny">Denegar</button>
+        <button class="btn ghost" type="submit" value="cancel" formnovalidate data-i18n="common.cancel">Cancelar</button>
+        <button class="btn primary" type="submit" value="deny" data-i18n="approval.deny">Denegar</button>
       </div>
     </form>
   </dialog>
 
-  <dialog id="command-palette" class="dialog palette-dialog" aria-label="Órdenes">
-    <input id="command-palette-input" type="text" placeholder="Escribe una orden o el nombre de una conversación…" autocomplete="off" spellcheck="false" aria-controls="command-palette-list">
+  <dialog id="command-palette" class="dialog palette-dialog" aria-label="Órdenes" data-i18n-aria-label="palette.label">
+    <input id="command-palette-input" type="text" placeholder="Escribe una orden o el nombre de una conversación…" data-i18n-placeholder="palette.placeholder" autocomplete="off" spellcheck="false" aria-controls="command-palette-list">
     <ul id="command-palette-list" class="palette-list" role="listbox"></ul>
-    <p class="palette-foot">↑↓ para elegir · Enter para abrir · Esc para cerrar</p>
+    <p class="palette-foot" data-i18n="palette.foot">↑↓ para elegir · Enter para abrir · Esc para cerrar</p>
   </dialog>
 
   <dialog id="project-new" class="dialog chat-dialog">
     <form id="project-new-form" method="dialog" novalidate>
-      <h2>Nuevo proyecto</h2>
-      <p class="dialog-hint">Elige una carpeta de este PC. El responsable del proyecto y su equipo trabajan ahí; lo que esté fuera de la carpeta te pide permiso.</p>
-      <label class="field-label">Carpeta</label>
+      <h2 data-i18n="project.new_title">Nuevo proyecto</h2>
+      <p class="dialog-hint" data-i18n="project.hint">Elige una carpeta de este PC. El responsable del proyecto y su equipo trabajan ahí; lo que esté fuera de la carpeta te pide permiso.</p>
+      <label class="field-label" data-i18n="project.folder">Carpeta</label>
       <div class="project-folder-row">
-        <span id="project-new-folder" class="project-folder">Ninguna carpeta elegida</span>
-        <button id="project-new-pick" class="btn secondary btn-small" type="button">Elegir…</button>
+        <span id="project-new-folder" class="project-folder" data-i18n="project.no_folder">Ninguna carpeta elegida</span>
+        <button id="project-new-pick" class="btn secondary btn-small" type="button" data-i18n="project.pick">Elegir…</button>
       </div>
-      <label class="field-label" for="project-new-name">Nombre</label>
+      <label class="field-label" for="project-new-name" data-i18n="project.name">Nombre</label>
       <input id="project-new-name" type="text" maxlength="80" spellcheck="false" autocomplete="off">
       <p id="project-new-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="project-new-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="project-new-save" class="btn primary" type="submit">Crear proyecto</button>
+        <button id="project-new-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="project-new-save" class="btn primary" type="submit" data-i18n="project.create">Crear proyecto</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="chat-section" class="dialog chat-dialog">
     <form id="chat-section-form" method="dialog" novalidate>
-      <h2>Mover a una sección</h2>
-      <label class="field-label" for="chat-section-select">Sección</label>
+      <h2 data-i18n="section.title">Mover a una sección</h2>
+      <label class="field-label" for="chat-section-select" data-i18n="section.label">Sección</label>
       <select id="chat-section-select"></select>
-      <label class="field-label" for="chat-section-name">O crea una nueva</label>
+      <label class="field-label" for="chat-section-name" data-i18n="section.new_label">O crea una nueva</label>
       <input id="chat-section-name" type="text" maxlength="60" spellcheck="false" autocomplete="off"
-             placeholder="Trabajo profundo">
+             placeholder="Trabajo profundo" data-i18n-placeholder="section.placeholder">
       <p id="chat-section-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="chat-section-clear" class="btn ghost" type="button">Quitar de la sección</button>
-        <button id="chat-section-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="chat-section-save" class="btn primary" type="submit">Mover</button>
+        <button id="chat-section-clear" class="btn ghost" type="button" data-i18n="section.remove">Quitar de la sección</button>
+        <button id="chat-section-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="chat-section-save" class="btn primary" type="submit" data-i18n="section.move">Mover</button>
       </div>
     </form>
   </dialog>
@@ -934,217 +935,217 @@
   <dialog id="delegation-detail" class="dialog delegation-dialog">
     <div class="delegation-detail-head">
       <div>
-        <p id="delegation-detail-kicker" class="eyebrow">Delegación</p>
-        <h2 id="delegation-detail-title">Delegación</h2>
+        <p id="delegation-detail-kicker" class="eyebrow" data-i18n="delegation.kicker">Delegación</p>
+        <h2 id="delegation-detail-title" data-i18n="delegation.kicker">Delegación</h2>
       </div>
       <span id="delegation-detail-status" class="delegation-status">—</span>
     </div>
     <div id="delegation-detail-body" class="delegation-detail-body"></div>
     <div class="dialog-actions">
-      <button id="delegation-detail-recipe" class="btn ghost hidden" type="button">Guardar como receta</button>
-      <button id="delegation-detail-agent" class="btn secondary" type="button">Abrir agente</button>
-      <button id="delegation-detail-close" class="btn primary" type="button">Cerrar</button>
+      <button id="delegation-detail-recipe" class="btn ghost hidden" type="button" data-i18n="delegation.save_recipe">Guardar como receta</button>
+      <button id="delegation-detail-agent" class="btn secondary" type="button" data-i18n="delegation.open_agent">Abrir agente</button>
+      <button id="delegation-detail-close" class="btn primary" type="button" data-i18n="common.close">Cerrar</button>
     </div>
   </dialog>
 
   <dialog id="chat-delete" class="dialog chat-dialog">
     <form id="chat-delete-form" method="dialog" novalidate>
-      <h2 id="chat-delete-title">Eliminar conversación</h2>
-      <p id="chat-delete-lede" class="dialog-lede">Se borra para siempre, con sus mensajes y adjuntos. No se puede deshacer.</p>
+      <h2 id="chat-delete-title" data-i18n="chatdelete.title">Eliminar conversación</h2>
+      <p id="chat-delete-lede" class="dialog-lede" data-i18n="chatdelete.lede">Se borra para siempre, con sus mensajes y adjuntos. No se puede deshacer.</p>
       <div class="dialog-actions">
-        <button id="chat-delete-cancel" class="btn ghost" type="button">Volver</button>
-        <button id="chat-delete-confirm" class="btn destructive" type="submit">Eliminar</button>
+        <button id="chat-delete-cancel" class="btn ghost" type="button" data-i18n="common.back">Volver</button>
+        <button id="chat-delete-confirm" class="btn destructive" type="submit" data-i18n="common.delete">Eliminar</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="delegation-kill" class="dialog chat-dialog">
     <form id="delegation-kill-form" method="dialog" novalidate>
-      <h2>Cancelar delegaciones</h2>
-      <p class="dialog-lede">Se cancelarán todas las delegaciones activas de esta conversación. El historial y las tarjetas se conservan.</p>
+      <h2 data-i18n="delegation.kill_title">Cancelar delegaciones</h2>
+      <p class="dialog-lede" data-i18n="delegation.kill_lede">Se cancelarán todas las delegaciones activas de esta conversación. El historial y las tarjetas se conservan.</p>
       <div class="dialog-actions">
-        <button id="delegation-kill-cancel" class="btn ghost" type="button">Volver</button>
-        <button id="delegation-kill-confirm" class="btn destructive" type="submit">Cancelar delegaciones</button>
+        <button id="delegation-kill-cancel" class="btn ghost" type="button" data-i18n="common.back">Volver</button>
+        <button id="delegation-kill-confirm" class="btn destructive" type="submit" data-i18n="delegation.kill_title">Cancelar delegaciones</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="hire-sheet" class="dialog hire-dialog">
     <div class="hire-sheet-head">
-      <h2>Contratar</h2>
-      <button id="hire-sheet-close" class="btn ghost btn-small" type="button">Cerrar</button>
+      <h2 data-i18n="hire.title">Contratar</h2>
+      <button id="hire-sheet-close" class="btn ghost btn-small" type="button" data-i18n="common.close">Cerrar</button>
     </div>
-    <p class="dialog-lede">Cada área admite hasta 8 agentes. Contratar uno lo añade a tu equipo al momento.</p>
+    <p class="dialog-lede" data-i18n="hire.lede">Cada área admite hasta 8 agentes. Contratar uno lo añade a tu equipo al momento.</p>
     <p id="hire-sheet-error" class="form-error hidden" role="alert"></p>
     <div id="hire-sheet-body" class="hire-sheet-body"></div>
   </dialog>
 
   <dialog id="hire-recipes" class="dialog recipe-dialog" aria-labelledby="hire-recipes-title">
-    <h2 id="hire-recipes-title">Recetas</h2>
-    <p class="dialog-lede">Repite un encargo con un toque o edita su texto. Solo se guarda lo que tú confirmas.</p>
+    <h2 id="hire-recipes-title" data-i18n="recipes.title">Recetas</h2>
+    <p class="dialog-lede" data-i18n="recipes.lede">Repite un encargo con un toque o edita su texto. Solo se guarda lo que tú confirmas.</p>
     <div id="hire-recipes-notice" class="recipe-notice" role="alert" hidden></div>
     <div id="hire-recipes-body" class="recipe-body"></div>
     <div class="dialog-actions">
-      <button id="hire-recipes-close" class="btn ghost" type="button">Cerrar</button>
+      <button id="hire-recipes-close" class="btn ghost" type="button" data-i18n="common.close">Cerrar</button>
     </div>
   </dialog>
 
   <dialog id="recipe-editor" class="dialog recipe-dialog" aria-labelledby="recipe-editor-title">
     <form id="recipe-form" class="recipe-form" novalidate>
-      <h2 id="recipe-editor-title">Guardar como receta</h2>
+      <h2 id="recipe-editor-title" data-i18n="delegation.save_recipe">Guardar como receta</h2>
       <p id="recipe-editor-lede" class="dialog-lede"></p>
-      <label class="field-label" for="recipe-title">Título</label>
+      <label class="field-label" for="recipe-title" data-i18n="recipe.title">Título</label>
       <input id="recipe-title" type="text" spellcheck="false" autocomplete="off" aria-describedby="recipe-title-count">
       <p id="recipe-title-count" class="recipe-count"></p>
-      <label class="field-label" for="recipe-body">Texto</label>
+      <label class="field-label" for="recipe-body" data-i18n="recipe.body">Texto</label>
       <textarea id="recipe-body" rows="8" aria-describedby="recipe-body-count"></textarea>
       <p id="recipe-body-count" class="recipe-count"></p>
       <div id="recipe-notice" class="recipe-notice" role="alert" hidden></div>
       <ul id="recipe-reasons" class="recipe-reasons" hidden></ul>
       <label id="recipe-risk-wrap" class="recipe-risk" hidden>
         <input id="recipe-risk" type="checkbox">
-        <span>Entiendo y quiero guardarla</span>
+        <span data-i18n="recipe.risk_ack">Entiendo y quiero guardarla</span>
       </label>
       <div class="dialog-actions">
-        <button id="recipe-retry" class="btn secondary" type="button" hidden>Reintentar</button>
-        <button id="recipe-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="recipe-save" class="btn primary" type="submit">Guardar</button>
+        <button id="recipe-retry" class="btn secondary" type="button" hidden data-i18n="recipe.retry">Reintentar</button>
+        <button id="recipe-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="recipe-save" class="btn primary" type="submit" data-i18n="common.save">Guardar</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="schedule-editor" class="dialog schedule-dialog" aria-labelledby="schedule-editor-title">
     <form id="schedule-form" class="schedule-form" novalidate>
-      <h2 id="schedule-editor-title">Programar una tarea</h2>
+      <h2 id="schedule-editor-title" data-i18n="schedule.title">Programar una tarea</h2>
       <p id="schedule-editor-lede" class="dialog-lede"></p>
       <div id="schedule-notice" class="schedule-notice" role="alert" hidden></div>
       <ul id="schedule-problems" class="schedule-problems" role="alert" hidden></ul>
       <p id="schedule-permission" class="schedule-notice" role="status" hidden></p>
-      <label class="field-label" for="schedule-role">Oficio</label>
+      <label class="field-label" for="schedule-role" data-i18n="schedule.role">Oficio</label>
       <select id="schedule-role"></select>
-      <label class="field-label" for="schedule-title">Título</label>
+      <label class="field-label" for="schedule-title" data-i18n="schedule.title_label">Título</label>
       <input id="schedule-title" type="text" spellcheck="false" autocomplete="off">
       <fieldset class="schedule-choices">
-        <legend class="field-label">Encargo</legend>
-        <label class="schedule-choice"><input id="schedule-source-text" name="schedule-source" type="radio" value="text" checked> Escribirlo</label>
-        <label class="schedule-choice"><input id="schedule-source-recipe" name="schedule-source" type="radio" value="recipe"> Usar una receta</label>
+        <legend class="field-label" data-i18n="schedule.task">Encargo</legend>
+        <label class="schedule-choice"><input id="schedule-source-text" name="schedule-source" type="radio" value="text" checked> <span data-i18n="schedule.write">Escribirlo</span></label>
+        <label class="schedule-choice"><input id="schedule-source-recipe" name="schedule-source" type="radio" value="recipe"> <span data-i18n="schedule.use_recipe">Usar una receta</span></label>
       </fieldset>
       <div id="schedule-body-wrap" class="schedule-field">
-        <label class="field-label" for="schedule-body">Qué debe hacer</label>
+        <label class="field-label" for="schedule-body" data-i18n="schedule.body">Qué debe hacer</label>
         <textarea id="schedule-body" rows="6"></textarea>
       </div>
       <div id="schedule-recipe-wrap" class="schedule-field" hidden>
-        <label class="field-label" for="schedule-recipe">Receta</label>
+        <label class="field-label" for="schedule-recipe" data-i18n="schedule.recipe">Receta</label>
         <select id="schedule-recipe"></select>
       </div>
-      <p class="schedule-steps">Pasos: <span id="schedule-steps"></span></p>
+      <p class="schedule-steps"><span data-i18n="schedule.steps">Pasos:</span> <span id="schedule-steps"></span></p>
       <div id="schedule-plan-wrap" class="schedule-field" hidden>
-        <label class="field-label" for="schedule-plan">Plan aprobado</label>
+        <label class="field-label" for="schedule-plan" data-i18n="schedule.plan">Plan aprobado</label>
         <select id="schedule-plan"></select>
         <p id="schedule-plan-hint" class="schedule-hint"></p>
-        <button id="schedule-plans-link" class="btn ghost btn-small" type="button">Ver planes propuestos</button>
+        <button id="schedule-plans-link" class="btn ghost btn-small" type="button" data-i18n="schedule.see_plans">Ver planes propuestos</button>
       </div>
-      <label class="field-label" for="schedule-conversation">Conversación con proyecto</label>
+      <label class="field-label" for="schedule-conversation" data-i18n="schedule.conversation">Conversación con proyecto</label>
       <select id="schedule-conversation" aria-describedby="schedule-conversation-hint"></select>
       <p id="schedule-conversation-hint" class="schedule-hint" hidden></p>
-      <label class="field-label" for="schedule-kind">Repetir</label>
+      <label class="field-label" for="schedule-kind" data-i18n="schedule.repeat">Repetir</label>
       <select id="schedule-kind"></select>
       <fieldset id="schedule-days-wrap" class="schedule-choices" hidden>
-        <legend class="field-label">Días</legend>
+        <legend class="field-label" data-i18n="schedule.days">Días</legend>
         <div id="schedule-days" class="schedule-days"></div>
       </fieldset>
       <div class="schedule-when">
         <div class="schedule-field">
-          <label class="field-label" for="schedule-date">Fecha de inicio</label>
+          <label class="field-label" for="schedule-date" data-i18n="schedule.start_date">Fecha de inicio</label>
           <input id="schedule-date" type="date">
         </div>
         <div class="schedule-field">
-          <label class="field-label" for="schedule-time">Hora</label>
+          <label class="field-label" for="schedule-time" data-i18n="schedule.time">Hora</label>
           <input id="schedule-time" type="time">
         </div>
       </div>
-      <label class="field-label" for="schedule-zone">Zona horaria</label>
+      <label class="field-label" for="schedule-zone" data-i18n="schedule.zone">Zona horaria</label>
       <input id="schedule-zone" type="text" spellcheck="false" autocomplete="off">
       <div class="dialog-actions">
-        <button id="schedule-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="schedule-save" class="btn primary" type="submit">Guardar</button>
+        <button id="schedule-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="schedule-save" class="btn primary" type="submit" data-i18n="common.save">Guardar</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="hire-actions" class="dialog hire-dialog">
-    <h2 id="hire-actions-title">Agente</h2>
-    <div class="hire-actions-list" role="group" aria-label="Acciones">
-      <button id="hire-actions-recipes" class="btn secondary" type="button">Recetas</button>
-      <button id="hire-actions-rename" class="btn secondary" type="button">Cambiar nombre</button>
-      <button id="hire-actions-avatar" class="btn secondary" type="button">Cambiar personaje</button>
-      <button id="hire-actions-dismiss" class="btn destructive" type="button">Despedir</button>
+    <h2 id="hire-actions-title" data-i18n="hire.agent">Agente</h2>
+    <div class="hire-actions-list" role="group" aria-label="Acciones" data-i18n-aria-label="hire.actions_label">
+      <button id="hire-actions-recipes" class="btn secondary" type="button" data-i18n="recipes.title">Recetas</button>
+      <button id="hire-actions-rename" class="btn secondary" type="button" data-i18n="hire.rename">Cambiar nombre</button>
+      <button id="hire-actions-avatar" class="btn secondary" type="button" data-i18n="hire.avatar">Cambiar personaje</button>
+      <button id="hire-actions-dismiss" class="btn destructive" type="button" data-i18n="hire.dismiss">Despedir</button>
     </div>
     <div class="dialog-actions">
-      <button id="hire-actions-close" class="btn ghost" type="button">Cerrar</button>
+      <button id="hire-actions-close" class="btn ghost" type="button" data-i18n="common.close">Cerrar</button>
     </div>
   </dialog>
 
   <dialog id="hire-rename" class="dialog hire-dialog">
     <form id="hire-rename-form" method="dialog" novalidate>
-      <h2>Cambiar nombre</h2>
-      <label class="field-label" for="hire-rename-input">Nombre</label>
+      <h2 data-i18n="hire.rename">Cambiar nombre</h2>
+      <label class="field-label" for="hire-rename-input" data-i18n="hire.name">Nombre</label>
       <input id="hire-rename-input" type="text" spellcheck="false" autocomplete="off">
       <p id="hire-rename-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="hire-rename-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="hire-rename-save" class="btn primary" type="submit">Guardar</button>
+        <button id="hire-rename-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="hire-rename-save" class="btn primary" type="submit" data-i18n="common.save">Guardar</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="hire-avatar" class="dialog hire-dialog">
     <form id="hire-avatar-form" method="dialog" novalidate>
-      <h2>Cambiar personaje</h2>
-      <div id="hire-avatar-grid" class="avatar-grid" role="group" aria-label="Personaje"></div>
+      <h2 data-i18n="hire.avatar">Cambiar personaje</h2>
+      <div id="hire-avatar-grid" class="avatar-grid" role="group" aria-label="Personaje" data-i18n-aria-label="hire.avatar_label"></div>
       <p id="hire-avatar-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="hire-avatar-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="hire-avatar-save" class="btn primary" type="submit">Guardar</button>
+        <button id="hire-avatar-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="hire-avatar-save" class="btn primary" type="submit" data-i18n="common.save">Guardar</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="vault-dialog" class="dialog vault-dialog" aria-labelledby="vault-title">
-    <h2 id="vault-title">Mueve el ratón</h2>
+    <h2 id="vault-title" data-i18n="vault.move_title">Mueve el ratón</h2>
 
     <div id="vault-step-move">
-      <p class="dialog-lede">Con tus movimientos creamos la clave de tu historial. Muévelo sin prisa por esta zona.</p>
-      <div id="vault-pad" class="vault-pad" tabindex="0" role="group" aria-label="Zona para mover el ratón"></div>
-      <progress id="vault-progress" class="vault-progress" max="1" value="0" aria-label="Movimiento recogido"></progress>
+      <p class="dialog-lede" data-i18n="vault.move_lede">Con tus movimientos creamos la clave de tu historial. Muévelo sin prisa por esta zona.</p>
+      <div id="vault-pad" class="vault-pad" tabindex="0" role="group" aria-label="Zona para mover el ratón" data-i18n-aria-label="vault.pad_label"></div>
+      <progress id="vault-progress" class="vault-progress" max="1" value="0" aria-label="Movimiento recogido" data-i18n-aria-label="vault.progress_label"></progress>
       <p id="vault-move-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="vault-move-cancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="vault-create" class="btn primary" type="button" disabled>Crear clave</button>
+        <button id="vault-move-cancel" class="btn ghost" type="button" data-i18n="common.cancel">Cancelar</button>
+        <button id="vault-create" class="btn primary" type="button" disabled data-i18n="vault.create_key">Crear clave</button>
       </div>
     </div>
 
     <div id="vault-step-phrase" class="hidden">
-      <p class="dialog-lede">Guárdala fuera de este PC (papel). Sin ella, si reinstalas Windows o pierdes tu perfil, el historial no se puede recuperar. No se volverá a mostrar.</p>
-      <ol id="vault-words" class="vault-words" aria-label="Frase de recuperación, 24 palabras"></ol>
+      <p class="dialog-lede" data-i18n="vault.phrase_lede">Guárdala fuera de este PC (papel). Sin ella, si reinstalas Windows o pierdes tu perfil, el historial no se puede recuperar. No se volverá a mostrar.</p>
+      <ol id="vault-words" class="vault-words" aria-label="Frase de recuperación, 24 palabras" data-i18n-aria-label="vault.words_label"></ol>
       <div class="dialog-actions">
-        <button id="vault-saved" class="btn primary" type="button">La guardé</button>
+        <button id="vault-saved" class="btn primary" type="button" data-i18n="vault.saved">La guardé</button>
       </div>
     </div>
 
     <div id="vault-step-check" class="hidden">
     <form id="vault-check-form" method="dialog" novalidate>
-      <p class="dialog-lede">Escribe estas palabras de la frase para comprobar que la guardaste.</p>
-      <label id="vault-answer-label-0" class="field-label" for="vault-answer-0">Palabra</label>
+      <p class="dialog-lede" data-i18n="vault.check_lede">Escribe estas palabras de la frase para comprobar que la guardaste.</p>
+      <label id="vault-answer-label-0" class="field-label" for="vault-answer-0" data-i18n="vault.word">Palabra</label>
       <input id="vault-answer-0" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
-      <label id="vault-answer-label-1" class="field-label" for="vault-answer-1">Palabra</label>
+      <label id="vault-answer-label-1" class="field-label" for="vault-answer-1" data-i18n="vault.word">Palabra</label>
       <input id="vault-answer-1" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
-      <label id="vault-answer-label-2" class="field-label" for="vault-answer-2">Palabra</label>
+      <label id="vault-answer-label-2" class="field-label" for="vault-answer-2" data-i18n="vault.word">Palabra</label>
       <input id="vault-answer-2" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
       <p id="vault-check-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="vault-check-back" class="btn ghost" type="button">Ver la frase otra vez</button>
-        <button id="vault-check-confirm" class="btn primary" type="submit">Confirmar</button>
+        <button id="vault-check-back" class="btn ghost" type="button" data-i18n="vault.see_again">Ver la frase otra vez</button>
+        <button id="vault-check-confirm" class="btn primary" type="submit" data-i18n="vault.confirm">Confirmar</button>
       </div>
     </form>
     </div>
@@ -1152,24 +1153,24 @@
 
   <dialog id="vault-finish" class="dialog chat-dialog">
     <form id="vault-finish-form" method="dialog" novalidate>
-      <h2>Borrar la copia sin cifrar</h2>
-      <p class="dialog-lede">Se borra para siempre la copia de tu historial sin cifrar. Tu historial cifrado no cambia. No se puede deshacer.</p>
+      <h2 data-i18n="settings.vault_finish">Borrar la copia sin cifrar</h2>
+      <p class="dialog-lede" data-i18n="vault.finish_lede">Se borra para siempre la copia de tu historial sin cifrar. Tu historial cifrado no cambia. No se puede deshacer.</p>
       <p id="vault-finish-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="vault-finish-cancel" class="btn ghost" type="button">Volver</button>
-        <button id="vault-finish-confirm" class="btn destructive" type="submit">Borrar</button>
+        <button id="vault-finish-cancel" class="btn ghost" type="button" data-i18n="common.back">Volver</button>
+        <button id="vault-finish-confirm" class="btn destructive" type="submit" data-i18n="vault.finish_confirm">Borrar</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="hire-dismiss" class="dialog hire-dialog">
     <form id="hire-dismiss-form" method="dialog" novalidate>
-      <h2>Despedir</h2>
+      <h2 data-i18n="hire.dismiss">Despedir</h2>
       <p id="hire-dismiss-lede" class="dialog-lede"></p>
       <p id="hire-dismiss-error" class="form-error hidden" role="alert"></p>
       <div class="dialog-actions">
-        <button id="hire-dismiss-cancel" class="btn ghost" type="button">Volver</button>
-        <button id="hire-dismiss-confirm" class="btn destructive" type="submit">Despedir</button>
+        <button id="hire-dismiss-cancel" class="btn ghost" type="button" data-i18n="common.back">Volver</button>
+        <button id="hire-dismiss-confirm" class="btn destructive" type="submit" data-i18n="hire.dismiss">Despedir</button>
       </div>
     </form>
   </dialog>
@@ -1177,10 +1178,10 @@
   <dialog id="restore-dialog" class="dialog restore-dialog" aria-labelledby="restore-title">
     <div class="restore-head">
       <div>
-        <h2 id="restore-title">Copias del turno</h2>
+        <h2 id="restore-title" data-i18n="restore.title">Copias del turno</h2>
         <p id="restore-agent" class="subtitle"></p>
       </div>
-      <button id="restore-close" class="btn ghost btn-small" type="button">Cerrar</button>
+      <button id="restore-close" class="btn ghost btn-small" type="button" data-i18n="common.close">Cerrar</button>
     </div>
     <div id="restore-body" class="restore-body"></div>
   </dialog>

@@ -8,21 +8,23 @@ import { chat, chatAfterConnect, chatOnConnection } from "./chat.js";
 import { teamSubtitle } from "./hires-model.js";
 import { teamHired } from "./hires.js";
 import { openRestore } from "./restore-panel.js";
+import { oneRowPerPane, shouldCloseMenu } from "./agents-model.js";
+import { t } from "./i18n.js";
 
 const CONNECTION_LABELS = {
-  idle: "Sin conectar",
-  connecting: "Conectando…",
-  connected: "En vivo",
-  offline: "Sin conexión en vivo",
-  fatal: "Requiere atención",
+  idle: t("chat.not_connected"),
+  connecting: t("agents.conn_connecting"),
+  connected: t("agents.conn_live"),
+  offline: t("agents.conn_offline"),
+  fatal: t("agents.conn_fatal"),
 };
 
 function paintChip(chip, connection) {
   if (!chip) return;
   chip.className = `chip ${connection.kind}`;
   chip.querySelector(".chip-label").textContent =
-    CONNECTION_LABELS[connection.kind] || "Sin conectar";
-  chip.title = connection.reason || "Estado de la conexión";
+    CONNECTION_LABELS[connection.kind] || t("chat.not_connected");
+  chip.title = connection.reason || t("chat.connection_title");
 }
 
 export function renderConnection() {
@@ -38,9 +40,9 @@ export function renderConnection() {
   if (live) {
     live.textContent =
       connection.kind === "connected"
-        ? "En vivo"
+        ? t("agents.conn_live")
         : connection.kind === "offline" || connection.kind === "fatal"
-          ? "Sin conexión"
+          ? t("agents.conn_lost")
           : "";
   }
 
@@ -50,7 +52,7 @@ export function renderConnection() {
   stale.classList.toggle("hidden", !showStale);
   if (showStale) {
     $("stale-text").textContent =
-      connection.reason || "Sin conexión con el PC. Mostrando el último estado conocido.";
+      connection.reason || t("agents.stale");
     $("btn-stale-retry").classList.toggle("hidden", connection.kind === "fatal");
     $("btn-stale-pair").classList.toggle("hidden", connection.kind !== "fatal");
   }
@@ -74,51 +76,51 @@ function renderEmpty() {
   action.dataset.action = "";
 
   if (local && hostFailed()) {
-    title.textContent = "Excubia no arrancó en este equipo";
-    body.textContent = app.boot.host.error || "Vuelve a intentarlo. Si sigue igual, reinicia el equipo.";
-    action.textContent = "Reiniciar Excubia";
+    title.textContent = t("agents.host_failed_title");
+    body.textContent = app.boot.host.error || t("agents.host_failed_body");
+    action.textContent = t("pair.restart_host");
     action.dataset.action = "restart-host";
     action.classList.remove("hidden");
     return;
   }
 
   if (local && app.state && app.state.agents.length === 0) {
-    title.textContent = "Aún no hay agentes";
-    body.textContent = "Excubia está en marcha en este equipo. Los agentes aparecerán aquí en cuanto existan.";
-    action.textContent = "Actualizar";
+    title.textContent = t("agents.none_local_title");
+    body.textContent = t("agents.none_local_body");
+    action.textContent = t("agents.refresh");
     action.dataset.action = "refresh";
     action.classList.remove("hidden");
     return;
   }
 
   if (app.state && app.state.agents.length === 0) {
-    title.textContent = "Ningún agente en marcha";
-    body.textContent = "Cuando arranques un agente aparecerá aquí en cuanto lo detecte.";
-    action.textContent = "Actualizar";
+    title.textContent = t("agents.empty_title");
+    body.textContent = t("agents.empty_body");
+    action.textContent = t("agents.refresh");
     action.dataset.action = "refresh";
     action.classList.remove("hidden");
     return;
   }
 
   if (!app.state && connection.kind === "fatal") {
-    title.textContent = "No se puede leer el estado";
+    title.textContent = t("agents.read_failed_title");
     body.textContent =
-      connection.reason || "El PC no acepta este dispositivo. Vuelve a emparejarlo.";
+      connection.reason || t("agents.not_accepted_body");
     pair.classList.remove("hidden");
     return;
   }
 
   if (!app.state && connection.kind === "offline") {
-    title.textContent = "Sin conexión con el PC";
-    body.textContent = connection.reason || "El PC no responde. Se reintentará automáticamente.";
-    action.textContent = "Reintentar";
+    title.textContent = t("agents.offline_title");
+    body.textContent = connection.reason || t("agents.no_response");
+    action.textContent = t("agents.retry");
     action.dataset.action = "retry";
     action.classList.remove("hidden");
     return;
   }
 
-  title.textContent = "Cargando agentes…";
-  body.textContent = "Conectando con el PC.";
+  title.textContent = t("agents.loading_title");
+  body.textContent = t("agents.connecting_body");
 }
 
 function projectLeadPane(project) {
@@ -152,14 +154,16 @@ function leadProjectName(agent) {
 }
 
 function agentItem(agent, leadPane) {
+  // The card is the box that holds the row and its «⋯»; the menu is not inside the button.
   const item = document.createElement("li");
+  item.className = "agent-card";
   const button = document.createElement("button");
   button.type = "button";
   button.className = `agent-row status-${agent.status}`;
   button.dataset.pane = agent.pane_id;
   button.setAttribute(
     "aria-label",
-    `${agent.project || "Proyecto"}, ${statusLabel(agent.status)}${agent.title ? `, ${agent.title}` : ""}`,
+    `${agent.project || t("agents.project_fallback")}, ${statusLabel(agent.status)}${agent.title ? `, ${agent.title}` : ""}`,
   );
   button.addEventListener("click", () => openDetail(agent.pane_id));
 
@@ -181,18 +185,18 @@ function agentItem(agent, leadPane) {
   if (agent.pane_id === leadPane || /(^|\s|-)(lead)(\s|$)/i.test(agent.title || "")) {
     const lead = document.createElement("span");
     lead.className = "row-restored";
-    lead.textContent = "Líder";
+    lead.textContent = t("agents.lead");
     project.appendChild(lead);
   }
   if (agent.focused) {
     const focus = document.createElement("span");
     focus.className = "focus-note";
-    focus.textContent = "· en foco";
+    focus.textContent = t("agents.focused");
     project.appendChild(focus);
   }
   const title = document.createElement("span");
   title.className = "row-title";
-  title.textContent = leadProjectName(agent) || agent.project || "Sin proyecto";
+  title.textContent = leadProjectName(agent) || agent.project || t("agents.no_project");
   text.append(project, title);
 
   // A state the host could not classify says nothing to the operator: it waits in the menu.
@@ -215,18 +219,18 @@ function agentItem(agent, leadPane) {
   const copies = document.createElement("button");
   copies.type = "button";
   copies.className = "linkish agent-copies";
-  copies.textContent = "Copias del turno";
+  copies.textContent = t("restore.title");
   copies.addEventListener("click", () => openRestore(agent.pane_id, agentTitle(agent)));
   const menu = document.createElement("details");
   menu.className = "agent-menu";
   const toggle = document.createElement("summary");
   toggle.className = "agent-menu-toggle";
   toggle.textContent = "⋯";
-  toggle.title = "Más acciones";
-  toggle.setAttribute("aria-label", "Más acciones");
+  toggle.title = t("agents.more_actions");
+  toggle.setAttribute("aria-label", t("agents.more_actions"));
   const panel = document.createElement("div");
   panel.className = "agent-menu-panel";
-  if (agent.restored) panel.append(element("p", "agent-menu-note", "Restaurado"));
+  if (agent.restored) panel.append(element("p", "agent-menu-note", t("detail.restored")));
   if (!known) panel.append(element("p", "agent-menu-note", statusLabel(agent.status)));
   panel.append(copies);
   menu.append(toggle, panel);
@@ -247,8 +251,8 @@ function renderList() {
   list.replaceChildren();
 
   const groups = new Map();
-  for (const agent of app.state.agents) {
-    const key = agent.project || "Sin proyecto";
+  for (const agent of oneRowPerPane(app.state.agents)) {
+    const key = agent.project || t("agents.no_project");
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(agent);
   }
@@ -286,14 +290,16 @@ export function renderAgents() {
 
   $("agents-loading").classList.toggle("hidden", !loading);
   $("agent-list").classList.toggle("hidden", !hasAgents);
+  // Agent sessions (restored ones too) sit under their own heading, never under «Contratados»: they are not hires.
+  $("team-sessions").classList.toggle("hidden", !hasAgents);
   // A contracted team fills the view: the empty state gives way to «Tu equipo».
   const hired = teamHired();
   $("agents-empty").classList.toggle("hidden", loading || hasAgents || hired > 0);
   $("agents-subtitle").textContent = hasState
-    ? teamSubtitle(hired, app.state.agents.length)
+    ? teamSubtitle(hired, oneRowPerPane(app.state.agents).length)
     : loading
-      ? "Cargando estado…"
-      : "Sin estado";
+      ? t("agents.loading")
+      : t("agents.no_state");
 
   if (hasAgents) renderList();
   if (!loading && !hasAgents) renderEmpty();
@@ -321,7 +327,7 @@ async function refreshNow() {
   button.disabled = true;
   try {
     setState(await invoke("refresh_state"));
-    toast("Estado actualizado");
+    toast(t("agents.refreshed"));
   } catch (error) {
     toast(friendlyError(error));
   } finally {
@@ -329,7 +335,17 @@ async function refreshNow() {
   }
 }
 
+// One pair of listeners for the whole list: a re-render replaces the cards, so none is added per card.
+function dismissMenus(event) {
+  const key = event.type === "keydown" ? event.key : "click";
+  for (const menu of document.querySelectorAll("#agent-list .agent-menu[open]")) {
+    if (shouldCloseMenu(key, menu.contains(event.target))) menu.open = false;
+  }
+}
+
 export function installAgentHandlers() {
+  document.addEventListener("keydown", dismissMenus);
+  document.addEventListener("click", dismissMenus);
   $("btn-refresh").addEventListener("click", refreshNow);
   $("btn-stale-retry").addEventListener("click", connectNow);
   $("btn-empty-action").addEventListener("click", () => {

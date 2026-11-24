@@ -2,6 +2,7 @@
 // account and the way to open a draft by its id. The host decides every answer;
 // this screen asks, shows the code, and says what came back in the host's words.
 
+import { t } from "./i18n.js";
 import { $, copyText, invoke } from "./core.js";
 import { element } from "./approval-card.js";
 import { openDraft } from "./mail-draft.js";
@@ -30,10 +31,10 @@ let ui = null;
 export function mountMailSettings() {
   const section = element("section", "mail-settings");
   section.id = "mail-settings";
-  section.setAttribute("aria-label", "Correo");
+  section.setAttribute("aria-label", t("mail.section"));
   // Folded by default: the section reads as one line until the operator opens it.
   const fold = element("details", "mail-fold");
-  fold.append(element("summary", "mail-fold-title", "Correo"));
+  fold.append(element("summary", "mail-fold-title", t("mail.section")));
   ui = {
     notice: element("p", "hint"),
     accounts: element("div", "mail-accounts"),
@@ -44,7 +45,7 @@ export function mountMailSettings() {
   ui.notice.setAttribute("role", "status");
   ui.notice.setAttribute("aria-live", "polite");
   section.append(
-    element("p", "hint", "Los agentes preparan borradores. Enviar lo apruebas tú, con 10 segundos para cancelar."),
+    element("p", "hint", t("mail.intro")),
     ui.notice,
     ui.accounts,
     ui.code,
@@ -62,21 +63,21 @@ export function mountMailSettings() {
 function buildConnect() {
   const form = element("form", "mail-form");
   form.id = "mail-connect";
-  form.setAttribute("aria-label", "Conectar cuenta");
+  form.setAttribute("aria-label", t("mail.connect_account"));
   const name = element("input");
   name.id = "mail-account-name";
   name.type = "text";
   name.maxLength = 64;
-  name.placeholder = "Por ejemplo: Trabajo";
+  name.placeholder = t("mail.name_placeholder");
   name.autocomplete = "off";
   name.spellcheck = false;
   const kinds = kindPicker();
-  const submit = element("button", "btn primary btn-block", "Conectar cuenta");
+  const submit = element("button", "btn primary btn-block", t("mail.connect_account"));
   submit.type = "submit";
   form.append(
-    element("label", "field-label", "Nombre para esta cuenta"),
+    element("label", "field-label", t("mail.name_label")),
     name,
-    element("span", "field-label", "Tipo de cuenta"),
+    element("span", "field-label", t("mail.kind_label")),
     kinds.group,
     submit,
   );
@@ -84,7 +85,7 @@ function buildConnect() {
     event.preventDefault();
     const label = name.value.trim();
     if (!label) {
-      notice = "Escribe un nombre para la cuenta.";
+      notice = t("mail.name_required");
       render();
       return;
     }
@@ -97,7 +98,7 @@ function buildConnect() {
 function buildOpen() {
   const form = element("form", "mail-form");
   form.id = "mail-open";
-  form.setAttribute("aria-label", "Abrir borrador por id");
+  form.setAttribute("aria-label", t("mail.open_by_id"));
   const select = element("select");
   select.id = "mail-open-account";
   const id = element("input");
@@ -105,13 +106,13 @@ function buildOpen() {
   id.type = "text";
   id.autocomplete = "off";
   id.spellcheck = false;
-  const submit = element("button", "btn secondary btn-block", "Abrir borrador");
+  const submit = element("button", "btn secondary btn-block", t("mail.open_submit"));
   submit.type = "submit";
   form.append(
-    element("h3", null, "Abrir borrador por id"),
-    element("label", "field-label", "Cuenta"),
+    element("h3", null, t("mail.open_by_id")),
+    element("label", "field-label", t("mail.account_label")),
     select,
-    element("label", "field-label", "Id del borrador"),
+    element("label", "field-label", t("mail.draft_id_label")),
     id,
     submit,
   );
@@ -120,7 +121,7 @@ function buildOpen() {
     const account = select.value;
     const draftId = id.value.trim();
     if (!account || !draftId) {
-      notice = "Elige una cuenta y escribe el id del borrador.";
+      notice = t("mail.open_missing");
       render();
       return;
     }
@@ -128,7 +129,7 @@ function buildOpen() {
   });
   // The id is a technical way in: it sits under «Avanzado», closed.
   const box = element("details", "mail-advanced");
-  box.append(element("summary", null, "Avanzado"), form);
+  box.append(element("summary", null, t("mail.advanced")), form);
   return { form, select, id, box };
 }
 
@@ -161,7 +162,7 @@ function onClick(event) {
     ui.connect.name.focus();
     ui.connect.form.scrollIntoView({ block: "center" });
   } else if (action === "copy-code") {
-    copyText(flow.login.user_code, "Código copiado");
+    copyText(flow.login.user_code, t("mail.code_copied"));
   } else if (action === "cancel-code") {
     stopFlow();
     notice = "";
@@ -183,7 +184,7 @@ async function revoke(account) {
   revoking = null;
   try {
     await invoke("mail_send_disable", { account });
-    notice = `Envío revocado en ${account}.`;
+    notice = t("mail.send_revoked", { account });
   } catch (error) {
     notice = errorMessage(error);
   }
@@ -247,7 +248,7 @@ async function poll(current) {
     return;
   }
   stopFlow();
-  notice = outcome.ok && current.kind === "consent" ? `Envío permitido en ${current.account}.` : outcome.text;
+  notice = outcome.ok && current.kind === "consent" ? t("mail.send_allowed", { account: current.account }) : outcome.text;
   await loadAccounts();
 }
 
@@ -256,7 +257,7 @@ function redrawCountdown() {
   if (!flow) return;
   if (secondsUntil(flow.untilMs) === 0) {
     stopFlow();
-    notice = "Este código ha caducado. Vuelve a empezar.";
+    notice = t("mail.code_expired");
     render();
     return;
   }
@@ -274,7 +275,7 @@ function render() {
 function renderAccounts() {
   const state = accountsState(accounts);
   if (state === "loading") {
-    ui.accounts.replaceChildren(element("p", "hint", "Cargando cuentas…"));
+    ui.accounts.replaceChildren(element("p", "hint", t("mail.loading_accounts")));
     return;
   }
   if (state === "empty") {
@@ -290,16 +291,16 @@ function renderAccounts() {
 function connectCard() {
   const card = element("section", "card mail-connect-card");
   card.setAttribute("aria-labelledby", "mail-connect-card-title");
-  const title = element("h3", null, "Conecta tu correo");
+  const title = element("h3", null, t("mail.connect_title"));
   title.id = "mail-connect-card-title";
   card.append(
     title,
     element(
       "p",
       "hint",
-      "Conecta una cuenta para que tus agentes preparen borradores. Enviar siempre necesita tu aprobación en el chat.",
+      t("mail.connect_hint"),
     ),
-    actionButton("Conectar una cuenta", "start-connect", null, "btn primary btn-block"),
+    actionButton(t("mail.connect_card_button"), "start-connect", null, "btn primary btn-block"),
   );
   return card;
 }
@@ -320,15 +321,15 @@ function accountRow(account) {
   toggle.setAttribute("aria-checked", String(Boolean(account.send_enabled)));
   toggle.dataset.mailAction = "toggle-send";
   toggle.dataset.account = account.label;
-  toggle.append(element("span", "mail-switch-label", "Permitir enviar"), element("span", "mail-switch-track"));
+  toggle.append(element("span", "mail-switch-label", t("mail.allow_send")), element("span", "mail-switch-track"));
   row.append(
     toggle,
     element(
       "p",
       "hint",
       account.send_enabled
-        ? "Envío permitido: solo tras tu aprobación y con 10 s para cancelar."
-        : "Solo borradores: aquí no se envía nada.",
+        ? t("mail.send_on_hint")
+        : t("mail.send_off_hint"),
     ),
   );
   return row;
@@ -337,11 +338,11 @@ function accountRow(account) {
 function revokeConfirm(label) {
   const box = element("div", "mail-revoke");
   box.setAttribute("role", "group");
-  box.setAttribute("aria-label", `Revocar el envío en ${label}`);
+  box.setAttribute("aria-label", t("mail.revoke_label", { account: label }));
   box.append(
-    element("p", null, `¿Dejar de permitir el envío en ${label}? Los borradores siguen guardados.`),
-    actionButton("Revocar", "confirm-revoke", label, "btn destructive"),
-    actionButton("Cancelar", "cancel-revoke", label, "btn ghost"),
+    element("p", null, t("mail.revoke_question", { account: label })),
+    actionButton(t("mail.revoke"), "confirm-revoke", label, "btn destructive"),
+    actionButton(t("mail.cancel"), "cancel-revoke", label, "btn ghost"),
   );
   return box;
 }
@@ -354,24 +355,24 @@ function renderCode() {
   const heading = element(
     "h3",
     null,
-    flow.kind === "consent" ? `Confirma el permiso para enviar desde ${flow.account}` : `Inicia sesión en ${flow.account}`,
+    flow.kind === "consent" ? t("mail.consent_heading", { account: flow.account }) : t("mail.sign_in_heading", { account: flow.account }),
   );
   const countdown = element("p", "device-countdown", countdownFor(flow.untilMs));
   countdown.id = "device-countdown";
   countdown.setAttribute("role", "timer");
-  countdown.setAttribute("aria-label", "Tiempo restante del código");
+  countdown.setAttribute("aria-label", t("mail.code_timer_label"));
   const card = element("section", "card device-code");
   card.append(
     heading,
     element(
       "p",
       "hint",
-      `Abre ${flow.login.verification_uri} en el navegador e introduce este código. Aquí no se piden contraseñas.`,
+      t("mail.device_hint", { uri: flow.login.verification_uri }),
     ),
     element("code", "device-code-value", flow.login.user_code),
     countdown,
-    actionButton("Copiar código", "copy-code", null, "btn secondary btn-block"),
-    actionButton("Cancelar", "cancel-code", null, "btn ghost btn-block"),
+    actionButton(t("recovery.copy"), "copy-code", null, "btn secondary btn-block"),
+    actionButton(t("mail.cancel"), "cancel-code", null, "btn ghost btn-block"),
   );
   ui.code.replaceChildren(card);
 }

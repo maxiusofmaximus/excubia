@@ -2,6 +2,7 @@
 // the panel beside the list, the buttons, the delete that asks first, and the grant
 // that switches delete off when the device lacks APPROVE.
 
+import { t } from "./i18n.js";
 import { $, invoke } from "./core.js";
 import { element } from "./chatdom.js";
 import { agendaErrorText, permissionText } from "./agenda-model.js";
@@ -68,7 +69,7 @@ export function actionRow(...nodes) {
 
 // The delete button of a row, off with its reason when the device lacks APPROVE.
 export function deleteAction(onClick) {
-  const remove = button("Borrar", "btn ghost btn-small", onClick);
+  const remove = button(t("agenda.delete"), "btn ghost btn-small", onClick);
   remove.disabled = !grants.canApprove;
   return remove;
 }
@@ -78,13 +79,13 @@ export function approveReason() {
 }
 
 // The delete asks first; «Se borra para siempre» is the sentence the operator reads by default.
-export function deleteConfirm({ onConfirm, onCancel, question = "Se borra para siempre. No se puede deshacer." }) {
+export function deleteConfirm({ onConfirm, onCancel, question = t("agenda.delete_question") }) {
   const box = element("div", "agenda-confirm");
   box.setAttribute("role", "alertdialog");
   const text = element("p", null, question);
   const problem = notice("");
-  const confirm = button("Borrar", "btn danger btn-small", () => onConfirm(problem));
-  const cancel = button("Cancelar", "btn ghost btn-small", onCancel);
+  const confirm = button(t("agenda.delete"), "btn danger btn-small", () => onConfirm(problem));
+  const cancel = button(t("common.cancel"), "btn ghost btn-small", onCancel);
   box.append(text, actionRow(cancel, confirm), problem);
   return { node: box, problem };
 }

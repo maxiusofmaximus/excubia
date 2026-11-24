@@ -1,6 +1,7 @@
 // Pictures in the thread and in the tray: each one loads its bytes once from the host and
 // opens in a plain full-size view that Esc or a click outside dismisses. Documents get a card.
 import { invoke } from "./core.js";
+import { t } from "./i18n.js";
 import { element } from "./chatdom.js";
 import { attachmentKind } from "./chatattach-model.js";
 import { documentCardNode } from "./chatattach-doc.js";
@@ -43,7 +44,7 @@ function pictureNode(conversationId, attachment) {
   button.dataset.attachmentId = attachment.id;
   button.dataset.conversationId = conversationId;
   const image = element("img");
-  image.alt = attachment.name || "Imagen adjunta";
+  image.alt = attachment.name || t("chatattach.picture_alt");
   // The picture shows only once its bytes are in; until then the neutral box stands in for it.
   button.append(image, pictureFallbackNode());
   button.addEventListener("click", () => openThumb(button));
@@ -92,7 +93,7 @@ export function openPicture({ src, alt, returnTo, release = null }) {
   if (session) closeViewer();
   if (!viewer) viewer = buildViewer();
   session = { returnTo, release };
-  const label = alt || "Imagen adjunta";
+  const label = alt || t("chatattach.picture_alt");
   viewer.node.setAttribute("aria-label", label);
   viewer.picture.src = src;
   viewer.picture.alt = label;
@@ -106,7 +107,7 @@ function buildViewer() {
   node.hidden = true;
   node.setAttribute("role", "dialog");
   node.setAttribute("aria-modal", "true");
-  const close = element("button", "btn secondary btn-small", "Cerrar");
+  const close = element("button", "btn secondary btn-small", t("common.close"));
   close.type = "button";
   const picture = element("img", "attach-viewer-image");
   node.append(close, picture);

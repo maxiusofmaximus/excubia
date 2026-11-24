@@ -2,14 +2,16 @@
 // the live agents of the Equipo view, which it never replaces. The buttons show
 // only when this device holds APPROVE; without it the list stays, with the grant.
 
+import { t } from "./i18n.js";
 import { $, app, invoke } from "./core.js";
 import { avatarElement } from "./avatar.js";
 import { friendlyError } from "./friendly-error.js";
 import { errorState } from "./empty-state.js";
 import { currentDeviceId, grantCommand } from "./approval-model.js";
-import { activeHires, groupByArea, leaderCount, readStateText } from "./hires-model.js";
+import { activeHires, groupByArea, leaderCount, readStateText, showsHireButton, showsHireSection } from "./hires-model.js";
 import { installHireDialogs, openHireActions } from "./hire-dialogs.js";
 import { installHireSheet, renderHireSheet } from "./hire-sheet.js";
+import { roleLabel } from "./catalog-labels.js";
 import { chat } from "./chatstate.js";
 
 const team = { catalog: null, hires: [], canHire: false, readError: null };
@@ -42,7 +44,7 @@ export async function refreshTeam() {
 }
 
 function roleTitle(hire) {
-  return team.catalog?.roles.find((role) => role.id === hire.role)?.title || "";
+  return roleLabel(team.catalog?.roles.find((role) => role.id === hire.role)) || "";
 }
 
 function hireRow(hire) {
@@ -51,7 +53,12 @@ function hireRow(hire) {
   row.className = "hire-row";
   if (team.canHire) {
     row.type = "button";
-    row.setAttribute("aria-label", `Opciones de ${hire.name}${roleTitle(hire) ? `, ${roleTitle(hire)}` : ""}`);
+    row.setAttribute(
+      "aria-label",
+      roleTitle(hire)
+        ? t("hires.options_of_role", { name: hire.name, role: roleTitle(hire) })
+        : t("hires.options_of", { name: hire.name }),
+    );
     row.addEventListener("click", () => openHireActions(hire));
   }
   const face = avatarElement({ name: hire.name, characterId: hire.avatar, px: 44, faceFromName: false });
@@ -91,8 +98,7 @@ function groupBlock(group) {
   return section;
 }
 
-const TEAM_GRANT_LEDE =
-  "Este dispositivo no tiene el permiso APPROVE: ves tu equipo, pero no puedes cambiarlo. Concédelo desde el PC:";
+const TEAM_GRANT_LEDE = t("hires.grant_lede");
 
 // The APPROVE notice with the command that grants it; each screen words its own lede.
 export function grantNote(lede = TEAM_GRANT_LEDE) {
@@ -125,8 +131,9 @@ function bodyBlocks() {
 }
 
 function renderTeam() {
-  const hidden = Boolean(team.readError) || !team.canHire;
-  $("btn-hire").classList.toggle("hidden", hidden);
+  $("btn-hire").classList.toggle("hidden", !showsHireButton(team));
+  // Nobody hired: the team band's empty sentence speaks for this section, so it stays away.
+  $("team-hires").classList.toggle("hidden", !showsHireSection(team));
   $("team-hires-body").replaceChildren(...bodyBlocks());
   if ($("hire-sheet").open && team.catalog) renderHireSheet(team);
 }

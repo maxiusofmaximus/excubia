@@ -69,7 +69,8 @@ pub async fn chat_filter_conversations(
     filter: String,
 ) -> Result<Vec<Conversation>, ChatFailure> {
     let filter = ListFilter::parse(&filter).ok_or_else(|| ChatFailure::Invalid {
-        message: "Ese filtro no existe.".to_string(),
+        message: excubia_desktop_core::ui_lang::pick("Ese filtro no existe.", "That filter does not exist.")
+            .to_string(),
         field: Some("filter".to_string()),
     })?;
     let shared = shared(&state);

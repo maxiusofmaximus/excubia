@@ -61,6 +61,8 @@ pub enum DeviceFailure {
     Refused {
         status: u16,
     },
+    /// The local server's own device: this PC is the server, so it is never revoked here.
+    OwnServer,
     Protocol,
 }
 
@@ -334,6 +336,10 @@ mod tests {
         assert_eq!(
             serde_json::to_value(DeviceFailure::Refused { status: 409 }).unwrap(),
             json!({ "kind": "refused", "status": 409 })
+        );
+        assert_eq!(
+            serde_json::to_value(DeviceFailure::OwnServer).unwrap(),
+            json!({ "kind": "ownServer" })
         );
     }
 

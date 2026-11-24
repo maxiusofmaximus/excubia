@@ -58,7 +58,7 @@ test("la rejilla de paletas llena las columnas que caben, sin una huérfana", ()
 test("Telón lleva el sello «Nueva» y cada tarjeta su muestra bg/acento", () => {
   const js = read("palette.js");
   assert.match(js, /NEW_PALETTES = new Set\(\["telon"\]\)/);
-  assert.match(js, /stamp\.textContent = "Nueva"/);
+  assert.match(js, /stamp\.textContent = t\("palette\.new_badge"\)/);
   assert.match(js, /--sw-bg/);
   assert.match(js, /--sw-accent/);
 });

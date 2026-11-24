@@ -1,13 +1,14 @@
 // The state chip and the one-line task of a delegation card, free of the DOM so the tests can run them.
+import { t } from "./i18n.js";
 
 const STATUS = {
-  queued: { label: "En cola", tone: "queued" },
-  running: { label: "En curso", tone: "running" },
-  waiting: { label: "Esperando", tone: "waiting" },
-  done: { label: "Hecho", tone: "done" },
-  failed: { label: "Falló", tone: "failed" },
-  cancelled: { label: "Cancelada", tone: "cancelled" },
-  interrupted: { label: "Interrumpido", tone: "interrupted" },
+  queued: { label: t("delegation.status_queued"), tone: "queued" },
+  running: { label: t("delegation.status_running"), tone: "running" },
+  waiting: { label: t("delegation.status_waiting"), tone: "waiting" },
+  done: { label: t("delegation.status_done"), tone: "done" },
+  failed: { label: t("delegation.status_failed"), tone: "failed" },
+  cancelled: { label: t("delegation.status_cancelled"), tone: "cancelled" },
+  interrupted: { label: t("delegation.status_interrupted"), tone: "interrupted" },
 };
 
 // A finished task is closed by Alfred's line («Ernesto terminó: …»), so its card would repeat
@@ -17,13 +18,13 @@ export function showInThread(entry) {
 }
 
 export function statusMeta(status) {
-  return STATUS[status] || { label: status || "Sin estado", tone: "unknown" };
+  return STATUS[status] || { label: status || t("agents.no_state"), tone: "unknown" };
 }
 
 // An operator's refusal leaves the job undone, so it never reads «Hecho». The host
 // adds `reason` to the entry; an older host without it keeps the plain status.
 export function cardState(entry) {
-  if (entry.reason === "operator_denied") return { label: "No se hizo", tone: "cancelled" };
+  if (entry.reason === "operator_denied") return { label: t("delegation.not_done"), tone: "cancelled" };
   return statusMeta(entry.status || "queued");
 }
 
@@ -56,7 +57,7 @@ export function finishedTasks(entries, limit = 5) {
 
 // The detail's kicker: a task, or a subtask when it was handed down from another task.
 export function detailKicker() {
-  return "Tarea";
+  return t("delegation.task_kicker");
 }
 
 // The project's name for the detail; empty when the UI does not know the id, so the id is never shown.

@@ -1,13 +1,14 @@
 // The checklist of a `mail.move` approval: one checkbox per mail while it waits, the
 // host's own marks once it is decided. Sender, subject and reason are text only.
 
+import { t } from "./i18n.js";
 import { element } from "./chatdom.js";
 import { destLabel, moveItems, subjectText, triageLabel } from "./approval-model.js";
 
 function itemText(item) {
   const text = element("span", "move-text");
   text.append(
-    element("span", "move-from", item.from_address || "Remitente desconocido"),
+    element("span", "move-from", item.from_address || t("approvalmove.unknown_sender")),
     element("span", "move-subject", subjectText(item.subject)),
   );
   return text;
@@ -37,7 +38,7 @@ function moveRow(item, pending, unchecked) {
     label.append(checkbox(item, unchecked), ...parts);
     row.append(label);
   } else {
-    if (item.excluded) parts.push(element("span", "move-note", "no se mueve"));
+    if (item.excluded) parts.push(element("span", "move-note", t("approvalmove.not_moved")));
     row.append(...parts);
   }
   return row;
@@ -45,7 +46,7 @@ function moveRow(item, pending, unchecked) {
 
 export function moveBatch(entry, status, unchecked = new Set()) {
   const list = element("ul", "move-batch");
-  list.setAttribute("aria-label", "Correos a mover");
+  list.setAttribute("aria-label", t("approvalmove.list_label"));
   for (const item of moveItems(entry)) {
     list.append(moveRow(item, status === "pending", unchecked));
   }

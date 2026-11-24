@@ -3,6 +3,7 @@ import { openDetail } from "./detail.js";
 import { openDelegationDetail } from "./delegations.js";
 import { chat, failure } from "./chatstate.js";
 import { saveRecipeFromDelegation } from "./recipes.js";
+import { t } from "./i18n.js";
 
 // The delegation cards' actions: cancel one, or the kill switch of the whole
 // conversation. `render` redraws the chat and `refresh` reloads the feed.
@@ -12,7 +13,7 @@ export function createDelegations({ render, refresh }) {
     try {
       await invoke("chat_cancel_delegation", { delegationId: id });
       chat.delegationError = null;
-      toast("Delegación cancelada");
+      toast(t("chatdelegations.cancelled"));
       await refresh();
     } catch (error) {
       const failureInfo = failure(error);
@@ -33,8 +34,8 @@ export function createDelegations({ render, refresh }) {
       chat.delegationError = null;
       toast(
         outcome.cancelled.length
-          ? `${outcome.cancelled.length} delegación(es) cancelada(s)`
-          : "No había tareas en curso",
+          ? t("chatdelegations.cancelled_count", { n: outcome.cancelled.length })
+          : t("chatdelegations.none_running"),
       );
       await refresh();
     } catch (error) {
@@ -50,7 +51,7 @@ export function createDelegations({ render, refresh }) {
     if (action === "agent" && dataset.pane) {
       app.detailReturn = "chat";
       openDetail(dataset.pane).then((found) => {
-        if (!found) toast("Ese panel ya no está disponible.");
+        if (!found) toast(t("chatdelegations.panel_gone"));
       });
     } else if (action === "detail") {
       openDelegationDetail(dataset.delegation);

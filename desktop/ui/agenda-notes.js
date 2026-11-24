@@ -32,6 +32,7 @@ import {
   noteTitle,
   relativeDate,
 } from "./agenda-model.js";
+import { t } from "./i18n.js";
 
 const parts = panelParts("notes");
 let selectedId = null;
@@ -43,7 +44,7 @@ const failureText = (failure) => readStateText(failure) || agendaErrorText(failu
 function emptyNode(query) {
   if (query) {
     return emptyState(
-      { icon: "notes", text: "Ninguna nota coincide con la búsqueda.", action: "Borrar búsqueda" },
+      { icon: "notes", text: t("agenda.notes_none_match"), action: t("agenda.clear_search") },
       () => {
         $("notes-search").value = "";
         list.reload("");
@@ -51,7 +52,7 @@ function emptyNode(query) {
     );
   }
   return emptyState(
-    { icon: "notes", text: "Aún no hay notas. Alfred las guarda cuando se lo pides, o crea una.", action: "Nueva nota" },
+    { icon: "notes", text: t("agenda.notes_empty"), action: t("notes.new") },
     () => $("btn-note-new").click(),
   );
 }
@@ -83,25 +84,25 @@ async function openNote(id) {
   const token = ++openToken;
   selectedId = id;
   list.redraw();
-  fillPanel(parts, "Nota", [element("p", "agenda-muted", "Cargando…")]);
+  fillPanel(parts, t("agenda.note_label"), [element("p", "agenda-muted", t("chat.loading"))]);
   try {
     const note = await invoke("agenda_note", { id });
     if (token === openToken) showNote(note);
   } catch (failure) {
-    if (token === openToken) fillPanel(parts, "Nota", [notice(failureText(failure))]);
+    if (token === openToken) fillPanel(parts, t("agenda.note_label"), [notice(failureText(failure))]);
   }
 }
 
 function showNote(note) {
   selectedId = note.id;
   list.redraw();
-  const edit = button("Editar", "btn secondary btn-small", () => showForm(note));
+  const edit = button(t("agenda.edit"), "btn secondary btn-small", () => showForm(note));
   const actions = [edit, deleteAction(() => showDelete(note))];
   if (note.message_id && note.conversation_id) {
-    actions.unshift(button("Ver en el chat", "btn secondary btn-small", () => openChat(note.conversation_id)));
+    actions.unshift(button(t("agenda.view_in_chat"), "btn secondary btn-small", () => openChat(note.conversation_id)));
   }
   fillPanel(parts, noteTitle(noteSummary(note)), [
-    element("p", "agenda-muted", `Actualizada ${relativeDate(note.updated_at)}`),
+    element("p", "agenda-muted", t("agenda.updated", { when: relativeDate(note.updated_at) })),
     element("p", "agenda-body", note.body),
     actionRow(...actions),
     approveReason(),
@@ -116,15 +117,15 @@ function openChat(conversationId) {
 
 function showForm(note) {
   const fields = {
-    title: field({ id: "note-subject", label: "Asunto (opcional)", value: note?.subject || "" }),
-    body: field({ id: "note-body", label: "Texto", value: note?.body || "", multiline: true, rows: 12 }),
+    title: field({ id: "note-subject", label: t("agenda.subject_optional"), value: note?.subject || "" }),
+    body: field({ id: "note-body", label: t("agenda.text"), value: note?.body || "", multiline: true, rows: 12 }),
   };
   const problem = notice("");
-  const save = button(note ? "Guardar" : "Crear nota", "btn primary btn-small", () =>
+  const save = button(note ? t("common.save") : t("agenda.create_note"), "btn primary btn-small", () =>
     submit(note, fields, problem, save),
   );
-  const cancel = button("Cancelar", "btn ghost btn-small", () => (note ? showNote(note) : closePanel()));
-  fillPanel(parts, note ? "Editar nota" : "Nueva nota", [
+  const cancel = button(t("common.cancel"), "btn ghost btn-small", () => (note ? showNote(note) : closePanel()));
+  fillPanel(parts, note ? t("agenda.edit_note") : t("notes.new"), [
     fields.title.node,
     fields.body.node,
     problem,
@@ -171,7 +172,7 @@ function showDelete(note) {
       }),
     onCancel: () => showNote(note),
   });
-  fillPanel(parts, `Borrar la nota «${noteTitle(noteSummary(note))}»`, [confirm.node]);
+  fillPanel(parts, t("agenda.delete_note", { title: noteTitle(noteSummary(note)) }), [confirm.node]);
 }
 
 const searchSoon = debounced(() => list.reload($("notes-search").value.trim()));
@@ -190,7 +191,7 @@ export function installNotes() {
     fetchPage,
     renderRow: noteRow,
     emptyNode,
-    loadingText: "Cargando notas…",
+    loadingText: t("agenda.notes_loading"),
     failureText,
   });
   $("notes-search").addEventListener("input", searchSoon);

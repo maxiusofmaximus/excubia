@@ -3,6 +3,7 @@
 // secret blocks the save until the text changes, and a risk waits for the operator's tick.
 
 import { $, setBusy } from "./core.js";
+import { t } from "./i18n.js";
 import { element } from "./chatdom.js";
 import { BODY_MAX, TITLE_MAX, bodyError, canSave, limitCount, reviewNotice, titleError } from "./recipe-model.js";
 
@@ -98,7 +99,7 @@ async function submit(event) {
   }
   const { save, onSaved } = view;
   view.busy = true;
-  setBusy($("recipe-save"), true, "Guardando…");
+  setBusy($("recipe-save"), true, t("recipe.saving"));
   paint();
   try {
     const saved = await save({ title, body, confirmRisks: view.risk && $("recipe-risk").checked });

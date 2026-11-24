@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::error::{CoreError, Result};
+use crate::ui_lang::{self, pick};
 
 const STORED_VERSION: u8 = 1;
 const FINGERPRINT_BYTES: usize = 8;
@@ -125,24 +126,44 @@ impl DeviceIdentity {
     }
 
     fn from_stored_json(json: &str) -> Result<Self> {
-        let stored: StoredIdentity = serde_json::from_str(json)
-            .map_err(|error| CoreError::SecureStore(format!("identidad ilegible: {error}")))?;
+        let en = ui_lang::current().is_en();
+        let stored: StoredIdentity = serde_json::from_str(json).map_err(|error| {
+            CoreError::SecureStore(if en {
+                format!("unreadable identity: {error}")
+            } else {
+                format!("identidad ilegible: {error}")
+            })
+        })?;
         if stored.version != STORED_VERSION {
-            return Err(CoreError::SecureStore(format!(
-                "versión de identidad no soportada: {}",
-                stored.version
-            )));
+            return Err(CoreError::SecureStore(if en {
+                format!("identity version not supported: {}", stored.version)
+            } else {
+                format!("versión de identidad no soportada: {}", stored.version)
+            }));
         }
-        let raw = STANDARD
-            .decode(stored.private_key)
-            .map_err(|error| CoreError::SecureStore(format!("clave privada ilegible: {error}")))?;
+        let raw = STANDARD.decode(stored.private_key).map_err(|error| {
+            CoreError::SecureStore(if en {
+                format!("unreadable private key: {error}")
+            } else {
+                format!("clave privada ilegible: {error}")
+            })
+        })?;
         if raw.len() != 32 {
             return Err(CoreError::SecureStore(
-                "la clave privada no mide 32 bytes".to_string(),
+                pick(
+                    "la clave privada no mide 32 bytes",
+                    "the private key is not 32 bytes long",
+                )
+                .to_string(),
             ));
         }
-        let signing_key = SigningKey::from_slice(&raw)
-            .map_err(|error| CoreError::SecureStore(format!("clave privada inválida: {error}")))?;
+        let signing_key = SigningKey::from_slice(&raw).map_err(|error| {
+            CoreError::SecureStore(if en {
+                format!("invalid private key: {error}")
+            } else {
+                format!("clave privada inválida: {error}")
+            })
+        })?;
         Ok(Self {
             device_id: stored.device_id,
             label: stored.label,
@@ -177,17 +198,27 @@ pub fn validate_device_label(value: &str) -> Result<String> {
     let label = value.trim();
     if label.is_empty() {
         return Err(CoreError::InvalidInput(
-            "el nombre del equipo no puede estar vacío".to_string(),
+            pick(
+                "el nombre del equipo no puede estar vacío",
+                "the device name cannot be empty",
+            )
+            .to_string(),
         ));
     }
     if label.chars().count() > MAX_DEVICE_LABEL_CHARS {
-        return Err(CoreError::InvalidInput(format!(
-            "el nombre del equipo no puede pasar de {MAX_DEVICE_LABEL_CHARS} caracteres"
-        )));
+        return Err(CoreError::InvalidInput(if ui_lang::current().is_en() {
+            format!("the device name cannot be longer than {MAX_DEVICE_LABEL_CHARS} characters")
+        } else {
+            format!("el nombre del equipo no puede pasar de {MAX_DEVICE_LABEL_CHARS} caracteres")
+        }));
     }
     if label.chars().any(char::is_control) {
         return Err(CoreError::InvalidInput(
-            "el nombre del equipo no admite saltos de línea ni caracteres de control".to_string(),
+            pick(
+                "el nombre del equipo no admite saltos de línea ni caracteres de control",
+                "the device name cannot contain line breaks or control characters",
+            )
+            .to_string(),
         ));
     }
     Ok(label.to_string())

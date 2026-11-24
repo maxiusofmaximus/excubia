@@ -1,0 +1,25 @@
+// Fragmento C2 (inglés): textos JS que quedaron fuera de los lotes B1–B4 (mail-draft, core, palette, etc.).
+// Mismas claves que es.c2.js. Las claves ya existentes con el mismo texto se reutilizan en el código.
+export default {
+  "common.copied": "Copied",
+  "plans.loading": "Loading plans",
+  "calendar.importing": "Importing…",
+  "calendar.exporting": "Exporting…",
+  "chatattach.picture_alt": "Attached picture",
+  "pair.preparing": "Preparing…",
+  "recipe.saving": "Saving…",
+  "mail.draft_account": "Account {account}",
+  "mail.draft_from": "From",
+  "mail.draft_to": "To",
+  "mail.no_attachments": "No attachments.",
+  "mail.scheduled_send": "Sending is scheduled. You can cancel it until the countdown ends.",
+  "mail.already_sent": "This draft has already been sent.",
+  "mail.enable_send_hint": "Turn on “Allow sending” in Settings → Mail to send from this account.",
+  "palette.note.noche": "Night blue and brass. Excubia's dark one",
+  "palette.note.pergamino": "Warm paper. Excubia's light one",
+  "palette.note.carbon": "Neutral dark grey, steel-blue accent",
+  "palette.note.papel": "Neutral off-white, blue accent",
+  "palette.note.medianoche": "Deep, low-glare blue",
+  "palette.note.contraste": "Black and white, maximum legibility",
+  "palette.note.telon": "Red, black and white comic style",
+};

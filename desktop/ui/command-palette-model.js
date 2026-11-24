@@ -1,19 +1,22 @@
 // What Ctrl+K lists: the app's actions and the conversations, filtered by what the
 // operator types (no accents, no case). Pure data, so it is tested without a window.
 
+import { t } from "./i18n.js";
+import { conversationTitle } from "./chat-row-model.js";
+
 export const ACTIONS = [
-  { id: "new-chat", label: "Nuevo chat", hint: "Ctrl+N" },
-  { id: "search", label: "Buscar en conversaciones", hint: "Ctrl+F" },
-  { id: "new-project", label: "Nuevo proyecto con carpeta" },
-  { id: "nav:chat", label: "Ir a Chat" },
-  { id: "nav:agents", label: "Ir a Equipo" },
-  { id: "nav:agenda", label: "Ir a Agenda" },
-  { id: "nav:calendar", label: "Ir a Calendario" },
-  { id: "nav:notes", label: "Ir a Notas" },
-  { id: "nav:contacts", label: "Ir a Contactos" },
-  { id: "nav:alerts", label: "Ir a Avisos" },
-  { id: "nav:devices", label: "Ir a Dispositivos" },
-  { id: "nav:settings", label: "Ir a Ajustes" },
+  { id: "new-chat", label: t("palette.act_new_chat"), hint: "Ctrl+N" },
+  { id: "search", label: t("palette.act_search"), hint: "Ctrl+F" },
+  { id: "new-project", label: t("palette.act_new_project") },
+  { id: "nav:chat", label: t("palette.go_chat") },
+  { id: "nav:agents", label: t("palette.go_agents") },
+  { id: "nav:agenda", label: t("palette.go_agenda") },
+  { id: "nav:calendar", label: t("palette.go_calendar") },
+  { id: "nav:notes", label: t("palette.go_notes") },
+  { id: "nav:contacts", label: t("palette.go_contacts") },
+  { id: "nav:alerts", label: t("palette.go_alerts") },
+  { id: "nav:devices", label: t("palette.go_devices") },
+  { id: "nav:settings", label: t("palette.go_settings") },
 ];
 
 const MAX_ITEMS = 9;
@@ -40,8 +43,8 @@ export function paletteItems(query, conversations = []) {
         .map((conversation) => ({
           kind: "conversation",
           id: `chat:${conversation.id}`,
-          label: conversation.title,
-          hint: "Conversación",
+          label: conversationTitle(conversation),
+          hint: t("palette.hint_chat"),
         }))
     : [];
   return [...actions, ...chats].slice(0, MAX_ITEMS);

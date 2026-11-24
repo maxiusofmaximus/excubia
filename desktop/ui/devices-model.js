@@ -3,22 +3,20 @@
 
 import { relativeDate } from "./agenda-model.js";
 import { friendlyError, OFFLINE_TEXT } from "./friendly-error.js";
+import { locale, t } from "./i18n.js";
 
-export const THIS_DEVICE_REASON = "Para salir de este equipo, usa Revocar este equipo.";
-export const SERVER_DEVICE_REASON =
-  "Este PC es el servidor de Excubia. Para usar otro PC, elige Vincular con otro equipo en Ajustes.";
-export const REVOKE_WARNING =
-  "Este dispositivo dejará de poder entrar y no podrá volver sin emparejarse de nuevo.";
-export const OWN_REVOKE_WARNING =
-  "Este equipo dejará de estar vinculado y tendrás que emparejarlo de nuevo. ¿Continuar?";
+export const THIS_DEVICE_REASON = t("devices.this_device_reason");
+export const SERVER_DEVICE_REASON = t("devices.server_reason");
+export const REVOKE_WARNING = t("devices.revoke_warning");
+export const OWN_REVOKE_WARNING = t("devices.own_revoke_warning");
 
 // The order of the contract; an id the screen does not know is left out, never shown raw.
 const PERMISSION_WORDS = {
-  read_state: "Leer estado",
-  respond: "Responder",
-  send_key: "Enviar teclas",
-  approve: "Aprobar",
-  admin: "Administrar",
+  read_state: t("devices.perm_read_state"),
+  respond: t("devices.perm_respond"),
+  send_key: t("devices.perm_send_key"),
+  approve: t("devices.perm_approve"),
+  admin: t("devices.perm_admin"),
 };
 
 export function permissionWords(permissions) {
@@ -29,7 +27,7 @@ export function permissionWords(permissions) {
 
 export function permissionsText(permissions) {
   const words = permissionWords(permissions);
-  return words.length ? words.join(" · ") : "Sin permisos";
+  return words.length ? words.join(" · ") : t("devices.no_permissions");
 }
 
 // Every permission the screen shows, in the contract's order, with whether this device has it.
@@ -44,13 +42,13 @@ export function permissionChips(permissions) {
 
 // The host sends seconds since the epoch, and null for a device never used.
 export function seenText(lastSeenSeconds, now = Date.now()) {
-  if (lastSeenSeconds == null) return "Sin uso registrado";
+  if (lastSeenSeconds == null) return t("devices.never_used");
   const when = relativeDate(new Date(lastSeenSeconds * 1000).toISOString(), now);
-  return when === "ahora" ? "Visto ahora" : `Visto ${when}`;
+  return when === t("agenda.rel_now") ? t("devices.seen_now") : t("devices.seen", { when });
 }
 
 export function addedText(createdSeconds) {
-  return new Date(createdSeconds * 1000).toLocaleDateString("es-ES", {
+  return new Date(createdSeconds * 1000).toLocaleDateString(locale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -62,8 +60,8 @@ const COMPUTER = /\b(pc|windows|mac|portátil|portatil|laptop|escritorio|desktop
 
 // Only a label that says it plainly gives a type; anything else shows no type.
 export function deviceKind(label) {
-  if (PHONE.test(label)) return "Móvil";
-  if (COMPUTER.test(label)) return "Ordenador";
+  if (PHONE.test(label)) return t("devices.kind_phone");
+  if (COMPUTER.test(label)) return t("devices.kind_computer");
   return "";
 }
 
@@ -98,9 +96,9 @@ export function canApprove(device, thisDevice) {
 
 export const GRANTABLE_PERMISSIONS = ["read_state", "respond", "send_key", "approve"];
 export const DEFAULT_GRANT = ["read_state"];
-export const SAS_HINT = "Compárala con la que muestra el móvil. Si no coincide, revoca el dispositivo.";
-export const NO_SAS_HINT = "No hay cadena de verificación: aprueba solo si estás seguro de que es tu móvil.";
-export const APPROVE_WARNING = "Se concederán los permisos marcados a este dispositivo.";
+export const SAS_HINT = t("devices.sas_hint");
+export const NO_SAS_HINT = t("devices.no_sas_hint");
+export const APPROVE_WARNING = t("devices.approve_warning");
 
 export function grantChoices() {
   return GRANTABLE_PERMISSIONS.map((id) => ({ id, label: PERMISSION_WORDS[id] }));
@@ -112,11 +110,12 @@ export function groupSas(sas) {
 }
 
 const FAILURE_TEXT = {
-  offline: `${OFFLINE_TEXT} Lo cargado sigue visible.`,
-  unauthorized: "El PC ya no confía en este dispositivo. Vuelve a emparejarlo.",
-  forbidden: "Este equipo no puede administrar dispositivos.",
-  notFound: "Ya no existe.",
-  notPending: "Ya tenía permisos.",
+  offline: `${OFFLINE_TEXT} ${t("agenda.loaded_visible")}`,
+  unauthorized: t("devices.err_unauthorized"),
+  forbidden: t("devices.err_forbidden"),
+  notFound: t("devices.err_not_found"),
+  notPending: t("devices.err_not_pending"),
+  ownServer: t("devices.err_own_server"),
 };
 
 // The operator's words for a failure: the screen's own line, else the one translator.

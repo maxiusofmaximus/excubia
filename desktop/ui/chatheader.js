@@ -1,13 +1,15 @@
+import { t } from "./i18n.js";
 import { app, $ } from "./core.js";
 import { paintAvatar } from "./avatar.js";
 import { formatTime } from "./chatlist.js";
 import { chat, connection, hostName, offline } from "./chatstate.js";
 import { openStep } from "./chat-progress-model.js";
+import { conversationTitle } from "./chat-row-model.js";
 
 export function renderHeader() {
   const alfred =
     (chat.home && chat.home.bootstrap && chat.home.bootstrap.alfred.name) || "Alfred";
-  const title = chat.conversation ? chat.conversation.title : alfred;
+  const title = chat.conversation ? conversationTitle(chat.conversation) : alfred;
   $("chat-title").textContent = title;
   const seat = chat.home && chat.home.bootstrap ? chat.home.bootstrap.alfred : null;
   paintAvatar($("chat-avatar"), {
@@ -20,10 +22,10 @@ export function renderHeader() {
   const state = connection();
   // The subtitle names the agent; it says more only while something is off or running.
   let subtitle = alfred;
-  if (chat.conversation && chat.conversation.archived) subtitle = `${alfred} · archivada`;
-  else if (chat.waiting) subtitle = `${alfred} · ${openStep(chat) || "trabajando"}`;
-  else if (state.kind === "offline" || state.kind === "fatal") subtitle = `${alfred} · sin conexión`;
-  else if (state.kind === "connecting") subtitle = `${alfred} · conectando…`;
+  if (chat.conversation && chat.conversation.archived) subtitle = t("chatheader.subtitle_archived", { name: alfred });
+  else if (chat.waiting) subtitle = t("chatheader.subtitle_working", { name: alfred, step: openStep(chat) || t("chatheader.working") });
+  else if (state.kind === "offline" || state.kind === "fatal") subtitle = t("chatheader.subtitle_offline", { name: alfred });
+  else if (state.kind === "connecting") subtitle = t("chatheader.subtitle_connecting", { name: alfred });
   $("chat-subtitle").textContent = subtitle;
 }
 
@@ -59,56 +61,52 @@ export function renderBanner() {
   const state = connection();
   if (host && host.state === "failed") {
     const { element, text } = banner([
-      ["Reiniciar Excubia", { action: "restart-host" }, "btn secondary btn-small"],
+      [t("pair.restart_host"), { action: "restart-host" }, "btn secondary btn-small"],
     ]);
     const strong = document.createElement("strong");
-    strong.textContent = "Excubia no arrancó en este equipo. ";
-    text.append(strong, document.createTextNode(host.error || "Revisa el log y vuelve a intentarlo."));
+    strong.textContent = t("chatheader.host_failed");
+    text.append(strong, document.createTextNode(host.error || t("chatheader.host_failed_hint")));
     element.classList.remove("hidden");
     return;
   }
   if (offline()) {
     const { element, text } = banner([
-      ["Reconectar", { action: "reconnect" }, "btn primary btn-small"],
+      [t("failure.reconnect"), { action: "reconnect" }, "btn primary btn-small"],
       ...(state.kind === "fatal"
-        ? [["Volver a emparejar", { action: "settings" }, "btn ghost btn-small"]]
+        ? [[t("agents.pair_again"), { action: "settings" }, "btn ghost btn-small"]]
         : []),
     ]);
     element.classList.add(state.kind === "fatal" ? "fatal" : "offline");
     const when = chat.lastSync ? formatTime(new Date(chat.lastSync).toISOString()) : "—";
     const strong = document.createElement("strong");
-    strong.textContent = `Sin conexión con ${hostName()}. `;
+    strong.textContent = t("chatheader.offline_host", { host: hostName() });
     text.append(
       strong,
-      document.createTextNode(
-        `Última sincronización ${when}. Lo que ya está cargado sigue legible; no se puede enviar.`,
-      ),
+      document.createTextNode(t("chatheader.offline_last_sync", { when })),
     );
     element.classList.remove("hidden");
     return;
   }
   if (!chat.home && chat.loadFailure) {
     const { element, text } = banner([
-      ["Abrir ajustes", { action: "settings" }, "btn secondary btn-small"],
-      ["Reintentar", { action: "reconnect" }, "btn ghost btn-small"],
+      [t("failure.open_settings"), { action: "settings" }, "btn secondary btn-small"],
+      [t("agents.retry"), { action: "reconnect" }, "btn ghost btn-small"],
     ]);
     const strong = document.createElement("strong");
-    strong.textContent = "No se pudo cargar el chat. ";
+    strong.textContent = t("chatheader.load_failed");
     text.append(strong, document.createTextNode(chat.loadFailure.message || ""));
     element.classList.remove("hidden");
     return;
   }
   if (chat.conversation && chat.conversation.archived) {
     const { element, text } = banner([
-      ["Desarchivar", { action: "unarchive" }, "btn secondary btn-small"],
+      [t("failure.unarchive"), { action: "unarchive" }, "btn secondary btn-small"],
     ]);
     const strong = document.createElement("strong");
-    strong.textContent = "Conversación archivada. ";
+    strong.textContent = t("chatheader.archived_banner");
     text.append(
       strong,
-      document.createTextNode(
-        "Puedes leerla, fijarla o moverla; para escribir, desarchívala.",
-      ),
+      document.createTextNode(t("chatheader.archived_hint")),
     );
     element.classList.remove("hidden");
     return;

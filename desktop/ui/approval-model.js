@@ -2,42 +2,45 @@
 // card, the line, the settings and the tests all read the same rules, so the
 // host's words reach the screen through one path. The host owns the state.
 
+import { t } from "./i18n.js";
+
 export const LEVELS = ["policy", "scorer", "lead", "cto", "user"];
 
 const LEVEL_LABELS = {
-  policy: "Reglas",
-  scorer: "Revisión automática",
-  lead: "Responsable del proyecto",
-  cto: "Alfred",
-  user: "Tú",
+  policy: "approval.level_policy",
+  scorer: "approval.level_scorer",
+  lead: "approval.level_lead",
+  cto: "approval.level_cto",
+  user: "approval.level_user",
 };
 
 const STATUS_META = {
-  pending: { label: "Pendiente", tone: "pending" },
-  approved: { label: "Permitida una vez", tone: "approved" },
-  consumed: { label: "Permitida y usada", tone: "approved" },
-  denied: { label: "Denegada", tone: "denied" },
-  expired: { label: "Expirada: no se ejecutó", tone: "expired" },
+  pending: { label: "approval.status_pending", tone: "pending" },
+  approved: { label: "approval.status_approved", tone: "approved" },
+  consumed: { label: "approval.status_consumed", tone: "approved" },
+  denied: { label: "approval.status_denied", tone: "denied" },
+  expired: { label: "approval.status_expired", tone: "expired" },
 };
 
 const RISK_LABELS = {
-  low: "Riesgo bajo",
-  medium: "Riesgo medio",
-  high: "Riesgo alto",
+  low: "approval.risk_low",
+  medium: "approval.risk_medium",
+  high: "approval.risk_high",
 };
 
 // An approval for the whole task says so in its badge, not «una vez».
 export function statusMeta(status, entry = {}) {
-  if (status === "approved" && entry.scope === "task") return { label: "Permitida para la tarea", tone: "approved" };
-  return STATUS_META[status] || { label: status || "Sin estado", tone: "unknown" };
+  if (status === "approved" && entry.scope === "task") return { label: t("approval.status_task"), tone: "approved" };
+  const meta = STATUS_META[status];
+  return meta ? { label: t(meta.label), tone: meta.tone } : { label: status || t("approval.status_unknown"), tone: "unknown" };
 }
 
 export function levelLabel(level) {
-  return LEVEL_LABELS[level] || "Sin nivel";
+  return t(LEVEL_LABELS[level] || "approval.level_none");
 }
 
 export function riskLabel(risk) {
-  return RISK_LABELS[risk] || "Riesgo sin evaluar";
+  return t(RISK_LABELS[risk] || "approval.risk_unrated");
 }
 
 // Every level the approval climbed through, up to the one that holds it now.
@@ -88,26 +91,26 @@ export function moveItems(entry) {
 }
 
 const DEST_LABELS = new Map([
-  ["junkemail", "No deseado"],
-  ["deleteditems", "Eliminados"],
-  ["inbox", "Bandeja de entrada"],
+  ["junkemail", "approval.dest_junk"],
+  ["deleteditems", "approval.dest_deleted"],
+  ["inbox", "approval.dest_inbox"],
 ]);
 
 export function destLabel(dest) {
-  return DEST_LABELS.get(dest) || "Destino desconocido";
+  return t(DEST_LABELS.get(dest) || "approval.dest_unknown");
 }
 
 // The core's triage verdict for a mail (not the level that holds the approval).
 const TRIAGE_LABELS = new Map([
-  ["phish_candidate", "Posible phishing"],
-  ["suspicious", "Sospechoso"],
-  ["bulk", "Masivo"],
-  ["clean", "Limpio"],
-  ["unknown", "Sin evaluar"],
+  ["phish_candidate", "approval.triage_phish"],
+  ["suspicious", "approval.triage_suspicious"],
+  ["bulk", "approval.triage_bulk"],
+  ["clean", "approval.triage_clean"],
+  ["unknown", "approval.triage_unknown"],
 ]);
 
 export function triageLabel(level) {
-  return TRIAGE_LABELS.get(level) || "Sin evaluar";
+  return t(TRIAGE_LABELS.get(level) || "approval.triage_unknown");
 }
 
 const SUBJECT_MAX = 80;
@@ -115,7 +118,7 @@ const SUBJECT_MAX = 80;
 // The subject as the mail wrote it, trimmed to one short line.
 export function subjectText(subject) {
   const text = String(subject || "").trim();
-  if (!text) return "(sin asunto)";
+  if (!text) return t("approval.no_subject");
   return text.length > SUBJECT_MAX ? `${text.slice(0, SUBJECT_MAX - 1)}…` : text;
 }
 
@@ -136,12 +139,13 @@ export function canApproveMove(entry, unchecked = new Set()) {
 }
 
 export function moveTitle(entry) {
-  return `${moveItems(entry).length} correos a mover`;
+  const n = moveItems(entry).length;
+  return t(n === 1 ? "approval.move_title.one" : "approval.move_title.other", { n });
 }
 
 export function moveApproveLabel(entry, unchecked = new Set()) {
   const { checked, total } = moveCounts(entry, unchecked);
-  return `Mover los seleccionados (${checked} de ${total})`;
+  return t("approval.move_selected", { checked, total });
 }
 
 // A `mail.move` with mails in it earns the checklist; without them it is a plain card.
@@ -250,7 +254,7 @@ export function seatName(entry) {
   const label = entry.agent_label && !OPAQUE_ID.test(entry.agent_label) ? entry.agent_label : "";
   if (label) return label;
   const match = /^ag_([a-z0-9_-]+)$/i.exec(String(entry.seat_id || ""));
-  if (!match || OPAQUE_ID.test(match[1])) return "Un agente";
+  if (!match || OPAQUE_ID.test(match[1])) return t("approval.agent_unnamed");
   return match[1].charAt(0).toUpperCase() + match[1].slice(1);
 }
 
@@ -267,7 +271,7 @@ export function currentDeviceId() {
 }
 
 export function grantCommand(deviceId) {
-  return `host devices grant ${deviceId || "<dispositivo>"} --permission approve`;
+  return `host devices grant ${deviceId || t("approval.device_placeholder")} --permission approve`;
 }
 
 // The text a card or a line shows for the command: the redacted payload when
@@ -309,7 +313,7 @@ export function supersededIndexes(entries, cardIds = new Set()) {
 
 // The host decides when an approval expires. This clock only marks the moment
 // to ask it again: a pending card at zero is still pending until the host says.
-export const CHECKING_TEXT = "Comprobando con el PC…";
+export const CHECKING_TEXT = t("approval.checking");
 
 export function isChecking(entry, now = Date.now()) {
   return (entry.status || "pending") === "pending" && remainingSeconds(entry.expires_at, now) === 0;
@@ -354,9 +358,9 @@ export function sameDecision(mine = {}, ask) {
 // The settled card's line. The host's `scope` says whether the whole task was allowed. `reason` on a card is why it was sent on, not the operator's words, so it is not shown.
 export function resultText(status, entry = {}) {
   if (status === "approved" || status === "consumed") {
-    return entry.scope === "task" ? "Permitida para toda esta tarea." : "Permitida una vez. Solo esta acción.";
+    return entry.scope === "task" ? t("approval.result_task") : t("approval.result_once");
   }
-  if (status === "denied") return "Denegada. El agente no la ejecutó.";
+  if (status === "denied") return t("approval.result_denied");
   return statusMeta(status).label;
 }
 
@@ -424,19 +428,19 @@ function shellDelete(entry) {
 // «a», «b» y N más: two names at most, the rest counted.
 function namesText(names) {
   const quoted = names.map((name) => `«${name}»`);
-  if (quoted.length <= 2) return quoted.join(" y ");
-  return `${quoted.slice(0, 2).join(", ")} y ${quoted.length - 2} más`;
+  if (quoted.length <= 2) return quoted.length === 2 ? t("approval.names_two", { a: quoted[0], b: quoted[1] }) : quoted[0];
+  return t("approval.names_more", { names: quoted.slice(0, 2).join(", "), n: quoted.length - 2 });
 }
 
 // The agent's headline can come in English («create x.txt with text "uno"»). The operator reads
 // Spanish: the verb picks the action, and the file (the card's path, or a name with an extension) names it.
 const ENGLISH_ACTIONS = new Map([
-  ["create", "guardar"], ["write", "guardar"], ["edit", "guardar"], ["update", "guardar"], ["add", "guardar"],
-  ["fix", "guardar"], ["build", "guardar"], ["copy", "guardar"], ["rename", "guardar"], ["move", "guardar"],
-  ["delete", "borrar"], ["remove", "borrar"], ["read", "leer"],
-  ["run", "ejecutar"], ["install", "ejecutar"], ["show", "ejecutar"], ["inspect", "ejecutar"], ["check", "ejecutar"],
-  ["list", "ejecutar"], ["open", "ejecutar"], ["test", "ejecutar"], ["download", "ejecutar"], ["upload", "ejecutar"],
-  ["git", "ejecutar"],
+  ["create", "approval.verb_save"], ["write", "approval.verb_save"], ["edit", "approval.verb_save"], ["update", "approval.verb_save"], ["add", "approval.verb_save"],
+  ["fix", "approval.verb_save"], ["build", "approval.verb_save"], ["copy", "approval.verb_save"], ["rename", "approval.verb_save"], ["move", "approval.verb_save"],
+  ["delete", "approval.verb_delete"], ["remove", "approval.verb_delete"], ["read", "approval.verb_read"],
+  ["run", "approval.verb_run"], ["install", "approval.verb_run"], ["show", "approval.verb_run"], ["inspect", "approval.verb_run"], ["check", "approval.verb_run"],
+  ["list", "approval.verb_run"], ["open", "approval.verb_run"], ["test", "approval.verb_run"], ["download", "approval.verb_run"], ["upload", "approval.verb_run"],
+  ["git", "approval.verb_run"],
 ]);
 
 // English: no Spanish accent or «ñ», and it opens with one of those verbs or carries a common English word
@@ -445,10 +449,6 @@ const ENGLISH_WORDS = /\b(the|and|of|for|with|from|read-only|search|check)\b/i;
 function isEnglish(text) {
   if (/[áéíóúüñ]/i.test(text)) return false;
   return ENGLISH_ACTIONS.has(text.split(/\s+/)[0].toLowerCase()) || ENGLISH_WORDS.test(text);
-}
-
-function englishFile(entry, text) {
-  return fileName(entry) || (text.match(/[\w.-]+\.\w{1,6}\b/) || [])[0] || "";
 }
 
 // Commands that only look. Every part of the line starts with one of these; `git` counts only
@@ -499,7 +499,7 @@ function lookedAtFile(command) {
 
 function lookPhrase(entry) {
   const file = lookedAtFile(commandText(entry));
-  return file ? `mirar «${file}»` : "mirar el proyecto";
+  return file ? t("approval.phrase_look_file", { file }) : t("approval.phrase_look_project");
 }
 
 // The host writes a search as «Buscar en internet: <consulta>»; a page's address is in its summary.
@@ -518,38 +518,37 @@ function pageAddress(entry) {
 export function actionPhrase(entry) {
   const tool = String(entry.tool || "").toLowerCase();
   const name = fileName(entry);
-  if (WRITE_TOOLS.has(tool)) return name ? `guardar «${name}»` : "guardar un archivo";
+  if (WRITE_TOOLS.has(tool)) return name ? t("approval.phrase_named", { verb: t("approval.verb_save"), name }) : t("approval.phrase_save_file");
   if (SHELL_TOOLS.has(tool)) {
     const deleted = shellDelete(entry);
     if (deleted) {
-      if (!deleted.names.length) return "borrar archivos";
-      return `borrar ${namesText(deleted.names)}${deleted.more ? " y ejecutar más comandos" : ""}`;
+      if (!deleted.names.length) return t("approval.phrase_delete_files");
+      return t("approval.phrase_delete", { names: namesText(deleted.names), more: deleted.more ? t("approval.phrase_delete_more") : "" });
     }
     if (looksOnly(entry)) return lookPhrase(entry);
-    // The agent wrote this sentence, so a delete never takes its word (checked above) and the command stays under «Detalles».
-    const said = String(entry.headline || "").trim();
-    if (!said) return "ejecutar un comando";
-    if (!isEnglish(said)) return said.charAt(0).toLowerCase() + said.slice(1);
-    const file = englishFile(entry, said);
-    if (!file) return "ejecutar un comando";
-    return `${ENGLISH_ACTIONS.get(said.split(/\s+/)[0].toLowerCase()) || "ejecutar"} «${file}»`;
+    // A headline that says delete keeps «borrar»: a delete shown as «ejecutar un comando» hides what it does.
+    if (/^(delete|remove)\b/i.test(String(entry.headline || "").trim())) {
+      return name ? t("approval.phrase_named", { verb: t("approval.verb_delete"), name }) : t("approval.phrase_delete_files");
+    }
+    // A command runs, it never «guarda»: the agent's own sentence stays under «Detalles técnicos», not in the title.
+    return t("approval.phrase_run");
   }
-  if (tool === "read") return name ? `leer «${name}»` : "leer un archivo";
+  if (tool === "read") return name ? t("approval.phrase_named", { verb: t("approval.verb_read"), name }) : t("approval.phrase_read_file");
   // Without the words the host sent, the generic phrase stays.
-  if (tool === "websearch" && webQuery(entry)) return `buscar en internet: «${webQuery(entry)}»`;
-  if (tool === "webfetch" && pageAddress(entry)) return `abrir una página: ${pageAddress(entry)}`;
-  return "usar una herramienta";
+  if (tool === "websearch" && webQuery(entry)) return t("approval.phrase_search", { query: webQuery(entry) });
+  if (tool === "webfetch" && pageAddress(entry)) return t("approval.phrase_open_page", { address: pageAddress(entry) });
+  return t("approval.phrase_tool");
 }
 
 // The card's title: «Ernesto quiere guardar «uno-t.txt»».
 export function humanHeadline(entry) {
-  return `${seatName(entry)} quiere ${actionPhrase(entry)}`;
+  return t("approval.headline", { name: seatName(entry), action: actionPhrase(entry) });
 }
 
 // A shell command or a delete can change files: say so, and only then. A look never does.
 export function riskNote(entry) {
   const risky = SHELL_TOOLS.has(String(entry.tool || "").toLowerCase()) && !looksOnly(entry);
-  return entry.risk === "high" && risky ? "Puede cambiar o borrar archivos." : "";
+  return entry.risk === "high" && risky ? t("approval.risk_note") : "";
 }
 
 // The risk badge shows only a medium or high risk. A look shows none, and a missing risk is never guessed.
@@ -558,27 +557,19 @@ export function riskBadge(entry) {
   return entry.risk === "medium" || entry.risk === "high" ? riskLabel(entry.risk) : "";
 }
 
-// The exact command a shell card shows above its buttons. A look's command moves under «Detalles técnicos»;
-// other tools show none.
-export function cardCommand(entry) {
-  if (looksOnly(entry)) return "";
-  return SHELL_TOOLS.has(String(entry.tool || "").toLowerCase()) ? commandText(entry) : "";
-}
-
 // «Detalles» of a plain card: only the file. Everything else sits in one level under «Detalles técnicos»,
-// with the full folder. The folder's name is on the card, and so is the command, unless it is a look's.
+// with the full folder. The folder's name is on the card; the command (any shell tool's) leads the technical level.
 export function detailFacts(entry) {
   const paths = Array.isArray(entry.paths) ? entry.paths.join(", ") : "";
-  const shown = [["Ruta", paths]];
+  const shown = [[t("approval.fact_path"), paths]];
   const said = String(entry.headline || "").trim();
-  // A look's command is not on its card: it leads the technical level.
-  const command = looksOnly(entry) ? commandText(entry) : "";
+  const command = SHELL_TOOLS.has(String(entry.tool || "").toLowerCase()) ? commandText(entry) : "";
   const technical = [
-    ["Comando", command],
-    ["Carpeta", isRunFolder(entry.cwd) ? "" : entry.cwd || ""],
-    ["Texto original del agente", isEnglish(said) ? said : ""],
-    ["Riesgo", riskBadge(entry)],
-    ["Nivel", entry.escalated_from ? "Lo pidió Alfred" : ""],
+    [t("approval.fact_command"), command],
+    [t("approval.fact_folder"), isRunFolder(entry.cwd) ? "" : entry.cwd || ""],
+    [t("approval.fact_original"), isEnglish(said) ? said : ""],
+    [t("approval.fact_risk"), riskBadge(entry)],
+    [t("approval.fact_level"), entry.escalated_from ? t("approval.escalated") : ""],
   ];
   const keep = ([, value]) => Boolean(value);
   return { shown: shown.filter(keep), technical: technical.filter(keep) };
@@ -601,18 +592,22 @@ export function isWaitingLine(summary) {
   return Boolean(match) && /^pendiente$/i.test(match[1] || "");
 }
 
-// The host's «Operador denegó/aprobó» is the operator's own act: the line says «Denegaste» or «Aprobaste».
+// The host's «Operador aprobó» is the operator's own act: the line says «Aprobado: <what it was>», never the
+// tool's name («edit Write»). Without the card's phrase it says only «Aprobado».
 export function lineSummary(summary, refId) {
   if (isWaitingLine(summary)) return "";
-  const text = String(summary || "")
-    .trim()
-    .replace(/^operador denegó:/i, "Denegaste:")
-    .replace(/^operador aprobó:/i, "Aprobaste:")
-    .replace(/^host expiró:/i, "Caducó sin respuesta:");
+  const said = String(summary || "").trim();
+  if (/^operador aprobó:/i.test(said)) {
+    const named = namedActions.get(refId);
+    return named ? t("approval.line_approved_named", { what: named }) : t("approval.line_approved");
+  }
+  const text = said
+    .replace(/^operador denegó:/i, t("approval.line_denied"))
+    .replace(/^host expiró:/i, t("approval.line_expired"));
   const match = TOOL_WORDS.exec(text);
   if (!match) return text;
   const phrase = namedActions.get(refId);
-  const named = phrase || "ejecutar un comando";
+  const named = phrase || t("approval.phrase_run");
   return match[1] ? `${match[1]}: ${named}` : named;
 }
 
@@ -625,9 +620,9 @@ export function repeatsCard(entry, cardIds) {
 export function settledLine(status, entry = {}) {
   const phrase = actionPhrase(entry);
   if (status === "approved" || status === "consumed") {
-    return entry.scope === "task" ? `Permitido para toda la tarea · ${phrase}` : `✓ Permitido · ${phrase}`;
+    return entry.scope === "task" ? t("approval.settled_task", { phrase }) : t("approval.settled_once", { phrase });
   }
-  if (status === "denied") return `✕ Denegado · ${phrase}`;
-  if (status === "expired") return `Caducó sin respuesta · ${phrase}`;
+  if (status === "denied") return t("approval.settled_denied", { phrase });
+  if (status === "expired") return t("approval.settled_expired", { phrase });
   return `${statusMeta(status).label} · ${phrase}`;
 }

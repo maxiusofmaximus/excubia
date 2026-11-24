@@ -2,9 +2,10 @@
 // for when it is shown and when it is taken down, with no DOM so tooling/pair-qr-model.test.mjs can run it.
 
 import { countdownText } from "./format.js";
+import { t } from "./i18n.js";
 
-export const EXPIRED_MESSAGE = "Caducó: pulsa «Generar otro código».";
-export const LEFT_WINDOW_MESSAGE = "Oculté el QR al salir de la ventana; genera otro.";
+export const EXPIRED_MESSAGE = t("pairqr.expired", { action: t("lan.new_code") });
+export const LEFT_WINDOW_MESSAGE = t("pairqr.left_window");
 
 /// phase: idle | shown | expired | hidden. `remaining` is whole seconds left while shown.
 export const IDLE = { phase: "idle", expiresAt: 0, remaining: 0 };

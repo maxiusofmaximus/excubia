@@ -3,46 +3,84 @@
 // the order of the cards; the screen words them, counts who waits for the operator
 // and says why a read failed.
 
+import { roleLabel } from "./catalog-labels.js";
 import { elapsedWords } from "./format.js";
 import { friendlyError } from "./friendly-error.js";
 import { readStateText } from "./hires-model.js";
+import { t } from "./i18n.js";
 
 export const STATUS_VIEWS = {
-  waiting_for_you: { label: "Espera tu visto bueno", tone: "waiting" },
-  blocked: { label: "Necesita ayuda", tone: "blocked" },
-  working: { label: "Trabajando", tone: "working" },
-  done: { label: "Terminó", tone: "done" },
-  idle: { label: "Sin actividad", tone: "idle" },
+  waiting_for_you: { label: t("team.status.waiting"), tone: "waiting" },
+  blocked: { label: t("team.status.blocked"), tone: "blocked" },
+  working: { label: t("team.status.working"), tone: "working" },
+  done: { label: t("team.status.done"), tone: "done" },
+  idle: { label: t("team.status.idle"), tone: "idle" },
 };
 
 // A status the host does not name reads as idle. The screen never guesses one from the headline.
 const IDLE = STATUS_VIEWS.idle;
 
-export function memberView(member, now) {
+// The host's fixed headlines (crates/chat/src/model_team_status.rs), matched word for word. The first
+// three reuse the status labels; a headline the host does not name keeps the text it sent.
+const FIXED_HEADLINES = {
+  "Sin actividad": "team.status.idle",
+  "Necesita ayuda": "team.status.blocked",
+  Terminó: "team.status.done",
+};
+const APPROVAL_ACTIONS = {
+  "ejecutar un comando": "approval.phrase_run",
+  "usar internet": "team.action_network",
+  "cambiar ficheros": "team.action_edit",
+  "usar una herramienta": "approval.phrase_tool",
+};
+
+export function headlineText(headline = "") {
+  if (Object.hasOwn(FIXED_HEADLINES, headline)) return t(FIXED_HEADLINES[headline]);
+  const plan = /^Espera tu visto bueno para un plan de (\d+) pasos$/.exec(headline);
+  if (plan) return t("team.headline.plan", { n: plan[1] });
+  const approval = /^Espera tu visto bueno para (.+)$/.exec(headline);
+  if (approval && Object.hasOwn(APPROVAL_ACTIONS, approval[1])) {
+    return t("team.headline.approval", { action: t(APPROVAL_ACTIONS[approval[1]]) });
+  }
+  const working = /^Trabajando desde hace (\d+) min$/.exec(headline);
+  if (working) return t("team.headline.working", { n: working[1] });
+  return headline;
+}
+
+// The office in the language on screen: the hire's role ID is translated. A hire or role that is
+// not known keeps the title the host sent.
+function roleName(member, team) {
+  const hire = team.hires?.find((item) => item.id === member.agent_id);
+  const role = team.catalog?.roles?.find((item) => item.id === hire?.role);
+  return (role && roleLabel(role)) || member.role_title;
+}
+
+// `team` is the Equipo snapshot ({ hires, catalog }); without it the host's titles are kept.
+export function memberView(member, now, team = {}) {
   const known = Object.hasOwn(STATUS_VIEWS, member.status);
   const status = known ? STATUS_VIEWS[member.status] : IDLE;
   const since = Date.parse(member.since);
   return {
     id: member.agent_id,
     name: member.name,
-    role: member.role_title,
+    role: roleName(member, team),
     label: status.label,
     tone: status.tone,
     waiting: known && member.status === "waiting_for_you",
-    headline: member.headline,
-    age: Number.isNaN(since) ? "" : `desde hace ${elapsedWords(since, now)}`,
+    headline: headlineText(member.headline),
+    age: Number.isNaN(since) ? "" : t("team.since", { when: elapsedWords(since, now) }),
   };
 }
 
 // The cards in the order the host sent them.
-export function summaryView(members, now) {
-  return members.map((member) => memberView(member, now));
+export function summaryView(members, now, team = {}) {
+  return members.map((member) => memberView(member, now, team));
 }
 
 // «1 espera tu visto bueno», «2 esperan tu visto bueno»: the counter the screen reads out.
 export function waitingText(count) {
-  if (count === 0) return "Nadie espera tu visto bueno.";
-  return count === 1 ? "1 espera tu visto bueno" : `${count} esperan tu visto bueno`;
+  if (count === 0) return t("team.waiting_none");
+  return count === 1 ? t("team.waiting_one") : t("team.waiting_other", { n: count });
 }
 
 // The headline is left out when it is empty or only repeats the status label.

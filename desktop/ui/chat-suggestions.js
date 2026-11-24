@@ -3,26 +3,27 @@
 // general question; the other two come from the professions contracted here, one
 // phrase of that trade per area, rotated by `turn` so they do not repeat.
 
+import { t } from "./i18n.js";
 import { activeHires } from "./hires-model.js";
 
 const GENERAL = {
   mark: "?",
-  title: "¿Cómo va el equipo?",
-  detail: "qué hace cada persona y qué está pendiente",
-  prompt: "¿Cómo va el equipo? Qué hace cada persona y qué está pendiente",
+  title: t("suggest.general_title"),
+  detail: t("suggest.general_detail"),
+  prompt: t("suggest.general_prompt"),
 };
 
 // Two phrases per area, so a single contracted area still gets two different ones.
 const AREA_PHRASES = {
-  programacion: ["Revisa que todo funcione antes de entregar", "Dime qué parte del código conviene revisar primero"],
-  video: ["Revisa el montaje y dime qué falta", "Propón un guion corto para el próximo vídeo"],
-  diseno_grafico: ["Propón tres ideas para la portada", "Revisa que el cartel se lea bien a distancia"],
-  audio: ["Revisa el audio y dime qué ajustar", "Prepara la lista de pistas para la sesión"],
-  documentos: ["Prepara un informe de esta semana", "Resume estos documentos en una página"],
-  investigacion: ["Busca fuentes fiables sobre este tema", "Compara lo que dicen los estudios sobre esto"],
-  ingenieria_cad: ["Revisa las medidas del plano", "Dime qué piezas faltan en el despiece"],
-  marketing: ["Redacta el plan de publicaciones de la semana", "Propón tres titulares para el anuncio"],
-  otras: ["Ayúdame a ordenar las tareas de hoy", "Haz una lista de lo urgente de esta semana"],
+  programacion: [t("suggest.programacion_1"), t("suggest.programacion_2")],
+  video: [t("suggest.video_1"), t("suggest.video_2")],
+  diseno_grafico: [t("suggest.diseno_grafico_1"), t("suggest.diseno_grafico_2")],
+  audio: [t("suggest.audio_1"), t("suggest.audio_2")],
+  documentos: [t("suggest.documentos_1"), t("suggest.documentos_2")],
+  investigacion: [t("suggest.investigacion_1"), t("suggest.investigacion_2")],
+  ingenieria_cad: [t("suggest.ingenieria_cad_1"), t("suggest.ingenieria_cad_2")],
+  marketing: [t("suggest.marketing_1"), t("suggest.marketing_2")],
+  otras: [t("suggest.otras_1"), t("suggest.otras_2")],
 };
 
 function neutral(title) {
@@ -30,9 +31,9 @@ function neutral(title) {
 }
 
 export const NEUTRAL_SUGGESTIONS = [
-  neutral("Cuéntame a qué te dedicas y armo tu equipo"),
-  neutral("¿Qué puedes hacer por mí?"),
-  neutral("Apunta una nota para mañana"),
+  neutral(t("suggest.neutral_1")),
+  neutral(t("suggest.neutral_2")),
+  neutral(t("suggest.neutral_3")),
 ];
 
 // The areas with someone contracted that the catalogue knows, in catalogue order.

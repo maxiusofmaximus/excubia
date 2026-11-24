@@ -3,6 +3,7 @@
 // Alfred gives it work. Only this PC can do it: the host asks for ADMIN.
 import { $, invoke, toast } from "./core.js";
 import { friendlyError } from "./friendly-error.js";
+import { t } from "./i18n.js";
 
 function baseName(path) {
   const parts = String(path || "").split(/[\\/]+/).filter(Boolean);
@@ -29,7 +30,7 @@ export function installNewProject(refreshHome) {
 
   $("btn-new-project").addEventListener("click", async () => {
     $("project-new-name").value = "";
-    $("project-new-folder").textContent = "Ninguna carpeta elegida";
+    $("project-new-folder").textContent = t("project.no_folder");
     delete dialog.dataset.folder;
     showError("");
     dialog.showModal();
@@ -41,13 +42,13 @@ export function installNewProject(refreshHome) {
     event.preventDefault();
     const name = $("project-new-name").value.trim();
     const rootPath = dialog.dataset.folder;
-    if (!rootPath) return showError("Elige la carpeta del proyecto.");
-    if (!name) return showError("Escribe un nombre.");
+    if (!rootPath) return showError(t("project.pick_required"));
+    if (!name) return showError(t("project.name_required"));
     $("project-new-save").disabled = true;
     try {
       await invoke("team_project_create", { name, rootPath });
       dialog.close();
-      toast(`Proyecto «${name}» creado`);
+      toast(t("project.created", { name }));
       await refreshHome();
     } catch (error) {
       showError(friendlyError(error));

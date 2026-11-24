@@ -5,6 +5,8 @@ import { $, invoke, toast } from "./core.js";
 import { avatarElement } from "./avatar.js";
 import { errorMessage } from "./format.js";
 import { AREA_CAP, AREA_CAP_NOTICE, hiredIn, isHired } from "./hires-model.js";
+import { areaLabel, roleLabel } from "./catalog-labels.js";
+import { t } from "./i18n.js";
 
 let onChange = null;
 let contracting = false;
@@ -26,16 +28,18 @@ function roleRow(role, full, hired) {
   name.textContent = role.name;
   const title = document.createElement("span");
   title.className = "hire-title";
-  title.textContent = role.title;
+  title.textContent = roleLabel(role);
   text.append(name, title);
   const button = document.createElement("button");
   button.type = "button";
   button.className = "btn secondary btn-small";
-  button.textContent = hired ? "Contratado" : "Contratar";
+  button.textContent = hired ? t("hire.hired") : t("agents.hire");
   button.disabled = hired || full;
   button.setAttribute(
     "aria-label",
-    hired ? `${role.name}, ${role.title}: contratado` : `Contratar a ${role.name}, ${role.title}`,
+    hired
+      ? t("hire.aria_hired", { name: role.name, title: roleLabel(role) })
+      : t("hire.aria_hire", { name: role.name, title: roleLabel(role) }),
   );
   button.addEventListener("click", () => contract(role.id));
   item.append(face, text, button);
@@ -49,7 +53,7 @@ function areaBlock(team, area) {
   const full = count >= AREA_CAP;
   const heading = document.createElement("h3");
   heading.className = "hire-group-title";
-  heading.textContent = `${area.label} · ${count} de ${AREA_CAP}`;
+  heading.textContent = t("hire.area_count", { label: areaLabel(area), count, max: AREA_CAP });
   const list = document.createElement("ul");
   list.className = "role-list";
   list.setAttribute("role", "list");
@@ -78,7 +82,7 @@ async function contract(role) {
   showError("");
   try {
     const hire = await invoke("team_hire", { role });
-    toast(`${hire.name} se une a tu equipo`);
+    toast(t("hire.joined", { name: hire.name }));
     await onChange();
   } catch (error) {
     showError(errorMessage(error));

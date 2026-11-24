@@ -5,6 +5,7 @@ use excubia_desktop_core::client::pair_device;
 use excubia_desktop_core::state::{AgentRow, StateSnapshot};
 use excubia_desktop_core::stream::ConnectionStatus;
 use excubia_desktop_core::transport::is_loopback_url;
+use excubia_desktop_core::ui_lang::{self, UiLang};
 use excubia_desktop_core::{
     validate_device_label, CatalogAgent, CoreError, Transport, WriteAction,
 };
@@ -70,7 +71,7 @@ pub struct StopOutcome {
 pub async fn agent_catalog(state: State<'_, Shared>) -> Result<Vec<CatalogAgent>, String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     client
         .catalog()
         .await
@@ -81,7 +82,7 @@ pub async fn agent_catalog(state: State<'_, Shared>) -> Result<Vec<CatalogAgent>
 pub async fn set_default_agent(state: State<'_, Shared>, name: String) -> Result<(), String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     client
         .set_default(&name)
         .await
@@ -92,7 +93,7 @@ pub async fn set_default_agent(state: State<'_, Shared>, name: String) -> Result
 pub async fn stop_agent(state: State<'_, Shared>, pane_id: String) -> Result<StopOutcome, String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     match client.stop_agent(&pane_id).await {
         Ok(()) => Ok(StopOutcome {
             already_gone: false,
@@ -115,7 +116,7 @@ pub async fn create_conversation(
 ) -> Result<CreatedConversation, String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     let created = client
         .create_workspace(&agent, &cwd, label.as_deref())
         .await
@@ -134,14 +135,21 @@ pub async fn pick_folder(app: AppHandle) -> Result<Option<String>, String> {
     });
     let picked = receiver
         .await
-        .map_err(|_| "el selector de carpetas se cerró".to_string())?;
+        .map_err(|_| {
+            excubia_desktop_core::ui_lang::pick(
+                "el selector de carpetas se cerró",
+                "the folder picker was closed",
+            )
+            .to_string()
+        })?;
     Ok(picked
         .and_then(|path| path.into_path().ok())
         .map(|path| path.display().to_string()))
 }
 
 #[tauri::command]
-pub fn bootstrap(state: State<'_, Shared>) -> Bootstrap {
+pub fn bootstrap(app: AppHandle, state: State<'_, Shared>) -> Bootstrap {
+    shared(&state).boot_local_host(app);
     let inner = lock(&state.inner);
     let identity = inner.identity.as_ref();
     let snapshot = lock(&inner.store).snapshot();
@@ -165,7 +173,10 @@ pub fn bootstrap(state: State<'_, Shared>) -> Bootstrap {
         fingerprint: identity.map(|identity| identity.fingerprint()),
         paired: inner.config.paired,
         notifications_enabled: inner.config.notifications,
-        identity_error: inner.identity_error.clone(),
+        identity_error: inner
+            .identity_error
+            .as_ref()
+            .map(|error| error.describe(WriteAction::Read).text()),
         state: snapshot,
         connection: inner.connection.clone(),
     }
@@ -179,7 +190,7 @@ pub async fn respond(
 ) -> Result<(), String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     client
         .respond(&pane_id, &text)
         .await
@@ -195,7 +206,7 @@ pub async fn send_keys(
 ) -> Result<(), String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     client
         .send_keys(&pane_id, &keys, confirm)
         .await
@@ -206,7 +217,7 @@ pub async fn send_keys(
 pub async fn mark_seen(state: State<'_, Shared>, pane_id: String) -> Result<(), String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     client
         .mark_seen(&pane_id)
         .await
@@ -218,6 +229,14 @@ pub fn set_notifications(state: State<'_, Shared>, enabled: bool) -> Result<(), 
     let shared = shared(&state);
     lock(&shared.inner).config.notifications = enabled;
     shared.save_config()
+}
+
+/// The shell sends `es` or `en` once, before it draws anything. Unknown codes are refused.
+#[tauri::command]
+pub fn set_ui_lang(lang: String) -> Result<(), String> {
+    let lang = UiLang::parse(&lang).ok_or_else(|| "unsupported language".to_string())?;
+    ui_lang::set(lang);
+    Ok(())
 }
 
 #[tauri::command]
@@ -234,7 +253,7 @@ pub async fn pair(
 ) -> Result<PairOutcome, String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let label = validate_device_label(&label).map_err(|error| error.to_string())?;
+    let label = validate_device_label(&label).map_err(|error| error.pairing_message())?;
     let response = pair_device(
         &settings.url,
         &settings.transport,
@@ -244,7 +263,7 @@ pub async fn pair(
         code.trim(),
     )
     .await
-    .map_err(|error| error.to_string())?;
+    .map_err(|error| error.pairing_message())?;
 
     let label = response.label.clone().unwrap_or(label);
     let mut identity = settings.identity;
@@ -275,8 +294,11 @@ pub async fn refresh_state(
 ) -> Result<StateSnapshot, String> {
     let shared = shared(&state);
     let settings = shared.settings()?;
-    let client = settings.client().map_err(|error| error.to_string())?;
-    let snapshot = client.state().await.map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
+    let snapshot = client
+        .state()
+        .await
+        .map_err(|error| error.describe(WriteAction::Read).text())?;
 
     let store = shared.store();
     if let Some(state) = lock(&store).apply(snapshot) {
@@ -284,7 +306,13 @@ pub async fn refresh_state(
         return Ok(state);
     }
     let fallback = lock(&store).snapshot();
-    fallback.ok_or_else(|| "No hay estado disponible todavía.".to_string())
+    fallback.ok_or_else(|| {
+        ui_lang::pick(
+            "No hay estado disponible todavía.",
+            "No state is available yet.",
+        )
+        .to_string()
+    })
 }
 
 #[tauri::command]
@@ -307,9 +335,15 @@ pub async fn agent_detail(
                 .into_iter()
                 .find(|agent| agent.pane_id == pane_id)
         })
-        .ok_or_else(|| "Este agente ya no está en el estado actual.".to_string())?;
+        .ok_or_else(|| {
+            ui_lang::pick(
+                "Este agente ya no está en el estado actual.",
+                "This agent is no longer in the current state.",
+            )
+            .to_string()
+        })?;
 
-    let client = settings.client().map_err(|error| error.to_string())?;
+    let client = settings.client().map_err(|error| error.describe(WriteAction::Read).text())?;
     let output = client
         .read_output(&agent.pane_id, lines)
         .await

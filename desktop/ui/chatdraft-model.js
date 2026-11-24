@@ -1,5 +1,6 @@
 // Pure text rules for the mail draft card in the chat: no DOM. The host already
 // sends the card without the body or the sender; the shell only fits the lines.
+import { t } from "./i18n.js";
 import { addressLine } from "./mail-model.js";
 
 export const SUBJECT_MAX = 120;
@@ -15,7 +16,7 @@ export function clip(text, max) {
 
 export function draftCardLines(card) {
   return {
-    subject: clip(card.subject, SUBJECT_MAX) || "(sin asunto)",
+    subject: clip(card.subject, SUBJECT_MAX) || t("approval.no_subject"),
     to: clip(addressLine(card.to), SUBJECT_MAX),
     preview: clip(card.preview, PREVIEW_MAX),
   };
@@ -23,5 +24,5 @@ export function draftCardLines(card) {
 
 // The button names the draft by its subject, so a screen reader says which one it opens.
 export function reviewLabel(subject) {
-  return `Revisar borrador: ${subject}`;
+  return t("chatdraft.review_label", { subject });
 }

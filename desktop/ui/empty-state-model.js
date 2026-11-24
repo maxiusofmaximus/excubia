@@ -2,6 +2,8 @@
 // can check them: which line icon, which one sentence, which single action. The icons are
 // the sidebar's own strokes (24×24, currentColor) so every screen draws the same hand.
 
+import { t } from "./i18n.js";
+
 export const ICONS = {
   chat: [["path", { d: "M4.5 5h15a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H10l-4.5 3.5V16.5h-1a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" }]],
   calendar: [
@@ -63,5 +65,5 @@ export function emptyStateSpec({ icon, text, action = null }) {
 
 // A failure keeps its sentence; the one way out is «Reintentar».
 export function errorStateSpec(text) {
-  return { ...emptyStateSpec({ icon: "alert", text }), tone: "error", action: "Reintentar" };
+  return { ...emptyStateSpec({ icon: "alert", text }), tone: "error", action: t("agents.retry") };
 }

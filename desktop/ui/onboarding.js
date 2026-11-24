@@ -8,6 +8,7 @@ import { showView } from "./nav.js";
 import { avatarElement } from "./avatar.js";
 import { errorMessage } from "./format.js";
 import { AREA_CAP } from "./hires-model.js";
+import { areaLabel, roleLabel } from "./catalog-labels.js";
 import {
   LEVELS,
   areaTotal,
@@ -19,6 +20,7 @@ import {
 import { renderAgents } from "./agents.js";
 import { refreshTeam, teamSnapshot } from "./hires.js";
 import { offerFirstRunPalette } from "./palette.js";
+import { t } from "./i18n.js";
 
 const STEPS = 3;
 const wizard = {};
@@ -61,10 +63,10 @@ function areasStep(catalog) {
   face.classList.add("onboarding-face");
   return [
     face,
-    heading("Hola, soy Alfred"),
-    lede("Soy tu CTO y te ayudo a montar el equipo. Para empezar, ¿en qué áreas trabajas? Elige una o varias.", "hint"),
+    heading(t("onboarding.hello")),
+    lede(t("onboarding.areas_lede"), "hint"),
     ...catalog.areas.map((area) =>
-      chip(area.label, wizard.areas.includes(area.id), () => {
+      chip(areaLabel(area), wizard.areas.includes(area.id), () => {
         wizard.areas = wizard.areas.includes(area.id)
           ? wizard.areas.filter((id) => id !== area.id)
           : [...wizard.areas, area.id];
@@ -76,7 +78,7 @@ function areasStep(catalog) {
 
 function levelStep() {
   return [
-    heading("¿Cuánto equipo quieres?"),
+    heading(t("onboarding.level_heading")),
     ...LEVELS.map((level) =>
       chip(`${level.label}: ${level.help}`, wizard.level === level.id, () => {
         wizard.level = level.id;
@@ -145,15 +147,15 @@ function pick(roleId, area) {
 function teamStep(catalog) {
   const { hires } = teamSnapshot();
   const alfred = document.createElement("section");
-  alfred.setAttribute("aria-label", "Siempre en tu equipo");
+  alfred.setAttribute("aria-label", t("onboarding.alfred_always"));
   alfred.append(
     pickList([
-      pickRow({ key: "alfred", name: "Alfred", title: "Director técnico (CTO)", avatar: "alfred", picked: true }),
+      pickRow({ key: "alfred", name: "Alfred", title: t("onboarding.alfred_title"), avatar: "alfred", picked: true }),
     ]),
   );
-  const blocks = [heading("Tu equipo inicial"), lede("Quita o pon a quien no necesites. Hasta 8 por área.", "hint"), alfred];
+  const blocks = [heading(t("onboarding.team_heading")), lede(t("onboarding.team_lede"), "hint"), alfred];
   for (const area of chosenAreas(catalog.areas, wizard.areas)) {
-    const section = areaGroup(`${area.label} · ${areaTotal({ selected: wizard.roles, area, hires })}/${AREA_CAP}`);
+    const section = areaGroup(`${areaLabel(area)} · ${areaTotal({ selected: wizard.roles, area, hires })}/${AREA_CAP}`);
     if (wizard.notice?.areaId === area.id) {
       const notice = lede(wizard.notice.text, "form-error");
       notice.setAttribute("role", "alert");
@@ -166,7 +168,7 @@ function teamStep(catalog) {
           pickRow({
             key: role.id,
             name: role.name,
-            title: role.title,
+            title: roleLabel(role),
             avatar: role.avatar,
             picked: wizard.roles.includes(role.id),
             onToggle: () => pick(role.id, area),
@@ -182,9 +184,9 @@ function teamStep(catalog) {
 function renderNav() {
   const first = wizard.step === 0;
   const last = wizard.step === STEPS - 1;
-  $("onboarding-progress").textContent = `Paso ${wizard.step + 2} de ${STEPS + 1}`;
+  $("onboarding-progress").textContent = t("onboarding.progress", { step: wizard.step + 2, total: STEPS + 1 });
   $("onboarding-back").classList.toggle("hidden", first);
-  $("onboarding-next").textContent = last ? "Contratar equipo" : "Siguiente";
+  $("onboarding-next").textContent = last ? t("onboarding.hire_team") : t("onboarding.next");
   $("onboarding-next").disabled =
     wizard.busy ||
     (wizard.step === 0 && wizard.areas.length === 0) ||
@@ -207,6 +209,19 @@ function render(focusKey = null) {
   renderNav();
 }
 
+// A step starts at its top: the screen keeps the scroll of the step before (the palette's), which
+// cut Alfred and the «Step 2 of 4» line. The heading takes focus without scrolling again.
+function startStepView() {
+  const screen = $("view-onboarding");
+  screen.scrollTop = 0;
+  screen.scrollIntoView({ block: "start" });
+  const title = body().querySelector("h1");
+  if (title) {
+    title.tabIndex = -1;
+    title.focus({ preventScroll: true });
+  }
+}
+
 function enterStep(step) {
   if (step === STEPS - 1) {
     wizard.roles = presetRoles(chosenAreas(teamSnapshot().catalog.areas, wizard.areas), wizard.level);
@@ -215,6 +230,7 @@ function enterStep(step) {
   wizard.step = step;
   showError("");
   render();
+  startStepView();
 }
 
 // Both exits land on Equipo, where the team the user just chose now shows.
@@ -248,7 +264,7 @@ function skip() {
 function contract() {
   return run(async () => {
     const done = await invoke("team_onboarding_contract", { areas: wizard.areas, roles: wizard.roles });
-    const labels = chosenAreas(teamSnapshot().catalog.areas, wizard.areas).map((area) => area.label);
+    const labels = chosenAreas(teamSnapshot().catalog.areas, wizard.areas).map((area) => areaLabel(area));
     await refreshTeam();
     close();
     toast(confirmation(done.hires.length, labels));
@@ -261,6 +277,7 @@ function startWizard() {
   showError("");
   render();
   showView("onboarding");
+  startStepView();
 }
 
 // Asks the host once per session, when the first connection is up. A failed read

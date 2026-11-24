@@ -2,6 +2,7 @@
 // is fixed the list does not load and no event can be created. The list and the panel
 // do the rest.
 
+import { t } from "./i18n.js";
 import { $, invoke } from "./core.js";
 import { showView } from "./nav.js";
 import { element } from "./chatdom.js";
@@ -10,10 +11,19 @@ import { emptyState, errorState } from "./empty-state.js";
 import { createCalendarList } from "./calendar-list.js";
 import { createEventPanel } from "./calendar-form.js";
 import { installIcs } from "./calendar-ics.js";
-import { COMMON_ZONES, calendarErrorText, listFailureText, zoneProblem } from "./calendar-model.js";
+import { COMMON_ZONES, RANGES, calendarErrorText, listFailureText, zoneProblem } from "./calendar-model.js";
 
-const OFFLINE_HINT = "Sin conexión con tu PC: no puedes crear ni importar eventos todavía.";
-const FAILED_HINT = "Sin zona horaria no puedes crear ni importar eventos todavía.";
+const OFFLINE_HINT = t("calendar.offline_hint");
+const FAILED_HINT = t("calendar.failed_hint");
+// Without a zone these do nothing (calendar-list.js returns early), so they stay off.
+const ZONE_BUTTONS = [
+  "btn-calendar-new",
+  "btn-calendar-import",
+  "btn-calendar-export",
+  "calendar-prev",
+  "calendar-next",
+  ...RANGES.map((range) => `calendar-range-${range.id}`),
+];
 
 let list = null;
 let panel = null;
@@ -25,11 +35,13 @@ function paintZone(known, hint = "") {
   $("calendar-zone").hidden = !known;
   // Once a zone is set the row folds again; with none it stays folded until the operator opens it.
   if (zone) $("calendar-zone").open = false;
-  $("calendar-zone-summary").textContent = `Zona horaria: ${zone || "sin fijar"} · Cambiar`;
+  $("calendar-zone-summary").textContent = t("calendar.zone_summary", { zone: zone || t("calendar.zone_unset") });
   $("calendar-zone-hint").hidden = Boolean(zone) || !hint;
   $("calendar-zone-hint").textContent = hint;
   $("calendar-tools-hint").hidden = Boolean(zone);
-  for (const id of ["btn-calendar-new", "btn-calendar-import", "btn-calendar-export"]) $(id).disabled = !zone;
+  for (const id of ZONE_BUTTONS) $(id).disabled = !zone;
+  // No range is chosen while the list cannot load; the 30-day default does not look pressed.
+  if (!zone) for (const range of RANGES) $(`calendar-range-${range.id}`).setAttribute("aria-pressed", "false");
   paintIdle();
 }
 
@@ -44,8 +56,8 @@ function paintIdle() {
 // The explanation only: the list's own empty state carries the one action.
 function idleContent() {
   const text = zone
-    ? "Elige un evento de la lista para verlo aquí, o crea uno con «Nuevo evento»."
-    : "Aquí verás cada evento al elegirlo.";
+    ? t("calendar.idle_with_zone", { button: t("calendar.new") })
+    : t("calendar.idle_no_zone");
   return emptyState({ icon: "calendar", text });
 }
 
@@ -122,4 +134,8 @@ export function installCalendar() {
     paintIdle();
   });
   $("btn-calendar-zone").addEventListener("click", saveZone);
+  // A correction makes the empty-zone message stale, so it goes; no check runs until Save.
+  $("calendar-zone-input").addEventListener("input", () => {
+    $("calendar-zone-problem").hidden = true;
+  });
 }

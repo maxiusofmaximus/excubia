@@ -2,6 +2,8 @@
 // four, the kind of each file, the states of one file, the size a picture is reduced
 // to, the point a failed chunk resumes from and the words of each refusal.
 
+import { locale, t } from "./i18n.js";
+
 export const MAX_ATTACHMENTS = 4;
 export const MAX_BYTES = 10 * 1024 * 1024;
 export const CHUNK_BYTES = 128 * 1024;
@@ -17,31 +19,31 @@ export const ACCEPT_ATTR = [...IMAGE_EXTENSIONS, ...DOCUMENT_EXTENSIONS].map((ex
 // The body the host stores for a message that is only attachments.
 export const ATTACHMENT_BODY = "(adjunto)";
 
-const DECODE_FAILED = "No se pudo procesar la imagen. Prueba con otra";
+const DECODE_FAILED = t("chatattach.err_decode");
 const ATTACHMENT_TEXT = {
   // Names the families IMAGE_EXTENSIONS and DOCUMENT_EXTENSIONS admit; the tests keep it in step.
-  unsupported_type: "Ese tipo de archivo no se puede adjuntar. Se admiten imágenes, PDF, Word, Excel, PowerPoint, CSV y texto.",
+  unsupported_type: t("chatattach.err_unsupported_type"),
   invalid_image: DECODE_FAILED,
   timeout: DECODE_FAILED,
   worker_failed: DECODE_FAILED,
-  image_too_large: "La imagen es demasiado grande",
-  dimensions_too_large: "La imagen es demasiado grande",
-  input_too_large: "La imagen es demasiado grande",
-  file_too_large: "El archivo supera los 10 MB",
-  conversation_quota: "Se llenó el espacio de adjuntos de esta conversación",
-  host_quota: "Se llenó el espacio de adjuntos del equipo",
-  too_many_attachments: "Solo puedes adjuntar hasta 4 archivos",
-  folder: "Las carpetas no se pueden adjuntar",
-  unknown_attachment: "Una imagen ya no está disponible. Quítala y vuelve a adjuntarla",
-  no_such_attachment: "Esa subida ya no existe. Vuelve a adjuntar la imagen",
-  not_uploading: "Esa subida ya no existe. Vuelve a adjuntar la imagen",
-  already_linked: "Esa imagen ya está en un mensaje",
-  not_ready: "La imagen todavía no está lista",
-  size_mismatch: "La subida no coincide con el archivo. Vuelve a intentarlo",
-  hash_mismatch: "La subida no coincide con el archivo. Vuelve a intentarlo",
-  unsupported_device: "Este equipo no puede preparar la imagen",
+  image_too_large: t("chatattach.err_image_too_large"),
+  dimensions_too_large: t("chatattach.err_image_too_large"),
+  input_too_large: t("chatattach.err_image_too_large"),
+  file_too_large: t("chatattach.err_file_too_large"),
+  conversation_quota: t("chatattach.err_conversation_quota"),
+  host_quota: t("chatattach.err_host_quota"),
+  too_many_attachments: t("chatattach.err_too_many", { max: MAX_ATTACHMENTS }),
+  folder: t("chatattach.err_folder"),
+  unknown_attachment: t("chatattach.err_unknown"),
+  no_such_attachment: t("chatattach.err_upload_gone"),
+  not_uploading: t("chatattach.err_upload_gone"),
+  already_linked: t("chatattach.err_already_linked"),
+  not_ready: t("chatattach.err_not_ready"),
+  size_mismatch: t("chatattach.err_mismatch"),
+  hash_mismatch: t("chatattach.err_mismatch"),
+  unsupported_device: t("chatattach.err_device"),
 };
-const FALLBACK_TEXT = "No se pudo adjuntar la imagen.";
+const FALLBACK_TEXT = t("chatattach.err_fallback");
 // Only these failures can succeed on a second try; a refusal never can.
 const RETRYABLE = ["offline", "host", "agentBusy"];
 
@@ -111,14 +113,14 @@ export function documentBadge(name) {
   const ext = extensionOf(name);
   return {
     family: FAMILY_BY_EXTENSION.get(ext) || "file",
-    label: ext ? ext.toUpperCase() : "ARCHIVO",
+    label: ext ? ext.toUpperCase() : t("chatattach.badge_file"),
   };
 }
 
 // What a document card shows: the name as the host has it, its size in Spanish and its badge.
 export function documentCard(attachment) {
   return {
-    name: attachment.name || "Archivo",
+    name: attachment.name || t("chatattach.file_fallback_name"),
     size: attachment.size ? sizeLabel(attachment.size) : "",
     ...documentBadge(attachment.name),
   };
@@ -213,14 +215,14 @@ export function progressPercent(sent, total) {
 export function sizeLabel(bytes) {
   const mib = 1024 * 1024;
   if (bytes < mib) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / mib).toFixed(1).replace(".", ",")} MB`;
+  return `${(bytes / mib).toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
 }
 
 // The status line under a picture's name.
 export function itemStatus(item) {
-  if (item.state === "preparing") return "Preparando…";
-  if (item.state === "uploading") return `Subiendo ${progressPercent(item.sent, item.size)} %`;
-  if (item.state === "ready") return "Lista para enviar";
+  if (item.state === "preparing") return t("chatattach.status_preparing");
+  if (item.state === "uploading") return t("chatattach.status_uploading", { n: progressPercent(item.sent, item.size) });
+  if (item.state === "ready") return t("chatattach.status_ready");
   return itemFailureText(item.failure || {});
 }
 

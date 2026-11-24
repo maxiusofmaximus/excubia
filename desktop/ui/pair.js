@@ -5,6 +5,7 @@ import { renderAgents, renderConnection } from "./agents.js";
 import { chatAfterConnect, chatReset } from "./chat.js";
 import { installLinkForm } from "./pair-link.js";
 import { hydrateLan, installLanPairing } from "./pair-lan.js";
+import { t } from "./i18n.js";
 
 export function hydratePairing(boot) {
   const local = boot.mode === "local";
@@ -18,16 +19,16 @@ export function hydratePairing(boot) {
   hydrateLan(boot.lan_pairing === true);
   renderLocalStatus(boot.host);
   $("device-label").value = boot.label || "";
-  $("fingerprint").textContent = boot.fingerprint || "No disponible";
+  $("fingerprint").textContent = boot.fingerprint || t("pair.unavailable");
   $("notifications-toggle").checked = boot.notifications_enabled !== false;
   // Local mode has no code form to read the lede from: it asks for the phone instead.
-  $("pair-title").textContent = local ? "Emparejar el móvil" : "Vincula este equipo con tu Excubia";
+  $("pair-title").textContent = local ? t("pair.title_local") : t("pair.title");
   $("pair-lede").classList.toggle("hidden", local);
   for (const id of ["btn-pair-top-back", "btn-pair-back"]) {
     $(id).classList.toggle("hidden", !(boot.paired || local));
   }
   if (boot.identity_error) {
-    showPairError(`No se pudo abrir el almacén seguro: ${boot.identity_error}`);
+    showPairError(t("pair.identity_error", { error: boot.identity_error }));
     $("btn-pair").disabled = true;
   }
 }
@@ -43,11 +44,11 @@ function renderLocalStatus(host) {
   const state = host ? host.state : "disabled";
   restart.classList.toggle("hidden", state !== "failed");
   if (state === "ready") {
-    status.textContent = "Excubia está en marcha en este equipo.";
+    status.textContent = t("pair.local_running");
   } else if (state === "failed") {
-    status.textContent = `Excubia no arrancó en este equipo: ${host.error}`;
+    status.textContent = t("pair.local_failed", { error: host.error });
   } else {
-    status.textContent = "Arrancando Excubia en este equipo…";
+    status.textContent = t("pair.local_starting");
   }
 }
 
@@ -62,7 +63,7 @@ async function doPair(event) {
   const code = $("pair-code").value.trim();
   const button = $("btn-pair");
   showPairError("");
-  setBusy(button, true, "Emparejando…");
+  setBusy(button, true, t("pair.pairing"));
   try {
     completePairing(await invoke("pair", { code, label: $("device-label").value }));
   } catch (error) {
@@ -80,10 +81,10 @@ function completePairing(outcome) {
     device_id: outcome.device_id,
     label: outcome.label,
   };
-  $("recovery-code").textContent = outcome.recovery_code || "No disponible";
+  $("recovery-code").textContent = outcome.recovery_code || t("pair.unavailable");
   $("recovery-note").textContent = outcome.recovery_code
-    ? "No se volverá a mostrar."
-    : "El PC no devolvió un código de recuperación.";
+    ? t("recovery.note")
+    : t("pair.no_recovery");
   $("btn-copy-recovery").disabled = !outcome.recovery_code;
   showView("recovery");
 }
@@ -107,7 +108,7 @@ export async function forgetPairing() {
 }
 
 // Leaving the local host stops it and unpairs the phones it serves: the button asks twice.
-const REMOTE_CONFIRM = "Pulsa otra vez: este equipo dejará de servir a tus móviles";
+const REMOTE_CONFIRM = t("pair.remote_confirm");
 let remoteArmedTimer = null;
 
 async function useRemoteHost() {
@@ -123,7 +124,7 @@ async function useRemoteHost() {
   }
   clearTimeout(remoteArmedTimer);
   remoteArmedTimer = null;
-  button.textContent = "Vincular con otro equipo";
+  button.textContent = t("pair.use_remote");
   try {
     await invoke("use_remote_host");
     app.boot = { ...(app.boot || {}), mode: "remote" };
@@ -138,9 +139,13 @@ async function useRemoteHost() {
 }
 
 async function useLocalHost() {
+  // applyHostStatus replaces app.boot.host with a new object, so a changed reference means
+  // an hn-host event arrived while the command was pending: it is newer than "starting".
+  const before = app.boot?.host;
   try {
     await invoke("use_local_host");
-    app.boot = { ...(app.boot || {}), mode: "local", host: { state: "starting" } };
+    const host = app.boot?.host !== before ? app.boot.host : { state: "starting" };
+    app.boot = { ...(app.boot || {}), mode: "local", host };
     app.state = null;
     app.connection = { kind: "idle" };
     chatReset();
@@ -168,7 +173,7 @@ async function toggleNotifications() {
   const enabled = toggle.checked;
   try {
     await invoke("set_notifications", { enabled });
-    toast(enabled ? "Avisos activados" : "Avisos desactivados");
+    toast(enabled ? t("pair.notifications_on") : t("pair.notifications_off"));
   } catch (error) {
     toggle.checked = !enabled;
     toast(errorMessage(error));
@@ -198,7 +203,7 @@ export function installPairHandlers() {
     input.setSelectionRange(start, start);
   });
   $("btn-copy-recovery").addEventListener("click", () => {
-    copyText($("recovery-code").textContent, "Código copiado");
+    copyText($("recovery-code").textContent, t("pair.code_copied"));
   });
   $("btn-recovery-continue").addEventListener("click", () => {
     showView("chat");

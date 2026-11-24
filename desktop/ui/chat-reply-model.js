@@ -2,9 +2,9 @@
 // suggestions the thread offers, how a quote or the reply bar reads, and the
 // words of a reply the host no longer knows.
 import { isAgentMessage, isOwn } from "./chat-turn-model.js";
+import { t } from "./i18n.js";
 
-export const UNKNOWN_REPLY_NOTICE =
-  "Ese mensaje ya no está en la conversación. Se quitó la cita; tu texto sigue escrito.";
+export const UNKNOWN_REPLY_NOTICE = t("chat.reply.unknown");
 
 // One line, collapsed spaces, cut with an ellipsis when it runs long.
 export function previewLine(text, max = 80) {
@@ -14,15 +14,15 @@ export function previewLine(text, max = 80) {
 
 // The operator reads as «ti»; every other author is Alfred.
 export function authorName(authorKind, alfredName) {
-  return authorKind === "user" ? "ti" : alfredName || "Alfred";
+  return authorKind === "user" ? t("chat.reply.you") : alfredName || "Alfred";
 }
 
 export function quoteLabel(quote, alfredName) {
-  return `Responde a ${authorName(quote.author_kind, alfredName)}: ${previewLine(quote.preview, 80)}`;
+  return t("chat.reply.quote", { who: authorName(quote.author_kind, alfredName), text: previewLine(quote.preview, 80) });
 }
 
 export function replyBarText(reply, alfredName) {
-  return `Respondiendo a ${authorName(reply.author_kind, alfredName)}: ${previewLine(reply.preview, 80)}`;
+  return t("chat.reply.bar", { who: authorName(reply.author_kind, alfredName), text: previewLine(reply.preview, 80) });
 }
 
 // The quick answers belong to the last agent message, and only while the

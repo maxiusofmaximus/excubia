@@ -2,6 +2,7 @@
 // writes the file; this screen shows what came back and reloads the list after an import.
 
 import { $, invoke, setBusy } from "./core.js";
+import { t } from "./i18n.js";
 import { element } from "./chatdom.js";
 import { reportWrite } from "./agenda-ui.js";
 import { icsErrorText, importSummary, savedText, skippedLines, skippedNote } from "./calendar-ics-model.js";
@@ -44,7 +45,7 @@ export function installIcs({ visibleWindow, refresh }) {
 
   async function importFile(button) {
     reset();
-    setBusy(button, true, "Importando…");
+    setBusy(button, true, t("calendar.importing"));
     try {
       const outcome = await invoke("calendar_import_ics");
       if (!outcome) return;
@@ -61,7 +62,7 @@ export function installIcs({ visibleWindow, refresh }) {
     reset();
     const scope = $("calendar-export-scope").value;
     const range = scope === "all" ? { from: null, to: null } : visibleWindow();
-    setBusy(button, true, "Exportando…");
+    setBusy(button, true, t("calendar.exporting"));
     try {
       const name = await invoke("calendar_export_ics", range);
       if (!name) return;

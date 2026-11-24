@@ -7,6 +7,7 @@ import { avatarElement } from "./avatar.js";
 import { errorMessage } from "./format.js";
 import { HIRE_CHARACTERS, characterLabel } from "./hires-model.js";
 import { installRecipes, openRecipes } from "./recipes.js";
+import { t } from "./i18n.js";
 
 let current = null;
 let pickedAvatar = null;
@@ -37,13 +38,13 @@ async function saveRename(event) {
   event.preventDefault();
   const name = $("hire-rename-input").value.trim();
   if (!name) {
-    showError("hire-rename-error", "Escribe un nombre.");
+    showError("hire-rename-error", t("project.name_required"));
     return;
   }
   try {
     await invoke("team_hire_rename", { hireId: current.id, name });
     $("hire-rename").close();
-    toast("Nombre guardado");
+    toast(t("hire.name_saved"));
     await onChange();
   } catch (error) {
     showError("hire-rename-error", errorMessage(error));
@@ -63,7 +64,7 @@ function paintAvatarGrid() {
     });
     const face = avatarElement({ name: current.name, characterId: id, px: 48, faceFromName: false });
     const label = document.createElement("span");
-    label.textContent = id ? characterLabel(id) : "Sin personaje";
+    label.textContent = id ? characterLabel(id) : t("hire.no_character");
     button.append(face, label);
     return button;
   });
@@ -83,7 +84,7 @@ async function saveAvatar(event) {
   try {
     await invoke("team_hire_avatar", { hireId: current.id, avatar: pickedAvatar });
     $("hire-avatar").close();
-    toast("Personaje guardado");
+    toast(t("hire.character_saved"));
     await onChange();
   } catch (error) {
     showError("hire-avatar-error", errorMessage(error));
@@ -92,7 +93,7 @@ async function saveAvatar(event) {
 
 function openDismiss() {
   $("hire-actions").close();
-  $("hire-dismiss-lede").textContent = `¿Despedir a ${current.name}? Dejará de estar en tu equipo.`;
+  $("hire-dismiss-lede").textContent = t("hire.dismiss_ask", { name: current.name });
   showError("hire-dismiss-error", "");
   $("hire-dismiss").showModal();
 }
@@ -102,7 +103,7 @@ async function confirmDismiss(event) {
   try {
     await invoke("team_hire_dismiss", { hireId: current.id });
     $("hire-dismiss").close();
-    toast(`${current.name} ya no está en tu equipo`);
+    toast(t("hire.dismissed", { name: current.name }));
     await onChange();
   } catch (error) {
     showError("hire-dismiss-error", errorMessage(error));

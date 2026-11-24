@@ -7,11 +7,12 @@ import { button } from "./agenda-ui.js";
 import { element } from "./chatdom.js";
 import { setBusy } from "./core.js";
 import { confirmApproveText, needsExtraConfirm, noteCount, noteError, planFailureText } from "./plan-model.js";
+import { t } from "./i18n.js";
 
 const BUSY = {
-  approve: "Aprobando…",
-  reject: "Rechazando…",
-  request_changes: "Enviando…",
+  approve: t("plan.busy_approve"),
+  reject: t("plan.busy_reject"),
+  request_changes: t("plan.busy_send"),
 };
 
 function actionRow(nodes) {
@@ -29,7 +30,7 @@ function stepNode(step) {
 function headNodes(view) {
   const nodes = [element("p", "plan-title", view.summary), element("p", "plan-lede", view.lede)];
   if (view.decided) nodes.push(element("p", "plan-status", view.statusLabel));
-  if (view.note) nodes.push(element("p", "plan-note", `Tu nota: ${view.note}`));
+  if (view.note) nodes.push(element("p", "plan-note", t("plan.your_note", { note: view.note })));
   return nodes;
 }
 
@@ -78,41 +79,41 @@ export function planCard(plan, view, { readOnly, decide }) {
   };
 
   const answers = () => {
-    const approve = button("Aprobar", "btn primary", () =>
+    const approve = button(t("plan.approve"), "btn primary", () =>
       needsExtraConfirm(plan) ? confirmStep() : send("approve", { id: plan.id }, approve),
     );
-    const change = button("Cambiar…", "btn secondary", () => changesStep());
-    const reject = button("Rechazar", "btn ghost plan-danger", () => rejectStep());
+    const change = button(t("plan.change"), "btn secondary", () => changesStep());
+    const reject = button(t("plan.reject"), "btn ghost plan-danger", () => rejectStep());
     mount([actionRow([approve, change, reject])], approve);
   };
 
   const confirmStep = () => {
-    const yes = button("Aprobar igualmente", "btn primary", () => send("approve", { id: plan.id }, yes));
-    const back = button("Volver", "btn ghost", answers);
+    const yes = button(t("plan.approve_anyway"), "btn primary", () => send("approve", { id: plan.id }, yes));
+    const back = button(t("common.back"), "btn ghost", answers);
     mount([element("p", "plan-ask", confirmApproveText()), actionRow([yes, back])], yes);
   };
 
   const changesStep = () => {
     const area = element("textarea", "plan-note-field");
     area.rows = 3;
-    area.setAttribute("aria-label", "Qué cambiarías del plan");
+    area.setAttribute("aria-label", t("plan.note_aria"));
     const count = element("p", "hint plan-count", noteCount(""));
     area.addEventListener("input", () => {
       count.textContent = noteCount(area.value);
     });
-    const submit = button("Enviar cambios", "btn primary", () => {
+    const submit = button(t("plan.send_changes"), "btn primary", () => {
       const error = noteError(area.value);
       if (error) return showText(error);
       return send("request_changes", { id: plan.id, note: area.value.trim() }, submit);
     });
-    const back = button("Cancelar", "btn ghost", answers);
-    mount([element("p", "plan-ask", "¿Qué cambiarías?"), area, count, actionRow([submit, back])], area);
+    const back = button(t("common.cancel"), "btn ghost", answers);
+    mount([element("p", "plan-ask", t("plan.what_change")), area, count, actionRow([submit, back])], area);
   };
 
   const rejectStep = () => {
-    const yes = button("Rechazar plan", "btn secondary plan-danger", () => send("reject", { id: plan.id }, yes));
-    const back = button("Volver", "btn ghost", answers);
-    mount([element("p", "plan-ask", "¿Rechazar este plan? No se hará nada de lo propuesto."), actionRow([yes, back])], yes);
+    const yes = button(t("plan.reject_plan"), "btn secondary plan-danger", () => send("reject", { id: plan.id }, yes));
+    const back = button(t("common.back"), "btn ghost", answers);
+    mount([element("p", "plan-ask", t("plan.reject_ask")), actionRow([yes, back])], yes);
   };
 
   card.addEventListener("keydown", (event) => {

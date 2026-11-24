@@ -3,6 +3,7 @@
 // tooling/onboarding-model.test.mjs runs them without a window.
 
 import { AREA_CAP, AREA_CAP_NOTICE, hiredIn, joinLabels, hiredNoun } from "./hires-model.js";
+import { t } from "./i18n.js";
 
 // People the area would hold once the step is confirmed: the contracted ones plus the picks.
 export function areaTotal({ selected, area, hires }) {
@@ -10,9 +11,9 @@ export function areaTotal({ selected, area, hires }) {
 }
 
 export const LEVELS = [
-  { id: "personal", label: "Personal", help: "Un profesional por área: el principal." },
-  { id: "profesional", label: "Profesional", help: "El equipo base de cada área." },
-  { id: "equipo", label: "Equipo", help: "Todo el equipo del área, hasta 8." },
+  { id: "personal", label: t("onboarding.level_personal"), help: t("onboarding.level_personal_help") },
+  { id: "profesional", label: t("onboarding.level_profesional"), help: t("onboarding.level_profesional_help") },
+  { id: "equipo", label: t("onboarding.level_equipo"), help: t("onboarding.level_equipo_help") },
 ];
 
 // Profesional is the level a skipped step falls back to, as on the host.
@@ -46,5 +47,5 @@ export function chosenAreas(areas, areaIds) {
 }
 
 export function confirmation(count, areaLabels) {
-  return `He preparado ${count} ${hiredNoun(count)} para ${joinLabels(areaLabels)}. Puedes ajustarlos en cualquier momento.`;
+  return t("onboarding.confirmation", { count, noun: hiredNoun(count), areas: joinLabels(areaLabels) });
 }

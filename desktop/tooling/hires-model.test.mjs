@@ -13,7 +13,9 @@ import {
   isHired,
   joinLabels,
   leaderCount,
+  showsHireButton,
   readStateText,
+  showsHireSection,
   teamSubtitle,
 } from "../ui/hires-model.js";
 
@@ -77,12 +79,12 @@ test("una contratación en un área que el catálogo no conoce conserva su grupo
   assert.equal(groups[0].label, "legal");
 });
 
-test("el subtítulo cuenta lo que lista la vista: contratados y agentes en marcha", () => {
-  assert.equal(teamSubtitle(0, 1), "1 en marcha");
+test("el subtítulo cuenta lo que lista la vista: contratados y sesiones de agentes", () => {
+  assert.equal(teamSubtitle(0, 1), "1 sesión");
   assert.equal(teamSubtitle(1, 0), "1 contratado");
   assert.equal(teamSubtitle(2, 0), "2 contratados");
-  assert.equal(teamSubtitle(0, 3), "3 en marcha");
-  assert.equal(teamSubtitle(2, 1), "2 contratados · 1 en marcha");
+  assert.equal(teamSubtitle(0, 3), "3 sesiones");
+  assert.equal(teamSubtitle(2, 1), "2 contratados · 1 sesión");
   assert.equal(teamSubtitle(0, 0), "Sin nadie contratado todavía");
 });
 
@@ -113,4 +115,20 @@ test("la unión de etiquetas suena a español: «a», «a y b», «a, b y c»", 
   assert.equal(joinLabels(["Programación", "Vídeo"]), "Programación y Vídeo");
   assert.equal(joinLabels(["A", "B", "C"]), "A, B y C");
   assert.equal(joinLabels([]), "");
+});
+
+test("«Contratados» solo aparece con algo que mostrar: un contratado, una lectura fallida o el permiso pendiente", () => {
+  const none = { hires: [], canHire: true, readError: null };
+  assert.equal(showsHireSection(none), false, "sin nadie contratado y con permiso no hay sección");
+  assert.equal(showsHireSection({ ...none, hires: [hire("bob", "programacion", "removed")] }), false, "un despedido no cuenta");
+  assert.equal(showsHireSection({ ...none, hires: [hire("bob", "programacion")] }), true);
+  assert.equal(showsHireSection({ ...none, readError: { text: "x", retry: true } }), true, "una lectura fallida se explica");
+  assert.equal(showsHireSection({ ...none, canHire: false }), true, "sin permiso aparece la nota para concederlo");
+});
+
+test("«Contratar» está en la cabecera estable de Equipo mientras el dispositivo pueda contratar y la lectura no falle", () => {
+  assert.equal(showsHireButton({ canHire: true, readError: null }), true, "sin contratados también hay botón");
+  assert.equal(showsHireButton({ canHire: true, readError: null, hires: [hire("bob", "programacion")] }), true);
+  assert.equal(showsHireButton({ canHire: true, readError: { text: "x", retry: true } }), false, "con lectura fallida no se contrata");
+  assert.equal(showsHireButton({ canHire: false, readError: null }), false, "sin permiso no hay botón");
 });

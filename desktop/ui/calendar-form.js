@@ -2,6 +2,7 @@
 // in the company's zone; the host turns them into instants. Delete asks first and stays
 // off, with its reason, when the device lacks APPROVE.
 
+import { t } from "./i18n.js";
 import { $, invoke } from "./core.js";
 import { element } from "./chatdom.js";
 import {
@@ -63,21 +64,21 @@ function reminderSelect(current) {
 // The inputs of the form, their captions in reading order, and the controls a save reads.
 function formControls(event, schedule) {
   const fields = {
-    title: field({ id: "calendar-title", label: "Título", value: event?.title || "" }),
+    title: field({ id: "calendar-title", label: t("schedule.title_label"), value: event?.title || "" }),
     start: field({
       id: "calendar-start",
-      label: "Inicio",
+      label: t("calendarform.start"),
       type: schedule.allDay ? "date" : "datetime-local",
       value: schedule.start,
     }),
     end: field({
       id: "calendar-end",
-      label: "Fin (opcional)",
+      label: t("calendarform.end"),
       type: schedule.allDay ? "date" : "datetime-local",
       value: schedule.end,
     }),
-    location: field({ id: "calendar-location", label: "Lugar", value: event?.location || "" }),
-    notes: field({ id: "calendar-notes", label: "Notas", value: event?.notes || "", multiline: true, rows: 4 }),
+    location: field({ id: "calendar-location", label: t("calendarform.place"), value: event?.location || "" }),
+    notes: field({ id: "calendar-notes", label: t("calendarform.notes"), value: event?.notes || "", multiline: true, rows: 4 }),
   };
   fields.recurrence = recurrenceBlock({ rule: event?.recurrence ?? null, startOf: () => fields.start.control.value });
   const allDay = element("input");
@@ -87,10 +88,10 @@ function formControls(event, schedule) {
   allDay.addEventListener("change", () => retype(fields, allDay.checked));
   const allDayLabel = element("label", "agenda-check");
   allDayLabel.htmlFor = allDay.id;
-  allDayLabel.append(allDay, " Todo el día");
+  allDayLabel.append(allDay, t("calendarform.all_day"));
 
   const reminder = reminderSelect(event?.reminder_minutes ?? null);
-  const reminderCaption = element("label", "agenda-label", "Aviso");
+  const reminderCaption = element("label", "agenda-label", t("calendarform.reminder"));
   reminderCaption.htmlFor = reminder.id;
   const reminderBox = element("div", "agenda-field");
   reminderBox.append(reminderCaption, reminder);
@@ -119,14 +120,14 @@ export function createEventPanel({ onSaved, onDeleted, onClosed }) {
 
   function show(event, companyZone = zone) {
     zone = companyZone;
-    const edit = button("Editar", "btn secondary btn-small", () => editEvent(event));
+    const edit = button(t("mail.edit"), "btn secondary btn-small", () => editEvent(event));
     const notes = event.notes ? [element("p", "agenda-notes", event.notes)] : [];
-    const repeats = event.recurrence ? [detailLine("Repite", ruleText(event.recurrence))] : [];
+    const repeats = event.recurrence ? [detailLine(t("calendarform.repeats"), ruleText(event.recurrence))] : [];
     fillPanel(parts, event.title, [
-      detailLine("Cuándo", whenText(event, zone)),
+      detailLine(t("calendarform.when"), whenText(event, zone)),
       ...repeats,
-      ...(event.location ? [detailLine("Lugar", event.location)] : []),
-      detailLine("Aviso", reminderLabel(event.reminder_minutes)),
+      ...(event.location ? [detailLine(t("calendarform.place"), event.location)] : []),
+      detailLine(t("calendarform.reminder"), reminderLabel(event.reminder_minutes)),
       ...notes,
       actionRow(edit, deleteAction(() => showDelete(event))),
       approveReason(),
@@ -140,7 +141,7 @@ export function createEventPanel({ onSaved, onDeleted, onClosed }) {
     try {
       showForm(await invoke("calendar_get", { id: event.id }));
     } catch (failure) {
-      const back = button("Volver", "btn ghost btn-small", () => show(event));
+      const back = button(t("common.back"), "btn ghost btn-small", () => show(event));
       fillPanel(parts, event.title, [notice(calendarErrorText(failure)), actionRow(back)]);
     }
   }
@@ -154,11 +155,11 @@ export function createEventPanel({ onSaved, onDeleted, onClosed }) {
     const schedule = event ? formValues(event, zone) : { allDay: false, start: "", end: "" };
     const form = formControls(event, schedule);
     const problem = notice("");
-    const save = button(event ? "Guardar" : "Crear evento", "btn primary btn-small", () =>
+    const save = button(event ? t("common.save") : t("calendarform.create"), "btn primary btn-small", () =>
       submit(event, form, problem, save),
     );
-    const cancel = button("Cancelar", "btn ghost btn-small", () => (event ? show(event) : close()));
-    fillPanel(parts, event ? "Editar evento" : "Nuevo evento", [...form.nodes, problem, actionRow(cancel, save)]);
+    const cancel = button(t("common.cancel"), "btn ghost btn-small", () => (event ? show(event) : close()));
+    fillPanel(parts, event ? t("calendarform.edit_heading") : t("calendar.new"), [...form.nodes, problem, actionRow(cancel, save)]);
     form.fields.title.control.focus();
   }
 
@@ -209,7 +210,7 @@ export function createEventPanel({ onSaved, onDeleted, onClosed }) {
         }),
       onCancel: () => show(event),
     });
-    fillPanel(parts, `Borrar «${event.title}»`, [confirm.node]);
+    fillPanel(parts, t("calendarform.delete_heading", { title: event.title }), [confirm.node]);
   }
 
   $("calendar-panel-close").addEventListener("click", close);

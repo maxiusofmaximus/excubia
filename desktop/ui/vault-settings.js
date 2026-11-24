@@ -5,6 +5,7 @@
 import { $, invoke } from "./core.js";
 import { installVaultDialog, openVaultProtect } from "./vault-dialog.js";
 import { finishErrorText } from "./vault-model.js";
+import { t } from "./i18n.js";
 
 let status = null;
 
@@ -34,11 +35,9 @@ function paint() {
   if (!status) return;
   const protectedNow = status.state === "protected";
   const backup = protectedNow && status.backup;
-  $("vault-state").textContent = protectedNow
-    ? "Tu historial está cifrado (AES-256)."
-    : "Tu historial está guardado sin cifrar en este PC.";
+  $("vault-state").textContent = protectedNow ? t("vault.state_protected") : t("vault.state_plain");
   $("btn-vault-protect").classList.toggle("hidden", protectedNow);
-  $("vault-backup").textContent = "Queda una copia sin cifrar de antes de proteger.";
+  $("vault-backup").textContent = t("vault.backup_note");
   $("vault-backup").classList.toggle("hidden", !backup);
   $("btn-vault-finish").classList.toggle("hidden", !backup);
 }

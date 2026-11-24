@@ -15,11 +15,17 @@ import {
   systemIsDark,
   watchSystem,
 } from "./palettes.js";
+import { t } from "./i18n.js";
 
 const PREVIEW_TOKENS = ["bg", "surface", "line", "text", "muted", "accent"];
 // The palettes that are new in this release get a «Nueva» stamp on their card.
 const NEW_PALETTES = new Set(["telon"]);
 const state = { prefs: loadPrefs(), systemDark: systemIsDark(), pickers: [], firstRun: null, onContinue: null };
+
+// palette-data.js keeps the Spanish names; the active language's name is read by the palette id.
+function paletteName(palette) {
+  return t(`palette.name.${palette.id}`);
+}
 
 function currentPrefs() {
   return state.prefs || { id: DEFAULT_PALETTE, followSystem: false };
@@ -72,16 +78,17 @@ function cardFor(palette, onChange) {
   if (NEW_PALETTES.has(palette.id)) {
     const stamp = document.createElement("span");
     stamp.className = "palette-new";
-    stamp.textContent = "Nueva";
+    stamp.textContent = t("palette.new_badge");
     text.append(stamp);
   }
   text.prepend(swatch);
   const name = document.createElement("span");
   name.className = "palette-card-name";
-  name.textContent = palette.name;
+  name.textContent = paletteName(palette);
   const note = document.createElement("span");
   note.className = "palette-card-note";
-  note.textContent = palette.note;
+  // palette-data.js is a classic script and keeps the key of its description; it is translated here.
+  note.textContent = t(palette.note);
   text.append(name, note);
   card.append(preview, text);
 
@@ -117,7 +124,7 @@ function toggle(onChange) {
   input.setAttribute("role", "switch");
   const text = document.createElement("span");
   text.className = "palette-system-text";
-  text.textContent = "Seguir el tema del sistema (claro de día, oscuro de noche)";
+  text.textContent = t("palette.follow_system");
   label.append(input, text);
   input.addEventListener("change", () => {
     onChange({ id: shownId(), followSystem: input.checked });
@@ -131,7 +138,7 @@ function createPicker(onChange) {
   const grid = document.createElement("div");
   grid.className = "palette-grid";
   grid.setAttribute("role", "group");
-  grid.setAttribute("aria-label", "Paletas");
+  grid.setAttribute("aria-label", t("palette.group_aria"));
   const cards = Object.values(PALETTES).map((palette) => cardFor(palette, onChange));
   cards.forEach((card, index) => {
     card.addEventListener("keydown", (event) => {
@@ -156,8 +163,8 @@ function createPicker(onChange) {
     }
     system.input.checked = prefs.followSystem;
     hint.textContent = prefs.followSystem
-      ? `La decide el sistema. Ahora: ${PALETTES[selected].name}.`
-      : "Se guarda en este equipo y se aplica al instante.";
+      ? t("palette.system_now", { name: paletteName(PALETTES[selected]) })
+      : t("palette.saved_hint");
   }
 
   function focusSelected() {
@@ -174,10 +181,10 @@ function mountSettings() {
   section.setAttribute("aria-labelledby", "palette-settings-title");
   const title = document.createElement("h2");
   title.id = "palette-settings-title";
-  title.textContent = "Apariencia";
+  title.textContent = t("palette.appearance_title");
   const lede = document.createElement("p");
   lede.className = "hint";
-  lede.textContent = "Elige la paleta de la aplicación. Se aplica al instante.";
+  lede.textContent = t("palette.appearance_lede");
   const picker = createPicker((next) => updatePrefs(next));
   state.pickers.push(picker);
   section.append(title, lede, picker.root);

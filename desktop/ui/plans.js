@@ -3,6 +3,7 @@
 // host's plan and repaints that card at once; a card is redrawn only when its text changes.
 
 import { $, invoke } from "./core.js";
+import { t } from "./i18n.js";
 import { element, loadingBlock } from "./chatdom.js";
 import { errorState } from "./empty-state.js";
 import { friendlyError } from "./friendly-error.js";
@@ -142,7 +143,7 @@ export function openPending() {
 
 export function installPlans() {
   if (!$("team-plans-body")) return;
-  $("team-plans-body").replaceChildren(loadingBlock("Cargando planes"));
+  $("team-plans-body").replaceChildren(loadingBlock(t("plans.loading")));
   state.key = "loading";
   // Coming back to Equipo is the operator's chance to have been granted APPROVE: the lock lifts.
   new MutationObserver(() => {

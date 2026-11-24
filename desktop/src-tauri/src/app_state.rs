@@ -1,10 +1,11 @@
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use excubia_desktop_core::identity::{DeviceIdentity, IdentityStore, KeyringIdentityStore};
 use excubia_desktop_core::state::StateStore;
 use excubia_desktop_core::stream::ConnectionStatus;
-use excubia_desktop_core::{ChatFeed, CoreError, HostClient, Transport};
+use excubia_desktop_core::{ChatFeed, CoreError, HostClient, Transport, WriteAction};
 use tauri::AppHandle;
 use tokio_util::sync::CancellationToken;
 
@@ -45,7 +46,8 @@ fn keyring_account() -> String {
 pub struct Inner {
     pub config: Config,
     pub identity: Option<DeviceIdentity>,
-    pub identity_error: Option<String>,
+    /// Kept structured: the text is chosen at `bootstrap`, after the shell has sent its language.
+    pub identity_error: Option<CoreError>,
     pub store: Arc<Mutex<StateStore>>,
     pub connection: ConnectionStatus,
     /// The URL actually in use: the managed host's port when local.
@@ -64,6 +66,15 @@ pub struct AppState {
     host_shutdown: Mutex<Option<CancellationToken>>,
     host_tasks: Mutex<Vec<tauri::async_runtime::JoinHandle<()>>>,
     keyring: KeyringIdentityStore,
+    /// Set by the first `bootstrap`; see `claims_boot`.
+    boot_claimed: AtomicBool,
+}
+
+/// True for the first bootstrap of the process in local mode, which starts the local host.
+/// A window reload calls bootstrap again: it must not start a second sidecar.
+pub fn claims_boot(claimed: &AtomicBool, local: bool) -> bool {
+    let first = !claimed.swap(true, Ordering::SeqCst);
+    first && local
 }
 
 /// A poisoned lock is not a reason to take the app down: the guarded data is
@@ -77,6 +88,8 @@ pub struct HostSettings {
     pub url: String,
     pub identity: DeviceIdentity,
     pub transport: Transport,
+    /// Read under the same lock as the identity and URL: the local server is this device.
+    pub local: bool,
 }
 
 impl HostSettings {
@@ -117,6 +130,7 @@ impl AppState {
             host_shutdown: Mutex::new(None),
             host_tasks: Mutex::new(Vec::new()),
             keyring,
+            boot_claimed: AtomicBool::new(false),
         }
     }
 
@@ -133,7 +147,13 @@ impl AppState {
         let identity = inner
             .identity
             .clone()
-            .ok_or_else(|| "No hay identidad de dispositivo disponible.".to_string())?;
+            .ok_or_else(|| {
+                excubia_desktop_core::ui_lang::pick(
+                    "No hay identidad de dispositivo disponible.",
+                    "No device identity is available.",
+                )
+                .to_string()
+            })?;
         let url = inner
             .runtime_url
             .clone()
@@ -142,6 +162,7 @@ impl AppState {
             url,
             identity,
             transport: inner.config.transport(),
+            local: inner.config.local,
         })
     }
 
@@ -154,7 +175,7 @@ impl AppState {
     pub fn update_identity(&self, identity: DeviceIdentity) -> Result<(), String> {
         self.keyring
             .save(&identity)
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| error.describe(WriteAction::Read).text())?;
         lock(&self.inner).identity = Some(identity);
         Ok(())
     }
@@ -164,7 +185,7 @@ fn load_identity(
     keyring: &KeyringIdentityStore,
     legacy: &KeyringIdentityStore,
     config: &mut Config,
-) -> (Option<DeviceIdentity>, Option<String>) {
+) -> (Option<DeviceIdentity>, Option<CoreError>) {
     let store = MigratingStore {
         current: keyring,
         legacy,
@@ -189,6 +210,27 @@ fn load_identity(
             }
             (Some(identity), None)
         }
-        Err(error) => (None, Some(error.to_string())),
+        Err(error) => (None, Some(error)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The reload condition: a second bootstrap (window reload) starts nothing.
+    #[test]
+    fn only_the_first_bootstrap_starts_the_local_host() {
+        let claimed = AtomicBool::new(false);
+        assert!(claims_boot(&claimed, true));
+        assert!(!claims_boot(&claimed, true));
+        assert!(!claims_boot(&claimed, true));
+    }
+
+    #[test]
+    fn a_remote_first_bootstrap_starts_nothing() {
+        let claimed = AtomicBool::new(false);
+        assert!(!claims_boot(&claimed, false));
+        assert!(!claims_boot(&claimed, true));
     }
 }

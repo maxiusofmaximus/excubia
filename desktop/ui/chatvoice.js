@@ -19,9 +19,10 @@ import {
   voiceFailureText,
   wavFile,
 } from "./voice-model.js";
+import { t } from "./i18n.js";
 
-const CONSENT_TEXT = "Tu voz se graba aquí y se envía al PC de tu cuenta para transcribirla. No se guarda.";
-const KEYS_TEXT = "Esc cancela · el texto va al cuadro, no se envía";
+const CONSENT_TEXT = t("chatvoice.consent");
+const KEYS_TEXT = t("chatvoice.keys");
 const MIC_ICON =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" ' +
   'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -95,7 +96,7 @@ function toggle() {
 
 async function start() {
   if (blocked) return;
-  show("starting", "Pidiendo el micrófono…");
+  show("starting", t("chatvoice.asking_mic"));
   note.textContent = explained ? KEYS_TEXT : CONSENT_TEXT;
   const take = { blocks: [], count: 0, rate: 0, capture: null };
   current = take;
@@ -113,7 +114,7 @@ async function start() {
   }
   take.rate = take.capture.rate;
   explained = true;
-  show("recording", "Grabando · 0:00");
+  show("recording", t("chatvoice.recording", { time: "0:00" }));
 }
 
 function onBlock(take, block) {
@@ -126,14 +127,14 @@ function onBlock(take, block) {
   }
   meter.style.setProperty("--level", String(peakLevel(block)));
   // Only a change of second is read out; the same words would be announced again.
-  const label = `Grabando · ${elapsedText(take.count, take.rate)}`;
+  const label = t("chatvoice.recording", { time: elapsedText(take.count, take.rate) });
   if (status.textContent !== label) status.textContent = label;
 }
 
 async function finish() {
   const take = current;
   current = null;
-  show("transcribing", "Transcribiendo…");
+  show("transcribing", t("chatvoice.transcribing"));
   await take.capture.stop();
   const pcm = floatToPcm16(resample(concatBlocks(take.blocks), take.rate));
   if (pcm.length === 0) {
@@ -186,11 +187,11 @@ function show(next, text = "") {
   const recording = next === "recording";
   button.classList.toggle("is-recording", recording);
   button.setAttribute("aria-pressed", String(recording));
-  button.setAttribute("aria-label", recording ? "Parar y transcribir" : "Dictar un mensaje");
-  button.title = recording ? "Parar y transcribir (Ctrl+Mayús+M)" : "Dictar (Ctrl+Mayús+M)";
+  button.setAttribute("aria-label", recording ? t("chatvoice.stop_aria") : t("chatvoice.dictate_aria"));
+  button.title = recording ? t("chatvoice.stop_title") : t("chatvoice.dictate_title");
   button.disabled = blocked || next === "starting" || next === "transcribing";
   note.hidden = next !== "starting" && next !== "recording";
   cancel.hidden = next === "transcribing" || next === "starting";
-  cancel.textContent = next === "error" ? "Cerrar" : "Cancelar";
+  cancel.textContent = next === "error" ? t("common.close") : t("common.cancel");
   if (next === "idle") meter.style.setProperty("--level", "0");
 }

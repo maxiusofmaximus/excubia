@@ -4,18 +4,18 @@
 // screen itself says, such as an approval that ended without a send.
 
 import { countdownText } from "./approval-model.js";
+import { t } from "./i18n.js";
 
 // The sign-in kinds the operator picks; the host takes the tenant.
 export const SIGN_IN_KINDS = {
-  personal: { tenant: "consumers", label: "Cuenta personal (Outlook, Hotmail, Live)" },
-  work: { tenant: "organizations", label: "Cuenta de trabajo o escuela" },
+  personal: { tenant: "consumers", label: t("mail.signin.personal_label") },
+  work: { tenant: "organizations", label: t("mail.signin.work_label") },
 };
 
-export const APPROVAL_DENIED_TEXT = "El envío no se aprobó, o la aprobación caducó. No se envió nada.";
-export const APPROVAL_STALE_TEXT =
-  "La aprobación ya se usó o el borrador cambió después de aprobarlo. No se envió nada: pide la aprobación de nuevo.";
-export const APPROVAL_GONE_TEXT = "No encuentro esa aprobación en el PC. No se envió nada.";
-export const SEND_FAILED_TEXT = "El envío falló en el PC. Revisa el borrador antes de volver a intentarlo.";
+export const APPROVAL_DENIED_TEXT = t("mail.approval_denied");
+export const APPROVAL_STALE_TEXT = t("mail.approval_stale");
+export const APPROVAL_GONE_TEXT = t("mail.approval_gone");
+export const SEND_FAILED_TEXT = t("mail.send_failed");
 
 // Where a send flow stands. `asking`, `awaiting`, `send` and `window` are open;
 // the rest are final and stop every timer of the flow.
@@ -30,7 +30,7 @@ export function signInTenant(kind) {
 }
 
 export function accountKindLabel(tenant) {
-  return tenant === "consumers" ? "Personal" : "Trabajo o escuela";
+  return tenant === "consumers" ? t("mail.kind_personal") : t("mail.kind_work");
 }
 
 export function secondsUntil(untilMs, now = Date.now()) {
@@ -51,9 +51,9 @@ export function expiryMs(expiresInSeconds, now = Date.now()) {
 export function signInOutcome(status) {
   if (!status || status.status === "pending") return { done: false };
   if (status.status === "ok") {
-    return { done: true, ok: true, text: `Cuenta conectada: ${status.upn || status.label}.` };
+    return { done: true, ok: true, text: t("mail.signin.connected", { who: status.upn || status.label }) };
   }
-  return { done: true, ok: false, text: status.message || "No se completó el inicio de sesión." };
+  return { done: true, ok: false, text: status.message || t("mail.signin.not_completed") };
 }
 
 // The approval the host holds for a send. `send` means the operator approved and
@@ -81,17 +81,17 @@ export function sendStep(sendState) {
 export function phaseText(phase, { windowLeft = 0, text = "" } = {}) {
   switch (phase) {
     case "asking":
-      return "Pidiendo la aprobación del envío…";
+      return t("mail.phase.asking");
     case "awaiting":
-      return "Esperando tu aprobación. La verás en «Pendientes de ti», en el chat.";
+      return t("mail.phase.awaiting");
     case "send":
-      return "Aprobado. Programando el envío…";
+      return t("mail.phase.send");
     case "window":
-      return `Se enviará en ${windowLeft} s. Puedes cancelarlo hasta entonces.`;
+      return t("mail.phase.window", { s: windowLeft });
     case "sent":
-      return "Enviado.";
+      return t("mail.phase.sent");
     case "cancelled":
-      return "Envío cancelado. No se envió nada.";
+      return t("mail.phase.cancelled");
     default:
       return text || SEND_FAILED_TEXT;
   }
@@ -125,7 +125,7 @@ export function draftActions(phase, alfredCanRevise) {
 
 // What the composer gets when the operator asks Alfred for changes: it names the draft.
 export function changeRequestText(draftId) {
-  return `Cambia el borrador ${draftId}: `;
+  return t("mail.change_request", { id: draftId });
 }
 
 export function accountsState(accounts) {
@@ -148,13 +148,13 @@ export function attachmentLine(attachments) {
 // covers, as label/value rows, read from the host's `details`.
 export function digestRows(details) {
   return [
-    ["Cuenta", details.account || "—"],
-    ["Remitente", details.from || "—"],
-    ["Para", addressLine(details.to)],
+    [t("mail.digest.account"), details.account || "—"],
+    [t("mail.digest.from"), details.from || "—"],
+    [t("mail.digest.to"), addressLine(details.to)],
     ["Cc", addressLine(details.cc)],
-    ["Asunto", details.subject || "—"],
-    ["Adjuntos", attachmentLine(details.attachments)],
-    ["Inicio del cuerpo", details.body_preview || "—"],
+    [t("mail.digest.subject"), details.subject || "—"],
+    [t("mail.digest.attachments"), attachmentLine(details.attachments)],
+    [t("mail.digest.body"), details.body_preview || "—"],
   ];
 }
 

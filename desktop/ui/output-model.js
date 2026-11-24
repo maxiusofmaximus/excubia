@@ -2,6 +2,7 @@
 // delegation order is a JSON line the host writes: it reads «Encargo de Alfred: <task>».
 
 import { displayPath } from "./format.js";
+import { t } from "./i18n.js";
 
 export function plainOutput(text) {
   return String(text || "")
@@ -12,7 +13,7 @@ export function plainOutput(text) {
 
 function plainLine(line) {
   const order = orderOf(line);
-  if (order) return `Encargo de ${order.from || "Alfred"}: ${plainWords(order.task)}`;
+  if (order) return t("output.order", { from: order.from || "Alfred", task: plainWords(order.task) });
   return plainWords(line);
 }
 

@@ -131,6 +131,7 @@ test("each failure has its words, and a refused grant is a state rather than an 
   assert.equal(deviceFailureText({ kind: "protocol" }), "Tu PC no aceptó la petición. Vuelve a vincularlo si sigue pasando.");
   assert.equal(deviceFailureText(undefined), "No se pudo cargar. Inténtalo de nuevo.");
   assert.equal(deviceFailureText({ kind: "notPending" }), "Ya tenía permisos.");
+  assert.match(deviceFailureText({ kind: "ownServer" }), /servidor de Excubia/);
 });
 
 test("a six-digit chain reads in two groups, and anything else is shown as it came", () => {

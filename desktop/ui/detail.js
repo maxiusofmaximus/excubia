@@ -2,6 +2,7 @@ import { app, $, invoke, toast } from "./core.js";
 import { showView } from "./nav.js";
 import { agentTitle, displayPath, errorMessage, statusLabel, stripAnsi } from "./format.js";
 import { plainOutput } from "./output-model.js";
+import { locale, t } from "./i18n.js";
 
 let stopping = false;
 
@@ -20,9 +21,9 @@ export function renderComposer(agent) {
   $("composer").classList.toggle("is-ready", ready);
   // The line and the arrow keys exist only while the agent waits for an answer.
   $("composer-hint").textContent = restored
-    ? "El agente terminó; inicia una nueva conversación."
+    ? t("detail.restored_hint")
     : ready
-      ? "El agente está esperando; tu respuesta llega al terminal."
+      ? t("detail.waiting_hint")
       : "";
   $("composer-hint").classList.toggle("hidden", !restored && !ready);
   $("respond-text").disabled = !ready;
@@ -51,7 +52,7 @@ async function write(label, action) {
   let ok = true;
   try {
     await action();
-    setResult("Enviado. El agente lo recibirá en su terminal.", true);
+    setResult(t("detail.sent"), true);
   } catch (error) {
     ok = false;
     setResult(errorMessage(error), false);
@@ -65,17 +66,17 @@ async function write(label, action) {
 async function sendRespond() {
   const text = $("respond-text").value.trim();
   if (!text) {
-    setResult("Escribe un mensaje antes de enviar.", false);
+    setResult(t("detail.write_first"), false);
     return;
   }
-  const sent = await write("Enviando…", () =>
+  const sent = await write(t("detail.sending"), () =>
     invoke("respond", { paneId: app.current.pane_id, text }),
   );
   if (sent) $("respond-text").value = "";
 }
 
 function sendKey(key) {
-  return write("Enviando tecla…", () =>
+  return write(t("detail.sending_key"), () =>
     invoke("send_keys", { paneId: app.current.pane_id, keys: [key], confirm: false }),
   );
 }
@@ -87,7 +88,7 @@ async function markSeenIfDone(agent) {
   app.seenKeys.add(key);
   try {
     await invoke("mark_seen", { paneId: agent.pane_id });
-    setResult("Marcado como visto.", true);
+    setResult(t("detail.marked_seen"), true);
   } catch (error) {
     setResult(errorMessage(error), false);
   }
@@ -115,7 +116,7 @@ function hydrateDetailHeader(agent) {
   const meta = [
     agent.agent && agent.agent !== "unknown" ? agent.agent : null,
     displayPath(agent.cwd),
-    agent.can_resume ? "reanudable" : null,
+    agent.can_resume ? t("detail.resumable") : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -149,8 +150,8 @@ async function loadOutput() {
   const paneId = app.current.pane_id;
   $("detail-error").classList.add("hidden");
   $("detail-output").classList.add("is-loading");
-  $("detail-output").textContent = "Leyendo salida…";
-  $("output-meta").textContent = "Leyendo…";
+  $("detail-output").textContent = t("detail.reading");
+  $("output-meta").textContent = t("detail.reading_short");
 
   try {
     const detail = await invoke("agent_detail", { paneId, lines: 120 });
@@ -160,17 +161,17 @@ async function loadOutput() {
     renderComposer(detail.agent);
     const clean = plainOutput(stripAnsi(detail.output || "")).trimEnd();
     $("detail-output").classList.remove("is-loading");
-    $("detail-output").textContent = clean || "El agente no ha producido salida todavía.";
-    const time = new Date(detail.fetched_at * 1000).toLocaleTimeString("es-ES", {
+    $("detail-output").textContent = clean || t("detail.no_output");
+    const time = new Date(detail.fetched_at * 1000).toLocaleTimeString(locale(), {
       hour: "2-digit",
       minute: "2-digit",
     });
-    $("output-meta").textContent = `Solo lectura · leído a las ${time}`;
+    $("output-meta").textContent = t("detail.read_only", { time });
   } catch (error) {
     if (token !== app.detailToken) return;
     $("detail-output").classList.remove("is-loading");
     $("detail-output").textContent = "";
-    $("output-meta").textContent = "No disponible";
+    $("output-meta").textContent = t("detail.unavailable");
     const box = $("detail-error");
     box.textContent = errorMessage(error);
     box.classList.remove("hidden");
@@ -193,7 +194,7 @@ async function stopCurrent() {
   const button = $("btn-stop-confirm");
   const original = button.textContent;
   button.disabled = true;
-  button.textContent = "Deteniendo…";
+  button.textContent = t("detail.stopping");
   const result = $("stop-result");
   result.classList.add("hidden");
   result.classList.remove("is-error", "is-ok");
@@ -202,7 +203,7 @@ async function stopCurrent() {
     $("stop-confirm").classList.add("hidden");
     leaveDetail();
     toast(
-      outcome.already_gone ? "El agente ya había terminado" : "Agente detenido",
+      outcome.already_gone ? t("detail.already_gone") : t("detail.stopped"),
     );
   } catch (error) {
     result.textContent = errorMessage(error);

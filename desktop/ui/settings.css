@@ -31,6 +31,13 @@
   margin-top: 14px;
 }
 
+/* «Idioma / Language»: the three choices in one row. */
+.lang-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* The mounted approvals and mail sections carry their own title and frame; inside a card they sit flat. */
 .settings-card > .approval-settings,
 .settings-card > .mail-settings,

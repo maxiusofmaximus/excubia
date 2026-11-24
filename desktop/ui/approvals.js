@@ -3,6 +3,7 @@
 // and it answers the same way instead of deciding twice.
 
 import { $, invoke, toast } from "./core.js";
+import { t } from "./i18n.js";
 import { errorMessage } from "./format.js";
 import {
   CHECKING_TEXT,
@@ -101,7 +102,7 @@ function tickCountdowns() {
     const seconds = remainingSeconds(ttl.dataset.expires, now);
     if (seconds === null) continue;
     if (seconds > 0) {
-      ttl.textContent = `Caduca en ${countdownText(seconds)}`;
+      ttl.textContent = t("format.countdown", { time: countdownText(seconds) });
       continue;
     }
     ttl.textContent = CHECKING_TEXT;

@@ -1,10 +1,15 @@
 use crate::error::{CoreError, Result};
+use crate::ui_lang::pick;
 
 pub fn validate_device_id(value: &str) -> Result<()> {
     let value = value.trim();
     if value.is_empty() || value.len() > 64 {
         return Err(CoreError::InvalidInput(
-            "el identificador debe tener entre 1 y 64 caracteres".to_string(),
+            pick(
+                "el identificador debe tener entre 1 y 64 caracteres",
+                "the identifier must be between 1 and 64 characters",
+            )
+            .to_string(),
         ));
     }
     if !value
@@ -12,7 +17,11 @@ pub fn validate_device_id(value: &str) -> Result<()> {
         .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
     {
         return Err(CoreError::InvalidInput(
-            "el identificador solo admite letras, números, '-' y '_'".to_string(),
+            pick(
+                "el identificador solo admite letras, números, '-' y '_'",
+                "the identifier only allows letters, numbers, '-' and '_'",
+            )
+            .to_string(),
         ));
     }
     Ok(())
@@ -20,7 +29,9 @@ pub fn validate_device_id(value: &str) -> Result<()> {
 
 pub fn validate_pane_id(pane_id: &str) -> Result<()> {
     let Some((workspace, pane)) = pane_id.split_once(":p") else {
-        return Err(CoreError::InvalidInput("panel inválido".to_string()));
+        return Err(CoreError::InvalidInput(
+            pick("panel inválido", "invalid pane").to_string(),
+        ));
     };
     let valid = |value: &str| {
         !value.is_empty()
@@ -30,7 +41,9 @@ pub fn validate_pane_id(pane_id: &str) -> Result<()> {
                 .all(|character| character.is_ascii_alphanumeric())
     };
     if !valid(workspace) || !valid(pane) {
-        return Err(CoreError::InvalidInput("panel inválido".to_string()));
+        return Err(CoreError::InvalidInput(
+            pick("panel inválido", "invalid pane").to_string(),
+        ));
     }
     Ok(())
 }

@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { cycleIndex, drawerNext, keyAction, pickAction } from "../ui/drawer-model.js";
+import { cycleIndex, drawerNext, escapeTarget, keyAction, pickAction } from "../ui/drawer-model.js";
 
 const html = readFileSync(fileURLToPath(new URL("../ui/index.html", import.meta.url)), "utf8");
 const at = (needle) => html.indexOf(needle);
@@ -25,6 +25,18 @@ test("Esc closes an open drawer; closed, it has nothing to close", () => {
   assert.equal(drawerNext(true, "close"), false);
   assert.equal(drawerNext(false, "close"), false);
   assert.equal(keyAction("Escape", {}), "close");
+});
+
+test("one Esc closes one layer: an open row menu first (it sits over the drawer), then the drawer", () => {
+  assert.equal(escapeTarget({ menu: true, drawer: true }), "menu", "the row menu is the top layer");
+  assert.equal(escapeTarget({ menu: true, drawer: false }), "menu");
+  assert.equal(escapeTarget({ menu: false, drawer: true }), "drawer");
+  assert.equal(escapeTarget({}), null, "nothing open, nothing to close");
+});
+
+test("the ☰ inside the open drawer closes it: a click on it is a toggle, and the drawer shuts", () => {
+  assert.equal(drawerNext(true, "toggle"), false);
+  assert.equal(drawerNext(false, "toggle"), true);
 });
 
 test("an action nobody asked for leaves the drawer as it is", () => {
@@ -84,7 +96,7 @@ test("the sections and Ajustes are in the drawer, and Ajustes comes after the hi
 });
 
 test("the side panel is hidden, and its open button is gone", () => {
-  assert.match(html, /<aside id="chat-side" class="side" aria-label="Equipo" hidden>/);
+  assert.match(html, /<aside id="chat-side" class="side" aria-label="Equipo" data-i18n-aria-label="chat.team_heading" hidden>/);
   assert.equal(at('id="btn-side-toggle"'), -1);
   assert.equal(at('id="btn-open-team"'), -1);
 });
@@ -103,12 +115,26 @@ test("every screen with a menu has its ☰ inside its own heading", () => {
   }
 });
 
-test("the ☰ buttons say they are the menu and start closed", () => {
-  const toggles = [...html.matchAll(/<button[^>]*data-drawer-toggle[^>]*>/g)].map((match) => match[0]);
+test("the ☰ buttons say they are the menu and start closed; the one in the drawer says it closes it", () => {
+  const all = [...html.matchAll(/<button[^>]*data-drawer-toggle[^>]*>/g)].map((match) => match[0]);
+  const toggles = all.filter((tag) => !tag.includes('aria-label="Cerrar el menú"'));
   assert.ok(toggles.length >= 8, `found ${toggles.length}`);
   for (const tag of toggles) {
     assert.match(tag, /aria-expanded="false"/);
     assert.match(tag, /aria-controls="app-drawer"/);
     assert.match(tag, /aria-label="Abrir el menú"/);
   }
+  assert.equal(all.length - toggles.length, 1, "exactly one ☰ closes the drawer");
+});
+
+test("a ☰ sits inside the open drawer, so a click on it reaches the drawer and not the veil", () => {
+  const drawer = at('id="app-drawer"');
+  const inside = html.indexOf("data-drawer-toggle", drawer);
+  assert.ok(inside > drawer && inside < at('id="chat-history"'), "the drawer's own ☰ sits in its brand row");
+});
+
+test("the drawer has one search field: the history's, which searches titles and messages", () => {
+  const drawer = html.slice(at('id="app-drawer"'), at('<dialog id="new-conversation"'));
+  assert.equal([...drawer.matchAll(/type="search"|class="drawer-search"/g)].length, 1);
+  assert.equal(html.includes('id="btn-drawer-search"'), false);
 });

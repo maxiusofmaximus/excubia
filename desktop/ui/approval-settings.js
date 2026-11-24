@@ -6,11 +6,12 @@ import { $, invoke } from "./core.js";
 import { element } from "./approval-card.js";
 import { errorMessage } from "./format.js";
 import { grantCommand, setDeviceId } from "./approval-model.js";
+import { t } from "./i18n.js";
 
 let settings = null;
 let notice = "";
 
-const APPROVALS_HELP = "Una regla o tu equipo decide el resto; solo te llega lo que necesita tu OK.";
+const APPROVALS_HELP = t("approval.help");
 
 export function mountApprovalSettings() {
   const section = element("section", "approval-settings");
@@ -49,8 +50,8 @@ async function changeMode(event) {
     // The mode result carries no device id: keep the one loaded before.
     settings = { ...settings, ...result.settings };
     notice = result.escalated
-      ? `Guardado. ${result.escalated} aprobaciones pasaron a tu bandeja.`
-      : "Guardado.";
+      ? t("approval.saved_escalated", { n: result.escalated })
+      : t("approval.saved");
   } catch (error) {
     input.checked = !input.checked;
     const forbidden = error && error.kind === "forbidden";
@@ -66,20 +67,20 @@ function render() {
 }
 
 function buildContent() {
-  const title = element("h2", "approval-settings-title", "Aprobaciones");
+  const title = element("h2", "approval-settings-title", t("approval.title"));
   title.id = "approval-settings-title";
   const content = [title, element("p", "hint", APPROVALS_HELP)];
   if (!settings) {
-    content.push(element("p", "hint", notice || "Cargando ajustes…"));
+    content.push(element("p", "hint", notice || t("approval.loading")));
     return content;
   }
 
   const canChange = settings.can_approve !== false;
-  content.push(switchRow("Pedirme siempre a mí", "", settings.global === "always_user", canChange));
+  content.push(switchRow(t("approval.always_me"), "", settings.global === "always_user", canChange));
   for (const project of settings.projects || []) {
     content.push(
       switchRow(
-        `Proyecto ${project.project_id}`,
+        t("approval.project", { id: project.project_id }),
         project.project_id,
         project.mode === "always_user",
         canChange,
@@ -89,7 +90,7 @@ function buildContent() {
   if (!canChange) {
     const note = element("div", "approval-error");
     note.append(
-      element("p", null, "Este equipo no tiene el permiso APPROVE: los ajustes se ven pero no se cambian."),
+      element("p", null, t("approval.no_grant")),
       element("code", "approval-grant", grantCommand(settings.device_id)),
     );
     content.push(note);

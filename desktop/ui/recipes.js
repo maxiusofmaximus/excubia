@@ -2,6 +2,7 @@
 // the save of a finished encargo as a recipe. A host answer is worded by recipe-model; nothing is
 // stored without the review in recipe-editor.
 
+import { t } from "./i18n.js";
 import { $, invoke, toast } from "./core.js";
 import { chat } from "./chatstate.js";
 import { element, loadingBlock } from "./chatdom.js";
@@ -11,8 +12,8 @@ import { statusMeta } from "./delegation-model.js";
 import { installRecipeEditor, openRecipeEditor } from "./recipe-editor.js";
 import { PERMISSION_TEXT, recipeFailureText, sortRecipes, usesText } from "./recipe-model.js";
 
-const EMPTY_TEXT = "Cuando algo salga bien, guárdalo como receta y repítelo con un toque.";
-const NO_CONVERSATION = "Abre una conversación del proyecto para repetir el encargo.";
+const EMPTY_TEXT = t("recipes.empty");
+const NO_CONVERSATION = t("recipes.no_conversation");
 
 // `recipes` stays null until the first answer; `runs` keeps each recipe's last run line by id.
 const state = { hire: null, recipes: null, error: null, notice: "", locked: false, runs: {}, confirm: null };
@@ -24,7 +25,7 @@ function tagged(node, action, id) {
 }
 
 function runText(status) {
-  return `Encargo lanzado · ${statusMeta(status).label}`;
+  return t("recipes.run_started", { status: statusMeta(status).label });
 }
 
 // Keeps keyboard focus on the same control after a repaint; the list is rebuilt on every answer.
@@ -48,9 +49,9 @@ function headOf(item) {
 
 function actionsOf(item) {
   const row = element("div", "recipe-actions");
-  const repeat = tagged(button("Repetir", "btn primary btn-small", () => run(item)), "repeat", item.id);
-  const edit = tagged(button("Editar", "btn ghost btn-small", () => editRecipe(item)), "edit", item.id);
-  const remove = tagged(button("Borrar", "btn ghost btn-small", () => askDelete(item)), "delete", item.id);
+  const repeat = tagged(button(t("schedule.repeat"), "btn primary btn-small", () => run(item)), "repeat", item.id);
+  const edit = tagged(button(t("mail.edit"), "btn ghost btn-small", () => editRecipe(item)), "edit", item.id);
+  const remove = tagged(button(t("recipes.delete"), "btn ghost btn-small", () => askDelete(item)), "delete", item.id);
   for (const control of [repeat, edit, remove]) control.disabled = state.locked;
   row.append(repeat, edit, remove);
   return row;
@@ -79,7 +80,7 @@ function rowFor(item) {
 
 function bodyNodes() {
   if (state.recipes === null) {
-    return state.error ? [errorState(recipeFailureText(state.error), loadRecipes)] : [loadingBlock("Cargando recetas")];
+    return state.error ? [errorState(recipeFailureText(state.error), loadRecipes)] : [loadingBlock(t("recipes.loading"))];
   }
   if (state.recipes.length === 0) return [emptyState({ icon: "notes", text: EMPTY_TEXT })];
   const list = element("ul", "recipe-list");
@@ -118,7 +119,7 @@ async function loadRecipes() {
 
 export function openRecipes(hire) {
   Object.assign(state, { hire, recipes: null, error: null, notice: "", locked: false, runs: {}, confirm: null });
-  $("hire-recipes-title").textContent = `Recetas de ${hire.name}`;
+  $("hire-recipes-title").textContent = t("recipes.title_of", { name: hire.name });
   const dialog = $("hire-recipes");
   if (!dialog.open) dialog.showModal();
   paint();
@@ -133,7 +134,7 @@ async function run(item) {
     paint();
     return;
   }
-  state.runs[item.id] = { text: "Lanzando el encargo…" };
+  state.runs[item.id] = { text: t("recipes.launching") };
   paint();
   try {
     const started = await invoke("recipe_run", { id: item.id, conversationId: conversation });
@@ -151,7 +152,7 @@ async function run(item) {
     state.runs[item.id] = {
       error: true,
       text: recipeFailureText(error),
-      action: noHire ? { label: "Contratar", onClick: hireAgain } : null,
+      action: noHire ? { label: t("agents.hire"), onClick: hireAgain } : null,
     };
     paint();
   }
@@ -165,13 +166,13 @@ function hireAgain() {
 
 function editRecipe(item) {
   openRecipeEditor({
-    heading: "Editar receta",
-    lede: "Revisa el texto antes de guardarlo. Solo se guarda cuando pulses «Guardar».",
+    heading: t("recipes.edit_heading"),
+    lede: t("recipes.edit_lede", { save: t("common.save") }),
     title: item.title,
     body: item.body,
     save: ({ title, body, confirmRisks }) => invoke("recipe_update", { id: item.id, title, body, confirmRisks }),
     onSaved: () => {
-      toast("Receta guardada");
+      toast(t("recipes.saved"));
       loadRecipes();
     },
   });
@@ -194,7 +195,7 @@ async function remove(item) {
   try {
     await invoke("recipe_delete", { id: item.id });
     state.confirm = null;
-    toast("Receta borrada");
+    toast(t("recipes.deleted"));
     await loadRecipes();
   } catch (error) {
     if (error.kind === "forbidden") state.locked = true;
@@ -211,14 +212,14 @@ export async function saveRecipeFromDelegation(delegationId) {
     invoke("recipe_create", { role: draft.role_id, title, body, confirmRisks });
   const show = (options) =>
     openRecipeEditor({
-      heading: "Guardar como receta",
-      lede: "Revisa el título y el texto. Solo se guarda cuando pulses «Guardar».",
+      heading: t("delegation.save_recipe"),
+      lede: t("recipes.save_lede", { save: t("common.save") }),
       save,
-      onSaved: () => toast("Receta guardada"),
+      onSaved: () => toast(t("recipes.saved")),
       ...options,
     });
   const load = async () => {
-    show({ phase: "loading", lede: "Alfred prepara el borrador…", retry: null });
+    show({ phase: "loading", lede: t("recipes.drafting"), retry: null });
     try {
       draft = await invoke("recipe_draft", { delegationId });
       show({ title: draft.title, body: draft.body });

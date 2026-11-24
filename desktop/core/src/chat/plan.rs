@@ -10,6 +10,7 @@ use serde_json::{json, Value};
 use super::error::{ChatFailure, ChatResult};
 use super::validate_prefixed_id;
 use crate::client::HostClient;
+use crate::ui_lang::{self, pick};
 
 /// The codes the host words for a plan refusal. Any other code stays a host refusal.
 const REFUSAL_CODES: [&str; 4] = [
@@ -94,13 +95,19 @@ fn checked_note(note: &str) -> ChatResult<String> {
     let text = note.trim();
     if text.is_empty() {
         return Err(ChatFailure::Invalid {
-            message: "Escribe qué cambiarías del plan.".to_string(),
+            message: pick("Escribe qué cambiarías del plan.", "Write what you would change in the plan.")
+                .to_string(),
             field: Some("note".to_string()),
         });
     }
     if text.chars().count() > NOTE_MAX_CHARS {
+        let message = if ui_lang::current().is_en() {
+            format!("The note allows at most {NOTE_MAX_CHARS} characters.")
+        } else {
+            format!("La nota admite {NOTE_MAX_CHARS} caracteres como máximo.")
+        };
         return Err(ChatFailure::Invalid {
-            message: format!("La nota admite {NOTE_MAX_CHARS} caracteres como máximo."),
+            message,
             field: Some("note".to_string()),
         });
     }

@@ -3,6 +3,7 @@
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 
+use excubia_desktop_core::ui_lang::pick;
 use excubia_desktop_core::PairLink;
 use excubia_pin::{unix_now, PakeLink};
 use qrcode::render::svg;
@@ -75,7 +76,13 @@ pub fn pair_link_from(stdout: &str) -> Result<String, String> {
         .find_map(|line| line.strip_prefix("pairing link: "))
         .map(|link| link.trim().to_string())
         .filter(|link| PairLink::parse_now(link).is_ok())
-        .ok_or_else(|| "el host no devolvió un enlace de emparejamiento".to_string())
+        .ok_or_else(|| {
+            pick(
+                "el host no devolvió un enlace de emparejamiento",
+                "the host did not return a pairing link",
+            )
+            .to_string()
+        })
 }
 
 /// Pulls the v2 URI (no address) out of `host pair-code --pake --uri`'s output.
@@ -85,11 +92,27 @@ pub fn pake_uri_from(stdout: &str) -> Result<(String, i64), String> {
         .lines()
         .find_map(|line| line.strip_prefix("pairing uri: "))
         .map(str::trim)
-        .ok_or_else(|| "el host no devolvió un enlace de emparejamiento".to_string())?;
+        .ok_or_else(|| {
+            pick(
+                "el host no devolvió un enlace de emparejamiento",
+                "the host did not return a pairing link",
+            )
+            .to_string()
+        })?;
     let link = PakeLink::parse(uri)
-        .map_err(|_| "el host devolvió un enlace de emparejamiento no válido".to_string())?;
+        .map_err(|_| {
+            pick(
+                "el host devolvió un enlace de emparejamiento no válido",
+                "the host returned an invalid pairing link",
+            )
+            .to_string()
+        })?;
     if link.is_expired(unix_now()) {
-        return Err("el código de emparejamiento ya había caducado".to_string());
+        return Err(pick(
+            "el código de emparejamiento ya había caducado",
+            "the pairing code had already expired",
+        )
+        .to_string());
     }
     Ok((uri.to_string(), link.expires_at))
 }

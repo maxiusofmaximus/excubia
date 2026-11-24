@@ -3,6 +3,7 @@
 // dialog closes. The phrase and the samples live only in this module and are wiped on every
 // close. Nothing here logs them, copies them or stores them.
 
+import { t } from "./i18n.js";
 import { $, invoke } from "./core.js";
 import {
   checkChallenge,
@@ -12,9 +13,9 @@ import {
 } from "./vault-model.js";
 
 const TITLES = {
-  move: "Mueve el ratón",
-  phrase: "Tu frase de recuperación",
-  check: "Comprobación",
+  move: t("vault.title_move"),
+  phrase: t("vault.title_phrase"),
+  check: t("vault.title_check"),
 };
 const ANSWERS = [0, 1, 2];
 
@@ -98,7 +99,7 @@ function paintPhrase() {
 function startCheck() {
   challenge = confirmChallenge(phrase);
   for (const index of ANSWERS) {
-    $(`vault-answer-label-${index}`).textContent = `Palabra ${challenge[index]}`;
+    $(`vault-answer-label-${index}`).textContent = t("vault.word_n", { n: challenge[index] });
     $(`vault-answer-${index}`).value = "";
   }
   showError("vault-check-error", "");
@@ -114,7 +115,7 @@ function checkAnswers(event) {
     return;
   }
   for (const index of ANSWERS) $(`vault-answer-${index}`).value = "";
-  showError("vault-check-error", "No coinciden. Revisa la frase y vuelve a intentarlo.");
+  showError("vault-check-error", t("vault.mismatch"));
   $("vault-answer-0").focus();
 }
 

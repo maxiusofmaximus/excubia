@@ -109,6 +109,13 @@ test("la fila elegida pinta la pastilla, el menú y el punto con la tinta del to
   assert.match(css, /\.chat-row\.is-active \.unread-dot \{\s*background: var\(--on-hot\);/);
 });
 
+test("el rango activo de Agenda pinta su texto con la tinta del tope, también bajo el puntero", () => {
+  // agenda.css sets the accent as the pressed text; on this skin the slab is the accent too.
+  assert.match(css, /\.calendar-range \.btn\[aria-pressed="true"\] \{\s*color: var\(--on-hot\);/);
+  // The ghost hover rule (0,4,0) outranks the (0,3,0) pressed rule, so the hover needs its own (0,5,0) rule.
+  assert.match(css, /\.calendar-range \.btn\[aria-pressed="true"\]:hover:not\(:disabled\) \{\s*color: var\(--on-hot\);/);
+});
+
 test("todo @keyframes del skin se apaga con reduced motion: el bloque va la última hoja", () => {
   const block = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
   assert.match(block, /animation: none !important;/);

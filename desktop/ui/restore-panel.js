@@ -2,6 +2,7 @@
 // what a copy would change, and puts the folder back only after a confirmation. Each step
 // is one view of the same dialog; a refused call words its message inside the step that made it.
 
+import { t } from "./i18n.js";
 import { $, invoke, setBusy } from "./core.js";
 import { element } from "./chatdom.js";
 import { emptyState, errorState } from "./empty-state.js";
@@ -21,8 +22,7 @@ import {
   sortPoints,
 } from "./restore-model.js";
 
-const RESTORE_GRANT_LEDE =
-  "Para volver a una copia, este dispositivo necesita el permiso APPROVE. Concédelo desde el PC:";
+const RESTORE_GRANT_LEDE = t("restore.grant_lede");
 
 const session = { agent: "", changes: null, point: null, undo: null, slot: null };
 
@@ -53,7 +53,7 @@ function actionRow(buttons) {
 
 function loadingBlock() {
   const block = element("div", "loading-list");
-  block.setAttribute("aria-label", "Cargando copias");
+  block.setAttribute("aria-label", t("restore.loading"));
   block.append(element("div", "skeleton-row"), element("div", "skeleton-row"));
   return block;
 }
@@ -84,7 +84,7 @@ function pointButton(point) {
 
 function listNodes(points) {
   if (points.length === 0) {
-    return [emptyState({ icon: "restore", text: "Aún no hay copias de este agente. Se guarda una al empezar cada turno.", action: "Actualizar" }, loadList)];
+    return [emptyState({ icon: "restore", text: t("restore.empty"), action: t("agents.refresh") }, loadList)];
   }
   const list = element("ul", "restore-list");
   list.setAttribute("role", "list");
@@ -112,7 +112,7 @@ function changeItem(change) {
 function detailNodes(point, changes) {
   const nodes = [element("p", "restore-meta", `${pointLabel(point)} · ${pointTime(point.created_ms)} · ${pointAge(point.created_ms, Date.now())}`)];
   if (changes.changes.length === 0) {
-    nodes.push(element("p", "hint", "Esta copia coincide con la carpeta de ahora: no hay nada que volver a poner."));
+    nodes.push(element("p", "hint", t("restore.same_as_now")));
   } else {
     const list = element("ul", "restore-changes");
     list.setAttribute("role", "list");
@@ -121,8 +121,8 @@ function detailNodes(point, changes) {
   }
   const excluded = excludedSentence(changes.excluded);
   if (excluded) nodes.push(element("p", "hint", excluded));
-  const buttons = [button("Volver a la lista", "btn ghost", loadList)];
-  if (changes.changes.length > 0) buttons.push(button("Volver a este punto", "btn primary", confirmStep));
+  const buttons = [button(t("restore.back_to_list"), "btn ghost", loadList)];
+  if (changes.changes.length > 0) buttons.push(button(t("restore.back_to_point"), "btn primary", confirmStep));
   nodes.push(actionRow(buttons));
   return nodes;
 }
@@ -132,7 +132,7 @@ async function openPoint(point) {
   show([loadingBlock()]);
   try {
     session.changes = await invoke("restore_changes", { point: point.id });
-    step("Cambios de esta copia", detailNodes(point, session.changes));
+    step(t("restore.changes_heading"), detailNodes(point, session.changes));
   } catch (error) {
     show([readFailure(error, () => openPoint(point))]);
   }
@@ -142,13 +142,13 @@ async function openPoint(point) {
 function confirmStep() {
   const count = session.changes.changes.length;
   session.slot = element("div", "restore-slot");
-  step("Volver a este punto", [
+  step(t("restore.back_to_point"), [
     element("p", "dialog-lede", confirmText(count)),
     element("p", "hint", CONFIRM_WARNING),
     session.slot,
     actionRow([
-      button("Volver", "btn ghost", () => openPoint(session.point)),
-      button("Volver a este punto", "btn primary", (event) => runRestore(event.currentTarget)),
+      button(t("common.back"), "btn ghost", () => openPoint(session.point)),
+      button(t("restore.back_to_point"), "btn primary", (event) => runRestore(event.currentTarget)),
     ]),
   ]);
 }
@@ -162,7 +162,7 @@ function failureNodes(error) {
 }
 
 async function runRestore(control) {
-  setBusy(control, true, "Volviendo…");
+  setBusy(control, true, t("restore.restoring"));
   try {
     const done = await invoke("restore_point", { point: session.point.id });
     session.undo = done.undo_point;
@@ -175,26 +175,26 @@ async function runRestore(control) {
 
 function doneStep(done) {
   session.slot = element("div", "restore-slot");
-  step("Hecho.", [
+  step(t("restore.done_heading"), [
     element("p", "dialog-lede", doneText(done)),
-    element("p", "hint", "Si no era lo que querías:"),
+    element("p", "hint", t("restore.if_not_wanted")),
     session.slot,
     actionRow([
-      button("Deshacer", "btn primary", (event) => runUndo(event.currentTarget)),
-      button("Cerrar", "btn ghost", closeDialog),
+      button(t("restore.undo"), "btn primary", (event) => runUndo(event.currentTarget)),
+      button(t("common.close"), "btn ghost", closeDialog),
     ]),
   ]);
 }
 
 // Undo is the restore of the copy the first restore kept: the folder goes back as it was before it.
 async function runUndo(control) {
-  setBusy(control, true, "Deshaciendo…");
+  setBusy(control, true, t("restore.undoing"));
   try {
     await invoke("restore_point", { point: session.undo });
     session.undo = null;
-    step("Deshecho.", [
-      element("p", "dialog-lede", "La carpeta vuelve a estar como estaba antes de volver a esa copia."),
-      actionRow([button("Cerrar", "btn ghost", closeDialog)]),
+    step(t("restore.undone_heading"), [
+      element("p", "dialog-lede", t("restore.undone_lede")),
+      actionRow([button(t("common.close"), "btn ghost", closeDialog)]),
     ]);
   } catch (error) {
     setBusy(control, false);

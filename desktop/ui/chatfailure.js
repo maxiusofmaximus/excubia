@@ -1,24 +1,29 @@
 // The failure card of the chat: a typed refusal read as a title, a line and its next step.
 
+import { t } from "./i18n.js";
 import { action, element } from "./chatdom.js";
 
 const FAILURE_TITLES = {
-  offline: "Sin conexión con el PC",
-  unauthorized: "El PC ya no reconoce este equipo",
-  forbidden: "Falta el permiso RESPOND",
-  seatUnavailable: "Alfred no pudo arrancar",
-  delegationRefused: "La delegación no se pudo completar",
-  agentBusy: "Alfred tiene demasiado trabajo pendiente; prueba en un momento",
-  archived: "La conversación está archivada",
-  notFound: "La conversación ya no existe",
-  invalid: "El mensaje no es válido",
-  host: "No se pudo completar la acción",
-  protocol: "Respuesta inesperada del PC",
+  offline: "failure.offline",
+  unauthorized: "failure.unauthorized",
+  forbidden: "failure.forbidden",
+  seatUnavailable: "failure.seat_unavailable",
+  delegationRefused: "failure.delegation_refused",
+  agentBusy: "failure.agent_busy",
+  archived: "failure.archived",
+  notFound: "failure.not_found",
+  invalid: "failure.invalid",
+  host: "failure.host",
+  protocol: "failure.protocol",
 };
 
+// The core writes «Concédelo en el host: <command>» (or the English words); a marker the host no
+// longer writes is not a reason to show the command as plain text.
+const GRANT_MARKERS = ["Concédelo en el host: ", "Concédelo en el PC: ", "Grant it on the host: "];
+
 function grantCommand(text) {
-  const marker = "Concédelo en el PC: ";
-  if (!text || !text.includes(marker)) return null;
+  const marker = GRANT_MARKERS.find((item) => text && text.includes(item));
+  if (!marker) return null;
   return text.slice(text.indexOf(marker) + marker.length).trim();
 }
 
@@ -30,8 +35,8 @@ export function renderFailure(failure, context = {}) {
   const icon = element("span", "error-icon", "!");
   icon.setAttribute("aria-hidden", "true");
   const body = element("div", "error-body");
-  const title = element("h3", null, FAILURE_TITLES[kind] || FAILURE_TITLES.host);
-  const message = element("p", null, failure && failure.message ? failure.message : "No se pudo completar la operación.");
+  const title = element("h3", null, t(FAILURE_TITLES[kind] || FAILURE_TITLES.host));
+  const message = element("p", null, failure && failure.message ? failure.message : t("failure.generic"));
   body.append(title, message);
 
   const command = grantCommand(failure ? failure.action : "");
@@ -48,34 +53,34 @@ export function renderFailure(failure, context = {}) {
 
   const actions = element("div", "error-actions");
   if (kind === "offline") {
-    actions.append(action("Reconectar", { action: "reconnect" }, "btn primary btn-small"));
+    actions.append(action(t("failure.reconnect"), { action: "reconnect" }, "btn primary btn-small"));
   } else if (kind === "unauthorized") {
-    actions.append(action("Abrir ajustes", { action: "settings" }, "btn secondary btn-small"));
+    actions.append(action(t("failure.open_settings"), { action: "settings" }, "btn secondary btn-small"));
   } else if (kind === "seatUnavailable") {
     actions.append(
-      action("Revisar equipo", { action: "open-team" }, "btn secondary btn-small"),
-      action("Reintentar", { retryPending: context.pendingId || "" }, "btn primary btn-small"),
+      action(t("failure.check_device"), { action: "open-team" }, "btn secondary btn-small"),
+      action(t("agents.retry"), { retryPending: context.pendingId || "" }, "btn primary btn-small"),
     );
   } else if (kind === "agentBusy") {
     const left = context.retrySeconds || 0;
     const retry = action(
-      left > 0 ? `Reintentar en ${left} s` : "Reintentar",
+      left > 0 ? t("failure.retry_in", { s: left }) : t("agents.retry"),
       { retryPending: context.pendingId || "" },
       "btn primary btn-small",
     );
     retry.disabled = left > 0;
-    actions.append(retry, action("Ver cola", { action: "open-team" }, "btn ghost btn-small"));
+    actions.append(retry, action(t("failure.view_queue"), { action: "open-team" }, "btn ghost btn-small"));
   } else if (kind === "archived") {
     actions.append(
-      action("Desarchivar", { action: "unarchive" }, "btn secondary btn-small"),
+      action(t("failure.unarchive"), { action: "unarchive" }, "btn secondary btn-small"),
     );
   } else if (kind === "invalid" || kind === "notFound") {
-    actions.append(action("Ver historial", { action: "history" }, "btn ghost btn-small"));
+    actions.append(action(t("failure.history"), { action: "history" }, "btn ghost btn-small"));
   } else if (kind === "forbidden") {
-    actions.append(action("Reintentar", { retryPending: context.pendingId || "" }, "btn ghost btn-small"));
+    actions.append(action(t("agents.retry"), { retryPending: context.pendingId || "" }, "btn ghost btn-small"));
   } else {
     actions.append(
-      action("Reintentar", { retryPending: context.pendingId || "" }, "btn secondary btn-small"),
+      action(t("agents.retry"), { retryPending: context.pendingId || "" }, "btn secondary btn-small"),
     );
   }
   if (actions.childElementCount) body.append(actions);

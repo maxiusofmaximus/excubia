@@ -2,6 +2,7 @@
 // message shows. A click opens the file with the system's own program; the host's
 // words for a failure are read as plain text.
 import { invoke } from "./core.js";
+import { t } from "./i18n.js";
 import { element } from "./chatdom.js";
 import { failure } from "./chatstate.js";
 import { documentBadge, documentCard } from "./chatattach-model.js";
@@ -49,7 +50,7 @@ async function openDocument(card) {
   const status = card.querySelector(".doc-status");
   card.disabled = true;
   card.classList.remove("is-failed");
-  status.textContent = "Abriendo…";
+  status.textContent = t("preview.opening");
   try {
     await invoke("chat_attachment_open", {
       conversationId: card.dataset.conversationId,

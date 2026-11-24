@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use excubia_desktop_core::client::pair_device;
+use excubia_desktop_core::ui_lang::pick;
 use excubia_desktop_core::{CoreError, HostClient, Transport, WriteAction};
 use tauri::{AppHandle, Emitter};
 
@@ -24,9 +25,15 @@ impl AppState {
         let identity = lock(&self.inner)
             .identity
             .clone()
-            .ok_or_else(|| "No hay identidad de dispositivo disponible.".to_string())?;
-        let client =
-            HostClient::new(base_url, identity.clone()).map_err(|error| error.to_string())?;
+            .ok_or_else(|| {
+                pick(
+                    "No hay identidad de dispositivo disponible.",
+                    "No device identity is available.",
+                )
+                .to_string()
+            })?;
+        let client = HostClient::new(base_url, identity.clone())
+            .map_err(|error| error.describe(WriteAction::Read).text())?;
         let mut state = client.state().await;
         let paired = lock(&self.inner).config.paired;
         let stale = lock(&self.inner).config.local_grants < LOCAL_GRANTS;
@@ -57,7 +64,7 @@ impl AppState {
             &code,
         )
         .await
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| error.pairing_message())?;
 
         let mut updated = identity;
         updated.set_device_id(response.device_id.clone());
@@ -87,14 +94,25 @@ impl AppState {
     pub async fn run_host_cli(&self, args: &[&str]) -> Result<String, String> {
         let config = lock(&self.host_config)
             .clone()
-            .ok_or_else(|| "el host local no está configurado".to_string())?;
+            .ok_or_else(|| {
+                pick(
+                    "el host local no está configurado",
+                    "the local host is not configured",
+                )
+                .to_string()
+            })?;
         let output = tokio::process::Command::new(&config.binary)
             .args(args)
             .arg("--data-dir")
             .arg(&config.data_dir)
             .output()
             .await
-            .map_err(|error| format!("no se pudo ejecutar el host: {error}"))?;
+            .map_err(|error| {
+                format!(
+                    "{}: {error}",
+                    pick("no se pudo ejecutar el host", "could not run the host")
+                )
+            })?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!(
@@ -114,7 +132,13 @@ pub fn pair_code_from(stdout: &str) -> Result<String, String> {
         .find_map(|line| line.strip_prefix("pairing code: "))
         .map(|code| code.trim().to_string())
         .filter(|code| !code.is_empty())
-        .ok_or_else(|| "el host no devolvió un código de emparejamiento".to_string())
+        .ok_or_else(|| {
+            pick(
+                "el host no devolvió un código de emparejamiento",
+                "the host did not return a pairing code",
+            )
+            .to_string()
+        })
 }
 
 #[cfg(test)]

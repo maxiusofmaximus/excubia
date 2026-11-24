@@ -465,7 +465,7 @@
 }
 
 .approval-card:not(.tone-approved):not(.tone-denied):not(.tone-expired)::after {
-  content: "¡Tu OK!";
+  content: attr(data-stamp);
   position: absolute;
   right: 14px;
   top: -16px;
@@ -662,6 +662,36 @@
 }
 
 /* -- phase 2: the other screens ------------------------------------------ */
+
+/* The row's «⋯» sits in the card's top-right corner, over the slab, not under it. */
+.agent-card {
+  position: relative;
+}
+
+/* The menu's panel takes room in the card's flow: opened, it pushes the cards under it down and covers
+   neither its own row nor theirs. Only the «⋯» is pinned to the corner. The detail menu keeps its own rules. */
+.agent-card > .agent-foot {
+  position: static;
+  padding: 0;
+}
+
+.agent-card .agent-menu {
+  position: static;
+}
+
+.agent-card .agent-menu-toggle {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 1;
+}
+
+.agent-card .agent-menu-panel {
+  position: static;
+  width: max-content;
+  margin: 6px 6px 0 auto;
+  z-index: auto;
+}
 
 /* Equipo: agent rows, hires and team cards are slabs; the status is a stamp. */
 .agent-row,
@@ -924,6 +954,17 @@
 }
 
 .btn[aria-pressed="true"] {
+  color: var(--on-hot);
+}
+
+/* The Agenda range rule (agenda.css) paints the pressed text in the accent, which is the slab
+   itself here: the ink goes back to --on-hot. */
+.calendar-range .btn[aria-pressed="true"] {
+  color: var(--on-hot);
+}
+
+/* Under the pointer, .btn.ghost:hover:not(:disabled) (0,4,0) would paint the pale text: this one (0,5,0) keeps the ink. */
+.calendar-range .btn[aria-pressed="true"]:hover:not(:disabled) {
   color: var(--on-hot);
 }
 

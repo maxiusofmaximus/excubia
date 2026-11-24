@@ -4,40 +4,40 @@
 
 import { friendlyError } from "./friendly-error.js";
 import { planFailureText } from "./plan-model.js";
+import { t } from "./i18n.js";
 
 export const TITLE_MAX = 80;
 export const BODY_MAX = 2000;
-export const RISK_CONFIRM_TEXT = "Entiendo y quiero guardarla";
+export const RISK_CONFIRM_TEXT = t("recipe.risk_confirm");
 
-export const PERMISSION_TEXT =
-  "Este dispositivo no tiene el permiso APPROVE: puedes ver las recetas, pero no guardarlas, repetirlas ni borrarlas.";
-export const SECRET_TEXT = "Quita la clave o contraseña del texto. Con un secreto dentro no se puede guardar.";
-const UNKNOWN_REASON = "Hay una parte del texto que no podemos explicar. Revísala.";
+export const PERMISSION_TEXT = t("recipe.permission");
+export const SECRET_TEXT = t("recipe.secret");
+const UNKNOWN_REASON = t("recipe.reason_unknown");
 
 // The sentences the host writes for each secret or order it finds, in its own Spanish.
 const REASON_TEXT = {
-  "parece una clave de API (sk-…)": "Parece una clave de API.",
-  "parece un token de GitHub": "Parece un token de GitHub.",
-  "parece una clave de AWS (AKIA…)": "Parece una clave de AWS.",
-  "parece una cadena hexadecimal larga (posible clave)": "Parece una clave escrita en hexadecimal.",
-  "contiene una cadena larga de letras y números (posible clave)": "Parece una clave: una cadena larga de letras y números.",
-  "parece una contraseña escrita como «clave: valor»": "Parece una contraseña escrita como «clave: valor».",
-  "contiene una clave privada": "Contiene una clave privada.",
-  "lleva usuario y contraseña dentro de una dirección web": "Lleva usuario y contraseña dentro de una dirección web.",
-  "intenta anular las instrucciones anteriores": "Intenta anular las instrucciones anteriores.",
-  "ordena borrar todo": "Ordena borrar todo.",
-  "pide actuar sin aprobación": "Pide actuar sin aprobación.",
+  "parece una clave de API (sk-…)": t("recipe.reason.api_key"),
+  "parece un token de GitHub": t("recipe.reason.github_token"),
+  "parece una clave de AWS (AKIA…)": t("recipe.reason.aws_key"),
+  "parece una cadena hexadecimal larga (posible clave)": t("recipe.reason.hex_key"),
+  "contiene una cadena larga de letras y números (posible clave)": t("recipe.reason.long_key"),
+  "parece una contraseña escrita como «clave: valor»": t("recipe.reason.password"),
+  "contiene una clave privada": t("recipe.reason.private_key"),
+  "lleva usuario y contraseña dentro de una dirección web": t("recipe.reason.url_credentials"),
+  "intenta anular las instrucciones anteriores": t("recipe.reason.prompt_injection"),
+  "ordena borrar todo": t("recipe.reason.delete_all"),
+  "pide actuar sin aprobación": t("recipe.reason.no_approval"),
 };
 
 const RECIPE_TEXT = {
-  recipe_limit: "Este oficio ya tiene 50 recetas. Borra una para guardar otra.",
-  recipe_title_taken: "Ya hay una receta con ese título en este oficio. Cámbiale el título.",
-  no_hire_for_role: "Este oficio ya no está en tu equipo. Contrátalo de nuevo para repetir sus recetas.",
-  delegation_not_done: "Este encargo todavía no ha terminado. Guárdalo cuando esté hecho.",
-  conversation_has_no_project: "Esta conversación no tiene proyecto. Abre una del proyecto para repetir el encargo.",
-  invalid_recipe: "El texto no es válido: no admite HTML ni caracteres raros.",
+  recipe_limit: t("recipe.err.limit"),
+  recipe_title_taken: t("recipe.err.title_taken"),
+  no_hire_for_role: t("recipe.err.no_hire"),
+  delegation_not_done: t("recipe.err.not_done"),
+  conversation_has_no_project: t("recipe.err.no_project"),
+  invalid_recipe: t("recipe.err.invalid"),
 };
-const NOT_FOUND_TEXT = "Esa receta o ese encargo ya no existe.";
+const NOT_FOUND_TEXT = t("recipe.err.not_found");
 
 // Characters, not UTF-16 units: an emoji is one character to the person and to the host.
 function count(text) {
@@ -45,14 +45,14 @@ function count(text) {
 }
 
 export function titleError(title) {
-  if (!title.trim()) return "Ponle un título a la receta.";
-  if (count(title.trim()) > TITLE_MAX) return `El título admite ${TITLE_MAX} caracteres como máximo.`;
+  if (!title.trim()) return t("recipe.title_required");
+  if (count(title.trim()) > TITLE_MAX) return t("recipe.title_max", { max: TITLE_MAX });
   return null;
 }
 
 export function bodyError(body) {
-  if (!body.trim()) return "Escribe el texto de la receta.";
-  if (count(body) > BODY_MAX) return `El texto admite ${BODY_MAX} caracteres como máximo.`;
+  if (!body.trim()) return t("recipe.body_required");
+  if (count(body) > BODY_MAX) return t("recipe.body_max", { max: BODY_MAX });
   return null;
 }
 
@@ -70,7 +70,7 @@ export function plainReasons(reasons = []) {
 
 // The busy text names the wait the host sent; the screen never retries on its own.
 function busyText(seconds) {
-  return seconds > 0 ? `Ahora está ocupado; vuelve a intentarlo en ${seconds} s.` : "Ahora está ocupado; vuelve a intentarlo en unos segundos.";
+  return seconds > 0 ? t("recipe.busy_secs", { s: seconds }) : t("recipe.busy");
 }
 
 // What the operator reads for a failed recipe call. A plan refusal keeps the plan's words.
@@ -93,7 +93,7 @@ export function reviewNotice(error) {
   if (error && error.kind === "recipeRefused" && error.code === "risk_needs_confirmation") {
     return {
       tone: "risk",
-      text: "Esta receta da órdenes de riesgo. Revísala; si la quieres guardar igualmente, márcalo abajo.",
+      text: t("recipe.risk_notice"),
       reasons: plainReasons(error.reasons),
     };
   }
@@ -108,6 +108,6 @@ export function sortRecipes(recipes) {
 
 // «Sin usar todavía», «Usada 1 vez», «Usada 4 veces».
 export function usesText(uses) {
-  if (uses === 0) return "Sin usar todavía";
-  return uses === 1 ? "Usada 1 vez" : `Usada ${uses} veces`;
+  if (uses === 0) return t("recipe.uses_none");
+  return uses === 1 ? t("recipe.uses_one") : t("recipe.uses_other", { n: uses });
 }

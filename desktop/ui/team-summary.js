@@ -11,6 +11,7 @@ import { teamLeaders, teamSnapshot } from "./hires.js";
 import { openPending, refreshPlans } from "./plans.js";
 import { refreshSchedules } from "./schedules.js";
 import { cardSignature, showsHeadline, summaryFailure, summaryView, waitingText } from "./team-summary-model.js";
+import { t } from "./i18n.js";
 
 const POLL_MS = 5000;
 
@@ -25,9 +26,9 @@ function showBody(key, nodes) {
 }
 
 function reviewButton(name) {
-  const button = element("button", "btn secondary btn-small ts-review", "Ver pendientes");
+  const button = element("button", "btn secondary btn-small ts-review", t("team.review"));
   button.type = "button";
-  button.setAttribute("aria-label", `Ver pendientes de ${name}`);
+  button.setAttribute("aria-label", t("team.review_aria", { name }));
   button.addEventListener("click", openPending);
   return button;
 }
@@ -115,7 +116,7 @@ function showBand(shown) {
 }
 
 function applyMembers(members) {
-  const views = summaryView(members, Date.now());
+  const views = summaryView(members, Date.now(), teamSnapshot());
   const leadsOnly = views.length === 0 && teamLeaders() > 0;
   showBand(!leadsOnly);
   if (leadsOnly) {
@@ -125,17 +126,8 @@ function applyMembers(members) {
     return;
   }
   if (views.length === 0) {
-    const canHire = teamSnapshot().canHire;
-    showBody(`empty:${canHire}`, [
-      emptyState(
-        {
-          icon: "team",
-          text: "Todavía no tienes a nadie contratado. Contrata a quien necesites y verás aquí en qué anda cada uno.",
-          action: canHire ? "Contratar" : null,
-        },
-        () => $("btn-hire").click(),
-      ),
-    ]);
+    // The «Contratar» lives in the Equipo header (#btn-hire), so this sentence needs no action of its own.
+    showBody("empty", [emptyState({ icon: "team", text: t("team.empty") })]);
     paintCount("");
     $("team-summary-count").classList.remove("has-waiting");
     return;
@@ -203,7 +195,7 @@ export function refreshTeamSummary() {
 
 export function installTeamSummary() {
   if (!$("team-summary-body")) return;
-  $("team-summary-body").replaceChildren(loadingBlock("Cargando tu equipo"));
+  $("team-summary-body").replaceChildren(loadingBlock(t("team.loading")));
   state.key = "loading";
   new MutationObserver(sync).observe($("view-agents"), { attributes: true, attributeFilter: ["class"] });
   document.addEventListener("visibilitychange", sync);

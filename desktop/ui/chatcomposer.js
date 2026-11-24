@@ -3,6 +3,7 @@ import { composerMode, stopFailureText } from "./chat-turn-model.js";
 import { chat, failure, offline } from "./chatstate.js";
 import { hasPendingAttachments, readyAttachments, renderAttachments } from "./chatattach.js";
 import { setVoiceBlocked } from "./chatvoice.js";
+import { t } from "./i18n.js";
 
 // What the send button does now. The click and the drawing both ask here, so they agree.
 export function sendMode() {
@@ -28,7 +29,7 @@ export function renderComposer() {
   if (!chat.waiting) chat.stopSent = false;
   // While a turn is open and the field is empty the send button is the stop button.
   // It stays a submit button: the click handler stops only in stop mode.
-  const label = mode.stop ? "Detener" : "Enviar mensaje";
+  const label = mode.stop ? t("chat.composer.stop") : t("chat.composer.send");
   send.classList.toggle("is-stop", mode.stop);
   send.disabled = mode.stop ? mode.disabled : blocked || hasPendingAttachments();
   send.title = label;
@@ -39,14 +40,14 @@ export function renderComposer() {
   const hint = $("chat-hint");
   hint.classList.toggle("is-keys", !archived && !offline() && !mode.hint);
   if (archived) {
-    input.placeholder = "Conversación archivada";
-    hint.textContent = "Desarchívala para escribir a Alfred";
+    input.placeholder = t("chat.composer.archived");
+    hint.textContent = t("chat.composer.archived_hint");
   } else if (offline()) {
-    input.placeholder = "Reconecta para escribir a Alfred";
-    hint.textContent = "La copia local es de solo lectura";
+    input.placeholder = t("chat.composer.offline");
+    hint.textContent = t("chat.composer.offline_hint");
   } else {
-    input.placeholder = "Mensaje a Alfred";
-    hint.textContent = mode.hint || "Enter envía · Shift+Enter salto de línea · Ctrl+Mayús+M dicta · Ctrl+K órdenes";
+    input.placeholder = t("chat.composer.placeholder");
+    hint.textContent = mode.hint || t("chat.composer.keys");
   }
 }
 

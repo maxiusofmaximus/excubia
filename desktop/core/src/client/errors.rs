@@ -40,7 +40,7 @@ pub(crate) fn status_error(status: StatusCode, body: &[u8]) -> CoreError {
             .message
             .or_else(|| detail.code.clone())
             .or_else(|| status.canonical_reason().map(str::to_string))
-            .unwrap_or_else(|| "sin detalle".to_string()),
+            .unwrap_or_else(|| crate::ui_lang::pick("sin detalle", "no detail").to_string()),
         code: detail.code,
         field: detail.field,
     }

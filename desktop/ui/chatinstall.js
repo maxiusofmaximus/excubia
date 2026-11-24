@@ -19,6 +19,7 @@ import { filterMenuOpen, setFilterMenu } from "./chatfilters.js";
 import { chat, applyFeed, failure } from "./chatstate.js";
 import { visibleOrder } from "./chatlist.js";
 import { clickRow, only, selectAll } from "./chat-select-model.js";
+import { t } from "./i18n.js";
 import {
   clearSelection,
   debounceSearch,
@@ -148,7 +149,7 @@ function submitComposer(event) {
   const input = $("chat-input");
   const text = input.value;
   if (hasPendingAttachments()) {
-    toast("Espera a que terminen de subirse las imágenes.");
+    toast(t("chat.wait_uploads"));
     return;
   }
   if (!text.trim() && !readyAttachments().length) return;
@@ -162,11 +163,10 @@ export function installChatHandlers() {
   installVoice();
   installDraftCards();
   installNewProject(refreshHome);
-  const palette = installCommandPalette({
+  installCommandPalette({
     conversations: () => (chat.home ? [...chat.home.conversations, ...chat.home.archived] : []),
     selectConversation,
   });
-  $("btn-drawer-search").addEventListener("click", () => palette.open());
   // The team has no panel of its own in the chat: the avatar of Alfred opens its section.
   $("btn-chat-team").addEventListener("click", () => showView("agents"));
   $("btn-new-chat").addEventListener("click", () => newConversation());
@@ -280,7 +280,7 @@ export function installChatHandlers() {
     if (!row) return;
     app.detailReturn = "chat";
     openDetail(row.dataset.pane).then((found) => {
-      if (!found) toast("Ese panel ya no está disponible.");
+      if (!found) toast(t("chat.panel_gone"));
     });
   });
 
@@ -317,7 +317,7 @@ export function installChatHandlers() {
     } else if (target.dataset.action === "load-more") loadOlder();
     else if (target.dataset.action === "open-team") showView("agents");
     else if (target.dataset.action === "unarchive" && chat.conversation) {
-      patchConversation(chat.conversation, { archived: false }, "Conversación desarchivada");
+      patchConversation(chat.conversation, { archived: false }, t("chat.unarchived"));
     } else if (target.dataset.action === "reconnect") reconnect();
     else if (target.dataset.action === "settings") openSettings();
     else if (target.dataset.action === "history") {
@@ -331,7 +331,7 @@ export function installChatHandlers() {
     if (target.dataset.action === "reconnect") reconnect();
     else if (target.dataset.action === "settings") openSettings();
     else if (target.dataset.action === "unarchive" && chat.conversation) {
-      patchConversation(chat.conversation, { archived: false }, "Conversación desarchivada");
+      patchConversation(chat.conversation, { archived: false }, t("chat.unarchived"));
     } else if (target.dataset.action === "restart-host") {
       invoke("restart_host").catch((error) => toast(failure(error).message));
     }
@@ -350,7 +350,7 @@ export function installChatHandlers() {
   $("chat-section-clear").addEventListener("click", () => {
     const conversation = chat.sectionFor;
     $("chat-section").close();
-    if (conversation) patchConversation(conversation, { clearSection: true }, "Sacada de la sección");
+    if (conversation) patchConversation(conversation, { clearSection: true }, t("chat.section_cleared"));
   });
 
   document.addEventListener("click", (event) => {

@@ -1,4 +1,5 @@
-import { $, invoke, setBusy } from "./core.js";
+import { $, app, invoke, setBusy } from "./core.js";
+import { t } from "./i18n.js";
 import { showView } from "./nav.js";
 import { errorMessage, svgDataUrl } from "./format.js";
 import { IDLE, leaveWindow, qrMessage, qrVisible, showQr as startQr, tickQr } from "./pair-qr-model.js";
@@ -11,6 +12,8 @@ let qrCommand = "lan_pairing";
 /// The LAN switch decides whether the host listens for phones at all.
 export function hydrateLan(enabled) {
   $("lan-toggle").checked = enabled;
+  $("lan-on").classList.toggle("hidden", !enabled);
+  $("lan-off").classList.toggle("hidden", enabled);
   $("btn-show-lan").disabled = !enabled;
   $("btn-show-pake").disabled = !enabled;
 }
@@ -28,23 +31,31 @@ export function installLanPairing() {
   document.addEventListener("visibilitychange", () => document.hidden && leave());
 }
 
+// The switch, its words and both QR buttons show the host's confirmed state only: they stay
+// on the old state until the host answers, and go back to it if the call fails.
 async function toggleLan() {
   const toggle = $("lan-toggle");
   const enabled = toggle.checked;
   showLanError("");
+  hydrateLan(!enabled);
+  toggle.disabled = true;
   try {
     await invoke("set_lan_pairing", { enabled });
+    // hydratePairing reads this on the next return to local mode: keep the confirmed value.
+    app.boot = { ...(app.boot || {}), lan_pairing: enabled };
     hydrateLan(enabled);
   } catch (error) {
-    toggle.checked = !enabled;
+    hydrateLan(!enabled);
     showLanError(errorMessage(error));
+  } finally {
+    toggle.disabled = false;
   }
 }
 
 /// Both QRs take the same road: the host makes the code, the model counts it down and takes it down.
 async function showPairingQr(button, command) {
   showLanError("");
-  setBusy(button, true, "Preparando…");
+  setBusy(button, true, t("pair.preparing"));
   try {
     const pairing = await invoke(command);
     clearInterval(qrTimer);

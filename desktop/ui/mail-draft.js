@@ -4,6 +4,7 @@
 // they stand.
 
 import { $, invoke } from "./core.js";
+import { t } from "./i18n.js";
 import { showView } from "./nav.js";
 import { openSettings } from "./settings.js";
 import { element } from "./approval-card.js";
@@ -161,12 +162,12 @@ function clearDraft() {
 
 // What the operator reads: the fields, the body as plain text, the attachments.
 function renderDraft(draft) {
-  $("mail-draft-account").textContent = `Cuenta ${draft.account}`;
+  $("mail-draft-account").textContent = t("mail.draft_account", { account: draft.account });
   const rows = [
-    ["De", draft.from || "—"],
-    ["Para", addressLine(draft.to)],
+    [t("mail.draft_from"), draft.from || "—"],
+    [t("mail.draft_to"), addressLine(draft.to)],
     ["Cc", addressLine(draft.cc)],
-    ["Asunto", draft.subject || "—"],
+    [t("mail.subject"), draft.subject || "—"],
   ];
   $("mail-draft-fields").replaceChildren(
     ...rows.flatMap(([label, value]) => [element("dt", null, label), element("dd", null, value)]),
@@ -178,12 +179,12 @@ function renderDraft(draft) {
 function renderAttachments(files) {
   const box = $("mail-draft-attachments");
   if (!files.length) {
-    box.replaceChildren(element("p", "hint", "Sin adjuntos."));
+    box.replaceChildren(element("p", "hint", t("mail.no_attachments")));
     return;
   }
   const list = element("ul", "mail-attachment-list");
   list.append(...files.map((file) => element("li", null, `${file.name} · ${formatBytes(file.size)}`)));
-  box.replaceChildren(element("h3", null, "Adjuntos"), list);
+  box.replaceChildren(element("h3", null, t("mail.digest.attachments")), list);
 }
 
 function startSend() {
@@ -204,7 +205,7 @@ function renderFlow(view) {
   const send = $("btn-mail-send");
   const cancel = $("btn-mail-cancel");
   $("mail-status").textContent = windowOpen
-    ? "Envío programado. Puedes cancelarlo hasta que termine la cuenta atrás."
+    ? t("mail.scheduled_send")
     : view
       ? view.text
       : "";
@@ -213,15 +214,15 @@ function renderFlow(view) {
   cancel.classList.toggle("hidden", !windowOpen);
   const actions = draftActions(phase, open.alfredCanRevise);
   $("btn-mail-edit").classList.toggle("hidden", !actions.edit);
-  $("btn-mail-edit").textContent = phase === "failed" ? "Editar borrador" : "Editar";
+  $("btn-mail-edit").textContent = phase === "failed" ? t("mail.edit_label") : t("mail.edit");
   $("btn-mail-decline").classList.toggle("hidden", !actions.decline);
   $("btn-mail-changes").classList.toggle("hidden", !actions.requestChanges);
   $("btn-mail-settings").classList.toggle("hidden", !(view && phase === "failed" && needsSettings(view.code)));
   $("mail-send-hint").textContent = open.sendEnabled
     ? sent
-      ? "Este borrador ya se envió."
+      ? t("mail.already_sent")
       : ""
-    : "Activa «Permitir enviar» en Ajustes → Correo para enviar desde esta cuenta.";
+    : t("mail.enable_send_hint");
   // The send button goes disabled once pressed: the focus moves to the cancel.
   if (windowOpen && open.lastPhase !== "window") cancel.focus();
   open.lastPhase = phase;

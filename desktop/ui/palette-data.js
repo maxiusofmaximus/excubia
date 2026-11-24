@@ -27,7 +27,7 @@
     noche: {
       id: "noche",
       name: "Noche",
-      note: "Azul noche y latón. La de Excubia",
+      note: "palette.note.noche",
       scheme: "oscuro",
       tokens: tokens(
         {
@@ -62,7 +62,7 @@
     pergamino: {
       id: "pergamino",
       name: "Pergamino",
-      note: "Papel cálido. La clara de Excubia",
+      note: "palette.note.pergamino",
       scheme: "claro",
       tokens: tokens(
         {
@@ -97,7 +97,7 @@
     carbon: {
       id: "carbon",
       name: "Carbón",
-      note: "Gris oscuro neutro, acento azul acero",
+      note: "palette.note.carbon",
       scheme: "oscuro",
       tokens: tokens(
         {
@@ -132,7 +132,7 @@
     papel: {
       id: "papel",
       name: "Papel",
-      note: "Blanco roto neutro, acento azul",
+      note: "palette.note.papel",
       scheme: "claro",
       tokens: tokens(
         {
@@ -167,7 +167,7 @@
     medianoche: {
       id: "medianoche",
       name: "Medianoche",
-      note: "Azul profundo de bajo brillo",
+      note: "palette.note.medianoche",
       scheme: "oscuro",
       tokens: tokens(
         {
@@ -202,7 +202,7 @@
     contraste: {
       id: "contraste",
       name: "Alto contraste",
-      note: "Negro y blanco, máxima legibilidad",
+      note: "palette.note.contraste",
       scheme: "oscuro",
       tokens: tokens(
         {
@@ -239,7 +239,7 @@
     telon: {
       id: "telon",
       name: "Telón",
-      note: "Rojo, negro y blanco de cómic",
+      note: "palette.note.telon",
       scheme: "oscuro",
       tokens: tokens(
         {

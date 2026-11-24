@@ -8,14 +8,11 @@ use serde_json::Value;
 
 use super::attachments::attachment_path;
 use crate::client::HostClient;
+use crate::ui_lang::pick;
 
 /// A page larger than this is refused: the viewer is a screen, not a print.
 pub const MAX_PREVIEW_BYTES: usize = 8 * 1024 * 1024;
 const PNG_SIGNATURE: &[u8] = b"\x89PNG\r\n\x1a\n";
-const OTHER_TEXT: &str = "No se pudo mostrar la página. Reinténtalo.";
-const UNAVAILABLE_TEXT: &str = "Este archivo no tiene vista previa.";
-const OUT_OF_RANGE_TEXT: &str = "Esa página no existe en el documento.";
-const TOOL_MISSING_TEXT: &str = "Falta una herramienta de documentos en este PC.";
 
 /// Why a page is not shown. The webview words it by `code`; `message` is Spanish.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -34,7 +31,11 @@ pub enum PreviewFailure {
 impl PreviewFailure {
     pub fn other() -> Self {
         Self::Other {
-            message: OTHER_TEXT.into(),
+            message: pick(
+                "No se pudo mostrar la página. Reinténtalo.",
+                "The page could not be shown. Try again.",
+            )
+            .into(),
         }
     }
 }
@@ -56,10 +57,18 @@ fn preview_failure(body: &[u8]) -> PreviewFailure {
     };
     match detail.get("code").and_then(Value::as_str) {
         Some("preview_unavailable") => PreviewFailure::Unavailable {
-            message: UNAVAILABLE_TEXT.into(),
+            message: pick(
+                "Este archivo no tiene vista previa.",
+                "This file has no preview.",
+            )
+            .into(),
         },
         Some("page_out_of_range") => PreviewFailure::OutOfRange {
-            message: OUT_OF_RANGE_TEXT.into(),
+            message: pick(
+                "Esa página no existe en el documento.",
+                "That page does not exist in the document.",
+            )
+            .into(),
         },
         Some("tool_missing") => PreviewFailure::ToolMissing {
             message: detail
@@ -67,7 +76,10 @@ fn preview_failure(body: &[u8]) -> PreviewFailure {
                 .and_then(Value::as_str)
                 .map(str::trim)
                 .filter(|message| !message.is_empty())
-                .unwrap_or(TOOL_MISSING_TEXT)
+                .unwrap_or(pick(
+                    "Falta una herramienta de documentos en este PC.",
+                    "A document tool is missing on this PC.",
+                ))
                 .to_string(),
         },
         _ => PreviewFailure::other(),

@@ -1,22 +1,24 @@
+import { locale, t } from "./i18n.js";
+
 export const STATUS_LABELS = {
-  blocked: "Necesita tu atención",
-  working: "Trabajando",
-  done: "Terminó",
-  idle: "Listo",
-  unknown: "Sin clasificar",
+  blocked: "format.status_blocked",
+  working: "format.status_working",
+  done: "format.status_done",
+  idle: "format.status_idle",
+  unknown: "format.status_unknown",
 };
 
 export function agentTitle(agent) {
-  const title = agent.title || agent.agent || "Agente";
+  const title = agent.title || agent.agent || t("format.agent_fallback");
   if (/[\\/]/.test(title) && /\.(exe|cmd|bat)$/i.test(title)) {
     return title.split(/[\\/]/).pop();
   }
   // The host titles a lead «Nombre — lead»; the operator reads «Nombre, líder».
-  return title.replace(/\s—\slead\b/, ", líder");
+  return title.replace(/\s—\slead\b/, t("format.lead_suffix"));
 }
 
 export function statusLabel(status) {
-  return STATUS_LABELS[status] || STATUS_LABELS.unknown;
+  return t(STATUS_LABELS[status] || STATUS_LABELS.unknown);
 }
 
 export function errorMessage(error) {
@@ -32,28 +34,28 @@ export function errorMessage(error) {
 // How long ago `fromMs` was, in the words the screens share: «un momento», «12 min», «3 h», «2 días».
 export function elapsedWords(fromMs, now) {
   const minutes = Math.floor((now - fromMs) / 60_000);
-  if (minutes < 1) return "un momento";
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 1) return t("format.just_now");
+  if (minutes < 60) return t("format.minutes", { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} h`;
+  if (hours < 24) return t("format.hours", { n: hours });
   const days = Math.floor(hours / 24);
-  return days === 1 ? "1 día" : `${days} días`;
+  return t(days === 1 ? "format.days.one" : "format.days.other", { n: days });
 }
 
 /// The line that says when a pairing code stops working.
 export function expiryText(expiresAt, now = Date.now()) {
-  if (now >= expiresAt * 1000) return "Este código ha caducado. Genera otro.";
-  const time = new Date(expiresAt * 1000).toLocaleTimeString("es-ES", {
+  if (now >= expiresAt * 1000) return t("format.code_expired");
+  const time = new Date(expiresAt * 1000).toLocaleTimeString(locale(), {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return `Caduca a las ${time}.`;
+  return t("format.expires_at", { time });
 }
 
 /// «Caduca en 2:37» for whole seconds left.
 export function countdownText(seconds) {
   const left = Math.max(0, Math.floor(seconds));
-  return `Caduca en ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  return t("format.countdown", { time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` });
 }
 
 /// An SVG as an image source; the QR is drawn in Rust and never leaves the app.

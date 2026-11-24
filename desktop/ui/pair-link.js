@@ -1,4 +1,5 @@
 import { $, invoke, setBusy } from "./core.js";
+import { t } from "./i18n.js";
 import { errorMessage } from "./format.js";
 
 /// The link form: an `excubia://pair?…` link pasted from the host. The core
@@ -12,7 +13,7 @@ async function submitLink(event, onPaired) {
   event.preventDefault();
   const button = $("btn-pair-link");
   showLinkError("");
-  setBusy(button, true, "Emparejando…");
+  setBusy(button, true, t("pair.pairing"));
   try {
     const outcome = await invoke("pair_link", {
       link: $("pair-link").value.trim(),

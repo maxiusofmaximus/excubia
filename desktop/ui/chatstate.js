@@ -2,6 +2,7 @@ import { app } from "./core.js";
 import { noteTurn } from "./chat-turn-model.js";
 import { friendlyError } from "./friendly-error.js";
 import { createSelection } from "./chat-select-model.js";
+import { t } from "./i18n.js";
 
 // The chat's shared state: one object, read and written by the chat modules.
 export const chat = {
@@ -67,11 +68,11 @@ export function offline() {
 }
 
 export function hostName() {
-  if (app.boot && app.boot.mode === "local") return "este equipo";
+  if (app.boot && app.boot.mode === "local") return t("chatstate.this_device");
   try {
-    return new URL(app.boot.host_url).hostname || "el PC";
+    return new URL(app.boot.host_url).hostname || t("chatstate.the_pc");
   } catch {
-    return "el PC";
+    return t("chatstate.the_pc");
   }
 }
 

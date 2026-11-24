@@ -8,6 +8,7 @@ import { element } from "./chatdom.js";
 import { readStateText } from "./hires-model.js";
 import { createAgendaList } from "./agenda-list.js";
 import { emptyState } from "./empty-state.js";
+import { t } from "./i18n.js";
 import {
   actionRow,
   approveReason,
@@ -42,7 +43,7 @@ const failureText = (failure) => readStateText(failure) || agendaErrorText(failu
 function emptyNode(query) {
   if (query) {
     return emptyState(
-      { icon: "contacts", text: "Ningún contacto coincide con la búsqueda.", action: "Borrar búsqueda" },
+      { icon: "contacts", text: t("contacts.none_match"), action: t("contacts.clear_search") },
       () => {
         $("contacts-search").value = "";
         list.reload("");
@@ -50,7 +51,7 @@ function emptyNode(query) {
     );
   }
   return emptyState(
-    { icon: "contacts", text: "Aún no hay contactos. Alfred los guarda cuando se los pides, o añade uno.", action: "Nuevo contacto" },
+    { icon: "contacts", text: t("contacts.empty"), action: t("contacts.new") },
     () => $("btn-contact-new").click(),
   );
 }
@@ -76,7 +77,7 @@ function contactRow(contact) {
 }
 
 function addressList(addresses) {
-  if (!addresses.length) return element("p", "agenda-muted", "Sin direcciones.");
+  if (!addresses.length) return element("p", "agenda-muted", t("contacts.no_addresses"));
   const items = element("ul", "agenda-addresses");
   for (const entry of addresses) {
     const item = element("li", null, entry.address);
@@ -96,10 +97,10 @@ function closePanel() {
 function showContact(contact) {
   selectedId = contact.id;
   list.redraw();
-  const edit = button("Editar", "btn secondary btn-small", () => showForm(contact));
+  const edit = button(t("contacts.edit"), "btn secondary btn-small", () => showForm(contact));
   const notes = contact.notes ? [element("p", "agenda-notes", contact.notes)] : [];
   fillPanel(parts, contact.name, [
-    detailLine("Alias", contact.aliases.join(", ") || "Ninguno"),
+    detailLine(t("contacts.alias"), contact.aliases.join(", ") || t("contacts.none")),
     addressList(contact.addresses),
     ...notes,
     actionRow(edit, deleteAction(() => showDelete(contact))),
@@ -110,35 +111,35 @@ function showContact(contact) {
 
 function showForm(contact) {
   const fields = {
-    name: field({ id: "contact-name", label: "Nombre", value: contact?.name || "" }),
+    name: field({ id: "contact-name", label: t("contacts.name_label"), value: contact?.name || "" }),
     aliases: field({
       id: "contact-aliases",
-      label: "Alias (separados por comas)",
+      label: t("contacts.aliases_label"),
       value: contact ? contact.aliases.join(", ") : "",
       multiline: true,
       rows: 2,
     }),
     addresses: field({
       id: "contact-addresses",
-      label: "Direcciones (una por línea)",
+      label: t("contacts.addresses_label"),
       value: contact ? contact.addresses.map((entry) => entry.address).join("\n") : "",
       multiline: true,
       rows: 3,
     }),
     notes: field({
       id: "contact-notes",
-      label: "Notas",
+      label: t("contacts.notes_label"),
       value: contact?.notes || "",
       multiline: true,
       rows: 4,
     }),
   };
   const problem = notice("");
-  const save = button(contact ? "Guardar" : "Crear contacto", "btn primary btn-small", () =>
+  const save = button(contact ? t("contacts.save") : t("contacts.create"), "btn primary btn-small", () =>
     submit(contact, fields, problem, save),
   );
-  const cancel = button("Cancelar", "btn ghost btn-small", () => (contact ? showContact(contact) : closePanel()));
-  fillPanel(parts, contact ? "Editar contacto" : "Nuevo contacto", [
+  const cancel = button(t("common.cancel"), "btn ghost btn-small", () => (contact ? showContact(contact) : closePanel()));
+  fillPanel(parts, contact ? t("contacts.edit_title") : t("contacts.new"), [
     fields.name.node,
     fields.aliases.node,
     fields.addresses.node,
@@ -190,7 +191,7 @@ function showDelete(contact) {
       }),
     onCancel: () => showContact(contact),
   });
-  fillPanel(parts, `Borrar a ${contact.name}`, [confirm.node]);
+  fillPanel(parts, t("contacts.delete_title", { name: contact.name }), [confirm.node]);
 }
 
 const searchSoon = debounced(() => list.reload($("contacts-search").value.trim()));
@@ -209,7 +210,7 @@ export function installContacts() {
     fetchPage,
     renderRow: contactRow,
     emptyNode,
-    loadingText: "Cargando contactos…",
+    loadingText: t("contacts.loading"),
     failureText,
   });
   $("contacts-search").addEventListener("input", searchSoon);

@@ -12,6 +12,7 @@ import {
   takeAttachments,
 } from "./chatattach.js";
 import { sendFailure } from "./chatattach-model.js";
+import { t } from "./i18n.js";
 
 function newClientId() {
   if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
@@ -60,7 +61,7 @@ export function createSender({ render, home }) {
       }
     }
     if (chat.conversation.archived) {
-      toast("La conversación está archivada.");
+      toast(t("chat.send.archived"));
       return;
     }
     const conversationId = chat.conversation.id;

@@ -2,34 +2,39 @@
 // can run them. The host decides the status and the steps; the words here are the operator's.
 
 import { friendlyError } from "./friendly-error.js";
+import { t } from "./i18n.js";
 
 export const NOTE_MAX = 300;
 
-export const PERMISSION_TEXT =
-  "Este dispositivo solo puede ver los planes. Concede el permiso APPROVE desde el PC para decidir.";
+export const PERMISSION_TEXT = t("plan.permission");
 
 // The order of the words in a summary, so the same plan always reads the same way.
 const TOUCH_ORDER = ["files", "mail", "network", "tools"];
 const TOUCH_LABELS = {
-  files: "Toca ficheros",
-  network: "Usa internet",
-  mail: "Toca correo",
-  tools: "Usa herramientas",
-  nothing: "Solo lee",
+  files: t("plan.touch_files"),
+  network: t("plan.touch_network"),
+  mail: t("plan.touch_mail"),
+  tools: t("plan.touch_tools"),
+  nothing: t("plan.touch_nothing"),
 };
-const TOUCH_WORDS = { files: "ficheros", mail: "correo", network: "internet", tools: "herramientas" };
+const TOUCH_WORDS = {
+  files: t("plan.word_files"),
+  mail: t("plan.word_mail"),
+  network: t("plan.word_network"),
+  tools: t("plan.word_tools"),
+};
 
 export const STATUS_LABELS = {
-  proposed: "Espera tu visto bueno",
-  approved: "Aprobado",
-  rejected: "Rechazado",
-  changes_requested: "Pediste cambios",
+  proposed: t("plan.status_proposed"),
+  approved: t("plan.status_approved"),
+  rejected: t("plan.status_rejected"),
+  changes_requested: t("plan.status_changes"),
 };
 
 const DECIDED_CODES = {
-  plan_decided: "Este plan ya se decidió desde otro dispositivo.",
-  no_such_plan: "Ese plan ya no existe. Se quitará de la lista.",
-  plan_not_approved: "Este plan todavía no está aprobado.",
+  plan_decided: t("plan.decided_elsewhere"),
+  no_such_plan: t("plan.no_such"),
+  plan_not_approved: t("plan.not_approved"),
 };
 
 // Touches the steps name, once each, in TOUCH_ORDER. A plan that names none reads as «Solo lee».
@@ -47,15 +52,15 @@ export function touchLabels(steps) {
 function joinWords(words) {
   if (words.length <= 1) return words.join("");
   const last = words[words.length - 1];
-  const connector = /^i/i.test(last) ? "e" : "y";
-  return `${words.slice(0, -1).join(", ")} ${connector} ${last}`;
+  const key = /^i/i.test(last) ? "plan.join_e" : "plan.join_y";
+  return t(key, { head: words.slice(0, -1).join(", "), last });
 }
 
 // «4 pasos · toca ficheros e internet», «1 paso · solo lee».
 export function summaryLine(steps) {
-  const count = steps.length === 1 ? "1 paso" : `${steps.length} pasos`;
+  const count = t(`plan.steps.${steps.length === 1 ? "one" : "other"}`, { n: steps.length });
   const kinds = touchedKinds(steps);
-  const touch = kinds.length === 0 ? "solo lee" : `toca ${joinWords(kinds.map((kind) => TOUCH_WORDS[kind]))}`;
+  const touch = kinds.length === 0 ? t("plan.reads_only") : t("plan.touches", { what: joinWords(kinds.map((kind) => TOUCH_WORDS[kind])) });
   return `${count} · ${touch}`;
 }
 
@@ -71,14 +76,14 @@ export function needsExtraConfirm(plan) {
 }
 
 export function confirmApproveText() {
-  return "Este plan toca correo o internet. Revisa los pasos antes de aprobarlo.";
+  return t("plan.confirm_extra");
 }
 
 // «Escribe qué cambiarías del plan.» or the limit; `null` when the note can be sent.
 export function noteError(note) {
   const text = note.trim();
-  if (!text) return "Escribe qué cambiarías del plan.";
-  if ([...text].length > NOTE_MAX) return `La nota admite ${NOTE_MAX} caracteres como máximo.`;
+  if (!text) return t("plan.note_required");
+  if ([...text].length > NOTE_MAX) return t("plan.note_too_long", { max: NOTE_MAX });
   return null;
 }
 

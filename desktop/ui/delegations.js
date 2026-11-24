@@ -7,6 +7,7 @@ import { formatWhen } from "./chatlist.js";
 import { openDetail } from "./detail.js";
 import { saveRecipeFromDelegation } from "./recipes.js";
 import { chat } from "./chatstate.js";
+import { t } from "./i18n.js";
 import {
   cardState,
   cardTask,
@@ -18,19 +19,19 @@ import {
 } from "./delegation-model.js";
 
 const REASON_TEXT = {
-  delegation_timeout: "El turno de la delegación agotó el tiempo de espera.",
-  pane_gone: "El panel del asignado desapareció antes de terminar.",
-  host_restart: "Excubia se reinició y la delegación quedó interrumpida.",
-  conversation_cancelled: "Se canceló el equipo de esta conversación.",
-  user_cancelled: "La delegación se canceló desde el escritorio.",
-  delegation_cancelled: "La delegación ya había terminado o estaba cancelada.",
-  seat_unavailable: "El asiento no tenía un panel vivo cuando se asignó.",
-  depth_exceeded: "Alfred no puede delegar más veces en esta tarea.",
-  pane_limit: "El PC ya tiene seis paneles abiertos; no se puede abrir otro.",
-  cycle_detected: "La delegación repite un encargo reciente; se detuvo para evitar un ciclo.",
-  turn_budget: "Este turno ya hizo doce delegaciones; no se permiten más.",
-  hour_budget: "Este asiento ya hizo sesenta delegaciones en la última hora.",
-  seat_limit: "El proyecto ya tiene ocho asientos; no cabe otro.",
+  delegation_timeout: t("delegation.reason.timeout"),
+  pane_gone: t("delegation.reason.pane_gone"),
+  host_restart: t("delegation.reason.host_restart"),
+  conversation_cancelled: t("delegation.reason.conversation_cancelled"),
+  user_cancelled: t("delegation.reason.user_cancelled"),
+  delegation_cancelled: t("delegation.reason.delegation_cancelled"),
+  seat_unavailable: t("delegation.reason.seat_unavailable"),
+  depth_exceeded: t("delegation.reason.depth_exceeded"),
+  pane_limit: t("delegation.reason.pane_limit"),
+  cycle_detected: t("delegation.reason.cycle_detected"),
+  turn_budget: t("delegation.reason.turn_budget"),
+  hour_budget: t("delegation.reason.hour_budget"),
+  seat_limit: t("delegation.reason.seat_limit"),
 };
 
 // CORE7 stores a few assignment titles double-encoded (`asignÃ³`). Keep the
@@ -64,7 +65,7 @@ function element(tag, className, text) {
 }
 
 function shortId(id) {
-  return id && id.length > 14 ? `${id.slice(0, 11)}…` : id || "sin id";
+  return id && id.length > 14 ? `${id.slice(0, 11)}…` : id || t("delegation.no_id");
 }
 
 function statusChip(meta) {
@@ -94,7 +95,7 @@ export function renderDelegationCard(entry, options = {}) {
   // One line: who, the short task, the state and «Ver detalle». The report, the ids and
   // «Guardar como receta» wait in the detail, never on the card.
   const line = element("div", "delegation-line");
-  const title = cleanText(entry.title) || "Delegación del equipo";
+  const title = cleanText(entry.title) || t("delegation.default_title");
   const titleNode = element("span", "delegation-title", title);
   titleNode.title = title;
   line.append(titleNode);
@@ -105,11 +106,11 @@ export function renderDelegationCard(entry, options = {}) {
     line.append(what);
   }
   line.append(statusChip(state));
-  line.append(action("Ver detalle", "detail", { delegation: id }, "delegation-link"));
+  line.append(action(t("delegation.view"), "detail", { delegation: id }, "delegation-link"));
   if (active) {
-    line.append(action("Cancelar", "cancel", { delegation: id }, "delegation-link delegation-cancel"));
+    line.append(action(t("common.cancel"), "cancel", { delegation: id }, "delegation-link delegation-cancel"));
   }
-  if (entry.attention >= 3) line.append(element("span", "delegation-attention", "Requiere atención"));
+  if (entry.attention >= 3) line.append(element("span", "delegation-attention", t("delegation.attention")));
   card.append(line);
 
   if (options.cancelTarget === id) {
@@ -119,13 +120,13 @@ export function renderDelegationCard(entry, options = {}) {
       element(
         "span",
         null,
-        "¿Cancelar esta delegación? Se interrumpirá el panel del asignado; el historial se conserva.",
+        t("delegation.cancel_ask"),
       ),
     );
     const buttons = element("span", "delegation-confirm-actions");
     buttons.append(
-      action("Sí, cancelar", "cancel-confirm", { delegation: id }, "btn destructive btn-small"),
-      action("No", "cancel-abort", { delegation: id }, "btn ghost btn-small"),
+      action(t("delegation.cancel_yes"), "cancel-confirm", { delegation: id }, "btn destructive btn-small"),
+      action(t("common.no"), "cancel-abort", { delegation: id }, "btn ghost btn-small"),
     );
     confirm.append(buttons);
     card.append(confirm);
@@ -149,11 +150,14 @@ function detailSection(title, body) {
 // The project, pane and id are for a support question, not for reading the task: they stay folded.
 function internalDetails(delegation) {
   const box = element("details", "delegation-internal");
-  box.append(element("summary", null, "Datos internos ▸"));
+  box.append(element("summary", null, t("delegation.internal")));
   const home = chat.home && chat.home.bootstrap ? chat.home.bootstrap : null;
   const project = projectName(home ? home.projects : [], delegation.project_id);
-  if (project) box.append(detailRow("Proyecto", project));
-  box.append(detailRow("Panel", delegation.pane_id || "sin panel"), detailRow("Identificador", delegation.id));
+  if (project) box.append(detailRow(t("delegation.project"), project));
+  box.append(
+    detailRow(t("delegation.pane"), delegation.pane_id || t("delegation.no_pane")),
+    detailRow(t("delegation.id_label"), delegation.id),
+  );
   return box;
 }
 
@@ -162,7 +166,7 @@ function renderDetail(view) {
   const delegation = detail.delegation;
   const title = detail.card
     ? cleanText(detail.card.title)
-    : `${delegation.from_name} pidió a ${delegation.to_name}`;
+    : t("delegation.asked", { from: delegation.from_name, to: delegation.to_name });
   $("delegation-detail-title").textContent = title;
   $("delegation-detail-kicker").textContent = detailKicker();
   const status = $("delegation-detail-status");
@@ -173,49 +177,51 @@ function renderDetail(view) {
   const body = $("delegation-detail-body");
   body.replaceChildren();
   body.append(
-    detailRow("De", delegation.from_name),
-    detailRow("A", delegation.to_name),
-    detailRow("Estado", statusMeta(delegation.state).label),
+    detailRow(t("delegation.from"), delegation.from_name),
+    detailRow(t("delegation.to"), delegation.to_name),
+    detailRow(t("delegation.status"), statusMeta(delegation.state).label),
   );
   const reason = view.reason_text || reasonText(delegation.reason);
   if (reason) {
-    body.append(detailSection("Motivo", element("p", null, cleanText(reason))));
+    body.append(detailSection(t("delegation.why"), element("p", null, cleanText(reason))));
   }
   body.append(
     detailSection(
-      "Tarea",
-      element("p", "delegation-task", cleanText(delegation.task) || "Sin tarea registrada."),
+      t("delegation.task"),
+      element("p", "delegation-task", cleanText(delegation.task) || t("delegation.no_task")),
     ),
   );
 
   const result = detail.result_message ? cleanText(detail.result_message.body_md) : "";
   body.append(
     detailSection(
-      "Resultado",
+      t("delegation.result"),
       result
         ? element("pre", "delegation-result", result)
-        : element("p", "delegation-muted", "Sin resultado guardado todavía."),
+        : element("p", "delegation-muted", t("delegation.no_result")),
     ),
   );
 
   if (detail.children.length) {
     const list = element("div", "delegation-children");
     for (const child of detail.children) {
-      const button = element("button", "delegation-child", "Subtarea");
+      const button = element("button", "delegation-child", t("delegation.child"));
       button.type = "button";
       button.dataset.openDelegation = child.id;
       button.append(element("code", null, shortId(child.id)));
       list.append(button);
     }
-    body.append(detailSection("Hijos", list));
+    body.append(detailSection(t("delegation.children"), list));
   }
 
   if (detail.synthesis) {
     const synthesis =
-      { pending: "pendiente", queued: "en cola", skipped: "omitida" }[
-        detail.synthesis.state
-      ] || detail.synthesis.state;
-    body.append(detailSection("Resumen de Alfred", element("p", null, synthesis)));
+      {
+        pending: t("delegation.synth.pending"),
+        queued: t("delegation.synth.queued"),
+        skipped: t("delegation.synth.skipped"),
+      }[detail.synthesis.state] || detail.synthesis.state;
+    body.append(detailSection(t("delegation.summary"), element("p", null, synthesis)));
   }
   body.append(internalDetails(delegation));
 
@@ -233,9 +239,9 @@ function renderDetail(view) {
 export async function openDelegationDetail(id) {
   if (!id) return;
   const dialog = $("delegation-detail");
-  $("delegation-detail-title").textContent = "Cargando delegación…";
+  $("delegation-detail-title").textContent = t("delegation.loading");
   $("delegation-detail-kicker").textContent = shortId(id);
-  $("delegation-detail-body").replaceChildren(element("p", "delegation-muted", "Leyendo desde el PC…"));
+  $("delegation-detail-body").replaceChildren(element("p", "delegation-muted", t("delegation.reading")));
   if (!dialog.open) dialog.showModal();
   try {
     const view = await invoke("chat_delegation", { delegationId: id });
@@ -276,13 +282,13 @@ export function paintFinishedTasks(entries) {
 
 function finishedRow(entry) {
   const row = element("div", "side-finished-row");
-  const title = cleanText(entry.title) || "Delegación del equipo";
+  const title = cleanText(entry.title) || t("delegation.default_title");
   const name = element("span", "side-finished-title", title);
   name.title = title;
   row.append(
     name,
     statusChip(cardState(entry)),
-    action("Ver detalle", "detail", { delegation: delegationId(entry) }, "delegation-link"),
+    action(t("delegation.view"), "detail", { delegation: delegationId(entry) }, "delegation-link"),
   );
   return row;
 }

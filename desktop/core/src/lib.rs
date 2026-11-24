@@ -18,6 +18,7 @@ pub mod sse;
 pub mod state;
 pub mod stream;
 pub mod transport;
+pub mod ui_lang;
 pub mod voice;
 
 pub use chat::{

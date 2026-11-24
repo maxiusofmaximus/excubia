@@ -7,6 +7,7 @@
 use std::sync::Arc;
 
 use excubia_desktop_core::chat::{ChatFailure, ChatResult};
+use excubia_desktop_core::ui_lang::pick;
 use excubia_desktop_core::{ChatSnapshot, HostClient};
 use tauri::State;
 
@@ -30,10 +31,22 @@ pub(crate) fn shared(state: &State<'_, Shared>) -> Shared {
 
 pub(crate) fn client(shared: &AppState) -> ChatResult<HostClient> {
     let settings = shared.settings().map_err(|message| ChatFailure::Protocol {
-        message: format!("La configuración local no está lista: {message}"),
+        message: format!(
+            "{}: {message}",
+            pick(
+                "La configuración local no está lista",
+                "The local setup is not ready",
+            )
+        ),
     })?;
     settings.client().map_err(|error| ChatFailure::Protocol {
-        message: format!("No se pudo preparar la conexión: {error}"),
+        message: format!(
+            "{}: {error}",
+            pick(
+                "No se pudo preparar la conexión",
+                "The connection could not be prepared",
+            )
+        ),
     })
 }
 

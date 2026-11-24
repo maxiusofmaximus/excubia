@@ -69,6 +69,10 @@ fn pairing_message(body: &[u8]) -> String {
         .message
         .filter(|message| message != "pairing_rejected")
         .unwrap_or_else(|| {
-            "El PC rechazó el emparejamiento. Comprueba el código e inténtalo de nuevo.".to_string()
+            crate::ui_lang::pick(
+                "El PC rechazó el emparejamiento. Comprueba el código e inténtalo de nuevo.",
+                "The PC rejected the pairing. Check the code and try again.",
+            )
+            .to_string()
         })
 }

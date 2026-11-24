@@ -1,3 +1,5 @@
+import { t } from "./i18n.js";
+
 export const tauri = window.__TAURI__;
 export const invoke = tauri && tauri.core ? tauri.core.invoke : null;
 export const listen = tauri && tauri.event ? tauri.event.listen : null;
@@ -47,5 +49,5 @@ export async function copyText(text, label) {
     document.execCommand("copy");
     area.remove();
   }
-  toast(label || "Copiado");
+  toast(label || t("common.copied"));
 }

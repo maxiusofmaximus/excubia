@@ -2,14 +2,15 @@
 // and when it ends. The rules live in calendar-recurrence-model.js; this file draws them and
 // keeps the state the form reads back on save.
 
+import { t } from "./i18n.js";
 import { element } from "./chatdom.js";
 import { notice } from "./agenda-ui.js";
 import { DAYS, REPEATS, formState, ruleFromForm, ruleText, setRepeat, unitText } from "./calendar-recurrence-model.js";
 
 const END_OPTIONS = [
-  { value: "never", label: "Nunca" },
-  { value: "count", label: "Después de N veces" },
-  { value: "until", label: "Hasta una fecha" },
+  { value: "never", label: t("recurrence.end_never") },
+  { value: "count", label: t("recurrence.end_count") },
+  { value: "until", label: t("recurrence.end_until") },
 ];
 
 function labelled(text, control) {
@@ -60,33 +61,33 @@ function dayChecks() {
 
 // A custom rule keeps its option, so picking it again brings the rule back.
 const repeatOptions = (state) =>
-  state.repeat === "custom" ? [...REPEATS, { value: "custom", label: "Repetición personalizada" }] : REPEATS;
+  state.repeat === "custom" ? [...REPEATS, { value: "custom", label: t("recurrence.custom") }] : REPEATS;
 
 // `startOf` gives the form's start as it is typed, so a weekly repeat can take its day.
 export function recurrenceBlock({ rule, startOf }) {
   let state = formState(rule, startOf());
   const repeat = select("calendar-repeat", repeatOptions(state));
-  const readOnly = element("p", "agenda-muted", "Repetición personalizada");
+  const readOnly = element("p", "agenda-muted", t("recurrence.custom"));
   const every = numberInput("calendar-every", 999);
   const unit = element("span", "agenda-muted");
-  const everyBox = labelled("Cada", every);
+  const everyBox = labelled(t("recurrence.every"), every);
   everyBox.append(unit);
   const days = dayChecks();
   const daysBox = element("div", "agenda-field");
-  daysBox.append(element("span", "agenda-label", "Días"), days.node);
+  daysBox.append(element("span", "agenda-label", t("schedule.days")), days.node);
   const end = select("calendar-end", END_OPTIONS);
-  const endBox = labelled("Termina", end);
+  const endBox = labelled(t("recurrence.ends"), end);
   const count = numberInput("calendar-count", 1000);
-  const countBox = labelled("Número de veces", count);
+  const countBox = labelled(t("recurrence.count_label"), count);
   const until = element("input");
   until.type = "date";
   until.id = "calendar-until";
-  const untilBox = labelled("Fecha de fin", until);
+  const untilBox = labelled(t("recurrence.until_label"), until);
   const summary = element("p", "agenda-muted");
-  const hint = element("p", "agenda-hint", "Al editar o borrar se cambia toda la serie.");
+  const hint = element("p", "agenda-hint", t("recurrence.series_hint"));
   const problem = notice("");
   const node = element("div", "agenda-recurrence");
-  node.append(labelled("Repetir", repeat), readOnly, everyBox, daysBox, endBox, countBox, untilBox, summary, hint, problem);
+  node.append(labelled(t("schedule.repeat"), repeat), readOnly, everyBox, daysBox, endBox, countBox, untilBox, summary, hint, problem);
 
   function paint() {
     const repeating = state.repeat !== "none" && state.repeat !== "custom";

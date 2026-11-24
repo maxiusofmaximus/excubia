@@ -9,6 +9,7 @@ use serde_json::json;
 
 use super::error::{detail_code, ChatFailure, ChatResult};
 use crate::client::HostClient;
+use crate::ui_lang::pick;
 
 /// The codes the host words for a restore refusal. Any other code stays a host refusal.
 const REFUSAL_CODES: [&str; 3] = [
@@ -99,7 +100,11 @@ fn validate_point_id(id: &str) -> ChatResult<()> {
         Ok(())
     } else {
         Err(ChatFailure::Invalid {
-            message: "El identificador de la copia no es válido.".to_string(),
+            message: pick(
+                "El identificador de la copia no es válido.",
+                "The restore point identifier is not valid.",
+            )
+            .to_string(),
             field: None,
         })
     }

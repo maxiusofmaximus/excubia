@@ -1,9 +1,11 @@
 // Dictation, pure: the 16 kHz resampling, the PCM16 mono WAV the host takes, the 60 s
 // limit, the text at the cursor and the words of each refusal. No DOM, no audio API.
 
+import { t } from "./i18n.js";
+
 export const TARGET_RATE = 16000;
 export const MAX_SECONDS = 60;
-export const EMPTY_TEXT = "No se oyó nada";
+export const EMPTY_TEXT = t("voice.empty");
 
 const WAV_HEADER_BYTES = 44;
 
@@ -96,25 +98,23 @@ export function spliceText(value, start, end, insert) {
 }
 
 const VOICE_TEXT = new Map([
-  ["busy", "Ya se está transcribiendo otra nota, prueba en 2 s"],
-  ["forbidden", "Este dispositivo no tiene permiso para dictar"],
-  ["tooLarge", "La nota es demasiado larga. El máximo es de 60 s."],
-  ["unavailable", "El dictado no está disponible en el PC"],
-  ["offline", "Sin conexión con el PC. Revisa la red y vuelve a intentarlo."],
-  ["protocol", "No se pudo preparar la conexión con el PC."],
-  ["rejected", "El PC no pudo leer la nota. Vuelve a intentarlo."],
+  ["busy", t("voice.err_busy")],
+  ["forbidden", t("voice.err_forbidden")],
+  ["tooLarge", t("voice.err_too_large", { max: MAX_SECONDS })],
+  ["unavailable", t("voice.err_unavailable")],
+  ["offline", t("voice.err_offline")],
+  ["protocol", t("voice.err_protocol")],
+  ["rejected", t("voice.err_rejected")],
 ]);
 
 export function voiceFailureText(failure) {
-  return VOICE_TEXT.get(failure.kind) ?? "No se pudo transcribir la nota. Vuelve a intentarlo.";
+  return VOICE_TEXT.get(failure.kind) ?? t("voice.err_fallback");
 }
 
 export function micFailureText(name) {
-  if (name === "NotAllowedError" || name === "SecurityError") {
-    return "Windows no deja usar el micrófono. Abre Configuración › Privacidad y seguridad › Micrófono, permite el acceso a la app y vuelve a intentarlo.";
-  }
-  if (name === "NotFoundError") return "No hay ningún micrófono conectado al equipo.";
-  return "No se pudo abrir el micrófono.";
+  if (name === "NotAllowedError" || name === "SecurityError") return t("voice.err_mic_denied");
+  if (name === "NotFoundError") return t("voice.err_mic_missing");
+  return t("voice.err_mic_open");
 }
 
 export function isDictationShortcut(event) {

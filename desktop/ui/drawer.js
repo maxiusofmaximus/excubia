@@ -1,7 +1,7 @@
 // The drawer: the one menu of the app. ☰ or Ctrl+B slides it in from the left over a veil.
 // Esc, a click on the veil, a choice in it or a change of section closes it, and the focus
 // goes back to the ☰ on screen. The rules are in drawer-model.js; this file only touches the DOM.
-import { cycleIndex, drawerNext, keyAction, pickAction } from "./drawer-model.js";
+import { cycleIndex, drawerNext, escapeTarget, keyAction, pickAction } from "./drawer-model.js";
 
 const FOCUSABLE =
   "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])";
@@ -72,6 +72,9 @@ function onKey(event) {
   }
   const action = keyAction(event.key, event);
   if (!action || (action === "close" && !open)) return;
+  // A row menu open over the drawer takes this Esc (chatinstall.js closes it); the drawer waits for the next one.
+  const menu = !document.getElementById("chat-menu").classList.contains("hidden");
+  if (action === "close" && escapeTarget({ menu, drawer: open }) !== "drawer") return;
   // The drawer takes the key, so Esc does not also clear the picked rows of the history.
   event.preventDefault();
   event.stopPropagation();
