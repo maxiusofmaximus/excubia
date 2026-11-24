@@ -41,33 +41,47 @@ pub async fn run_resident(engine: &[String]) -> Result<(), String> {
             break;
         };
         println!("\n── Tarea de {from} ──");
-        let before = changes().await;
-        let (ran, answer) = match run_engine(program, args, &task_prompt(&from, &text)).await {
-            Ok((true, output)) if !output.trim().is_empty() => (true, output),
-            Ok((true, _)) => (true, "Terminé la tarea sin texto de resultado.".to_string()),
-            Ok((false, output)) => (false, format!("No pude terminar la tarea. Última salida:\n{output}")),
-            Err(error) => (false, format!("No pude arrancar el agente: {error}")),
-        };
-        let (declared_failed, mut result) = closing_status(&answer);
-        let failed = !ran || declared_failed;
-        result.push_str(&changed_files(&before, &changes().await));
-        let request = ToolRequest {
-            tool: "delegation.complete".to_string(),
-            arguments: json!({
-                "delegation_id": id,
-                "result": result,
-                "outcome": if failed { "failed" } else { "done" },
-            }),
-        };
-        // Refused when the agent already closed the task itself: that is the good case.
-        if let Err(error) = post_tool(&url, &token, &request).await {
-            if error.code != "delegation_cancelled" {
-                eprintln!("delegation.complete: {} ({})", error.message, error.code);
-            }
-        }
+        serve_task(program, args, &url, &token, &id, &from, &text).await;
         println!("── Tarea cerrada ──");
     }
     Ok(())
+}
+
+/// Runs one task through the CLI and closes it with `delegation.complete`. The CLI gets
+/// the task on stdin; the token travels only in the MCP call, never in the prompt.
+async fn serve_task(
+    program: &str,
+    args: &[String],
+    url: &str,
+    token: &str,
+    id: &str,
+    from: &str,
+    text: &str,
+) {
+    let before = changes().await;
+    let (ran, answer) = match run_engine(program, args, &task_prompt(from, text)).await {
+        Ok((true, output)) if !output.trim().is_empty() => (true, output),
+        Ok((true, _)) => (true, "Terminé la tarea sin texto de resultado.".to_string()),
+        Ok((false, output)) => (false, format!("No pude terminar la tarea. Última salida:\n{output}")),
+        Err(error) => (false, format!("No pude arrancar el agente: {error}")),
+    };
+    let (declared_failed, mut result) = closing_status(&answer);
+    let failed = !ran || declared_failed;
+    result.push_str(&changed_files(&before, &changes().await));
+    let request = ToolRequest {
+        tool: "delegation.complete".to_string(),
+        arguments: json!({
+            "delegation_id": id,
+            "result": result,
+            "outcome": if failed { "failed" } else { "done" },
+        }),
+    };
+    // Refused when the agent already closed the task itself: that is the good case.
+    if let Err(error) = post_tool(url, token, &request).await {
+        if error.code != "delegation_cancelled" {
+            eprintln!("delegation.complete: {} ({})", error.message, error.code);
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -330,5 +344,54 @@ mod tests {
             closing_status("ESTADO: FALLIDO\nluego seguí y acabé"),
             (false, "ESTADO: FALLIDO\nluego seguí y acabé".to_string())
         );
+    }
+
+    /// A stub CLI that answers the task and states its end: the runner closes the
+    /// delegation through MCP with the panel's token in the header, never in the prompt.
+    #[cfg(windows)]
+    fn stub_cli(status: &str) -> (String, Vec<String>) {
+        (
+            "cmd".to_string(),
+            vec!["/C".to_string(), format!("echo Resultado listo & echo {status}")],
+        )
+    }
+
+    #[cfg(not(windows))]
+    fn stub_cli(status: &str) -> (String, Vec<String>) {
+        (
+            "sh".to_string(),
+            vec!["-c".to_string(), format!("echo Resultado listo; echo '{status}'")],
+        )
+    }
+
+    #[tokio::test]
+    async fn a_stub_cli_task_is_closed_through_mcp_with_the_result() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind mock");
+        let address = listener.local_addr().expect("mock address");
+        let server = tokio::spawn(async move {
+            use tokio::io::{AsyncReadExt, AsyncWriteExt};
+            let (mut socket, _) = listener.accept().await.expect("accept");
+            let mut buffer = vec![0_u8; 16384];
+            let read = socket.read(&mut buffer).await.unwrap_or(0);
+            let body = br#"{"ok":true,"result":{}}"#;
+            let head = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            let _ = socket.write_all(head.as_bytes()).await;
+            let _ = socket.write_all(body).await;
+            String::from_utf8_lossy(&buffer[..read]).to_string()
+        });
+        let (program, args) = stub_cli("ESTADO: HECHO");
+        let url = format!("http://{address}/internal/chat/tools");
+        serve_task(&program, &args, &url, "tok-panel", "dlg_1", "Alfred", "Haz X").await;
+        let request = server.await.expect("server");
+        assert!(request.contains("delegation.complete"), "{request}");
+        assert!(request.contains("\"delegation_id\":\"dlg_1\""), "{request}");
+        assert!(request.contains("\"outcome\":\"done\""), "{request}");
+        assert!(request.contains("Resultado listo"), "{request}");
+        assert!(request.to_lowercase().contains("x-excubia-tool-token: tok-panel"), "{request}");
     }
 }

@@ -14,6 +14,34 @@ use crate::profile::{CliProfile, PromptDelivery};
 /// The OpenCode model Alfred's engine turns run on (free tier, the Master's pick: DeepSeek V4.1 Flash is better than GLM 5.3 Flash).
 const OPENCODE_ENGINE_MODEL: &str = "opencode/deepseek-v4.1-flash-free";
 
+/// The OpenCode arguments of one run, after the binary. A turn and a resident task use the
+/// same ones: a fresh session, the free model, the `alfred` agent, no approval bypass.
+const OPENCODE_RUN_ARGS: &[&str] = &[
+    "run",
+    "--standalone",
+    "--model",
+    OPENCODE_ENGINE_MODEL,
+    "--agent",
+    "alfred",
+];
+
+/// The Codex arguments of one run, after the binary: a read-only sandbox, no shell and
+/// no approval bypass. A turn and a resident task use the same ones.
+const CODEX_RUN_ARGS: &[&str] = &[
+    "-p",
+    "alfred",
+    "exec",
+    "--skip-git-repo-check",
+    "--color",
+    "never",
+    "-s",
+    "read-only",
+    "-a",
+    "never",
+    "--disable",
+    "shell_tool",
+];
+
 mod render;
 #[cfg(test)]
 mod tests;
@@ -61,6 +89,9 @@ pub struct ResidentInput<'a> {
     /// and runs commands, so every tool it uses goes through the approval gate.
     pub hook_url: &'a str,
     pub hook_command: &'a Path,
+    /// The OpenCode plugin, only when its canary proved the gate `Safe` for this host.
+    /// Without it the OpenCode seat keeps shell denied, as a turn does.
+    pub plugin_dir: Option<&'a Path>,
 }
 
 #[derive(Clone, Debug)]
@@ -174,20 +205,7 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
                 "CODEX_HOME".to_string(),
                 codex_home.to_string_lossy().to_string(),
             ));
-            args.extend([
-                "-p".to_string(),
-                "alfred".to_string(),
-                "exec".to_string(),
-                "--skip-git-repo-check".to_string(),
-                "--color".to_string(),
-                "never".to_string(),
-                "-s".to_string(),
-                "read-only".to_string(),
-                "-a".to_string(),
-                "never".to_string(),
-                "--disable".to_string(),
-                "shell_tool".to_string(),
-            ]);
+            args.extend(CODEX_RUN_ARGS.iter().map(|arg| arg.to_string()));
         }
         PromptDelivery::AgentConfig => {
             let config_dir = input.run_dir.join("opencode");
@@ -209,14 +227,7 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
                 ),
             ]);
             // shortcut: a fixed free model, because the account default is paid and can run out of balance, upgrade with a per-device engine model setting.
-            args.extend([
-                "run".to_string(),
-                "--standalone".to_string(),
-                "--model".to_string(),
-                OPENCODE_ENGINE_MODEL.to_string(),
-                "--agent".to_string(),
-                "alfred".to_string(),
-            ]);
+            args.extend(OPENCODE_RUN_ARGS.iter().map(|arg| arg.to_string()));
             // No `--session`: every turn is a new OpenCode session. A reused session
             // kept failing with `provider.free-limit` on the free tier, while fresh
             // sessions with the same request passed. Alfred's context page carries the chat.
@@ -241,24 +252,113 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
     })
 }
 
-/// Build a resident panel plan. The test adapter is the only prompt delivery
-/// that defines resident mode today; the shipped CLIs need their own resident
-/// handshake, which is `[NV]` (no quota is spent in this milestone).
+/// Build a resident panel plan for a profile that declares resident mode. Claude runs
+/// its own `-p`; Codex and OpenCode run through `excubia-mcp resident`, one CLI process
+/// per task. The real CLIs' plans are checked by their flags and config, not by a run.
 pub fn prepare_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchError> {
-    if !input.profile.is_consistent() {
-        return Err(LaunchError::Unsupported(
-            input.profile.id.as_str().to_string(),
-        ));
-    }
-    if input.profile.prompt == PromptDelivery::SystemPromptFile {
-        return claude_resident(input);
-    }
-    if input.profile.prompt != PromptDelivery::TestStdin {
+    if !input.profile.supports_resident() {
         return Err(LaunchError::Unsupported(format!(
-            "{} has no resident panel mode yet",
+            "{} has no resident panel mode",
             input.profile.id.as_str()
         )));
     }
+    match input.profile.prompt {
+        PromptDelivery::SystemPromptFile => claude_resident(input),
+        PromptDelivery::DeveloperInstructions => codex_resident(input),
+        PromptDelivery::AgentConfig => opencode_resident(input),
+        PromptDelivery::TestStdin => test_resident(input),
+    }
+}
+
+/// The environment of a resident panel: the seat, its tool surface and its hook. The
+/// per-panel token is added by the host, and it reaches the CLI only through this env.
+fn resident_env(input: &ResidentInput<'_>) -> Vec<(String, String)> {
+    vec![
+        ("EXCUBIA_ENV".to_string(), "1".to_string()),
+        (
+            "EXCUBIA_CHAT_AGENT_ID".to_string(),
+            input.agent_id.to_string(),
+        ),
+        ("EXCUBIA_SEAT_ROLE".to_string(), input.role_id.to_string()),
+        ("EXCUBIA_TOOL_URL".to_string(), input.tool_url.to_string()),
+        ("EXCUBIA_HOOK_URL".to_string(), input.hook_url.to_string()),
+    ]
+}
+
+/// `excubia-mcp resident -- <cli> <args…>`: the sidecar that runs the CLI once per task.
+fn resident_sidecar(input: &ResidentInput<'_>, cli_args: &[String]) -> (String, Vec<String>) {
+    let mut args = vec!["resident".to_string(), "--".to_string()];
+    args.push(input.profile.command.clone());
+    args.extend(cli_args.iter().cloned());
+    (input.mcp_command.to_string_lossy().to_string(), args)
+}
+
+/// Codex as a project seat: the same isolated home, read-only sandbox and MCP server as a
+/// turn. It receives tasks and closes them through MCP; it cannot run shell, and it
+/// cannot write outside the read-only sandbox, which is its normal limit.
+fn codex_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchError> {
+    let mcp_command = input.mcp_command.to_string_lossy().to_string();
+    let codex_home = input.seat_dir.join("codex");
+    let cli_args: Vec<String> = CODEX_RUN_ARGS.iter().map(|arg| arg.to_string()).collect();
+    let (program, args) = resident_sidecar(input, &cli_args);
+    let mut env = resident_env(input);
+    env.push((
+        "CODEX_HOME".to_string(),
+        codex_home.to_string_lossy().to_string(),
+    ));
+    Ok(LaunchPlan {
+        program,
+        args,
+        env,
+        cwd: input.seat_dir.to_path_buf(),
+        stdin: String::new(),
+        files: vec![(
+            codex_home.join("config.toml"),
+            codex_config(&mcp_command, input.tool_url, input.role)?,
+        )],
+    })
+}
+
+/// OpenCode as a project seat: the same generated configuration as a turn (permissions,
+/// `alfred` prompt, MCP server, and the UAC plugin only when its canary proved it). Each
+/// task is a fresh OpenCode session, as a turn is.
+fn opencode_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchError> {
+    let mcp_command = input.mcp_command.to_string_lossy().to_string();
+    let config_dir = input.seat_dir.join("opencode");
+    let run = OpenCodeRun::Seat {
+        command: &mcp_command,
+        tool_url: input.tool_url,
+        role: input.role,
+    };
+    let cli_args: Vec<String> = OPENCODE_RUN_ARGS.iter().map(|arg| arg.to_string()).collect();
+    let (program, args) = resident_sidecar(input, &cli_args);
+    let mut env = resident_env(input);
+    env.extend([
+        (
+            "OPENCODE_CONFIG_DIR".to_string(),
+            config_dir.to_string_lossy().to_string(),
+        ),
+        (
+            "OPENCODE_DISABLE_PROJECT_CONFIG".to_string(),
+            "1".to_string(),
+        ),
+    ]);
+    Ok(LaunchPlan {
+        program,
+        args,
+        env,
+        cwd: input.seat_dir.to_path_buf(),
+        stdin: String::new(),
+        files: vec![(
+            config_dir.join("opencode.json"),
+            opencode_config(input.plugin_dir, run)?,
+        )],
+    })
+}
+
+/// The test adapter's resident panel: it defines the same materialisation, token and MCP
+/// transport as the real CLIs, without a model.
+fn test_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchError> {
     let role_file = input.seat_dir.join("role.md");
     let mcp = input.seat_dir.join("mcp.json");
     let mcp_command = input.mcp_command.to_string_lossy().to_string();

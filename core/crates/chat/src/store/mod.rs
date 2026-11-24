@@ -16,6 +16,9 @@ mod approval_rules;
 mod approval_settle;
 mod approval_task_scope;
 mod approval_timeline;
+#[cfg(test)]
+#[path = "approval_waits_tests.rs"]
+mod approval_waits_tests;
 mod approvals;
 mod attachments;
 mod bootstrap;
@@ -81,6 +84,7 @@ mod status;
 mod synthesis;
 
 pub use alerts::{AlertSummary, AlertWriter};
+pub use approvals::ApprovalWaits;
 use bootstrap::root_label;
 pub use calendar::EventOrigin;
 pub use calendar_read::{CalendarSummary, NextEvent};

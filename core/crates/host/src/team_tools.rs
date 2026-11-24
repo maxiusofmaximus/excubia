@@ -4,10 +4,10 @@
 use std::path::PathBuf;
 
 use excubia_chat::{
-    new_ulid, ChatSeat, HookScope, NewProject, NewSeat, Seat, SeatActor, ToolError, ToolReply,
-    ToolRequest,
+    new_ulid, ChatSeat, HookScope, NewProject, NewSeat, Seat, SeatActor, ToolError, ToolErrorKind,
+    ToolReply, ToolRequest,
 };
-use excubia_seat::{prepare_resident, ResidentInput, ToolCall};
+use excubia_seat::{prepare_resident, ResidentInput, SelectedProfile, ToolCall, UacState};
 use serde_json::json;
 
 use crate::SpawnSpec;
@@ -15,6 +15,17 @@ use crate::SpawnSpec;
 use super::team::{lock, TeamGrant, TeamService, MAX_LIVE_PANES};
 use super::team_errors::tool_chat_error;
 use super::team_paths::{resolve_project_path, role_text};
+
+/// A refusal that stops a seat before anything is written. Unavailable (503), with the
+/// stable code the desktop and Alfred read; the message says what to do next.
+fn resident_refusal(code: &'static str, message: String) -> ToolError {
+    ToolError {
+        kind: ToolErrorKind::Unavailable,
+        code,
+        field: None,
+        message,
+    }
+}
 
 impl TeamService {
     pub(super) async fn team_tool(
@@ -216,6 +227,9 @@ impl TeamService {
                 "only Alfred creates projects",
             ));
         }
+        // The lead is created with the project, so a project that cannot get a panel is
+        // refused before any row or folder exists: no half-made project to clean up.
+        self.resident_gate()?;
         let root_path =
             resolve_project_path(&self.workspaces_root, &create.name, create.path.as_deref())
                 .map_err(|message| ToolError::invalid("invalid_path", "path", message))?;
@@ -294,6 +308,8 @@ impl TeamService {
                 "only Alfred creates the lead of a project",
             ));
         }
+        // A seat that cannot get a panel is refused before its row exists.
+        self.resident_gate()?;
         let seat = self
             .chat
             .create_seat(NewSeat {
@@ -317,6 +333,27 @@ impl TeamService {
         })
     }
 
+    /// The CLI that runs a resident panel. Pure: it writes nothing and runs nothing, so
+    /// every entry point that creates a row or a folder asks it first.
+    pub(super) fn resident_gate(&self) -> Result<SelectedProfile, ToolError> {
+        let selected = self.alfred.selected().ok_or_else(|| {
+            resident_refusal(
+                "no_resident_engine",
+                "No installed CLI can run a resident project panel. Install Claude Code, Codex or OpenCode at a version the host lists, then try again.".to_string(),
+            )
+        })?;
+        if !selected.profile.supports_resident() {
+            return Err(resident_refusal(
+                "resident_unsupported",
+                format!(
+                    "{} has no resident project panel mode. Update Excubia or install Claude Code, Codex or OpenCode, which have one, then try again.",
+                    selected.profile.id.as_str()
+                ),
+            ));
+        }
+        Ok(selected.clone())
+    }
+
     pub(super) async fn spawn_panel(&self, seat: &Seat) -> Result<String, ToolError> {
         // Six live panels per host: the limit is checked where the panel is
         // born, so the lead of a project counts like any other seat.
@@ -326,16 +363,20 @@ impl TeamService {
                 "the host already has six live panels",
             ));
         }
-        let selected = self
-            .alfred
-            .selected()
-            .ok_or_else(|| ToolError::unavailable("no installed CLI can run a resident panel"))?;
+        // No canary, folder or panel for a CLI that cannot run one.
+        let selected = self.resident_gate()?;
         if !self.alfred.is_available() {
             return Err(ToolError::unavailable("the seat is shutting down"));
         }
         // The blocking UAC adapter is proven before the panel exists: a seat
         // whose adapter failed is `unsafe` and is never launched.
-        self.verify_uac(seat, &selected.profile).await?;
+        let uac = self.verify_uac(seat, &selected.profile).await?;
+        // The OpenCode plugin reaches a panel only when this host's canary proved it `Safe`,
+        // the same gate a turn uses. Otherwise shell stays denied for the panel.
+        let plugin_dir = match uac {
+            UacState::Safe => self.uac_plugin_dir.as_deref(),
+            UacState::Unchecked | UacState::Unsafe => None,
+        };
         let project_id = seat.project_id.as_deref().ok_or_else(|| {
             ToolError::invalid("unknown_project", "project_id", "seat has no project")
         })?;
@@ -357,6 +398,7 @@ impl TeamService {
             mcp_command: self.alfred.mcp_command(),
             hook_url: self.alfred.hook_url(),
             hook_command: self.alfred.hook_command(),
+            plugin_dir,
         })
         .map_err(|error| {
             ToolError::unavailable(format!(

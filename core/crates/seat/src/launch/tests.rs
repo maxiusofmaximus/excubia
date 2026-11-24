@@ -306,3 +306,165 @@ fn an_inconsistent_profile_is_rejected_before_writing_files() {
     assert!(matches!(error, LaunchError::Unsupported(_)));
     assert!(!dir.exists());
 }
+
+fn resident<'a>(
+    profile: &'a CliProfile,
+    seat_dir: &'a Path,
+    role: &'a str,
+    plugin: Option<&'a Path>,
+) -> ResidentInput<'a> {
+    ResidentInput {
+        profile,
+        agent_id: "ag_lead",
+        role_id: "lead",
+        seat_dir,
+        role,
+        tool_url: "http://127.0.0.1:9/internal/chat/tools",
+        mcp_command: Path::new("C:\\bin\\excubia-mcp.exe"),
+        hook_url: "http://127.0.0.1:9",
+        hook_command: existing_hook(),
+        plugin_dir: plugin,
+    }
+}
+
+/// The resident plan checks that the hook file exists and is runnable; the running test
+/// binary always is, so it stands in for the hook.
+fn existing_hook() -> &'static Path {
+    static HOOK: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    HOOK.get_or_init(|| std::env::current_exe().expect("test binary"))
+        .as_path()
+}
+
+/// The turn plan of the same profile: a resident task must run the CLI with the same flags.
+fn turn_args(profile: &CliProfile) -> Vec<String> {
+    let root = PathBuf::from("run-dir");
+    prepare(&input(profile, &root, "role", "prompt"))
+        .expect("turn plan")
+        .args
+}
+
+#[test]
+fn every_shipped_cli_declares_resident_mode_and_the_plan_follows_the_predicate() {
+    let mcp = Path::new("C:\\bin\\excubia-mcp.exe");
+    for profile in crate::profile::shipped() {
+        assert!(profile.supports_resident(), "{}", profile.id.as_str());
+        let seat = PathBuf::from("seat").join("resident");
+        let plan = prepare_resident(&resident(&profile, &seat, "role", None))
+            .unwrap_or_else(|error| panic!("{}: {error}", profile.id.as_str()));
+        assert_eq!(plan.cwd, seat);
+        if profile.prompt == PromptDelivery::SystemPromptFile {
+            // Claude keeps its own resident command: `excubia-mcp resident -- claude -p …`.
+            assert_eq!(plan.program, mcp.to_string_lossy());
+            assert_eq!(&plan.args[..3], ["resident", "--", "claude"]);
+        } else {
+            assert_eq!(plan.program, mcp.to_string_lossy(), "{}", profile.id.as_str());
+            assert_eq!(&plan.args[..2], ["resident", "--"], "{}", profile.id.as_str());
+            assert_eq!(plan.args[2], profile.command, "{}", profile.id.as_str());
+        }
+    }
+}
+
+#[test]
+fn a_codex_resident_task_runs_the_turn_flags_in_a_read_only_sandbox() {
+    let profile = crate::profile::shipped().remove(1);
+    let seat = PathBuf::from("seat").join("resident");
+    let plan = prepare_resident(&resident(&profile, &seat, "rol líder", None)).expect("plan");
+    let turn = turn_args(&profile);
+    // The CLI's own arguments are the turn's, byte for byte.
+    assert_eq!(&plan.args[3..], turn.as_slice());
+    let joined = plan.args.join(" ");
+    assert!(joined.contains("-s read-only"), "{joined}");
+    assert!(joined.contains("--disable shell_tool"), "{joined}");
+    // No approval bypass or profile of the host's own.
+    for banned in ["bypass", "full-auto", "yolo", "dangerously", "--profile "] {
+        assert!(!joined.contains(banned), "{joined}");
+    }
+    let home = plan
+        .env
+        .iter()
+        .find(|(key, _)| key == "CODEX_HOME")
+        .expect("isolated home");
+    assert_eq!(home.1, seat.join("codex").to_string_lossy());
+    let config: toml::Value = toml::from_str(&file_text(&plan, "config.toml")).expect("toml");
+    assert_eq!(
+        config["profiles"]["alfred"]["developer_instructions"].as_str(),
+        Some("rol líder")
+    );
+    assert_eq!(
+        config["mcp_servers"]["excubia-core"]["command"].as_str(),
+        Some("C:\\bin\\excubia-mcp.exe")
+    );
+}
+
+#[test]
+fn an_opencode_resident_task_runs_the_turn_flags_and_keeps_shell_denied_without_the_plugin() {
+    let profile = crate::profile::shipped().remove(2);
+    let seat = PathBuf::from("seat").join("resident");
+    let plan = prepare_resident(&resident(&profile, &seat, "role", None)).expect("plan");
+    assert_eq!(&plan.args[3..], turn_args(&profile).as_slice());
+    assert!(!plan.args.iter().any(|arg| arg == "--session"), "{:?}", plan.args);
+    assert!(plan.args.iter().any(|arg| arg == "opencode/deepseek-v4.1-flash-free"));
+    let config: serde_json::Value =
+        serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
+    assert_eq!(config["agent"]["alfred"]["prompt"], "role");
+    assert_eq!(config["permission"]["bash"], "deny");
+    assert_eq!(config["permission"]["edit"], "deny");
+    assert!(config.get("plugin").is_none());
+    assert!(plan
+        .env
+        .iter()
+        .any(|(key, value)| key == "OPENCODE_CONFIG_DIR" && value.ends_with("opencode")));
+}
+
+#[test]
+fn an_opencode_resident_panel_gets_the_plugin_only_when_it_is_given_one() {
+    let profile = crate::profile::shipped().remove(2);
+    let seat = PathBuf::from("seat").join("resident");
+    let plugin = PathBuf::from("tooling").join("opencode-uac-plugin");
+    let plan = prepare_resident(&resident(&profile, &seat, "role", Some(&plugin))).expect("plan");
+    let config: serde_json::Value =
+        serde_json::from_str(&file_text(&plan, "opencode.json")).expect("json");
+    let registered = config["plugin"][0].as_str().expect("plugin path");
+    assert!(Path::new(registered).is_absolute(), "{registered}");
+    assert_eq!(config["permission"]["bash"], "allow");
+    assert_eq!(config["permission"]["edit"], "deny");
+}
+
+#[test]
+fn no_resident_plan_writes_the_token_or_the_hook_token_into_a_file() {
+    for profile in crate::profile::shipped() {
+        let seat = PathBuf::from("seat").join("resident");
+        let plan = prepare_resident(&resident(&profile, &seat, "role", None)).expect("plan");
+        assert!(!plan.env.iter().any(|(key, _)| key == "EXCUBIA_TOOL_TOKEN"));
+        assert!(!plan.env.iter().any(|(key, _)| key == "EXCUBIA_HOOK_TOKEN"));
+        for (_, bytes) in &plan.files {
+            let text = String::from_utf8_lossy(bytes);
+            assert!(!text.contains("EXCUBIA_TOOL_TOKEN"), "{}", profile.id.as_str());
+            assert!(!text.contains("EXCUBIA_HOOK_TOKEN"), "{}", profile.id.as_str());
+        }
+    }
+}
+
+#[test]
+fn a_profile_without_resident_mode_is_refused_before_any_file() {
+    let mut profile = crate::profile::shipped().remove(1);
+    profile.resident = false;
+    assert!(!profile.supports_resident());
+    let scratch = TestDir::new("seat-no-resident");
+    let seat = scratch.join("absent");
+    let error = prepare_resident(&resident(&profile, &seat, "role", None)).expect_err("refused");
+    assert!(
+        matches!(&error, LaunchError::Unsupported(text) if text.contains("no resident panel mode")),
+        "{error}"
+    );
+    assert!(!seat.exists());
+}
+
+#[test]
+fn the_resident_predicate_is_false_for_an_inconsistent_profile() {
+    let mut profile = crate::profile::shipped().remove(0);
+    profile.mcp = McpDeclaration::CodexToml;
+    assert!(!profile.supports_resident());
+    let seat = PathBuf::from("seat").join("resident");
+    assert!(prepare_resident(&resident(&profile, &seat, "role", None)).is_err());
+}

@@ -35,6 +35,14 @@ const MAX_WAIT: Duration = Duration::from_secs(3600);
 /// The shortest single wait, so a deadline already past does not spin the loop.
 const MIN_WAIT: Duration = Duration::from_millis(10);
 
+/// What a run waits on: its pending approvals, and how long until one of them
+/// changes by itself (a level runs out, the TTL passes), measured from the read.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ApprovalWaits {
+    pub pending: usize,
+    pub next_change: Option<Duration>,
+}
+
 pub(super) const APPROVAL_SELECT: &str =
     "SELECT id, conversation_id, seat_id, agent_label, run_id, pane_id,
             kind, tool, summary, cwd, paths_json, risk,
@@ -210,6 +218,39 @@ impl super::ChatStore {
         };
         let remaining = Duration::from_millis((at - self.now_ms()).max(0) as u64);
         Ok(remaining.clamp(MIN_WAIT, MAX_WAIT))
+    }
+
+    /// The approvals of these runs that wait for an operator now. The seat's turn
+    /// budget pauses on them. Due cards settle first, so an expired one is not
+    /// counted; a card of an archived conversation is not waited on either.
+    pub fn approval_waits(&self, run_ids: &[String]) -> Result<ApprovalWaits, ChatError> {
+        self.expire_now()?;
+        let now = self.now_ms();
+        let connection = self.lock();
+        let mut waits = ApprovalWaits {
+            pending: 0,
+            next_change: None,
+        };
+        for run_id in run_ids {
+            let mut statement = connection.prepare(
+                "SELECT approval.id FROM approval
+                   LEFT JOIN conversation ON conversation.id = approval.conversation_id
+                  WHERE approval.run_id = ?1 AND approval.status = 'pending'
+                    AND COALESCE(conversation.archived, 0) = 0",
+            )?;
+            let ids = statement
+                .query_map([run_id], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<String>, _>>()?;
+            for id in ids {
+                waits.pending += 1;
+                if let Some(at) = approval_settle::next_deadline_ms(&connection, &id)? {
+                    let left =
+                        Duration::from_millis((at - now).max(0) as u64).clamp(MIN_WAIT, MAX_WAIT);
+                    waits.next_change = Some(waits.next_change.map_or(left, |s| s.min(left)));
+                }
+            }
+        }
+        Ok(waits)
     }
 
     /// How many approvals wait for a decision: the `pending_approvals`

@@ -91,6 +91,9 @@ pub struct CliProfile {
     pub isolation: Isolation,
     pub hook: HookSupport,
     pub mode: TurnMode,
+    /// The CLI can run as a resident project panel (`excubia-mcp resident -- <cli>`):
+    /// one process per task, the task on stdin, the result closed through MCP.
+    pub resident: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -100,6 +103,12 @@ pub struct SelectedProfile {
 }
 
 impl CliProfile {
+    /// Whether this profile can run as a resident project panel. The one predicate
+    /// the host asks before it writes a row, creates a folder or runs a canary.
+    pub fn supports_resident(&self) -> bool {
+        self.resident && self.is_consistent()
+    }
+
     /// The fields are data, but not independent: a prompt format only makes
     /// sense with the MCP declaration and isolation it was verified against.
     /// Keep that invariant here instead of discovering it in `launch`.
@@ -188,6 +197,7 @@ pub fn shipped() -> Vec<CliProfile> {
             isolation: Isolation::ClaudeSettings,
             hook: HookSupport::Blocking,
             mode: TurnMode::PtyStdin,
+            resident: true,
         },
         CliProfile {
             id: CliId::Codex,
@@ -198,6 +208,8 @@ pub fn shipped() -> Vec<CliProfile> {
             isolation: Isolation::CodexHome,
             hook: HookSupport::Blocking,
             mode: TurnMode::PtyStdin,
+            // Read-only sandbox and no shell: a resident Codex seat receives tasks and coordinates over MCP.
+            resident: true,
         },
         CliProfile {
             id: CliId::OpenCode,
@@ -211,6 +223,7 @@ pub fn shipped() -> Vec<CliProfile> {
             hook: HookSupport::Blocking,
             // One process per turn: a reused OpenCode session stopped answering on the free tier.
             mode: TurnMode::PtyStdin,
+            resident: true,
         },
     ]
 }
@@ -227,6 +240,7 @@ pub fn test_profile(command: impl Into<String>) -> CliProfile {
         isolation: Isolation::TestDir,
         hook: HookSupport::None,
         mode: TurnMode::PtyStdin,
+        resident: true,
     }
 }
 

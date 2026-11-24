@@ -36,7 +36,7 @@ impl TeamService {
         &self,
         seat: &excubia_chat::Seat,
         profile: &CliProfile,
-    ) -> Result<(), ToolError> {
+    ) -> Result<UacState, ToolError> {
         let outcome = self
             .preflight(profile, &self.seat_dir(&seat.agent_id))
             .await;
@@ -46,7 +46,7 @@ impl TeamService {
         if outcome.state == UacState::Unsafe {
             return Err(ToolError::conflict("uac_unsafe", &outcome.reason));
         }
-        Ok(())
+        Ok(outcome.state)
     }
 
     /// The canary of the configured CLI, or `unchecked` when there is no

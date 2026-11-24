@@ -130,8 +130,8 @@ pub use seat::{
     ChatSeat, SeatActor, SeatError, SeatErrorCode, ToolError, ToolErrorKind, ToolReply, ToolRequest,
 };
 pub use store::{
-    validate_suggestions, AlertSummary, AlertWriter, CalendarSummary, ChatStore, Claim,
-    EventOrigin, HireLink, Launch, MailDraftCard, NewMailCard, NextEvent, PendingApproval,
+    validate_suggestions, AlertSummary, AlertWriter, ApprovalWaits, CalendarSummary, ChatStore,
+    Claim, EventOrigin, HireLink, Launch, MailDraftCard, NewMailCard, NextEvent, PendingApproval,
     PendingPlan, ProgressOutcome, SenderHistory, StatusApproval, StatusDelegation, StatusFacts,
 };
 pub use text::{

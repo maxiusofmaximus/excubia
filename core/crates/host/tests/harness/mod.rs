@@ -63,6 +63,13 @@ fn alfred_turn_env(data_dir: &Path) -> Arc<dyn Fn() -> TurnEnv + Send + Sync> {
 }
 
 /// The real OpenCode of the test: `EXCUBIA_OPENCODE_BIN` names it, the shipped command otherwise.
+/// The simulated CLI as a team seat's profile; `resident` false is a CLI with no resident mode.
+fn team_profile(resident: bool) -> CliProfile {
+    let mut profile = test_profile(env!("CARGO_BIN_EXE_fake-cli"));
+    profile.resident = resident;
+    profile
+}
+
 pub fn real_opencode() -> CliProfile {
     let mut profile = shipped()
         .into_iter()
@@ -278,6 +285,13 @@ pub enum SeatKind {
         turn_timeout: Duration,
         delegation_timeout: Duration,
         /// Where the UAC plugin lives; the seats are verified against it.
+        uac_plugin: Option<PathBuf>,
+    },
+    /// The team seat whose CLI declares no resident panel mode: every seat-creating call
+    /// must be refused before a row, a folder or a canary exists.
+    TeamWithoutResident {
+        turn_timeout: Duration,
+        delegation_timeout: Duration,
         uac_plugin: Option<PathBuf>,
     },
     /// The real OpenCode with the UAC plugin: its turn asks `provider_url` for a
@@ -574,6 +588,7 @@ impl TestHost {
         let tool_url = format!("http://{internal_addr}/internal/chat/tools");
         let cli = Arc::new(docs::FakeCli::default());
         let craft = Arc::new(docs::craft(&data_dir, apps, Arc::clone(&cli)));
+        let team_resident = !matches!(seat, SeatKind::TeamWithoutResident { .. });
         let seat_service = match seat.clone() {
             SeatKind::Fake | SeatKind::Silent | SeatKind::Tools => None,
             SeatKind::OpenCode {
@@ -668,7 +683,8 @@ impl TestHost {
                 })
                 .expect("seat service"),
             ),
-            SeatKind::Team { turn_timeout, .. } => Some(
+            SeatKind::Team { turn_timeout, .. }
+            | SeatKind::TeamWithoutResident { turn_timeout, .. } => Some(
                 SeatService::start(SeatConfig {
                     data_dir: data_dir.clone(),
                     chat: Arc::clone(&chat),
@@ -677,7 +693,7 @@ impl TestHost {
                     hook_url: format!("http://{addr}"),
                     hook_command: hook_command(),
                     plugin_dir: None,
-                    profiles: vec![test_profile(env!("CARGO_BIN_EXE_fake-cli"))],
+                    profiles: vec![team_profile(team_resident)],
                     queue_capacity: 8,
                     turn_timeout,
                     turn_env: alfred_turn_env(&data_dir),
@@ -723,6 +739,11 @@ impl TestHost {
                 Arc::clone(&service) as Arc<dyn ChatSeat>
             }
             SeatKind::Team {
+                delegation_timeout,
+                uac_plugin,
+                ..
+            }
+            | SeatKind::TeamWithoutResident {
                 delegation_timeout,
                 uac_plugin,
                 ..

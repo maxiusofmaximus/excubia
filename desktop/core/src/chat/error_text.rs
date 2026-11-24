@@ -168,6 +168,18 @@ pub fn team_text_in(code: &str, field: Option<&str>, lang: UiLang) -> Option<&'s
             "Ese agente ya no existe en el equipo.",
             "That agent no longer exists on the team.",
         ),
+        ("no_resident_engine", _) => lang.pick(
+            "Ningún CLI instalado puede abrir un panel residente. Instala Claude Code, Codex u OpenCode en una versión admitida y vuelve a intentarlo.",
+            "No installed CLI can open a resident panel. Install Claude Code, Codex or OpenCode at a supported version and try again.",
+        ),
+        ("resident_unsupported", _) => lang.pick(
+            "Ese CLI no tiene modo de panel residente en Excubia. Actualiza Excubia o instala Claude Code, Codex u OpenCode y vuelve a intentarlo.",
+            "That CLI has no resident panel mode in Excubia. Update Excubia or install Claude Code, Codex or OpenCode and try again.",
+        ),
+        ("uac_unsafe", _) => lang.pick(
+            "El control de aprobaciones del CLI no pasó su comprobación, así que el panel no se abre. Actualiza el CLI o su plugin y vuelve a intentarlo.",
+            "The CLI's approval check did not pass, so the panel does not open. Update the CLI or its plugin and try again.",
+        ),
         _ => return None,
     })
 }
@@ -225,6 +237,24 @@ mod tests {
         let areas = team_text_in("invalid_field", Some("areas"), UiLang::En).unwrap();
         assert_eq!(roles, "That professional does not belong to the chosen areas.");
         assert_eq!(areas, "Choose at least one area.");
+    }
+
+    #[test]
+    fn each_resident_refusal_says_what_to_do_in_both_languages() {
+        // The three refusals are told apart: no engine, no resident mode, unsafe approvals.
+        for code in ["no_resident_engine", "resident_unsupported", "uac_unsafe"] {
+            let es = team_text_in(code, None, UiLang::Es).expect("spanish remedy");
+            let en = team_text_in(code, None, UiLang::En).expect("english remedy");
+            assert_ne!(es, en, "{code}");
+            assert!(es.contains("Actualiza") || es.contains("Instala"), "{code}: {es}");
+            assert!(en.contains("Update") || en.contains("Install"), "{code}: {en}");
+        }
+        assert!(team_text_in("no_resident_engine", None, UiLang::Es)
+            .unwrap()
+            .contains("Ningún CLI"));
+        assert!(team_text_in("resident_unsupported", None, UiLang::En)
+            .unwrap()
+            .contains("no resident panel mode"));
     }
 
     #[test]

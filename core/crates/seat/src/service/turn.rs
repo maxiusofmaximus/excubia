@@ -1,10 +1,12 @@
+use std::future::Future;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use excubia_chat::{new_ulid, HookScope, RunState, Turn};
+use excubia_chat::{new_ulid, ApprovalWaits, ChatStore, HookScope, RunState, Turn};
 use tokio::io::AsyncWriteExt;
-use tokio::process::{Child, Command};
+use tokio::process::Command;
+use tokio::sync::broadcast::error::RecvError;
 
 use crate::launch;
 use crate::launch::LaunchInput;
@@ -13,6 +15,7 @@ use crate::profile::SelectedProfile;
 use crate::prompt;
 use crate::quota::looks_like_quota_exhausted;
 
+use super::budget::ActiveBudget;
 use super::grant::HookTokenGuard;
 use super::output::{capture, settle, with_output};
 use super::seat::TurnEnv;
@@ -142,7 +145,14 @@ pub(super) async fn run_turn(
             .map(|err| capture(err, Arc::clone(&tail))),
     ];
 
-    let outcome = wait_for_turn(&grant, &mut child, worker.timeout).await;
+    let exit = async {
+        child
+            .wait()
+            .await
+            .map(|status| status.code())
+            .map_err(|error| error.to_string())
+    };
+    let outcome = wait_for_turn(&grant, &worker.chat, exit, worker.timeout).await;
     let _ = child.kill().await;
     let _ = child.wait().await;
     lock(&worker.tokens).remove(&token);
@@ -172,7 +182,7 @@ pub(super) async fn run_turn(
     Err(with_output(outcome.failure_reason(), &excerpt))
 }
 
-enum Outcome {
+pub(super) enum Outcome {
     Replied,
     Stopped,
     Exited(Option<i32>),
@@ -195,18 +205,91 @@ impl Outcome {
     }
 }
 
-async fn wait_for_turn(grant: &RunGrant, child: &mut Child, timeout: Duration) -> Outcome {
+/// The turn's wait: the answer, a stop, the CLI's exit, or the end of its budget.
+/// The budget counts the CLI's active time: while a pending approval of one of the
+/// turn's runs waits for the operator, it is paused. The subscription is taken
+/// before the first read, so no change is lost between the read and the wait.
+pub(super) async fn wait_for_turn(
+    grant: &RunGrant,
+    chat: &ChatStore,
+    exit: impl Future<Output = Result<Option<i32>, String>>,
+    timeout: Duration,
+) -> Outcome {
     let notified = grant.notify.notified();
     tokio::pin!(notified);
     let stopped = grant.stop.notified();
     tokio::pin!(stopped);
-    tokio::select! {
-        _ = &mut notified => Outcome::Replied,
-        _ = &mut stopped => Outcome::Stopped,
-        status = child.wait() => match status {
-            Ok(status) => Outcome::Exited(status.code()),
-            Err(error) => Outcome::WaitError(error.to_string()),
-        },
-        _ = tokio::time::sleep(timeout) => Outcome::Timeout,
+    tokio::pin!(exit);
+    let mut frames = chat.subscribe();
+    let mut frames_open = true;
+    let mut budget = ActiveBudget::new(Instant::now(), timeout);
+    let (mut waits, mut change) = match read_waits(chat, &grant.run_ids) {
+        Ok(read) => read,
+        Err(error) => return Outcome::WaitError(error),
+    };
+    let mut read = false;
+    loop {
+        if read {
+            (waits, change) = match read_waits(chat, &grant.run_ids) {
+                Ok(read) => read,
+                Err(error) => return Outcome::WaitError(error),
+            };
+            read = false;
+        }
+        let now = Instant::now();
+        // A card that arrives after the active balance ran out cannot pause it.
+        if budget.is_exhausted(now) {
+            return Outcome::Timeout;
+        }
+        budget.set_waiting(now, waits.pending > 0);
+        tokio::select! {
+            _ = &mut notified => return Outcome::Replied,
+            _ = &mut stopped => return Outcome::Stopped,
+            status = &mut exit => {
+                return match status {
+                    Ok(code) => Outcome::Exited(code),
+                    Err(error) => Outcome::WaitError(error),
+                }
+            }
+            _ = until(budget.deadline()) => return Outcome::Timeout,
+            // A card's level ran out or its TTL passed: read the approvals again.
+            _ = until(change) => read = true,
+            // Only the approval and conversation frames can change a wait; the
+            // others, and a lag, are not worth a read (a lag may hide one).
+            frame = frames.recv(), if frames_open => match frame {
+                Ok(frame) => read = is_wait_frame(&frame.event),
+                Err(RecvError::Lagged(_)) => read = true,
+                Err(RecvError::Closed) => frames_open = false,
+            },
+        }
+    }
+}
+
+/// The frames that can start, end or move a wait: an approval's transitions and
+/// an archive of its conversation (`chat.approval`, `chat.conversation`).
+fn is_wait_frame(event: &str) -> bool {
+    matches!(event, "chat.approval" | "chat.conversation")
+}
+
+/// The turn's waits as the store reads them, and the monotonic instant their next
+/// change falls due. The instant is fixed at the read (sampled before it, so a
+/// change is never woken late); frames that do not move the wait keep it as it is.
+fn read_waits(
+    chat: &ChatStore,
+    run_ids: &[String],
+) -> Result<(ApprovalWaits, Option<Instant>), String> {
+    let read_at = Instant::now();
+    let waits = chat
+        .approval_waits(run_ids)
+        .map_err(|error| error.to_string())?;
+    let change = waits.next_change.map(|left| read_at + left);
+    Ok((waits, change))
+}
+
+/// Sleeps until `at` on the monotonic clock; without an instant it never wakes.
+async fn until(at: Option<Instant>) {
+    match at {
+        Some(at) => tokio::time::sleep_until(tokio::time::Instant::from_std(at)).await,
+        None => std::future::pending().await,
     }
 }
