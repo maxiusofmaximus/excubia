@@ -40,7 +40,9 @@ impl super::ChatStore {
         )?;
         transaction.execute(
             "DELETE FROM run WHERE message_id IN (SELECT id FROM message WHERE conversation_id = ?1)
-                OR id IN (SELECT run_id FROM delegation WHERE conversation_id = ?1)",
+                OR id IN (SELECT run_id FROM delegation WHERE conversation_id = ?1)
+                OR id IN (SELECT run_id FROM plan_resume
+                           WHERE conversation_id = ?1 AND run_id IS NOT NULL)",
             [conversation_id],
         )?;
         transaction.execute(
@@ -112,7 +114,9 @@ fn has_open_work(connection: &Connection, conversation_id: &str) -> Result<bool,
         "SELECT EXISTS (SELECT 1 FROM run r
                          WHERE r.state IN ('queued', 'running') AND (
                                r.message_id IN (SELECT id FROM message WHERE conversation_id = ?1)
-                            OR r.id IN (SELECT run_id FROM delegation WHERE conversation_id = ?1)))
+                            OR r.id IN (SELECT run_id FROM delegation WHERE conversation_id = ?1)
+                            OR r.id IN (SELECT run_id FROM plan_resume
+                                         WHERE conversation_id = ?1 AND run_id IS NOT NULL)))
              OR EXISTS (SELECT 1 FROM delegation
                          WHERE conversation_id = ?1 AND state IN ('queued', 'running', 'waiting'))
              OR EXISTS (SELECT 1 FROM approval

@@ -35,7 +35,7 @@ fn a_database_at_version_27_gains_the_operator_reason_column() {
         .expect("the approval query still works");
     drop(store);
 
-    assert_eq!(version_of(&path), 28);
+    assert_eq!(version_of(&path), 30);
     rusqlite::Connection::open(&path)
         .expect("raw again")
         .prepare("SELECT operator_reason FROM approval")
@@ -48,7 +48,7 @@ fn a_new_database_starts_at_version_28_with_the_column() {
     let path = dir.path().join("chat.db");
     drop(ChatStore::open(&path).expect("fresh"));
 
-    assert_eq!(version_of(&path), 28);
+    assert_eq!(version_of(&path), 30);
     rusqlite::Connection::open(&path)
         .expect("raw")
         .prepare("SELECT operator_reason FROM approval")

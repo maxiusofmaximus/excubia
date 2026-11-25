@@ -70,6 +70,15 @@ impl super::ChatStore {
         if from.agent_id == to.agent_id {
             return Err(ChatError::Cycle);
         }
+        // A plan the approval hands to Alfred is started by that hand-over only: a recipe run
+        // never takes it, so its delegation is not started twice.
+        if requester == Requester::User {
+            if let Some(plan_id) = &new.plan_id {
+                if super::plans::is_run_plan(&transaction, plan_id)? {
+                    return Err(ChatError::PlanLinked);
+                }
+            }
+        }
         let (depth, project_id) = check_tree(&transaction, &from, &to, &new, requester)?;
         let digest = task_digest(&new.task);
         if recent_cycle(&transaction, &from.agent_id, &to.agent_id, &digest)? {
@@ -392,6 +401,8 @@ impl super::ChatStore {
             &now,
         )?;
         close_run(&transaction, delegation_id, "completed")?;
+        // After the classification above: a card still open here is closed by the task's end.
+        let closed = super::approval_settle::close_task_cards(&transaction, delegation_id, self.now_ms())?;
         transaction.execute(
             "INSERT OR REPLACE INTO delegation_synthesis
                 (delegation_id, conversation_id, result_message_id, state, run_id, created_at, updated_at)
@@ -445,6 +456,9 @@ impl super::ChatStore {
         self.publish(created);
         self.publish(updated);
         self.publish(activity);
+        for frame in closed {
+            self.publish(frame);
+        }
         Ok(message_id)
     }
 }

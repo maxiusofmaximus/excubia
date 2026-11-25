@@ -216,6 +216,13 @@ pub fn populate(fixture: &Fixture, conversation: &str) {
         .expect("timeline plan");
     connection
         .execute(
+            "INSERT INTO plan_resume (plan_id, conversation_id, state, run_id, created_at, updated_at)
+             VALUES ('pln_1', ?1, 'pending', NULL, ?2, ?2)",
+            params![conversation, NOW],
+        )
+        .expect("plan resumption");
+    connection
+        .execute(
             "INSERT INTO schedule (id, company_id, conversation_id, role_id, title, body, rule,
                 start_date, time_local, timezone, steps, status, created_at, updated_at)
              VALUES ('sch_1', ?1, ?2, 'audio-editor', 'Resumen', 'Haz un resumen.',

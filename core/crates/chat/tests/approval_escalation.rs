@@ -132,8 +132,10 @@ fn a_level_that_runs_out_climbs_and_the_ttl_expires_it() {
     assert_eq!(user.level.as_deref(), Some("user"));
     assert_eq!(user.escalated_from.as_deref(), Some("cto"));
     assert_eq!(user.status, ApprovalStatus::Pending);
+    // The user sees the card at t=80: the 120 s TTL starts there, not at creation.
+    team.store.show_approval(&approval.id).expect("shown to the user");
 
-    clock.advance_secs(119 - 80);
+    clock.advance_secs(119);
     assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Pending);
 
     clock.advance_secs(1);
@@ -185,6 +187,8 @@ fn an_operator_who_answers_after_the_ttl_finds_it_expired_and_the_hook_sees_it()
     let (team, clock) = timed("late");
     let approval = ask(&team, "npm install left-pad");
 
+    clock.advance_secs(80);
+    team.store.show_approval(&approval.id).expect("shown to the user");
     clock.advance_secs(120);
     let late = team
         .store
@@ -262,6 +266,7 @@ fn with_no_live_lead_and_no_cto_the_approval_goes_straight_to_the_user() {
     let approval = ask(&team, "npm install left-pad");
     assert_eq!(approval.level.as_deref(), Some("user"));
     assert_eq!(approval.reason.as_deref(), Some("decider_unavailable"));
+    team.store.show_approval(&approval.id).expect("shown to the user");
 
     clock.advance_secs(119);
     assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Pending);
@@ -283,6 +288,8 @@ fn the_expiry_leaves_its_line_in_the_timeline() {
     let (team, clock) = timed("line");
     let approval = ask(&team, "npm install left-pad");
 
+    clock.advance_secs(80);
+    team.store.show_approval(&approval.id).expect("shown to the user");
     clock.advance_secs(120);
     let page = team
         .store
@@ -302,4 +309,30 @@ fn the_expiry_leaves_its_line_in_the_timeline() {
         lines[0].summary.as_deref(),
         Some("Host expiró: Ejecutar comando: npm install left-pad")
     );
+}
+
+#[test]
+fn a_showing_at_the_lead_does_not_start_the_ttl_only_the_users_does() {
+    let (team, clock) = timed("shown-at-lead");
+    let approval = ask(&team, "npm install left-pad");
+    assert_eq!(approval.level.as_deref(), Some("lead"));
+    let seen = team.store.show_approval(&approval.id).expect("shown");
+    assert_eq!(seen.level.as_deref(), Some("lead"));
+    assert!(seen.shown_at.is_none(), "a showing below the user starts nothing");
+
+    clock.advance_secs(40);
+    assert_eq!(read(&team, &approval.id).level.as_deref(), Some("cto"));
+    clock.advance_secs(40);
+    assert_eq!(read(&team, &approval.id).level.as_deref(), Some("user"));
+
+    // Unseen at the user level, the card waits however long the app is closed.
+    clock.advance_secs(10_000);
+    assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Pending);
+    assert!(read(&team, &approval.id).shown_at.is_none());
+
+    team.store.show_approval(&approval.id).expect("shown to the user");
+    clock.advance_secs(119);
+    assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Pending);
+    clock.advance_secs(1);
+    assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Expired);
 }

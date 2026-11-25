@@ -124,15 +124,27 @@ test("denegación del operador bloquea", async () => {
   }
 });
 
-test("timeout de TTL bloquea", async () => {
+// The TTL starts when a UI shows the card, not at creation: a card still pending
+// past the TTL keeps the hook waiting, and the decision that comes later is the
+// one the hook obeys (no local deadline of its own).
+test("pendiente más allá del TTL sigue esperando y obedece la decisión tardía", async () => {
+  const started = Date.now();
+  const calls = [];
   const { server, base } = await listen((req) => {
+    calls.push(`${req.method} ${req.url}`);
     if (req.method === "POST" && req.url === "/v1/chat/approvals") {
-      return { status: 201, body: { approval_id: "apr_3", status: "pending", expires_at: new Date(Date.now() + 5000).toISOString() } };
+      return { status: 201, body: { approval_id: "apr_3", status: "pending" } };
     }
-    return { body: { approval_id: "apr_3", status: "pending" } };
+    if (req.method === "GET") {
+      const decided = Date.now() - started > 1500; // the TTL is 1 s: the card outlived it
+      return { body: { approval_id: "apr_3", status: decided ? "approved" : "pending" } };
+    }
+    return { body: { approval_id: "apr_3", status: "consumed" } };
   });
   try {
-    await assert.rejects(() => guard(event, { cwd, env: envFor(base) }), /expirada tras 1 s/);
+    await guard(event, { cwd, env: envFor(base) });
+    assert.ok(Date.now() - started > 1500, "the hook must not give up at the TTL");
+    assert.equal(calls.at(-1), "POST /v1/chat/approvals/apr_3/consume");
   } finally {
     await close(server);
   }

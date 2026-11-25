@@ -334,10 +334,7 @@ export function renderThread(chat) {
 
   // Requests of the operator's level are cards below the conversation; the
   // strip above the thread leaves them out.
-  setThreadApprovals(
-    cards.map((approval) => approval.id),
-    chat.conversation.id,
-  );
+  setThreadApprovals(cards.map((approval) => approval.id));
   for (const approval of cards) {
     timeline.append(renderApprovalEntry(approval, Date.now(), conversationContext(chat.conversation.id)));
   }

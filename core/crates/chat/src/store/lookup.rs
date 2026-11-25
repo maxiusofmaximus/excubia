@@ -99,12 +99,22 @@ pub(crate) struct RunInfo {
     pub state: RunState,
 }
 
+/// The conversation of a run: its message's, or, for a run that starts with no message (a plan
+/// resumption), the one its `plan_resume` row names.
+pub(crate) const RUN_CONVERSATION: &str =
+    "COALESCE(m.conversation_id, (SELECT p.conversation_id FROM plan_resume p WHERE p.run_id = r.id))";
+
+/// The message a run answers, when it has one.
+pub(crate) const RUN_MESSAGE_JOIN: &str = "LEFT JOIN message m ON m.id = r.message_id";
+
 pub(crate) fn run_info(connection: &Connection, run_id: &str) -> Result<RunInfo, ChatError> {
     connection
         .query_row(
-            "SELECT r.agent_id, m.conversation_id, r.state
-               FROM run r JOIN message m ON m.id = r.message_id
-              WHERE r.id = ?1",
+            &format!(
+                "SELECT r.agent_id, {RUN_CONVERSATION}, r.state
+                   FROM run r {RUN_MESSAGE_JOIN}
+                  WHERE r.id = ?1"
+            ),
             [run_id],
             |row| {
                 Ok(RunInfo {

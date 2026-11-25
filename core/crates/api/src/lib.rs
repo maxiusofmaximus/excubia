@@ -411,6 +411,10 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
             post(routes::chat_decide_approval),
         )
         .route(
+            "/v1/chat/approvals/{approval_id}/seen",
+            post(routes::chat_show_approval),
+        )
+        .route(
             "/v1/chat/conversations/{conversation_id}/cancel",
             post(routes::chat_cancel_conversation),
         )
@@ -491,6 +495,8 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route("/v1/vault/status", get(routes::vault_status))
         .route("/v1/vault/init", post(routes::vault_init))
         .route("/v1/vault/finish", post(routes::vault_finish))
+        .route("/v1/github/link", get(routes::github_link_state))
+        .route("/v1/github/link/cancel", post(routes::github_link_cancel))
         .route("/v1/mail/login/start", post(routes::mail_login_start))
         .route("/v1/mail/login/status", get(routes::mail_login_status))
         .route("/v1/mail/accounts", get(routes::mail_accounts))

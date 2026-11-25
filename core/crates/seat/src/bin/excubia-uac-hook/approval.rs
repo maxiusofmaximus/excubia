@@ -1,7 +1,7 @@
 //! The talk with the host: open an approval, wait for the operator's answer and
 //! consume the approval just before the action runs.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use excubia_chat::action_digest;
 use excubia_seat::env;
@@ -82,8 +82,9 @@ pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
         .filter(|id| !id.is_empty())
         .ok_or_else(|| Refusal::NoDecision("the host did not return an approval id".to_string()))?
         .to_string();
-    let deadline = Instant::now() + Duration::from_secs(request.ttl_seconds);
-
+    // No local deadline: the TTL starts when a UI shows the card, on the host's
+    // clock. The hook waits while the card is pending and stops when the host
+    // answers, or when the host stops it (the poll then fails and the hook denies).
     loop {
         match poll(&host, &token, &approval_id).await? {
             State::Approved => {
@@ -92,9 +93,6 @@ pub(super) async fn run(request: &Request) -> Result<Outcome, Refusal> {
             }
             State::Refused(reason) => return Ok(Outcome::Denied(reason)),
             State::Pending => {}
-        }
-        if Instant::now() >= deadline {
-            return Ok(Outcome::Denied(EXPIRED.to_string()));
         }
         tokio::time::sleep(POLL_INTERVAL).await;
     }

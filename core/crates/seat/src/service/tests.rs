@@ -85,6 +85,13 @@ fn ask(chat: &ChatStore, run_id: &str, digest: &str, ttl_seconds: u32) -> String
     .id
 }
 
+// The card is shown as soon as it exists: its TTL starts there, as it does for the operator.
+fn ask_shown(chat: &ChatStore, run_id: &str, digest: &str, ttl_seconds: u32) -> String {
+    let id = ask(chat, run_id, digest, ttl_seconds);
+    chat.show_approval(&id).expect("shown");
+    id
+}
+
 #[tokio::test]
 async fn a_hung_cli_without_approvals_ends_at_the_budget() {
     let chat = ChatStore::in_memory().expect("store");
@@ -124,7 +131,7 @@ async fn an_expired_approval_resumes_the_turn_with_the_balance_it_had() {
     let grant = grant_of(&["run_1"]);
     let later = async {
         tokio::time::sleep(Duration::from_millis(300)).await;
-        ask(&chat, "run_1", "sha256:a", 1);
+        ask_shown(&chat, "run_1", "sha256:a", 1);
     };
     let started = Instant::now();
     let (outcome, ()) = tokio::join!(
@@ -144,9 +151,9 @@ async fn overlapping_approvals_discount_their_union_once() {
     let chat = ChatStore::in_memory().expect("store");
     let grant = grant_of(&["run_1"]);
     let later = async {
-        ask(&chat, "run_1", "sha256:a", 1);
+        ask_shown(&chat, "run_1", "sha256:a", 1);
         tokio::time::sleep(Duration::from_millis(300)).await;
-        ask(&chat, "run_1", "sha256:b", 1);
+        ask_shown(&chat, "run_1", "sha256:b", 1);
     };
     let started = Instant::now();
     let (outcome, ()) = tokio::join!(
@@ -206,7 +213,7 @@ async fn unrelated_frames_do_not_move_the_expiry_of_a_wait() {
         .expect("conversation")
         .id;
     let noise = async {
-        ask(&chat, "run_1", "sha256:a", 1);
+        ask_shown(&chat, "run_1", "sha256:a", 1);
         for i in 0..20 {
             tokio::time::sleep(Duration::from_millis(50)).await;
             chat.append_user_message(&conversation, &format!("client-{i}"), "hola", None)

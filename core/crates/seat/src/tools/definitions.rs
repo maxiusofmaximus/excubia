@@ -90,10 +90,11 @@ pub fn definitions() -> Value {
             },
             {
                 "name": "plan.propose",
-                "description": "Lead or Alfred. Propose the whole job before its first step when it has more steps than the threshold (3 by default). Each step is one plain-text line of at most 120 characters and says what it touches: files, network, mail, tools or nothing. The operator approves, rejects or asks for changes; a delegation above the threshold does not start until its plan is approved. Read the answer with plan.status.",
+                "description": "Lead or Alfred. Propose the whole job before its first step when it has more steps than the threshold (3 by default). Each step is one plain-text line of at most 120 characters and says what it touches: files, network, mail, tools or nothing. The operator approves, rejects or asks for changes; a delegation above the threshold does not start until its plan is approved. Read the answer with plan.status. Set run_on_approval true only for a job to start now, once approved: then Alfred is told to start it with delegation.assign and plan_id, with no message from the operator. Leave it false for a plan meant for a schedule or a recipe.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
+                        "run_on_approval": { "type": "boolean" },
                         "steps": {
                             "type": "array",
                             "minItems": 1,
@@ -185,6 +186,15 @@ pub fn definitions() -> Value {
             {
                 "name": "status.overview",
                 "description": "Alfred only. Read-only summary of the company in one call: each project with its id, folder label and lead (and whether the lead is running), panels by status, open delegations, approvals waiting at your level, the hires (id, name, role) and the catalogue of roles the operator can hire. Each turn starts fresh: read this before naming a project or a person. It takes no arguments and shows no paths, tokens or pane ids.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "github.link",
+                "description": "Alfred and a lead only. Ask the operator to link this profile's GitHub account. This request is the only way to link GitHub: never run `gh auth login`, `git config` or any GitHub login from a shell. It takes no arguments: the host opens one question on the operator's device, uses the Git and GitHub CLI already working on its trusted PATH and installs only the missing ones there, and runs the login itself with fixed arguments. The call waits until the link ends (up to the operator's answer, then the GitHub device code). The reply is a state, never a code or a URL: linked (the account works), setup_failed (logged in, but the Git setup did not finish; calling again completes it without a new login), declined (the operator said not now; no GitHub work runs), awaiting_operator (the question is already open; carry on without GitHub and do not ask again in this task), or expired, cancelled or failed. Use it only when the job needs GitHub. Never pass a URL, a command, an account or a token.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {},

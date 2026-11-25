@@ -328,3 +328,30 @@ fn tenants_are_the_three_allowed_authorities() {
     let error = Tenant::parse("sena").expect_err("unknown");
     assert_eq!(error.code(), "mail_invalid_config");
 }
+
+/// A clean configuration selects the public client, and the personal device login asks
+/// `consumers` with that client and the same scopes as before (no `Mail.Send` in sign-in).
+#[tokio::test]
+async fn a_clean_configuration_starts_the_personal_login_with_the_public_client() {
+    let config = excubia_mail::MailConfig::from_toml("[mail]\n", None).expect("config");
+    let transport = MockTransport::new(vec![MockResponse::ok(device_code_body())]);
+
+    start_device_login(&transport, &config.client_id, "personal", Tenant::Consumers)
+        .await
+        .expect("device code");
+
+    let calls = transport.calls();
+    assert_eq!(
+        calls[0].url,
+        "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode"
+    );
+    assert_eq!(
+        calls[0].form_value("client_id"),
+        Some("fed6c50b-ecd4-43c4-8ff1-7162afda228a")
+    );
+    assert_eq!(
+        calls[0].form_value("scope"),
+        Some("offline_access User.Read Mail.ReadWrite")
+    );
+    assert!(!calls[0].text().contains("Mail.Send"));
+}

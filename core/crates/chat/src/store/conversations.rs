@@ -265,6 +265,9 @@ impl super::ChatStore {
               WHERE id = ?6",
             params![title, pinned, section_id, archived, now, conversation_id],
         )?;
+        if archived && !current.archived {
+            super::plans::interrupt_plan_runs(&transaction, conversation_id, "conversation_archived")?;
+        }
         if title != current.title {
             self.reindex(&transaction, conversation_id)?;
         }

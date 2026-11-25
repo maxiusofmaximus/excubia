@@ -66,7 +66,15 @@ pub fn seed_and_load(data_dir: &Path) -> Result<Role, PromptError> {
 /// Build the turn prompt. `context` is already bounded by
 /// `ChatStore::context`; the random boundary is the only trusted wrapper.
 /// `merged` is the text of a turn that answers several messages at once, in order.
-pub fn build_turn_prompt(context: &ContextPage, boundary: &str, merged: Option<&str>) -> String {
+/// What the current turn answers: the last message the operator wrote, several of his
+/// messages that arrived together, or a turn the host itself starts (an approved plan).
+pub enum Current<'a> {
+    LastUser,
+    Merged(&'a str),
+    Host(&'a str),
+}
+
+pub fn build_turn_prompt(context: &ContextPage, boundary: &str, current: Current) -> String {
     let mut prompt = String::with_capacity(
         context
             .messages
@@ -117,12 +125,22 @@ pub fn build_turn_prompt(context: &ContextPage, boundary: &str, merged: Option<&
         );
     }
     prompt.push_str("\n## Turno actual\n");
-    match merged {
-        Some(text) => prompt.push_str(&format!(
-            "Estos mensajes del usuario llegaron seguidos y forman un solo turno. \
-             Respóndelos todos a la vez, en una sola respuesta con `chat.reply`:\n\n{text}\n\n"
+    match current {
+        Current::Merged(text) => prompt.push_str(&format!(
+            "Estos mensajes del usuario llegaron seguidos y forman un solo turno.              Respóndelos todos a la vez, en una sola respuesta con `chat.reply`:
+
+{text}
+
+"
         )),
-        None => prompt.push_str("Responde al último mensaje del usuario. "),
+        Current::Host(text) => prompt.push_str(&format!(
+            "El sistema inicia este turno; no es un mensaje del usuario. Actúa según estas              instrucciones del sistema:
+
+{text}
+
+"
+        )),
+        Current::LastUser => prompt.push_str("Responde al último mensaje del usuario. "),
     }
     prompt.push_str(
         "Si un mensaje lleva \
@@ -172,7 +190,7 @@ mod tests {
             attachments: HashMap::new(),
             truncated: true,
         };
-        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", None);
+        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", Current::LastUser);
         assert!(prompt.contains("<<<EXCUBIA-TEST id=msg_1 seq=1 author=user>>>"));
         assert!(prompt.contains("<<<EXCUBIA-TEST id=msg_2 seq=2 author=agent>>>"));
         assert!(prompt.contains("El contexto se recortó"));
@@ -204,7 +222,7 @@ mod tests {
             attachments: HashMap::new(),
             truncated: true,
         };
-        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", None);
+        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", Current::LastUser);
         assert!(prompt.contains("<<<EXCUBIA-TEST id=msg_3 seq=3 author=user reply_to=msg_2>>>"));
         assert!(prompt.contains(
             "<<<EXCUBIA-TEST id=msg_4 seq=4 author=user reply_to=msg_1 (fuera de contexto)>>>"
@@ -237,7 +255,7 @@ mod tests {
             attachments: HashMap::from([("msg_1".to_string(), vec![attached("att_B", "x.png")])]),
             truncated: false,
         };
-        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", None);
+        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", Current::LastUser);
         assert!(prompt.contains(ATTACHMENTS_NOTICE));
         let line = format!(
             "[adjunto att_B image/webp 1234x567 bytes=4321 path={}]\n<<<END-EXCUBIA-TEST>>>",
@@ -296,7 +314,7 @@ mod tests {
             attachments: HashMap::new(),
             truncated: false,
         };
-        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", None);
+        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", Current::LastUser);
         assert!(!prompt.contains("NO confiables"));
         assert!(!prompt.contains("[adjunto"));
         assert!(prompt.contains(
@@ -313,7 +331,7 @@ mod tests {
             attachments: HashMap::from([("msg_1".to_string(), vec![attached("att_B", hostile)])]),
             truncated: false,
         };
-        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", None);
+        let prompt = build_turn_prompt(&context, "EXCUBIA-TEST", Current::LastUser);
         assert!(!prompt.contains(hostile));
     }
 

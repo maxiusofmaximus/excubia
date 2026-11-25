@@ -6,6 +6,7 @@
 //! `excubia-seat` implements the seat port.
 
 mod attachments;
+mod budget;
 mod clock;
 mod digest;
 mod error;
@@ -61,6 +62,7 @@ mod timezone;
 mod vault_db;
 
 pub use attachments::AttachmentFiles;
+pub use budget::{is_wait_frame, until, ActiveBudget};
 pub use clock::{Clock, ManualClock, SystemClock};
 pub use digest::{action_digest, canonical_json, is_well_formed};
 pub use error::{AttachmentError, CalendarError, ChatError, HireError};
@@ -127,7 +129,8 @@ pub use recurrence::{RecurrenceError, Rule};
 pub use schedule_launch::launch_schedule;
 pub use schema::{open_with_key, SearchMode};
 pub use seat::{
-    ChatSeat, SeatActor, SeatError, SeatErrorCode, ToolError, ToolErrorKind, ToolReply, ToolRequest,
+    ChatSeat, GithubLinkCard, SeatActor, SeatError, SeatErrorCode, ToolError, ToolErrorKind,
+    ToolReply, ToolRequest,
 };
 pub use store::{
     validate_suggestions, AlertSummary, AlertWriter, ApprovalWaits, CalendarSummary, ChatStore,

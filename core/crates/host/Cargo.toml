@@ -23,6 +23,7 @@ excubia-pin = { path = "../pin" }
 excubia-pty = { path = "../pty" }
 excubia-seat = { path = "../seat" }
 excubia-state = { path = "../state" }
+excubia-toolchain = { path = "../toolchain" }
 mdns-sd = { version = "=0.21.6", default-features = false }
 rand_core.workspace = true
 serde.workspace = true

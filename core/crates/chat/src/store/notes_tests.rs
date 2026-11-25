@@ -424,6 +424,7 @@ fn a_denied_or_expired_question_keeps_the_note_and_can_be_asked_again() {
     assert!(note_exists(&store, &saved.id));
 
     let asked = delete_question(&store, &conversation_id, &saved.id, "sha256:delete-2", 60);
+    store.show_approval(&asked.id).expect("shown");
     assert_ne!(asked.id, denied.id);
     clock.advance_secs(61);
     let expired = store.approval(&asked.id).expect("approval");

@@ -21,6 +21,7 @@ import {
 import { cardEntries, renderApprovalCard } from "./approval-card.js";
 import { refreshInbox } from "./approval-inbox.js";
 import { refreshActive } from "./chat.js";
+import { createShownReporter, showingApprovalIds, SHOWING_THRESHOLDS } from "./approval-model.js";
 
 function newClientId() {
   return crypto.randomUUID();
@@ -28,6 +29,75 @@ function newClientId() {
 
 // Redraws a card from its approval and returns the new node, which is the one a
 // later redraw must use: the old node is no longer in the page.
+// The host starts a card's TTL at the first showing the operator really has: a strip of the
+// card (or all of it when shorter) in a visible window, reported once. A card out of the DOM
+// (another chat, a collapsed panel) is not watched, so it is not reported.
+const watched = new Set();
+let shownObserver = null;
+
+// A card is released when the host confirms it; a failed report leaves it observed for its next exposure.
+const shownReporter = createShownReporter({
+  report: (id) => invoke("chat_approval_seen", { approvalId: id }),
+  confirm: confirmShown,
+  release: releaseShown,
+});
+
+function watchShown() {
+  if (typeof IntersectionObserver === "undefined") return;
+  if (!shownObserver) shownObserver = new IntersectionObserver(onShownEntries, { threshold: SHOWING_THRESHOLDS });
+  // A card that left the DOM (a re-render, a closed thread) is let go, not kept by the observer.
+  for (const card of watched) {
+    if (card.isConnected) continue;
+    shownObserver.unobserve(card);
+    watched.delete(card);
+  }
+  for (const card of document.querySelectorAll('.approval-card[data-seen="wait"]')) {
+    if (watched.has(card)) continue;
+    watched.add(card);
+    shownObserver.observe(card);
+  }
+}
+
+function onShownEntries(entries) {
+  shownReporter.handle(showingApprovalIds(entries, document.visibilityState));
+}
+
+function releaseShown(id) {
+  for (const card of document.querySelectorAll(".approval-card")) {
+    if (card.dataset.approval !== id) continue;
+    shownObserver?.unobserve(card);
+    watched.delete(card);
+  }
+}
+
+// The countdown of every card of this approval is loaded in place. Nothing is re-rendered, so
+// the focus and the scroll stay where the operator has them.
+function confirmShown(id, record) {
+  const cards = document.querySelectorAll(".approval-card");
+  for (const card of cards) {
+    if (card.dataset.approval !== id) continue;
+    card.dataset.seen = "shown";
+    const ttl = card.querySelector(".approval-ttl");
+    if (ttl && record && record.expires_at) ttl.dataset.expires = record.expires_at;
+  }
+  tickCountdowns();
+}
+
+function startShownWatch() {
+  watchShown();
+  if (typeof MutationObserver !== "undefined") {
+    new MutationObserver(watchShown).observe(document.body, { childList: true, subtree: true });
+  }
+  // A card watched while the window was hidden gets a fresh look once it is visible again.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !shownObserver) return;
+    for (const card of watched) {
+      shownObserver.unobserve(card);
+      shownObserver.observe(card);
+    }
+  });
+}
+
 function redraw(card) {
   const held = cardEntries.get(card);
   if (!held) return card;
@@ -188,4 +258,5 @@ export function installApprovalHandlers() {
     menu.querySelector("summary")?.focus();
   });
   setInterval(tickCountdowns, 1000);
+  startShownWatch();
 }

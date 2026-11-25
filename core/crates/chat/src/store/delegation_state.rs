@@ -11,6 +11,7 @@ use super::delegation_rules::{
     active_delegations, active_for_pane, assignment_title, bounded, card_id, close_run,
     delegation_by_id, update_card,
 };
+use super::approval_settle;
 use super::delegations::TASK_CHARS;
 use super::{append_event, conversation_exists};
 
@@ -43,6 +44,7 @@ impl super::ChatStore {
             &now,
         )?;
         close_run(&transaction, delegation_id, "interrupted")?;
+        let closed = approval_settle::close_task_cards(&transaction, delegation_id, self.now_ms())?;
         let activity = append_event(
             &transaction,
             "chat.activity",
@@ -59,6 +61,9 @@ impl super::ChatStore {
         )?;
         transaction.commit()?;
         self.publish(activity);
+        for frame in closed {
+            self.publish(frame);
+        }
         drop(connection);
         self.delegation(delegation_id)
     }
@@ -221,6 +226,7 @@ impl super::ChatStore {
             &now,
         )?;
         close_run(&transaction, delegation_id, state.as_str())?;
+        let closed = approval_settle::close_task_cards(&transaction, delegation_id, self.now_ms())?;
         let activity = append_event(
             &transaction,
             "chat.activity",
@@ -237,6 +243,9 @@ impl super::ChatStore {
         )?;
         transaction.commit()?;
         self.publish(activity);
+        for frame in closed {
+            self.publish(frame);
+        }
         Ok(true)
     }
 }

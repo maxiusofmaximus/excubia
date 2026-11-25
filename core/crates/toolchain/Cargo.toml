@@ -1,0 +1,22 @@
+[package]
+name = "excubia-toolchain"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Installs the pinned Git and GitHub CLI distributions per profile, and runs the GitHub account link"
+
+[dependencies]
+excubia-persist = { path = "../persist" }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+zip = { version = "2.4", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+excubia-test-dir = { path = "../test-dir" }
+
+[[bin]]
+name = "fake-gh"
+path = "src/bin/fake-gh.rs"

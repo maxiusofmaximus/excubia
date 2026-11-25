@@ -20,7 +20,11 @@ use serde_json::json;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 
+use excubia_toolchain::github::{LinkManager, ProcessRunner};
+use excubia_toolchain::{ExecProbe, HttpsFetch, Layout};
+
 use crate::doc_tools::DocTools;
+use crate::github_link::GithubLink;
 use crate::mail_tools::MailTools;
 use crate::AgentHost;
 
@@ -57,6 +61,7 @@ pub struct TeamService {
     pub(super) uac_plugin_dir: Option<PathBuf>,
     pub(super) mail: Arc<MailTools>,
     pub(super) docs: Arc<DocTools>,
+    pub(super) github: Arc<GithubLink>,
     pub(super) grants: Mutex<HashMap<String, TeamGrant>>,
     pub(super) watchers: Mutex<HashMap<String, Watcher>>,
     pub(super) synthesis: Arc<Notify>,
@@ -89,7 +94,18 @@ impl TeamService {
             .canonicalize()
             .map_err(|error| SeatError::unavailable(format!("workspaces root: {error}")))?;
         config.chat.set_workspaces_root(&workspaces_root);
+        // One link manager per profile: the managed Git and gh of this data directory.
+        let github = Arc::new(GithubLink::new(
+            Arc::clone(&config.chat),
+            LinkManager::new(
+                Layout::new(&config.data_dir),
+                Arc::new(HttpsFetch),
+                Arc::new(ExecProbe),
+                Arc::new(ProcessRunner::new()),
+            ),
+        ));
         let service = Arc::new(Self {
+            github,
             chat: Arc::clone(&config.chat),
             host: Arc::clone(&config.host),
             alfred: Arc::clone(&config.alfred),
@@ -109,7 +125,21 @@ impl TeamService {
         let synthesis_task = runtime.spawn(async move { synthesis.synthesis_loop().await });
         let listener = Arc::clone(&service);
         let pane_task = runtime.spawn(async move { listener.listen_to_panes().await });
-        lock(&service.tasks).extend([synthesis_task, pane_task]);
+        // Starts the GitHub link the operator approved; see `github_link`.
+        let ticker = Arc::clone(&service.github);
+        let github_task = runtime.spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                ticker.tick();
+            }
+        });
+        lock(&service.tasks).extend([synthesis_task, pane_task, github_task]);
+        // A plan approved before a restart, and never handed to Alfred, is handed over now.
+        if let Ok(pending) = service.chat.pending_plan_resumes() {
+            for plan_id in pending {
+                let _ = service.resume_approved_plan(&plan_id);
+            }
+        }
         Ok(service)
     }
 
@@ -139,6 +169,18 @@ impl TeamService {
 impl ChatSeat for TeamService {
     fn try_enqueue(&self, turn: Turn) -> Result<(), SeatError> {
         self.alfred.try_enqueue(turn)
+    }
+
+    fn resume_plan(&self, plan_id: &str) -> Result<(), SeatError> {
+        self.resume_approved_plan(plan_id)
+    }
+
+    fn github_link_card(&self) -> Option<excubia_chat::GithubLinkCard> {
+        self.github.card()
+    }
+
+    fn github_link_cancel(&self, approval_id: &str) -> bool {
+        self.github.cancel(approval_id)
     }
 
     fn actor(&self, token: &str) -> Option<SeatActor> {

@@ -11,6 +11,7 @@ import esB4 from "./i18n/es.b4.js";
 import esC2 from "./i18n/es.c2.js";
 import esC3 from "./i18n/es.c3.js";
 import esC4 from "./i18n/es.c4.js";
+import esGh from "./i18n/es.gh.js";
 import enBase from "./i18n/en.js";
 import enB1 from "./i18n/en.b1.js";
 import enB2 from "./i18n/en.b2.js";
@@ -19,10 +20,11 @@ import enB4 from "./i18n/en.b4.js";
 import enC2 from "./i18n/en.c2.js";
 import enC3 from "./i18n/en.c3.js";
 import enC4 from "./i18n/en.c4.js";
+import enGh from "./i18n/en.gh.js";
 
 // Colisiones de clave: tooling/i18n.test.mjs exige que tengan el mismo texto en cada idioma.
-const es = Object.assign({}, esBase, esB1, esB2, esB3, esB4, esC2, esC3, esC4);
-const en = Object.assign({}, enBase, enB1, enB2, enB3, enB4, enC2, enC3, enC4);
+const es = Object.assign({}, esBase, esB1, esB2, esB3, esB4, esC2, esC3, esC4, esGh);
+const en = Object.assign({}, enBase, enB1, enB2, enB3, enB4, enC2, enC3, enC4, enGh);
 export const dictionaries = { es, en };
 const KEY = "excubia.lang";
 const PREFS = ["auto", "es", "en"];

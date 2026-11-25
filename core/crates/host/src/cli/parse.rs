@@ -48,6 +48,10 @@ pub fn parse(args: impl Iterator<Item = String>) -> Result<Command, String> {
             args.next();
             super::strata::strata(args)
         }
+        Some("toolchain") => {
+            args.next();
+            super::toolchain::toolchain(args)
+        }
         Some("alfred") => {
             args.next();
             super::alfred::alfred(args)

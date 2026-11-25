@@ -13,6 +13,7 @@ use crate::schema;
 use super::agent_files::{announce_message, check_agent_files};
 use super::attachments::link_in;
 use super::{append_event, conversation_exists, journal_turns, open_run_ids, run_info};
+use super::lookup::{RUN_CONVERSATION, RUN_MESSAGE_JOIN};
 
 const MAX_SUGGESTIONS: usize = 4;
 const MAX_SUGGESTION_CHARS: usize = 60;
@@ -450,10 +451,10 @@ impl super::ChatStore {
         }
         let transaction = connection.transaction()?;
         let run_ids: Vec<String> = {
-            let mut statement = transaction.prepare(
-                "SELECT r.id FROM run r JOIN message m ON m.id = r.message_id
-                  WHERE r.state IN ('queued', 'running') AND m.conversation_id = ?1",
-            )?;
+            let mut statement = transaction.prepare(&format!(
+                "SELECT r.id FROM run r {RUN_MESSAGE_JOIN}
+                  WHERE r.state IN ('queued', 'running') AND {RUN_CONVERSATION} = ?1"
+            ))?;
             let ids = statement
                 .query_map([conversation_id], |row| row.get(0))?
                 .collect::<Result<_, _>>()?;
@@ -462,10 +463,13 @@ impl super::ChatStore {
         let now = schema::now(&transaction)?;
         transaction.execute(
             "UPDATE run SET state = 'interrupted', finished_at = ?1, reason = ?2
-              WHERE state IN ('queued', 'running') AND message_id IN (
-                  SELECT id FROM message WHERE conversation_id = ?3)",
+              WHERE state IN ('queued', 'running') AND (message_id IN (
+                  SELECT id FROM message WHERE conversation_id = ?3)
+                  OR id IN (SELECT run_id FROM plan_resume
+                             WHERE conversation_id = ?3 AND run_id IS NOT NULL))",
             params![now, reason, conversation_id],
         )?;
+        super::plans::interrupt_plan_runs(&transaction, conversation_id, reason)?;
         let frames = journal_turns(&transaction, run_ids.iter().map(String::as_str))?;
         transaction.commit()?;
         self.publish_all(frames);

@@ -122,6 +122,7 @@ mod tests {
             status: ApprovalStatus::Pending,
             scope: "once".to_string(),
             expires_at: "2026-10-22T10:00:00.000Z".to_string(),
+            shown_at: None,
             decided_by: None,
             decided_at: None,
             level: None,

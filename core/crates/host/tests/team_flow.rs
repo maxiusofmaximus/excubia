@@ -11,7 +11,7 @@ mod harness;
 use std::time::{Duration, Instant};
 
 use excubia_auth::Permission;
-use excubia_chat::DelegationState;
+use excubia_chat::{DelegationState, HookScope};
 use excubia_test_support::client::SignedClient;
 use harness::{SeatKind, TestHost};
 use serde_json::Value;
@@ -165,6 +165,106 @@ async fn alfred_creates_the_project_and_the_lead_delegates_to_a_specialist() {
     );
 }
 
+/// Alfred proposes a job marked to run on approval. The operator approves it through the
+/// API, twice: the lead receives exactly one delegation, from Alfred, with no message from
+/// the operator, and the plan is linked to that delegation.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_approved_plan_starts_one_delegation_with_no_message_from_the_operator() {
+    let host = TestHost::start_with_seat("plan-resume", TTL, team_seat(CLI_TIMEOUT)).await;
+    let (client, paired) = host.pair("Desktop plan").await;
+    host.grant(&paired.device_id, Permission::ReadState);
+    host.grant(&paired.device_id, Permission::Respond);
+    host.grant(&paired.device_id, Permission::Approve);
+    let conversation_id = conversation(&client).await;
+    client
+        .chat_send(&conversation_id, "client-plan", "[[fake:plan]] empieza")
+        .await
+        .expect("send");
+
+    let plan_id = wait_for_proposed_plan(&client, CLI_TIMEOUT).await;
+    let approve = format!("/v1/plans/{plan_id}/approve");
+    let (status, body) = client.request("POST", &approve, None).await.expect("approve");
+    assert_eq!(status, 200, "{body}");
+    // A repeated answer, while the hand-over may still be running, starts nothing more.
+    let (status, body) = client.request("POST", &approve, None).await.expect("repeat");
+    assert_eq!(status, 200, "{body}");
+
+    // Polled through the store: an HTTP poll every few milliseconds hits the rate limit.
+    let deadline = Instant::now() + CLI_TIMEOUT;
+    let delegation_id = loop {
+        if let Some(id) = host.chat.plan(&plan_id).expect("plan").delegation_id {
+            break id;
+        }
+        let plan = host.chat.plan(&plan_id).expect("plan");
+        if Instant::now() >= deadline {
+            let page = client
+                .chat_timeline(&conversation_id, &[("limit", "50")])
+                .await
+                .expect("timeline");
+            panic!(
+                "the approval started no delegation: status {:?}, pending {:?}, timeline {page}",
+                plan.status,
+                host.chat.pending_plan_resumes()
+            );
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    };
+    wait_for_state(&host, &delegation_id, &[DelegationState::Done], CLI_TIMEOUT).await;
+    let delegation = host.chat.delegation(&delegation_id).expect("delegation");
+    assert_eq!(delegation.from_name, "Alfred");
+    assert_eq!(delegation.depth, 1);
+    assert_eq!(delegation.task, "Implementa el plan aprobado");
+    assert_eq!(
+        host.chat.plan(&plan_id).expect("plan").delegation_id.as_deref(),
+        Some(delegation_id.as_str())
+    );
+
+    // The resumed run closes through chat.reply: the host's assignment line is written in the
+    // same transaction that completes the run. The only card is the delegation's.
+    let deadline = Instant::now() + CLI_TIMEOUT;
+    let page = loop {
+        let page = client
+            .chat_timeline(&conversation_id, &[("limit", "50")])
+            .await
+            .expect("timeline");
+        let answered = page["entries"].as_array().expect("entries").iter().any(|entry| {
+            entry["author_kind"] == "agent"
+                && entry["preview"]
+                    .as_str()
+                    .is_some_and(|text| text.starts_with("Pedido a "))
+        });
+        if answered {
+            break page;
+        }
+        assert!(Instant::now() < deadline, "the resumed run never answered: {page}");
+        tokio::time::sleep(Duration::from_millis(250)).await;
+    };
+    let cards = page["entries"]
+        .as_array()
+        .expect("entries")
+        .iter()
+        .filter(|entry| entry["kind"] == "card")
+        .count();
+    assert_eq!(cards, 1, "one delegation came out of the approval: {page}");
+}
+
+async fn wait_for_proposed_plan(client: &SignedClient, timeout: Duration) -> String {
+    let deadline = Instant::now() + timeout;
+    loop {
+        let (status, body) = client
+            .request("GET", "/v1/plans?status=proposed", None)
+            .await
+            .expect("plans");
+        assert_eq!(status, 200, "{body}");
+        let plans: Value = serde_json::from_str(&body).expect("json");
+        if let Some(id) = plans["plans"][0]["id"].as_str() {
+            return id.to_string();
+        }
+        assert!(Instant::now() < deadline, "no plan was proposed: {body}");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
 /// Wait until the lead has delegated to a specialist.
 async fn wait_for_child(host: &TestHost, delegation_id: &str, timeout: Duration) -> String {
     let deadline = Instant::now() + timeout;
@@ -196,6 +296,91 @@ async fn a_delegation_that_never_ends_fails_with_its_timeout() {
     let card = wait_for_card(&client, &conversation_id, CLI_TIMEOUT).await;
     let delegation_id = card["delegation_id"].as_str().expect("id").to_string();
 
+    let state = wait_for_state(
+        &host,
+        &delegation_id,
+        &[DelegationState::Failed],
+        CLI_TIMEOUT,
+    )
+    .await;
+    assert_eq!(state, DelegationState::Failed);
+    let delegation = host.chat.delegation(&delegation_id).expect("delegation");
+    assert_eq!(delegation.reason.as_deref(), Some("delegation_timeout"));
+}
+
+/// A permission the task's own panel asks for pauses the task's timeout: waiting longer
+/// than the whole budget does not fail it, and the decision resumes the balance it kept.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_task_waiting_for_its_own_permission_is_not_timed_out() {
+    let budget = Duration::from_secs(3);
+    let host =
+        TestHost::start_with_seat("team-approval-budget", TTL, team_seat(budget)).await;
+    let (client, paired) = host.pair("Desktop team").await;
+    host.grant(&paired.device_id, Permission::ReadState);
+    host.grant(&paired.device_id, Permission::Respond);
+    host.grant(&paired.device_id, Permission::Approve);
+    let conversation_id = conversation(&client).await;
+    client
+        .chat_send(
+            &conversation_id,
+            "client-approval-budget",
+            "[[fake:team]] [[fake:hang]]",
+        )
+        .await
+        .expect("send");
+    let card = wait_for_card(&client, &conversation_id, CLI_TIMEOUT).await;
+    let delegation_id = card["delegation_id"].as_str().expect("id").to_string();
+    wait_for_state(
+        &host,
+        &delegation_id,
+        &[DelegationState::Running],
+        CLI_TIMEOUT,
+    )
+    .await;
+
+    // The panel's own hook asks for a permission, as a resident seat does.
+    let seat = host
+        .chat
+        .delegation(&delegation_id)
+        .expect("delegation")
+        .to_agent_id;
+    let token = host
+        .chat
+        .issue_hook_token(&HookScope::seat(&seat))
+        .expect("token");
+    let (status, body) = host
+        .hook_request(
+            &token,
+            "POST",
+            "/v1/chat/approvals",
+            Some(harness::approval_body("git status")),
+        )
+        .await;
+    assert_eq!(status, 201, "{body}");
+    let approval_id = serde_json::from_str::<Value>(&body).expect("JSON body")["approval_id"]
+        .as_str()
+        .expect("approval id")
+        .to_string();
+    assert_eq!(
+        host.chat
+            .delegation_waits(&delegation_id)
+            .expect("waits")
+            .pending,
+        1,
+        "the request is counted on its task"
+    );
+
+    // Waiting longer than the whole budget: the task is still running.
+    tokio::time::sleep(budget + Duration::from_secs(2)).await;
+    let during = host.chat.delegation(&delegation_id).expect("delegation");
+    assert_ne!(during.state, DelegationState::Failed, "{during:?}");
+
+    // The decision resumes the balance: the task fails once its active time is spent.
+    let decided = client
+        .chat_decide_approval(&approval_id, "approve", "device-1")
+        .await
+        .expect("decision");
+    assert_eq!(decided["approval"]["status"], "approved");
     let state = wait_for_state(
         &host,
         &delegation_id,

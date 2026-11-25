@@ -47,6 +47,9 @@ async fn main() -> Result<()> {
         Command::Vault { command, data_dir } => vault_command(command, &data_dir),
         Command::Mail(invocation) => mail(invocation).await,
         Command::Strata { command, data_dir } => excubia_host::strata::run(command, &data_dir),
+        Command::Toolchain { command, data_dir } => {
+            excubia_host::toolchain::run(command, &data_dir)
+        }
         Command::Alfred { command, data_dir } => {
             excubia_host::alfred_backend::run(command, &data_dir)
         }

@@ -217,6 +217,7 @@ async fn a_refused_question_says_so_until_the_draft_changes_and_an_expired_one_i
         .as_str()
         .expect("an approval id")
         .to_owned();
+    host.chat.show_approval(&expired).expect("shown");
     clock.advance_secs(600);
 
     let (status, text) = approver

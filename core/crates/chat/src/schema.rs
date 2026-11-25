@@ -26,7 +26,7 @@ use crate::schema_reply::MESSAGE_REPLY_SCHEMA;
 use crate::schema_team::TEAM_SCHEMA;
 use crate::vault_db::open_keyed;
 
-pub const SCHEMA_VERSION: i64 = 28;
+pub const SCHEMA_VERSION: i64 = 30;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SearchMode {
@@ -236,6 +236,12 @@ fn migrate(connection: &mut Connection) -> Result<(), ChatError> {
     if version < 28 {
         crate::schema_approval::migrate_to_28(connection)?;
     }
+    if version < 29 {
+        crate::schema_approval::migrate_to_29(connection)?;
+    }
+    if version < 30 {
+        crate::schema_plan::migrate_to_30(connection)?;
+    }
     Ok(())
 }
 
@@ -350,6 +356,17 @@ fn mark_interrupted(connection: &mut Connection) -> Result<(), ChatError> {
     let now = now(&transaction)?;
     // The user turns that were open journal their `updated` frame with the close.
     let run_ids = crate::store::open_run_ids(&transaction)?;
+    // Before the runs close: a plan hand-over whose run was never dequeued did not run, so it
+    // is pending again and goes out once more. One whose run already started is closed.
+    transaction.execute(
+        "UPDATE plan_resume SET state = 'pending', run_id = NULL, updated_at = ?1
+          WHERE state = 'queued' AND run_id IN (SELECT id FROM run WHERE state = 'queued')",
+        [&now],
+    )?;
+    transaction.execute(
+        "UPDATE plan_resume SET state = 'skipped', updated_at = ?1 WHERE state = 'queued'",
+        [&now],
+    )?;
     transaction.execute(
         "UPDATE run
             SET state = 'interrupted', finished_at = ?1, reason = 'host_restart'

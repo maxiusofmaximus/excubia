@@ -220,6 +220,10 @@ pub struct Approval {
     pub status: ApprovalStatus,
     pub scope: String,
     pub expires_at: String,
+    /// When an authorized UI first showed the card. The TTL runs from this
+    /// instant, once; absent until then (the card has not been seen yet).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shown_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decided_by: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

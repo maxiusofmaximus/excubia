@@ -9,6 +9,7 @@ use rusqlite::{params, Connection, OptionalExtension, Row, Transaction};
 
 use crate::error::ChatError;
 use crate::id;
+use crate::model::{RunState, Turn};
 use crate::model_mode::ApprovalMode;
 use crate::model_plan::{
     self, summary, touches_of, NewPlan, Plan, PlanDecision, PlanStatus, PlanStep,
@@ -40,6 +41,17 @@ impl super::ChatStore {
     /// Store one proposed plan. It is approved by rule only when the policy
     /// allows it, nothing it touches reaches out, and the mode is `delegated`.
     pub fn propose_plan(&self, new: NewPlan) -> Result<Plan, ChatError> {
+        self.propose_plan_with(new, false)
+    }
+
+    /// As [`Self::propose_plan`]. With `run_on_approval` the operator's approval hands the
+    /// plan to Alfred to start it (see [`Self::claim_plan_resume`]). A plan the rule
+    /// approves is never handed over: its agent already reads it as approved.
+    pub fn propose_plan_with(
+        &self,
+        new: NewPlan,
+        run_on_approval: bool,
+    ) -> Result<Plan, ChatError> {
         model_plan::validate(&new.steps)?;
         let rules = self.plan_rules();
         let touches = touches_of(&new.steps);
@@ -83,12 +95,22 @@ impl super::ChatStore {
             ],
         )?;
         let plan = load(&transaction, &plan_id)?;
+        if run_on_approval && status == PlanStatus::Proposed {
+            transaction.execute(
+                "INSERT INTO plan_resume
+                    (plan_id, conversation_id, state, run_id, created_at, updated_at)
+                 VALUES (?1, ?2, 'armed', NULL, ?3, ?3)",
+                params![plan_id, new.conversation_id, now],
+            )?;
+        }
         record_plan_line(&transaction, &plan)?;
         transaction.commit()?;
         Ok(plan)
     }
 
     /// The operator's answer. Only a proposed plan can be answered; the answer is final.
+    /// A repeated approval of a plan that was armed to run returns the plan as it stands:
+    /// the answer is the same, and nothing is written again.
     pub fn decide_plan(
         &self,
         plan_id: &str,
@@ -101,7 +123,17 @@ impl super::ChatStore {
         }
         let mut connection = self.lock();
         let transaction = connection.transaction()?;
-        if load(&transaction, plan_id)?.status != PlanStatus::Proposed {
+        let current = load(&transaction, plan_id)?;
+        if current.status != PlanStatus::Proposed {
+            let armed: i64 = transaction.query_row(
+                "SELECT COUNT(*) FROM plan_resume WHERE plan_id = ?1",
+                [plan_id],
+                |row| row.get(0),
+            )?;
+            if decision == PlanDecision::Approve && current.status == PlanStatus::Approved && armed > 0
+            {
+                return Ok(current);
+            }
             return Err(ChatError::PlanDecided);
         }
         let now = schema::now(&transaction)?;
@@ -110,6 +142,17 @@ impl super::ChatStore {
                 SET status = ?2, note = ?3, decided_by = ?4, decided_at = ?5, updated_at = ?5
               WHERE id = ?1",
             params![plan_id, decision.status().as_str(), note, decided_by, now],
+        )?;
+        // Approval hands an armed plan over; any other answer closes it for good.
+        let resume = if decision == PlanDecision::Approve {
+            "pending"
+        } else {
+            "skipped"
+        };
+        transaction.execute(
+            "UPDATE plan_resume SET state = ?2, updated_at = ?3
+              WHERE plan_id = ?1 AND state = 'armed'",
+            params![plan_id, resume, now],
         )?;
         let plan = load(&transaction, plan_id)?;
         record_plan_line(&transaction, &plan)?;
@@ -133,6 +176,172 @@ impl super::ChatStore {
         let rows = statement.query_map([status.map(PlanStatus::as_str)], plan_from_row)?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
+
+    /// The plans approved to run and not yet handed to Alfred, oldest first.
+    pub fn pending_plan_resumes(&self) -> Result<Vec<String>, ChatError> {
+        let connection = self.lock();
+        let mut statement = connection.prepare(
+            "SELECT plan_id FROM plan_resume WHERE state = 'pending' ORDER BY created_at ASC",
+        )?;
+        let rows = statement.query_map([], |row| row.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<Vec<String>>>()?)
+    }
+
+    /// Hand an approved plan to Alfred as one turn, queued in the same transaction that
+    /// marks it `queued`. The turn is a system text: no user message is written. `None`
+    /// when there is nothing to hand over (not pending, already handed over, linked to a
+    /// delegation, or its conversation is archived). The caller dispatches the turn and
+    /// calls [`Self::release_plan_resume`] when the seat refuses it.
+    pub fn claim_plan_resume(&self, plan_id: &str) -> Result<Option<Turn>, ChatError> {
+        let alfred_id = self.alfred_id()?;
+        let mut connection = self.lock();
+        let transaction = connection.transaction()?;
+        let state: Option<String> = transaction
+            .query_row(
+                "SELECT state FROM plan_resume WHERE plan_id = ?1",
+                [plan_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if state.as_deref() != Some("pending") {
+            return Ok(None);
+        }
+        let plan = load(&transaction, plan_id)?;
+        let archived: i64 = transaction.query_row(
+            "SELECT archived FROM conversation WHERE id = ?1",
+            [&plan.conversation_id],
+            |row| row.get(0),
+        )?;
+        let now = schema::now(&transaction)?;
+        // A plan a delegation already started from, or one in an archived conversation, is
+        // not run again: the resumption closes without a turn.
+        if plan.delegation_id.is_some() || archived != 0 || plan.status != PlanStatus::Approved {
+            transaction.execute(
+                "UPDATE plan_resume SET state = 'skipped', updated_at = ?2 WHERE plan_id = ?1",
+                params![plan_id, now],
+            )?;
+            transaction.commit()?;
+            return Ok(None);
+        }
+        let destination = resume_destination(&transaction, &plan, &alfred_id)?;
+        let run_id = id::new_id("run");
+        transaction.execute(
+            "INSERT INTO run (id, agent_id, pane_id, message_id, state, started_at)
+             VALUES (?1, ?2, NULL, NULL, 'queued', ?3)",
+            params![run_id, alfred_id, now],
+        )?;
+        transaction.execute(
+            "UPDATE plan_resume SET state = 'queued', run_id = ?2, updated_at = ?3
+              WHERE plan_id = ?1",
+            params![plan_id, run_id, now],
+        )?;
+        transaction.commit()?;
+        Ok(Some(Turn {
+            id: run_id,
+            state: RunState::Queued,
+            agent_id: alfred_id,
+            conversation_id: plan.conversation_id.clone(),
+            message_id: String::new(),
+            text: model_plan::resume_text(&plan, &destination),
+        }))
+    }
+
+    /// The seat refused the turn [`Self::claim_plan_resume`] returned. In one transaction the
+    /// reserved run is closed as failed and the plan goes back to pending, so the next
+    /// approval answer or the start of the host hands it over once more, on a new run.
+    pub fn release_plan_resume(&self, plan_id: &str) -> Result<(), ChatError> {
+        let mut connection = self.lock();
+        let transaction = connection.transaction()?;
+        let now = schema::now(&transaction)?;
+        let reserved: Option<Option<String>> = transaction
+            .query_row(
+                "SELECT run_id FROM plan_resume WHERE plan_id = ?1 AND state = 'queued'",
+                [plan_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if let Some(run_id) = reserved.flatten() {
+            transaction.execute(
+                "UPDATE run SET state = 'failed', finished_at = ?2, reason = 'seat_unavailable'
+                  WHERE id = ?1 AND state = 'queued'",
+                params![run_id, now],
+            )?;
+            transaction.execute(
+                "UPDATE plan_resume SET state = 'pending', run_id = NULL, updated_at = ?2
+                  WHERE plan_id = ?1",
+                params![plan_id, now],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    /// Whether a plan is one that the approval hands to Alfred (`run_on_approval`). Recipes
+    /// and schedules never start such a plan themselves.
+    pub fn is_run_on_approval(&self, plan_id: &str) -> Result<bool, ChatError> {
+        is_run_plan(&self.lock(), plan_id)
+    }
+}
+
+/// Closes the live plan runs of a conversation (stop, archive): their runs become `interrupted`
+/// and their resumptions `skipped`, so a queued hand-over never reaches the seat as work.
+pub(super) fn interrupt_plan_runs(
+    connection: &Connection,
+    conversation_id: &str,
+    reason: &str,
+) -> Result<(), ChatError> {
+    let now = schema::now(connection)?;
+    connection.execute(
+        "UPDATE run SET state = 'interrupted', finished_at = ?2, reason = ?3
+          WHERE state IN ('queued', 'running') AND id IN (
+              SELECT run_id FROM plan_resume WHERE conversation_id = ?1 AND run_id IS NOT NULL)",
+        params![conversation_id, now, reason],
+    )?;
+    connection.execute(
+        "UPDATE plan_resume SET state = 'skipped', updated_at = ?2
+          WHERE conversation_id = ?1 AND state = 'queued'",
+        params![conversation_id, now],
+    )?;
+    Ok(())
+}
+
+/// Whether the plan has a resumption row, i.e. it was proposed with `run_on_approval`.
+pub(super) fn is_run_plan(connection: &Connection, plan_id: &str) -> Result<bool, ChatError> {
+    let rows: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM plan_resume WHERE plan_id = ?1",
+        [plan_id],
+        |row| row.get(0),
+    )?;
+    Ok(rows > 0)
+}
+
+/// Who Alfred sends an approved plan to: the lead that proposed it, or else the lead of the
+/// conversation's project. The text names the seat by id, so the turn needs no lookup.
+fn resume_destination(
+    connection: &Connection,
+    plan: &Plan,
+    alfred_id: &str,
+) -> Result<String, ChatError> {
+    if plan.proposer_agent_id != alfred_id {
+        return Ok(format!(
+            "el líder {} (to_agent_id \"{}\")",
+            plan.proposer_name, plan.proposer_agent_id
+        ));
+    }
+    let lead: Option<(String, String)> = connection
+        .query_row(
+            "SELECT s.id, s.name FROM agent_seat s
+               JOIN conversation c ON c.project_id = s.project_id
+              WHERE c.id = ?1 AND s.role_id = 'lead'
+              LIMIT 1",
+            [&plan.conversation_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?;
+    Ok(match lead {
+        Some((id, name)) => format!("el líder del proyecto {name} (to_agent_id \"{id}\")"),
+        None => "el líder del proyecto".to_string(),
+    })
 }
 
 /// The plan a delegation of `steps` steps starts under, or `None` when it needs

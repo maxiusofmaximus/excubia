@@ -337,8 +337,8 @@ fn a_store_of_the_previous_version_keeps_its_hires_and_gains_the_recipes() {
     let version: i64 = raw
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .expect("version");
-    // Reopening brings the schema back to the final version (26, after the agent files migration).
-    assert_eq!(version, 28);
+    // Reopening brings the schema back to the final version (30, after the plan resumption migration).
+    assert_eq!(version, 30);
 }
 
 #[test]

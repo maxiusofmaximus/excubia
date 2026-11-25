@@ -8,6 +8,19 @@ use crate::model_recipe::RecipeRun;
 use crate::model_team::Delegation;
 use crate::store::Launch;
 
+/// What the operator's GitHub card shows (GITHUB-INTEGRACION): the phase as a word, the
+/// fixed page, and the code only while the login shows it. Never persisted, never sent to an agent.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct GithubLinkCard {
+    pub phase: &'static str,
+    pub code: Option<String>,
+    pub url: &'static str,
+    pub login: Option<String>,
+    pub failure: Option<&'static str>,
+    /// The questions this attempt serves. A card shows a code only for its own question.
+    pub approval_ids: Vec<String>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SeatErrorCode {
     /// No adapter is installed or the selected CLI cannot run.
@@ -160,6 +173,16 @@ pub trait ChatSeat: Send + Sync + 'static {
         Ok(())
     }
 
+    /// The GitHub link card of the operator's device. `None` without an approved link.
+    fn github_link_card(&self) -> Option<GithubLinkCard> {
+        None
+    }
+
+    /// Stops the GitHub link when `approval_id` is one of the questions it serves.
+    fn github_link_cancel(&self, _approval_id: &str) -> bool {
+        false
+    }
+
     /// Start a recipe: the hire takes the body from Alfred and the panel gets it.
     /// A seat that cannot deliver refuses, so no work is left queued forever.
     async fn run_recipe(
@@ -177,6 +200,12 @@ pub trait ChatSeat: Send + Sync + 'static {
         Err(ToolError::unavailable(
             "this seat cannot start a scheduled run",
         ))
+    }
+
+    /// Hand an approved plan that asked to run on approval to Alfred. Refused when the
+    /// turn cannot be queued; the plan then stays pending, and a repeated answer retries.
+    fn resume_plan(&self, _plan_id: &str) -> Result<(), SeatError> {
+        Ok(())
     }
 
     /// Stop the open turns of one conversation. The chat state is already

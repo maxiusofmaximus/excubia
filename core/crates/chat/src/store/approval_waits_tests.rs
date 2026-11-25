@@ -55,7 +55,8 @@ fn runs(ids: &[&str]) -> Vec<String> {
 #[test]
 fn only_the_pending_approvals_of_the_given_runs_count() {
     let store = ChatStore::in_memory().expect("store");
-    ask(&store, "run_1", None, "sha256:a", 600);
+    let pending = ask(&store, "run_1", None, "sha256:a", 600);
+    store.show_approval(&pending).expect("shown");
     ask(&store, "run_2", None, "sha256:b", 600);
     let denied = ask(&store, "run_1", None, "sha256:c", 600);
     store
@@ -115,7 +116,8 @@ fn an_archived_conversation_does_not_suspend_its_runs() {
 #[test]
 fn an_expired_approval_stops_counting_on_its_own() {
     let store = ChatStore::in_memory().expect("store");
-    ask(&store, "run_1", None, "sha256:a", 1);
+    let id = ask(&store, "run_1", None, "sha256:a", 1);
+    store.show_approval(&id).expect("shown");
     let waiting = store.approval_waits(&runs(&["run_1"])).expect("waits");
     assert_eq!(waiting.pending, 1);
     let until = waiting.next_change.expect("the TTL is the next change");

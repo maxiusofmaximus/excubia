@@ -272,6 +272,7 @@ fn an_approval_that_expires_is_decided_by_the_system() {
             ttl_seconds: 1,
         })
         .expect("approval");
+    team.store.show_approval(&approval.id).expect("shown");
 
     std::thread::sleep(std::time::Duration::from_millis(1500));
     let expired = team.store.approval(&approval.id).expect("read");
@@ -334,6 +335,7 @@ fn a_task_whose_card_expired_closes_as_failed_and_a_denied_one_as_done() {
             ttl_seconds: 1,
         })
         .expect("card");
+    team.store.show_approval(&card.id).expect("shown");
     std::thread::sleep(std::time::Duration::from_millis(1_200));
     assert_eq!(
         team.store.approval(&card.id).expect("card").status,
@@ -440,4 +442,74 @@ fn a_denial_carries_the_operators_words_to_the_hook() {
         .expect("state");
     assert_eq!(state.status, ApprovalStatus::Denied);
     assert_eq!(state.reason.as_deref(), Some("No borres build; usa cargo clean."));
+}
+
+/// A request as the resident panel of the lead opens it: the seat only, no conversation.
+fn panel_card(team: &Team, command: &str) -> Approval {
+    let args = json!({ "command": command });
+    team.store
+        .create_approval(NewApproval {
+            conversation_id: None,
+            seat_id: Some(team.lead.clone()),
+            agent_label: None,
+            run_id: None,
+            pane_id: None,
+            kind: ApprovalKind::Command,
+            tool: "bash".to_string(),
+            summary: format!("Ejecutar comando: {command}"),
+            cwd: None,
+            paths: Vec::new(),
+            risk: None,
+            action_digest: action_digest("command", "bash", &args, "", &[]),
+            payload_redacted: Some(args),
+            ttl_seconds: DEFAULT_TTL_SECONDS,
+        })
+        .expect("approval")
+}
+
+#[test]
+fn a_finished_task_closes_its_approved_card_and_its_hook_cannot_burn_it() {
+    let team = team("delegation-approved-closed");
+    let task = team
+        .assign(&team.alfred, &team.lead, "Instala dependencias", "turn-approved", None)
+        .expect("delegation");
+    let card = panel_card(&team, "npm install left-pad");
+    let approved = team
+        .store
+        .decide_approval(&card.id, Decision::Approve, "device-1", "device-1")
+        .expect("approved");
+    assert_eq!(approved.status, ApprovalStatus::Approved);
+
+    // The task ends before its hook burns the approval.
+    team.store.cancel_delegation(&task.id).expect("cancel");
+    assert_eq!(
+        team.store.approval(&card.id).expect("row").status,
+        ApprovalStatus::Expired
+    );
+    let burned = team
+        .store
+        .consume_approval(&card.id, None, &HookScope::seat(&team.lead));
+    assert!(matches!(burned, Err(ChatError::ApprovalExpired)), "{burned:?}");
+}
+
+#[test]
+fn a_card_consumed_before_its_task_finishes_stays_consumed() {
+    let team = team("delegation-consumed-kept");
+    let task = team
+        .assign(&team.alfred, &team.lead, "Instala dependencias", "turn-consumed", None)
+        .expect("delegation");
+    let card = panel_card(&team, "npm install left-pad");
+    team.store
+        .decide_approval(&card.id, Decision::Approve, "device-1", "device-1")
+        .expect("approved");
+    team.store
+        .consume_approval(&card.id, None, &HookScope::seat(&team.lead))
+        .expect("the action runs once");
+
+    team.store.cancel_delegation(&task.id).expect("cancel");
+    assert_eq!(
+        team.store.approval(&card.id).expect("row").status,
+        ApprovalStatus::Consumed,
+        "a consumed action is not revoked"
+    );
 }

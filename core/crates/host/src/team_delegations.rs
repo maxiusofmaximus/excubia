@@ -2,12 +2,15 @@
 //! resident panel, its watcher, the card state and the coalesced synthesis.
 
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use excubia_chat::{
-    close_title, preview, without_internal_ids, ChatError, ChatSeat, Delegation, DelegationState,
-    Launch, NewDelegation, RecipeRun, SeatActor, SynthesisRow, ToolError, ToolReply,
+    close_title, is_wait_frame, preview, until, without_internal_ids, ActiveBudget, ApprovalWaits,
+    ChatError, ChatSeat, ChatStore, Delegation, DelegationState, Launch, NewDelegation, RecipeRun,
+    SeatActor, SynthesisRow, ToolError, ToolReply,
 };
 use serde_json::json;
+use tokio::sync::broadcast::error::RecvError;
 
 use super::team::{lock, TeamGrant, TeamService, Watcher, SYNTHESIS_BATCH};
 use super::team_errors::tool_chat_error;
@@ -199,12 +202,7 @@ impl TeamService {
         let timeout = self.delegation_timeout;
         let id = delegation_id.clone();
         let task = tokio::spawn(async move {
-            tokio::select! {
-                _ = tokio::time::sleep(timeout) => {
-                    let _ = chat.fail_delegation(&id, "delegation_timeout");
-                }
-                _ = stopped => {}
-            }
+            budget_watch(&chat, &id, timeout, stopped).await;
         });
         if let Some(previous) = lock(&self.watchers).insert(delegation_id, Watcher { stop, task }) {
             let _ = previous.stop.send(());
@@ -425,6 +423,75 @@ impl TeamService {
             }
         }
     }
+}
+
+/// The delegation's wait, on the same budget a seat's turn uses: its active time is
+/// capped by `timeout`, and the clock stops while one of its own approvals waits for
+/// the operator, then runs again with the balance it kept. Only the approvals the host
+/// persisted for this delegation count, so another task's card never holds it. The
+/// subscription is taken before the first read, so no change is lost between them.
+async fn budget_watch(
+    chat: &ChatStore,
+    delegation_id: &str,
+    timeout: Duration,
+    mut stopped: tokio::sync::oneshot::Receiver<()>,
+) {
+    let mut frames = chat.subscribe();
+    let mut frames_open = true;
+    let mut budget = ActiveBudget::new(Instant::now(), timeout);
+    let mut pending = 0;
+    let mut change = None;
+    let mut read = true;
+    loop {
+        if read {
+            read = false;
+            match read_waits(chat, delegation_id) {
+                Ok((waits, at)) => {
+                    pending = waits.pending;
+                    change = at;
+                }
+                // Like a turn's wait error: the wait cannot be known, so the delegation
+                // closes with its reason. Keeping a past instant here would spin the loop.
+                Err(error) => {
+                    eprintln!("team: could not read the waits of {delegation_id}: {error}");
+                    let _ = chat.fail_delegation(delegation_id, "wait_unavailable");
+                    return;
+                }
+            }
+        }
+        let now = Instant::now();
+        if budget.is_exhausted(now) {
+            let _ = chat.fail_delegation(delegation_id, "delegation_timeout");
+            return;
+        }
+        budget.set_waiting(now, pending > 0);
+        tokio::select! {
+            _ = &mut stopped => return,
+            _ = until(budget.deadline()) => {
+                let _ = chat.fail_delegation(delegation_id, "delegation_timeout");
+                return;
+            }
+            // An approval's level ran out or its TTL passed: read the waits again.
+            _ = until(change) => read = true,
+            frame = frames.recv(), if frames_open => match frame {
+                Ok(frame) => read = is_wait_frame(&frame.event),
+                Err(RecvError::Lagged(_)) => read = true,
+                Err(RecvError::Closed) => frames_open = false,
+            },
+        }
+    }
+}
+
+/// The delegation's pending approvals as the store reads them, and the monotonic
+/// instant their next change falls due (sampled before the read, so none wakes late).
+fn read_waits(
+    chat: &ChatStore,
+    delegation_id: &str,
+) -> Result<(ApprovalWaits, Option<Instant>), ChatError> {
+    let read_at = Instant::now();
+    let waits = chat.delegation_waits(delegation_id)?;
+    let change = waits.next_change.map(|left| read_at + left);
+    Ok((waits, change))
 }
 
 /// Whether a task asks to know something (a look or a question), so its result is the answer.

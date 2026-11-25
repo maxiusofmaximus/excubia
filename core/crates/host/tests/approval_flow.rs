@@ -270,7 +270,7 @@ async fn the_text_of_another_agent_approves_nothing() {
     );
 }
 #[tokio::test(flavor = "multi_thread")]
-async fn an_expired_approval_is_a_conflict() {
+async fn an_unseen_approval_does_not_expire_past_its_ttl() {
     let (host, client, _device) = approver_host("uac-expired").await;
     let hook = host.run_hook("uac-expired");
     let mut body = open_body("cargo test");
@@ -298,8 +298,8 @@ async fn an_expired_approval_is_a_conflict() {
         )
         .await
         .expect("decision");
-    assert_eq!(status, 409, "{response}");
-    assert_eq!(detail(&response), "approval_expired");
+    // Nobody has seen the card: its TTL has not started, so it is still decidable.
+    assert_eq!(status, 200, "{response}");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -419,4 +419,66 @@ async fn a_hook_without_the_token_is_refused() {
     raw.extend_from_slice(&open_body("cargo test"));
     let (status, body) = harness::raw_exchange(host.addr, &raw).await;
     assert_eq!(status, 401, "{body}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_showing_of_a_cto_card_starts_no_clock_and_only_an_approver_reports_it() {
+    let (host, client, _device) = approver_host("uac-seen").await;
+    let hook = host.run_hook("uac-seen");
+    let (status, body) = host
+        .hook_request(&hook.token, "POST", "/v1/chat/approvals", Some(open_body("cargo test")))
+        .await;
+    assert_eq!(status, 201, "{body}");
+    let approval_id: Value = serde_json::from_str(&body).expect("json");
+    let approval_id = approval_id["approval_id"].as_str().expect("id").to_string();
+    let seen_path = format!("/v1/chat/approvals/{approval_id}/seen");
+    let before = pending(&client).await[0]["expires_at"].clone();
+
+    // A device without APPROVE is refused.
+    let (reader, paired) = host.pair("Phone").await;
+    host.grant(&paired.device_id, Permission::ReadState);
+    let (status, body) = reader.request("POST", &seen_path, None).await.expect("seen");
+    assert_eq!(status, 403, "{body}");
+
+    // The team's card waits at the CTO level: the showing is accepted, but a
+    // level that is not the user's starts no clock and moves no deadline.
+    let (status, body) = client.request("POST", &seen_path, None).await.expect("seen");
+    assert_eq!(status, 200, "{body}");
+    let seen: Value = serde_json::from_str(&body).expect("json");
+    assert_eq!(seen["approval"]["level"], "cto", "{body}");
+    assert_eq!(seen["approval"]["status"], "pending", "{body}");
+    assert!(seen["approval"]["shown_at"].is_null(), "{body}");
+    assert_eq!(seen["approval"]["expires_at"], before, "{body}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_decided_approval_is_never_shown_and_starts_no_clock() {
+    let (host, client, _device) = approver_host("uac-seen-decided").await;
+    let hook = host.run_hook("uac-seen-decided");
+    let (status, body) = host
+        .hook_request(&hook.token, "POST", "/v1/chat/approvals", Some(open_body("cargo test")))
+        .await;
+    assert_eq!(status, 201, "{body}");
+    let approval_id: Value = serde_json::from_str(&body).expect("json");
+    let approval_id = approval_id["approval_id"].as_str().expect("id").to_string();
+
+    let (status, body) = client
+        .request(
+            "POST",
+            &format!("/v1/chat/approvals/{approval_id}/decision"),
+            Some(serde_json::to_vec(&json!({"decision": "deny", "client_id": "device-1"})).expect("json")),
+        )
+        .await
+        .expect("decision");
+    assert_eq!(status, 200, "{body}");
+
+    // A showing after the answer answers with the card as it is and starts no clock.
+    let (status, body) = client
+        .request("POST", &format!("/v1/chat/approvals/{approval_id}/seen"), None)
+        .await
+        .expect("seen");
+    assert_eq!(status, 200, "{body}");
+    let seen: Value = serde_json::from_str(&body).expect("json");
+    assert_eq!(seen["approval"]["status"], "denied");
+    assert!(seen["approval"]["shown_at"].is_null(), "{body}");
 }

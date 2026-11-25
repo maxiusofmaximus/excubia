@@ -13,6 +13,8 @@ use super::ToolCall;
 #[serde(deny_unknown_fields)]
 struct PlanProposeArgs {
     steps: Vec<PlanStep>,
+    #[serde(default)]
+    run_on_approval: bool,
 }
 
 #[derive(Deserialize)]
@@ -23,7 +25,10 @@ struct PlanStatusArgs {
 
 pub(super) fn propose(request: &ToolRequest) -> Result<ToolCall, ToolError> {
     let args: PlanProposeArgs = arguments(request, "steps")?;
-    Ok(ToolCall::PlanPropose(PlanPropose { steps: args.steps }))
+    Ok(ToolCall::PlanPropose(PlanPropose {
+        steps: args.steps,
+        run_on_approval: args.run_on_approval,
+    }))
 }
 
 pub(super) fn status(request: &ToolRequest) -> Result<ToolCall, ToolError> {
@@ -57,8 +62,29 @@ mod tests {
                     title: "Lee el repo".to_string(),
                     touches: vec![Touch::Files],
                 }],
+                run_on_approval: false,
             }))
         );
+    }
+
+    #[test]
+    fn a_plan_runs_on_approval_only_when_the_agent_asks_for_it() {
+        let steps = json!([{"title": "Lee el repo", "touches": ["files"]}]);
+        let asked = propose(&request(
+            "plan.propose",
+            json!({"steps": steps, "run_on_approval": true}),
+        ))
+        .expect("a valid plan");
+        assert!(matches!(
+            asked,
+            ToolCall::PlanPropose(PlanPropose { run_on_approval: true, .. })
+        ));
+        let plain = propose(&request("plan.propose", json!({"steps": steps})))
+            .expect("a valid plan");
+        assert!(matches!(
+            plain,
+            ToolCall::PlanPropose(PlanPropose { run_on_approval: false, .. })
+        ));
     }
 
     #[test]

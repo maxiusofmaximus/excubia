@@ -69,6 +69,10 @@ pub fn delegation_text_in(code: &str, lang: UiLang) -> Option<&'static str> {
             "El turno de la delegación agotó el tiempo de espera.",
             "The delegation's turn ran out of time.",
         ),
+        "wait_unavailable" => lang.pick(
+            "El host no pudo leer los permisos pendientes de la delegación.",
+            "The host could not read the delegation's pending approvals.",
+        ),
         "pane_gone" => lang.pick(
             "El panel del asignado desapareció antes de terminar.",
             "The assignee's pane disappeared before it finished.",

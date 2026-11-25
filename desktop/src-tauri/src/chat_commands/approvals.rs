@@ -2,7 +2,7 @@
 //! approval mode settings.
 
 use excubia_desktop_core::chat::{
-    Approval, ApprovalModeChange, ApprovalSettings, ChatFailure, DecisionChoice,
+    Approval, ApprovalModeChange, ApprovalSettings, ChatFailure, DecisionChoice, GithubLinkCard,
 };
 use tauri::State;
 
@@ -41,6 +41,39 @@ pub async fn chat_approval_decision(
         .await?;
     lock(&shared.chat).replace_approval(approval.clone());
     Ok(approval)
+}
+
+/// The operator's UI shows a card: the host starts its TTL on the first showing.
+#[tauri::command]
+pub async fn chat_approval_seen(
+    state: State<'_, Shared>,
+    approval_id: String,
+) -> Result<Approval, ChatFailure> {
+    let shared = shared(&state);
+    let client = client(&shared)?;
+    let approval = client.chat_approval_seen(&approval_id).await?;
+    lock(&shared.chat).replace_approval(approval.clone());
+    Ok(approval)
+}
+
+/// The GitHub link card's state. The code is in this answer only while the login shows it;
+/// nothing here keeps it, so the card holds it in memory and drops it when it leaves.
+#[tauri::command]
+pub async fn chat_github_link_state(state: State<'_, Shared>) -> Result<Option<GithubLinkCard>, ChatFailure> {
+    let shared = shared(&state);
+    let client = client(&shared)?;
+    Ok(client.chat_github_link().await?)
+}
+
+/// Stops the GitHub link of one question, from that question's card.
+#[tauri::command]
+pub async fn chat_github_link_cancel(
+    state: State<'_, Shared>,
+    approval_id: String,
+) -> Result<bool, ChatFailure> {
+    let shared = shared(&state);
+    let client = client(&shared)?;
+    Ok(client.chat_github_link_cancel(&approval_id).await?)
 }
 
 /// The operator's inbox: every approval that waits for him, across

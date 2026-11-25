@@ -12,6 +12,7 @@ use serde::Deserialize;
 use serde_json::json;
 
 use crate::error::ApiError;
+use crate::routes::chat::seat_error;
 use crate::routes::chat::support::{map_error, ok_object};
 use crate::routes::parse_body;
 use crate::ApiContext;
@@ -104,6 +105,14 @@ fn answer(
         .chat
         .decide_plan(plan_id, decision, note, &verified.device_id)
     {
+        Ok(plan) if decision == PlanDecision::Approve => {
+            // The approval is stored; a refused hand-over is retried by a repeated answer.
+            // The answer says the plan is approved only when the seat queued its turn.
+            if let Err(error) = ctx.seat.resume_plan(plan_id) {
+                return seat_error(error);
+            }
+            ok_object(json!({ "plan": plan }))
+        }
         Ok(plan) => ok_object(json!({ "plan": plan })),
         Err(error) => map_error(error).into_response(),
     }

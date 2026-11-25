@@ -80,7 +80,14 @@ async fn a_question_nobody_answers_expires() {
     let chat = ChatStore::in_memory().expect("store");
     let gate = ChatApprovalGate::new(&chat, "C:/proyecto").with_ttl(1);
 
-    let answer = gate.decide(&request()).await.expect("an answer");
+    // The inbox shows the question, which starts its TTL; nobody answers it.
+    let asked = request();
+    let showing = async {
+        let id = next_pending(&chat).await;
+        chat.show_approval(&id).expect("shown");
+    };
+    let (answer, ()) = tokio::join!(gate.decide(&asked), showing);
+    let answer = answer.expect("an answer");
 
     assert_eq!(answer, Approval::Expired);
     let expired = chat

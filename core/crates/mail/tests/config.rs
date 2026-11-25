@@ -35,11 +35,25 @@ fn the_file_wins_over_the_environment() {
 }
 
 #[test]
-fn a_missing_client_is_not_configured() {
-    let error = MailConfig::from_toml("[mail]\n", None).expect_err("missing client");
-    assert!(matches!(error, excubia_mail::MailError::NotConfigured));
-    assert_eq!(error.code(), "mail_not_configured");
-    assert!(format!("{error}").contains("EXCUBIA_MAIL_CLIENT_ID"));
+fn a_clean_configuration_selects_the_public_client() {
+    let config = MailConfig::from_toml("[mail]\n", None).expect("config");
+    assert_eq!(config.client_id, excubia_mail::PUBLIC_CLIENT_ID);
+    assert_eq!(config.client_id, "fed6c50b-ecd4-43c4-8ff1-7162afda228a");
+    // A blank value is not an override: the public client still applies.
+    let blank = MailConfig::from_toml("[mail]\nclient_id = \"  \"\n", Some("   ")).expect("config");
+    assert_eq!(blank.client_id, excubia_mail::PUBLIC_CLIENT_ID);
+}
+
+#[test]
+fn an_explicit_environment_beats_the_public_client_and_the_file_beats_both() {
+    let env = MailConfig::from_toml("[mail]\n", Some("operator-env")).expect("config");
+    assert_eq!(env.client_id, "operator-env");
+    let file = MailConfig::from_toml(
+        "[mail]\nclient_id = \"operator-file\"\n",
+        Some("operator-env"),
+    )
+    .expect("config");
+    assert_eq!(file.client_id, "operator-file");
 }
 
 #[test]

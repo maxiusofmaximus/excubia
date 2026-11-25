@@ -21,12 +21,10 @@ use crate::model_approval::{Approval, ApprovalFilter, ApprovalState, ApprovalSta
 use crate::model_hook::HookScope;
 
 use super::approval_decisions::Burn;
-use super::approval_rules::{approval_by_id, approval_from_columns, approval_row, audit_of};
+use super::approval_rules::{
+    approval_by_id, approval_from_columns, approval_row, audit_of, frame_of,
+};
 use super::approval_settle;
-
-/// The extra time the host waits after the TTL before it gives up on the
-/// decision: the approval expires by itself, the wait only confirms it.
-const DECISION_SLACK: Duration = Duration::from_secs(5);
 
 /// The longest single wait of the decision loop, however far the next change
 /// is: the loop wakes at least this often, so a clock that jumps is noticed.
@@ -49,7 +47,7 @@ pub(super) const APPROVAL_SELECT: &str =
             action_digest, status, scope, expires_at,
             decided_by, decided_at, created_at, updated_at,
             payload_redacted, level, escalated_from, decider_kind, decider_id, reason,
-            risk_score, scorer_version, headline
+            risk_score, scorer_version, headline, shown_at
        FROM approval";
 
 impl super::ChatStore {
@@ -112,6 +110,24 @@ impl super::ChatStore {
         Ok(approvals)
     }
 
+    /// Every question of one `tool`, in every state, oldest first. The host filters them by
+    /// the digest of its own purpose and reads the decision that closed each one.
+    pub fn approvals_for_tool(&self, tool: &str) -> Result<Vec<Approval>, ChatError> {
+        self.expire_now()?;
+        let connection = self.lock();
+        let mut statement = connection.prepare(&format!(
+            "{APPROVAL_SELECT}
+              WHERE tool = ?1
+              ORDER BY rowid ASC"
+        ))?;
+        let rows = statement.query_map([tool], approval_row)?;
+        let mut approvals = Vec::new();
+        for row in rows {
+            approvals.push(approval_from_columns(row?)?);
+        }
+        Ok(approvals)
+    }
+
     /// The approved questions of one `tool` that nothing has consumed yet, in the order
     /// they were created. The host applies them and consumes each one (ESTILO3).
     pub fn approved_for_tool(&self, tool: &str) -> Result<Vec<Approval>, ChatError> {
@@ -159,13 +175,16 @@ impl super::ChatStore {
         self.settle_request(&approval, ttl_seconds).await
     }
 
+    /// The requester waits for the decision with no deadline of its own: the
+    /// wait lasts while the card is pending, and the host stops it by dropping
+    /// the request (a run that closes, a seat that stops). The TTL starts when a
+    /// UI shows the card, not here, so a late app cannot expire it.
     async fn settle_request(
         &self,
         approval: &Approval,
-        ttl_seconds: u32,
+        _ttl_seconds: u32,
     ) -> Result<Approval, ChatError> {
-        let wait = Duration::from_secs(ttl_seconds as u64) + DECISION_SLACK;
-        let decided = self.await_approval(&approval.id, wait).await?;
+        let decided = self.await_decision(&approval.id).await?;
         if decided.status == ApprovalStatus::Approved {
             return self.consume(&approval.id, Some(&approval.action_digest), Burn::Host);
         }
@@ -180,7 +199,21 @@ impl super::ChatStore {
         approval_id: &str,
         timeout: Duration,
     ) -> Result<Approval, ChatError> {
-        let deadline = tokio::time::Instant::now() + timeout;
+        self.await_until(approval_id, Some(tokio::time::Instant::now() + timeout))
+            .await
+    }
+
+    /// Wait until the approval is decided, with no deadline of its own (see
+    /// `settle_request`).
+    pub async fn await_decision(&self, approval_id: &str) -> Result<Approval, ChatError> {
+        self.await_until(approval_id, None).await
+    }
+
+    async fn await_until(
+        &self,
+        approval_id: &str,
+        deadline: Option<tokio::time::Instant>,
+    ) -> Result<Approval, ChatError> {
         let mut events = self.subscribe();
         loop {
             let approval = self.approval(approval_id)?;
@@ -188,11 +221,11 @@ impl super::ChatStore {
                 return Ok(approval);
             }
             let now = tokio::time::Instant::now();
-            if now >= deadline {
+            if deadline.is_some_and(|deadline| now >= deadline) {
                 return self.approval(approval_id);
             }
             let until_change = self.wait_until_change(approval_id)?;
-            let wait = (deadline - now).min(until_change);
+            let wait = deadline.map_or(until_change, |deadline| (deadline - now).min(until_change));
             match tokio::time::timeout(wait, events.recv()).await {
                 Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => {
                     return self.approval(approval_id)
@@ -204,6 +237,28 @@ impl super::ChatStore {
                 | Err(_) => continue,
             }
         }
+    }
+
+    /// The operator's device showed the card: its TTL starts now, once. A repeat,
+    /// or a second device, changes nothing, and a card that is no longer pending
+    /// is returned as it is.
+    pub fn show_approval(&self, approval_id: &str) -> Result<Approval, ChatError> {
+        self.expire_now()?;
+        let frame = {
+            let mut connection = self.lock();
+            let transaction = connection.transaction()?;
+            let frame = if approval_settle::show(&transaction, approval_id, self.now_ms())? {
+                Some(frame_of(&transaction, approval_id, "shown")?)
+            } else {
+                None
+            };
+            transaction.commit()?;
+            frame
+        };
+        if let Some(frame) = frame {
+            self.publish(frame);
+        }
+        self.approval(approval_id)
     }
 
     /// How long the decision loop may sleep before the approval changes by
@@ -224,6 +279,19 @@ impl super::ChatStore {
     /// budget pauses on them. Due cards settle first, so an expired one is not
     /// counted; a card of an archived conversation is not waited on either.
     pub fn approval_waits(&self, run_ids: &[String]) -> Result<ApprovalWaits, ChatError> {
+        self.waits_where("approval.run_id", run_ids)
+    }
+
+    /// The approvals of one delegation that wait for an operator now: the same
+    /// rules as [`Self::approval_waits`], keyed by the row the host persisted for
+    /// the request (`approval.delegation_id`). Another task's card never counts.
+    pub fn delegation_waits(&self, delegation_id: &str) -> Result<ApprovalWaits, ChatError> {
+        self.waits_where("approval.delegation_id", &[delegation_id.to_string()])
+    }
+
+    /// The waits of the pending approvals whose `column` (a fixed literal, never
+    /// an input) is one of `values`.
+    fn waits_where(&self, column: &str, values: &[String]) -> Result<ApprovalWaits, ChatError> {
         self.expire_now()?;
         let now = self.now_ms();
         let connection = self.lock();
@@ -231,15 +299,15 @@ impl super::ChatStore {
             pending: 0,
             next_change: None,
         };
-        for run_id in run_ids {
-            let mut statement = connection.prepare(
-                "SELECT approval.id FROM approval
-                   LEFT JOIN conversation ON conversation.id = approval.conversation_id
-                  WHERE approval.run_id = ?1 AND approval.status = 'pending'
-                    AND COALESCE(conversation.archived, 0) = 0",
-            )?;
+        let mut statement = connection.prepare(&format!(
+            "SELECT approval.id FROM approval
+               LEFT JOIN conversation ON conversation.id = approval.conversation_id
+              WHERE {column} = ?1 AND approval.status = 'pending'
+                AND COALESCE(conversation.archived, 0) = 0"
+        ))?;
+        for value in values {
             let ids = statement
-                .query_map([run_id], |row| row.get::<_, String>(0))?
+                .query_map([value], |row| row.get::<_, String>(0))?
                 .collect::<Result<Vec<String>, _>>()?;
             for id in ids {
                 waits.pending += 1;

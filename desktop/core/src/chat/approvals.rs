@@ -67,6 +67,10 @@ pub struct Approval {
     pub scope: String,
     #[serde(default)]
     pub expires_at: String,
+    /// When an authorized UI first showed the card; the TTL runs from here. Absent
+    /// on a host before this version and on a card nobody has seen yet.
+    #[serde(default)]
+    pub shown_at: Option<String>,
     #[serde(default)]
     pub decided_by: Option<String>,
     #[serde(default)]
@@ -199,6 +203,22 @@ impl HostClient {
             )
             .await?;
         Ok(decided.approval)
+    }
+
+    /// The operator's UI shows the card. The host starts its TTL on the first
+    /// showing only; a repeat or another device changes nothing.
+    pub async fn chat_approval_seen(&self, approval_id: &str) -> ChatResult<Approval> {
+        validate_prefixed_id(approval_id, "apr_", "aprobación")?;
+        let seen: ApprovalDecided = self
+            .chat_send_json(
+                Method::POST,
+                &format!("/v1/chat/approvals/{approval_id}/seen"),
+                &[],
+                &json!({}),
+                true,
+            )
+            .await?;
+        Ok(seen.approval)
     }
 
     /// One approval by id. The host has no read of a single approval for a

@@ -21,7 +21,7 @@ mod tool;
 
 pub use approvals::{
     consume as consume_approval, create as create_approval, decision as decide_approval,
-    list as list_approvals, state as approval_state,
+    list as list_approvals, seen as show_approval, state as approval_state,
 };
 pub use attachments::{
     attachment_content, attachment_preview, complete_attachment, create_attachment,

@@ -51,7 +51,6 @@ import {
   sameIds,
   seatName,
   setBootstrap,
-  stripBelongs,
   shortDigest,
   statusMeta,
   subjectText,
@@ -348,8 +347,11 @@ test("mail and agenda approvals keep their own card, every other tool gets the p
 
 test("a pending card at zero asks the host; the host still decides", () => {
   const now = Date.parse("2026-10-23T10:00:00.000Z");
-  assert.equal(isChecking({ status: "pending", expires_at: "2026-10-23T09:59:59.000Z" }, now), true);
-  assert.equal(isChecking({ status: "pending", expires_at: "2026-10-23T10:01:00.000Z" }, now), false);
+  const shown = { status: "pending", shown_at: "2026-10-23T09:00:00.000Z" };
+  assert.equal(isChecking({ ...shown, expires_at: "2026-10-23T09:59:59.000Z" }, now), true);
+  assert.equal(isChecking({ ...shown, expires_at: "2026-10-23T10:01:00.000Z" }, now), false);
+  // Before the first showing the TTL has not started: a past provisional expiry is no "checking".
+  assert.equal(isChecking({ status: "pending", expires_at: "2026-10-23T09:59:59.000Z" }, now), false);
   assert.equal(isChecking({ status: "expired", expires_at: "2026-10-23T09:59:59.000Z" }, now), false);
 });
 
@@ -541,13 +543,6 @@ test("a web search says what it looks for, a page says its address; without the 
   assert.equal(humanHeadline(fetch), "Bob quiere abrir una página: https://example.com/guia");
   assert.equal(humanHeadline({ ...bob, tool: "WebFetch" }), "Bob quiere usar una herramienta");
   assert.equal(detailFacts(search).technical.some(([label]) => label === "Comando"), false, "a search runs no command");
-});
-
-test("the strip counts the open conversation's requests and those with none, never another's", () => {
-  assert.equal(stripBelongs({ conversation_id: "cnv_1" }, "cnv_1"), true);
-  assert.equal(stripBelongs({ conversation_id: "cnv_2" }, "cnv_1"), false);
-  assert.equal(stripBelongs({}, "cnv_1"), true);
-  assert.equal(stripBelongs({ conversation_id: "cnv_1" }, null), false);
 });
 
 test("a request waits only while pending and not answered here", () => {

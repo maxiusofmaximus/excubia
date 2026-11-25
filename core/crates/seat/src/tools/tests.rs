@@ -241,6 +241,7 @@ fn tool_definitions_list_the_team_tools() {
             "approval.decide",
             "approval.pending",
             "status.overview",
+            "github.link",
             "style.get",
             "style.propose_rule",
             "style.learn_sent",
@@ -418,6 +419,23 @@ fn a_delegation_without_steps_declares_one_step() {
         panic!("assign: {parsed:?}")
     };
     assert_eq!(assign.steps, 1);
+}
+
+/// `github.link` carries no arguments: a URL, an account or a token is refused, never read.
+#[test]
+fn github_link_takes_no_arguments() {
+    assert_eq!(
+        parse(&request("github.link", json!({}))),
+        Ok(ToolCall::GithubLink)
+    );
+    for smuggled in [
+        json!({"url": "https://github.com/login/device"}),
+        json!({"token": "ghp_x"}),
+        json!({"command": "gh auth login"}),
+    ] {
+        let refused = parse(&request("github.link", smuggled)).expect_err("no argument");
+        assert_eq!(refused.code, "invalid_arguments");
+    }
 }
 
 #[test]

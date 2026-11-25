@@ -164,6 +164,31 @@ pub fn summary(steps: &[PlanStep], proposer: &str) -> String {
     )
 }
 
+/// The system text Alfred reads when the operator approves a plan that asks to run on
+/// approval. It names the plan and its destination by id, and never widens the scope:
+/// the steps are the plan's own, and the delegation it starts is checked as any other.
+pub fn resume_text(plan: &Plan, destination: &str) -> String {
+    let mut text = format!(
+        "El operador aprobó el plan {} ({}). Pasos:\n",
+        plan.id, plan.summary
+    );
+    for (index, step) in plan.steps.iter().enumerate() {
+        let touches: Vec<&str> = step.touches.iter().map(|touch| touch.label()).collect();
+        text.push_str(&format!(
+            "{}. {} ({})\n",
+            index + 1,
+            step.title,
+            touches.join(", ")
+        ));
+    }
+    text.push_str(&format!(
+        "Encárgalo ahora con delegation.assign, plan_id \"{}\", a {destination}. \
+         Usa los pasos tal como están: no propongas el plan de nuevo ni lo cambies.",
+        plan.id
+    ));
+    text
+}
+
 /// What an agent proposes: the steps, and who proposes them.
 #[derive(Clone, Debug)]
 pub struct NewPlan {

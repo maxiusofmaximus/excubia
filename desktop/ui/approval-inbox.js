@@ -12,7 +12,6 @@ import {
   isPendingHere,
   localFor,
   patchLocal,
-  stripBelongs,
 } from "./approval-model.js";
 
 // A card that settled stays on the strip this long, so the operator sees how.
@@ -22,8 +21,8 @@ const EVENT_DEBOUNCE_MS = 150;
 
 let held = [];
 let threadIds = new Set();
-let openId = null;
 let eventTimer = null;
+let lastSignature = null;
 
 function recentlySettled(id, now) {
   const at = localFor(id).settledAt;
@@ -48,34 +47,34 @@ function strip() {
   return node;
 }
 
-// Only the open conversation's requests count and show here; a settled card or a
-// request of another conversation never sits above a thread it does not belong to.
-// The strip stays hidden while nothing in it waits for the operator.
+// Every operator card that waits, whatever its conversation: each card names its
+// conversation, so it is found without guessing the open chat. Only the open
+// thread's own cards are left out, since the thread draws them. The strip stays
+// hidden while nothing waits. An unchanged list is not redrawn, so a refresh never
+// moves the focus of a card the operator is using.
 export function renderInbox() {
   const now = Date.now();
   const rows = held.filter(
-    (entry) =>
-      isOperatorLevel(entry) &&
-      !threadIds.has(entry.id) &&
-      stripBelongs(entry, openId) &&
-      showable(entry, now),
+    (entry) => isOperatorLevel(entry) && !threadIds.has(entry.id) && showable(entry, now),
   );
   const waiting = rows.filter(isPendingHere).length;
   const node = strip();
   node.hidden = waiting === 0;
+  const contexts = rows.map((entry) => conversationContext(entry.conversation_id) || t("approval.no_conversation"));
+  const signature = rows
+    .map((entry, i) => [entry.id, entry.status, entry.shown_at, contexts[i], JSON.stringify(localFor(entry.id))].join("|"))
+    .join("\n");
+  if (signature === lastSignature) return;
+  lastSignature = signature;
   node.replaceChildren();
   if (!waiting) return;
   node.append(element("h2", "approval-inbox-title", t("approval.inbox_title", { n: waiting })));
-  for (const entry of rows) {
-    const context = conversationContext(entry.conversation_id) || t("approval.no_conversation");
-    node.append(renderApprovalCard(entry, now, context));
-  }
+  rows.forEach((entry, i) => node.append(renderApprovalCard(entry, now, contexts[i])));
 }
 
 // The cards of the open thread are drawn there, so the strip skips them.
-export function setThreadApprovals(ids, conversationId = null) {
+export function setThreadApprovals(ids) {
   threadIds = new Set(ids);
-  openId = conversationId;
   renderInbox();
 }
 

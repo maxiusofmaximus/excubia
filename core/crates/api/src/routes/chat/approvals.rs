@@ -13,5 +13,5 @@ mod device;
 mod poll;
 
 pub use create::create;
-pub use device::{decision, list};
+pub use device::{decision, list, seen};
 pub use poll::{consume, state};

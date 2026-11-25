@@ -71,7 +71,7 @@ pub use auth::{
 };
 pub use config::{
     MailConfig, DEFAULT_MAX_ATTACHMENT_BYTES, DEFAULT_SENDS_PER_HOUR, HARD_MAX_ATTACHMENT_BYTES,
-    HARD_MAX_SENDS_PER_HOUR,
+    HARD_MAX_SENDS_PER_HOUR, PUBLIC_CLIENT_ID,
 };
 pub use draft::{AttachmentMeta, DraftBody, DraftInput, DraftMeta, SmallAttachment};
 pub use error::MailError;

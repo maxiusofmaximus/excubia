@@ -46,6 +46,27 @@ fn team_seat(uac_plugin: Option<PathBuf>) -> SeatKind {
     }
 }
 
+/// The operator's inbox shows the pending card: that starts its short TTL.
+async fn show_first_pending(client: &SignedClient) {
+    let deadline = Instant::now() + CLI_TIMEOUT;
+    loop {
+        let pending = client
+            .chat_approvals(&[("status", "pending")])
+            .await
+            .expect("inbox");
+        if let Some(first) = pending["approvals"].as_array().and_then(|rows| rows.first()) {
+            let id = first["id"].as_str().expect("id").to_owned();
+            client
+                .request("POST", &format!("/v1/chat/approvals/{id}/seen"), None)
+                .await
+                .expect("seen");
+            return;
+        }
+        assert!(Instant::now() < deadline, "no approval reached the operator");
+        sleep(POLL_INTERVAL).await;
+    }
+}
+
 async fn host_with_client(name: &str, seat: SeatKind) -> (TestHost, SignedClient, String) {
     let host = TestHost::start_with_seat(name, TTL, seat).await;
     let (client, paired) = host.pair("Desktop uac").await;
@@ -175,6 +196,8 @@ async fn a_hook_that_nobody_answers_denies_and_the_action_never_runs() {
         )
         .await
         .expect("send");
+    // The inbox shows the card: its one-second TTL starts there, and nobody decides it.
+    show_first_pending(&client).await;
 
     // The hook waits, gives up and answers 2: the approval expires and is
     // never consumed, which is what "the action did not run" means here.
@@ -227,6 +250,7 @@ async fn an_approval_that_expires_at_the_operator_exits_the_hook_with_two() {
         )
         .await
         .expect("send");
+    show_first_pending(&client).await;
 
     let deadline = Instant::now() + CLI_TIMEOUT;
     loop {

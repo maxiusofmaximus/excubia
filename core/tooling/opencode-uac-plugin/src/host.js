@@ -108,7 +108,10 @@ function decisionOf(state) {
 
 /**
  * Crea la aprobación, espera la decisión y la consume antes de dejar ejecutar.
- * Cualquier error, respuesta rara o timeout termina en UacDenied (fail closed).
+ * La espera dura mientras la tarjeta esté pendiente: el TTL empieza cuando una
+ * UI autorizada la muestra (reloj del host), así que este proceso no lo cuenta.
+ * Lo detiene el hosting, no un plazo propio. Cualquier error o respuesta rara
+ * termina en UacDenied (fail closed).
  */
 export async function requestApproval({
   descriptor,
@@ -128,30 +131,27 @@ export async function requestApproval({
     accept: "application/json",
     "x-excubia-hook-token": config.token,
   };
-  const deadline = now() + config.ttlSeconds * 1000;
+  // No local deadline: each request is bounded by REQUEST_TIMEOUT_MS only, and the
+  // wait ends when the host answers with a decision (or stops the hook).
+  const unbounded = Number.POSITIVE_INFINITY;
   const created = await callJson(
     fetchImpl,
     `${config.base}/v1/chat/approvals`,
     { method: "POST", headers, body: JSON.stringify(createBody({ descriptor, digest, event, cwd, config })) },
-    deadline,
+    unbounded,
     now,
     [200, 201],
   );
   const approvalId = typeof created?.approval_id === "string" ? created.approval_id : "";
   if (!approvalId) throw new UacDenied("el host no devolvió approval_id; se deniega", "approval_host_error");
 
-  const serverDeadline = Date.parse(String(created.expires_at ?? ""));
-  const effectiveDeadline = Number.isFinite(serverDeadline) ? Math.min(deadline, serverDeadline) : deadline;
-
-  while (now() < effectiveDeadline) {
+  for (;;) {
     await sleep(config.pollMs);
-    // No lanzar un GET que no quepa en el presupuesto: sería un falso "host caído".
-    if (effectiveDeadline - now() <= config.pollMs) break;
     const state = await callJson(
       fetchImpl,
       `${config.base}/v1/chat/approvals/${encodeURIComponent(approvalId)}`,
       { method: "GET", headers: { accept: "application/json", "x-excubia-hook-token": config.token } },
-      effectiveDeadline,
+      unbounded,
       now,
       [200],
     );
@@ -162,7 +162,7 @@ export async function requestApproval({
         fetchImpl,
         `${config.base}/v1/chat/approvals/${encodeURIComponent(approvalId)}/consume`,
         { method: "POST", headers, body: "{}" },
-        effectiveDeadline,
+        unbounded,
         now,
         [200, 204],
       );
@@ -173,5 +173,4 @@ export async function requestApproval({
     if (decision === "consumed") throw new UacDenied("aprobación ya consumida", "approval_already_decided");
     throw new UacDenied("estado de aprobación desconocido; se deniega", "approval_host_error");
   }
-  throw new UacDenied(`aprobación expirada tras ${config.ttlSeconds} s (TTL)`, "approval_expired");
 }

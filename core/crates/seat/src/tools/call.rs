@@ -17,6 +17,8 @@ pub enum ToolCall {
     },
     AskUser(String),
     Progress(String),
+    /// `github.link`: ask the operator to link GitHub for this profile. No arguments.
+    GithubLink,
     ProjectCreate(ProjectCreate),
     AgentSpawn(AgentSpawn),
     DelegationAssign(DelegationAssign),
@@ -71,6 +73,9 @@ pub struct DelegationAssign {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlanPropose {
     pub steps: Vec<PlanStep>,
+    /// The plan runs as soon as the operator approves it. Off unless the agent says so:
+    /// a plan for a schedule or a recipe is approved and started by its own path.
+    pub run_on_approval: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

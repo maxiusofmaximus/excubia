@@ -108,6 +108,10 @@ pub fn parse(request: &ToolRequest) -> Result<ToolCall, ToolError> {
         }
         "plan.propose" => plan::propose(request),
         "plan.status" => plan::status(request),
+        "github.link" => {
+            no_arguments(request)?;
+            Ok(ToolCall::GithubLink)
+        }
         "delegation.complete" => {
             let args: DelegationCompleteArgs = serde_json::from_value(request.arguments.clone())
                 .map_err(|error| invalid_arguments("delegation_id", error))?;

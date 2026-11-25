@@ -49,7 +49,7 @@ struct Basis {
 /// The read side of a creation: the request is already here, or it may be
 /// placed on this basis.
 enum Admission {
-    /// The same seat asks again for an action it still waits on.
+    /// The same seat asks again, in the same task, for an action it still waits on.
     Existing(String),
     Open(Basis),
 }
@@ -127,6 +127,13 @@ impl super::ChatStore {
     pub fn create_delete_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
         self.expire_now()?;
         self.create_placed(new, Some(Category::DeleteUserData), None)
+    }
+
+    /// Create the question for linking a GitHub account (GITHUB-INTEGRACION). Forced to
+    /// `Credentials`, which no rule reaches: only the operator's device decides it.
+    pub fn create_github_link_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
+        self.expire_now()?;
+        self.create_placed(new, Some(Category::Credentials), None)
     }
 
     /// Create the question for sending one mail (MAIL2A). Forced to `MailSend`,
@@ -224,6 +231,7 @@ impl super::ChatStore {
         self.admit(&connection, new, reach)
     }
 
+
     /// What a creation depends on, read from `connection`. A digest held by the
     /// same seat's pending approval answers with that approval; a digest held by
     /// anyone else, or a full conversation, is refused.
@@ -236,10 +244,16 @@ impl super::ChatStore {
         let context = resolve_context(connection, new)?;
         let seat = seat_of(&context, new);
         if let Some(holder) = digest_holder(connection, &new.action_digest)? {
+            // Shared only inside the same task scope: the row's delegation is its
+            // permission context and its audit, so another task's row is never reused.
+            // A row of a finished task (its CLI may still run) is refused, not moved.
             if holder.status == ApprovalStatus::Pending.as_str()
                 && holder.seat_id.as_deref() == seat.as_deref()
             {
-                return Ok(Admission::Existing(holder.id));
+                if holder.delegation_id == context.delegation_id {
+                    return Ok(Admission::Existing(holder.id));
+                }
+                return Err(ChatError::ApprovalDigestReused);
             }
             return Err(ChatError::ApprovalDigestReused);
         }
@@ -306,8 +320,9 @@ impl super::ChatStore {
         } else {
             max_ttl_seconds(reach)
         };
-        let ttl_ms = i64::from(new.ttl_seconds.clamp(1, max_ttl)) * 1000;
-        let expires_ms = now_ms + ttl_ms;
+        let ttl_seconds = i64::from(new.ttl_seconds.clamp(1, max_ttl));
+        // Provisional until a UI shows the card: the TTL runs from `shown_at` (v29).
+        let expires_ms = now_ms + ttl_seconds * 1000;
         approval_settle::route(
             &transaction,
             &mut placement,
@@ -325,6 +340,7 @@ impl super::ChatStore {
             &placement,
             (&iso(expires_ms), &now),
             headline,
+            ttl_seconds,
         )?;
         if let Some(rule) = &placement.rule {
             let decider = Decider {
@@ -395,6 +411,7 @@ fn insert_approval(
     placement: &Placement,
     (deadline, now): (&str, &str),
     headline: Option<&str>,
+    ttl_seconds: i64,
 ) -> Result<(), ChatError> {
     let paths = serde_json::to_string(&new.paths).map_err(ChatError::from)?;
     let payload = new.payload_redacted.as_ref().map(|value| value.to_string());
@@ -410,9 +427,9 @@ fn insert_approval(
              pane_id, kind, tool, summary, cwd, paths_json, risk, action_digest,
              payload_redacted, status, scope, expires_at, decided_at, decider_kind,
              decider_id, level, escalated_from, reason, level_expires_at, risk_score,
-             scorer_version, created_at, updated_at, headline)
+             scorer_version, created_at, updated_at, headline, ttl_seconds)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-                 'once', ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?28, ?29)",
+                 'once', ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?28, ?29, ?30)",
         params![
             approval_id,
             company_id(transaction)?,
@@ -442,7 +459,8 @@ fn insert_approval(
             risk_score,
             scorer_version,
             now,
-            headline
+            headline,
+            ttl_seconds
         ],
     )?;
     Ok(())

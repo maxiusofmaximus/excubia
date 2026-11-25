@@ -130,6 +130,10 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         ("POST", "/v1/mail/login/start") => Ok(rule(Permission::Admin, Budget::Write)),
         ("GET", "/v1/mail/login/status") => Ok(rule(Permission::Admin, Budget::Read)),
         ("GET", "/v1/mail/accounts") => Ok(rule(Permission::Admin, Budget::Read)),
+        // The GitHub link card reads its state (with the code, only while shown) and cancels it:
+        // the operator's device only, like the approval it belongs to.
+        ("GET", "/v1/github/link") => Ok(rule(Permission::Approve, Budget::Read)),
+        ("POST", "/v1/github/link/cancel") => Ok(rule(Permission::Approve, Budget::Write)),
         // Starting a conversation launches an agent on the host.
         ("POST", "/v1/workspaces") => Ok(rule(Permission::Respond, Budget::Write)),
         // A voice note is a message in other form: the same permission, the same budget.
@@ -262,6 +266,11 @@ fn chat_rule(method: &str, segments: &[&str]) -> Option<EndpointRule> {
         // `APPROVE` grant is spent.
         (["", "v1", "chat", "approvals"], "GET") => rule(Permission::ReadState, Budget::Read),
         (["", "v1", "chat", "approvals", _id, "decision"], "POST") => {
+            rule(Permission::Approve, Budget::Write)
+        }
+        // Only the operator's device that can decide starts the TTL of a card by
+        // showing it: a read-only client cannot start the clock.
+        (["", "v1", "chat", "approvals", _id, "seen"], "POST") => {
             rule(Permission::Approve, Budget::Write)
         }
         // The approval mode is the operator's: reading it is `READ_STATE`, and

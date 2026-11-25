@@ -63,6 +63,23 @@ pub async fn list(
     }
 }
 
+/// `POST /v1/chat/approvals/{id}/seen` (signed, `APPROVE`): an operator's UI
+/// showed the card. The first showing starts its TTL, once; a later one, from
+/// this device or another, changes nothing, and a card no longer pending answers
+/// as it is.
+pub async fn seen(
+    State(ctx): State<ApiContext>,
+    Extension(verified): Extension<VerifiedDevice>,
+    Path(approval_id): Path<String>,
+) -> Response {
+    match ctx.chat.show_approval(&approval_id) {
+        Ok(approval) => {
+            support::ok_object(json!({ "approval": approval.view(reader_of(&verified)) }))
+        }
+        Err(error) => support::map_error(error).into_response(),
+    }
+}
+
 /// `POST /v1/chat/approvals/{id}/decision` (signed, `APPROVE`): the
 /// operator's answer. The same `client_id` always gets the same answer. `exclude`
 /// leaves out messages of a mail batch.

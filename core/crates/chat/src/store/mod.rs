@@ -19,6 +19,12 @@ mod approval_timeline;
 #[cfg(test)]
 #[path = "approval_waits_tests.rs"]
 mod approval_waits_tests;
+#[cfg(test)]
+#[path = "delegation_scope_tests.rs"]
+mod delegation_scope_tests;
+#[cfg(test)]
+#[path = "approval_clock_tests.rs"]
+mod approval_clock_tests;
 mod approvals;
 mod attachments;
 mod bootstrap;

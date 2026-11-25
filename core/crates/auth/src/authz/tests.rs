@@ -156,11 +156,27 @@ fn the_approval_matrix_separates_the_inbox_from_the_decision() {
     let decision = classify("POST", "/v1/chat/approvals/apr_1/decision").expect("decision");
     assert_eq!(decision.permission, Some(Permission::Approve));
     assert_eq!(decision.budget, Budget::Write);
+    // Showing a card starts its TTL, so only the device that can decide does it.
+    let seen = classify("POST", "/v1/chat/approvals/apr_1/seen").expect("seen");
+    assert_eq!(seen.permission, Some(Permission::Approve));
     // The hook routes are not device routes: they carry no rule and fail
     // closed for a signed client.
     assert!(classify("POST", "/v1/chat/approvals").is_err());
     assert!(classify("GET", "/v1/chat/approvals/apr_1").is_err());
     assert!(classify("POST", "/v1/chat/approvals/apr_1/consume").is_err());
+}
+
+/// The GitHub card reads and cancels its link on the operator's device only: an agent's
+/// hook and an admin read-only device get nothing here.
+#[test]
+fn the_github_link_card_is_an_approve_surface() {
+    let state = classify("GET", "/v1/github/link").expect("state");
+    assert_eq!(state.permission, Some(Permission::Approve));
+    assert_eq!(state.budget, Budget::Read);
+    let cancel = classify("POST", "/v1/github/link/cancel").expect("cancel");
+    assert_eq!(cancel.permission, Some(Permission::Approve));
+    assert_eq!(cancel.budget, Budget::Write);
+    assert!(classify("POST", "/v1/github/link").is_err());
 }
 
 #[test]

@@ -14,6 +14,7 @@ pub const USAGE: &str = "excubia-host [--port N] [--bind ADDR] [--rows R] [--col
        excubia-host hook-token [--seat AGENT_ID] [--data-dir DIR]\n\
        excubia-host claude-settings --hook <excubia-uac-hook binary> [--out FILE]\n\
        excubia-host strata start | stop | status | enable-agent [--data-dir DIR]\n\
+       excubia-host toolchain status | install [--data-dir DIR]\n\
        excubia-host alfred local | use local|claude | status [--data-dir DIR]\n\
        excubia-host audit tail [--n N, default 50] [--data-dir DIR]\n\
        excubia-host vault status [--data-dir DIR]\n\

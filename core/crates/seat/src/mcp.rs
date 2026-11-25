@@ -21,6 +21,18 @@ const PROTOCOL_VERSION: &str = "2024-11-05";
 /// decision slack. Shorter, and an approval given after the cut is recorded but
 /// never applied.
 const CALL_TIMEOUT: Duration = Duration::from_secs(330);
+/// `github.link` waits for the operator's card (120 s), for the installer when the tools are
+/// missing (one download, up to 900 s) and for GitHub's device code (15 min). Shorter, and the
+/// host finishes the link after the seat already gave up on the answer.
+const LINK_CALL_TIMEOUT: Duration = Duration::from_secs(2_100);
+
+fn call_timeout(tool: &str) -> Duration {
+    if tool == "github.link" {
+        LINK_CALL_TIMEOUT
+    } else {
+        CALL_TIMEOUT
+    }
+}
 
 pub async fn run_stdio() -> Result<(), String> {
     let url = env::var_or_legacy("EXCUBIA_TOOL_URL", "HN_TOOL_URL").ok_or_else(|| {
@@ -170,7 +182,7 @@ pub(crate) async fn post_tool(
             ("X-Excubia-Tool-Token", token),
         ],
         &body,
-        CALL_TIMEOUT,
+        call_timeout(&request.tool),
     )
     .await
     .map_err(|error| transport_error(&error))?;
@@ -284,6 +296,14 @@ fn transport_error(message: &str) -> ToolError {
 mod tests {
     use super::*;
     use tokio::io::AsyncReadExt;
+
+    #[test]
+    fn github_link_waits_for_the_device_code_and_other_tools_keep_the_short_limit() {
+        assert_eq!(call_timeout("github.link"), Duration::from_secs(2_100));
+        assert!(call_timeout("github.link") >= Duration::from_secs(120 + 900 + 900));
+        assert_eq!(call_timeout("chat.reply"), Duration::from_secs(330));
+        assert_eq!(call_timeout("approval.request"), Duration::from_secs(330));
+    }
 
     #[test]
     fn endpoint_parser_rejects_non_http() {

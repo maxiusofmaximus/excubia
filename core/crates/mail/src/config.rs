@@ -14,6 +14,10 @@ use crate::redact::Redacted;
 /// Environment variable that supplies `client_id` when the file does not.
 pub const CLIENT_ID_ENV: &str = "EXCUBIA_MAIL_CLIENT_ID";
 
+/// The public application registration of the Microsoft device-code flow (no secret), used
+/// when neither `mail.toml` nor the environment names a client. An operator's value always wins.
+pub const PUBLIC_CLIENT_ID: &str = "fed6c50b-ecd4-43c4-8ff1-7162afda228a";
+
 /// Attachment ceiling by default (MAIL1B policy, shared with the local path
 /// policy): 25 MiB.
 pub const DEFAULT_MAX_ATTACHMENT_BYTES: u64 = 25 * 1024 * 1024;
@@ -69,7 +73,7 @@ impl MailConfig {
             .or_else(|| env_client_id.map(str::to_owned))
             .map(|value| value.trim().to_owned())
             .filter(|value| !value.is_empty())
-            .ok_or(MailError::NotConfigured)?;
+            .unwrap_or_else(|| PUBLIC_CLIENT_ID.to_owned());
 
         let max_attachment_bytes = mail
             .max_attachment_bytes

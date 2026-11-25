@@ -210,6 +210,16 @@ async fn an_approval_that_expires_unanswered_is_audited_once_without_a_query() {
     host.chat.set_clock(clock.clone());
     let service = host.service(Duration::from_millis(50), 10);
     ask(&service).await;
+    // Only a shown card starts its TTL: the inbox shows it, then nobody answers.
+    let pending = host
+        .chat
+        .approvals(&excubia_chat::ApprovalFilter {
+            status: Some(excubia_chat::ApprovalStatus::Pending),
+            conversation_id: None,
+            limit: 10,
+        })
+        .expect("pending");
+    host.chat.show_approval(&pending[0].id).expect("shown");
 
     clock.advance_secs(86_400);
     service.watch();

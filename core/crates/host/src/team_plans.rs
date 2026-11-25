@@ -2,7 +2,9 @@
 //! operator's answer. The store checks the steps; this file keeps every call to
 //! the conversation of the seat that asks.
 
-use excubia_chat::{NewPlan, Plan, PlanStep, SeatActor, ToolError, ToolReply};
+use excubia_chat::{
+    ChatSeat, NewPlan, Plan, PlanStep, SeatActor, SeatError, ToolError, ToolReply,
+};
 use serde_json::json;
 
 use super::team::TeamService;
@@ -13,6 +15,7 @@ impl TeamService {
         &self,
         actor: &SeatActor,
         steps: Vec<PlanStep>,
+        run_on_approval: bool,
     ) -> Result<ToolReply, ToolError> {
         if !matches!(actor.role_id.as_str(), "alfred" | "lead") {
             return Err(ToolError::invalid(
@@ -23,13 +26,32 @@ impl TeamService {
         }
         let plan = self
             .chat
-            .propose_plan(NewPlan {
-                conversation_id: actor.conversation_id.clone(),
-                proposer_agent_id: actor.agent_id.clone(),
-                steps,
-            })
+            .propose_plan_with(
+                NewPlan {
+                    conversation_id: actor.conversation_id.clone(),
+                    proposer_agent_id: actor.agent_id.clone(),
+                    steps,
+                },
+                run_on_approval,
+            )
             .map_err(tool_chat_error)?;
         Ok(reply(&plan))
+    }
+
+    /// Hand one approved plan to Alfred. The hand-over is persisted before it is queued, so
+    /// a refused turn is released back to pending and the answer that follows retries it.
+    /// Nothing is reported as started unless the seat queued the turn.
+    pub(super) fn resume_approved_plan(&self, plan_id: &str) -> Result<(), SeatError> {
+        let turn = match self.chat.claim_plan_resume(plan_id) {
+            Ok(Some(turn)) => turn,
+            Ok(None) => return Ok(()),
+            Err(error) => return Err(SeatError::unavailable(error.to_string())),
+        };
+        if let Err(error) = self.alfred.try_enqueue(turn) {
+            let _ = self.chat.release_plan_resume(plan_id);
+            return Err(error);
+        }
+        Ok(())
     }
 
     pub(super) fn read_plan(

@@ -29,12 +29,16 @@ import {
   riskBadge,
   riskNote,
   seatName,
+  countdownStarted,
+  seenState,
   settledLine,
   shortDigest,
   statusMeta,
 } from "./approval-model.js";
 import { moveBatch } from "./approval-move.js";
 import { digestRows } from "./mail-model.js";
+import { githubSection } from "./github-link-card.js";
+import { githubExplanation, githubMissing, isGithubLinkTool } from "./github-link-model.js";
 
 // Each card remembers its approval and its context so a decision can redraw it
 // in place.
@@ -112,6 +116,7 @@ function forbiddenNote() {
 // A request for a plain action: the sentence, one primary button, and the rest
 // one click away. What the operator does not need to decide sits under «Detalles».
 export function renderApprovalCard(entry, now = Date.now(), context = "") {
+  if (isGithubLinkTool(entry)) return renderGithubCard(entry, now, context);
   return isMailOrAgendaTool(entry) ? renderMailCard(entry, now, context) : renderPlainCard(entry, now);
 }
 
@@ -159,6 +164,7 @@ function renderPlainCard(entry, now) {
   const meta = statusMeta(status, entry);
   const card = element("article", `approval-card plain tone-${meta.tone}`);
   card.dataset.approval = id;
+  card.dataset.seen = seenState(entry);
   card.dataset.stamp = t("approval.stamp");
   cardEntries.set(card, { entry, context: "" });
 
@@ -181,7 +187,7 @@ function renderPlainCard(entry, now) {
   if (risk) card.append(element("p", "approval-note", risk));
 
   const ttl = element("span", "approval-ttl", isChecking(entry, now) ? CHECKING_TEXT : "");
-  ttl.dataset.expires = entry.expires_at || "";
+  ttl.dataset.expires = countdownStarted(entry) ? entry.expires_at || "" : "";
   card.append(plainActions(entry, !mine.busy && !isChecking(entry, now), ttl));
   if (mine.forbidden) card.append(forbiddenNote());
   const details = plainDetails(entry);
@@ -199,6 +205,7 @@ function renderMailCard(entry, now = Date.now(), context = "") {
   const meta = statusMeta(status, entry);
   const card = element("article", `approval-card tone-${meta.tone}`);
   card.dataset.approval = id;
+  card.dataset.seen = seenState(entry);
   card.dataset.stamp = t("approval.stamp");
   cardEntries.set(card, { entry, context });
 
@@ -237,7 +244,7 @@ function renderMailCard(entry, now = Date.now(), context = "") {
   if (status === "pending") {
     const checking = isChecking(entry, now);
     const ttl = element("span", "approval-ttl", checking ? CHECKING_TEXT : "");
-    ttl.dataset.expires = entry.expires_at || "";
+    ttl.dataset.expires = countdownStarted(entry) ? entry.expires_at || "" : "";
     footer.append(ttl);
   }
   card.append(footer);
@@ -247,6 +254,57 @@ function renderMailCard(entry, now = Date.now(), context = "") {
   else if (status === "expired") card.append(element("p", "approval-result", t("approval.expired")));
   else card.append(element("p", "approval-result", resultText(status, entry)));
 
+  return card;
+}
+
+// «Enlazar GitHub»: the question says what the link does; the progress, the one-time code and the
+// result take the card's middle, so the whole flow stays on this card.
+function renderGithubCard(entry, now = Date.now(), context = "") {
+  const id = entry.id;
+  const mine = localFor(id);
+  const status = resolvedStatus(entry, mine);
+  const meta = statusMeta(status, entry);
+  const card = element("article", `approval-card github-card tone-${meta.tone}`);
+  card.dataset.approval = id;
+  card.dataset.seen = seenState(entry);
+  card.dataset.stamp = t("approval.stamp");
+  cardEntries.set(card, { entry, context });
+
+  const head = element("div", "approval-head");
+  const titleWrap = element("div", "approval-title-wrap");
+  titleWrap.append(element("p", "approval-kicker", t("github.kicker")), element("h3", "approval-title", t("github.title")));
+  head.append(titleWrap, chip(meta.label, `status tone-${meta.tone}`));
+  card.append(head);
+
+  if (context) card.append(element("p", "approval-where", context));
+  // The question and the explanation are the desktop's words in the operator's language; the host's
+  // summary is not shown on this card.
+  card.append(element("p", "approval-question", t("github.question")));
+  card.append(element("p", "github-explain", githubExplanation(githubMissing(entry), t)));
+  card.append(githubSection(entry, status));
+
+  const footer = element("div", "approval-footer");
+  const digest = element("code", "approval-digest", shortDigest(entry.action_digest));
+  digest.setAttribute("aria-label", t("approval.digest_label"));
+  footer.append(digest);
+  if (status === "pending") {
+    const checking = isChecking(entry, now);
+    const ttl = element("span", "approval-ttl", checking ? CHECKING_TEXT : "");
+    ttl.dataset.expires = countdownStarted(entry) ? entry.expires_at || "" : "";
+    footer.append(ttl);
+  }
+  card.append(footer);
+
+  if (mine.forbidden) card.append(forbiddenNote());
+  if (status === "pending") {
+    const disabled = isChecking(entry, now);
+    const row = element("div", "approval-actions");
+    row.append(
+      actionButton(t("github.allow"), "approve", id, "btn primary approval-btn", disabled),
+      actionButton(t("github.later"), "deny", id, "btn ghost approval-btn", disabled),
+    );
+    card.append(row);
+  }
   return card;
 }
 

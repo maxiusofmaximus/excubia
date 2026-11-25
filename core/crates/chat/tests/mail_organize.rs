@@ -135,6 +135,7 @@ fn an_expired_batch_can_be_asked_again() {
         .store
         .create_mail_organize_approval(batch(&team, "Limpieza", 1800))
         .expect("the batch is filed");
+    team.store.show_approval(&first.id).expect("shown");
 
     clock.advance_secs(1801);
     let again = team

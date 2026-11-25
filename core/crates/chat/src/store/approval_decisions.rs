@@ -185,6 +185,18 @@ impl super::ChatStore {
         let transaction = connection.transaction()?;
         let now = self.now_text();
         let approval = approval_by_id(&transaction, approval_id)?;
+        if let Burn::Hook(_) = who {
+            let task: Option<String> = transaction.query_row(
+                "SELECT delegation_id FROM approval WHERE id = ?1",
+                [approval_id],
+                |row| row.get(0),
+            )?;
+            if let Some(task) = task {
+                if !super::approval_rules::delegation_is_open(&transaction, &task)? {
+                    return Err(ChatError::ApprovalExpired);
+                }
+            }
+        }
         if let Burn::Hook(scope) = who {
             if !scope.covers(&approval) {
                 return Err(ChatError::HookScopeMismatch);

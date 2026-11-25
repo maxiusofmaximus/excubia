@@ -54,3 +54,28 @@ pub fn migrate_to_24(connection: &mut Connection) -> Result<(), ChatError> {
     transaction.commit()?;
     Ok(())
 }
+
+/// The resumption of a plan the agent asked to run on approval (`run_on_approval`).
+/// One row per plan, so a repeated answer can never resume it twice. States:
+/// `armed` (proposed, waiting), `pending` (approved, not yet handed to Alfred),
+/// `queued` (its turn is in Alfred's queue, `run_id` names it), `skipped` (refused,
+/// archived, or already linked to a delegation).
+pub const PLAN_RESUME_SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS plan_resume (
+    plan_id         TEXT PRIMARY KEY REFERENCES plan(id) ON DELETE CASCADE,
+    conversation_id TEXT NOT NULL REFERENCES conversation(id) ON DELETE CASCADE,
+    state           TEXT NOT NULL,
+    run_id          TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS plan_resume_state ON plan_resume(state);
+"#;
+
+pub fn migrate_to_30(connection: &mut Connection) -> Result<(), ChatError> {
+    let transaction = connection.transaction()?;
+    transaction.execute_batch(PLAN_RESUME_SCHEMA)?;
+    transaction.pragma_update(None, "user_version", 30)?;
+    transaction.commit()?;
+    Ok(())
+}

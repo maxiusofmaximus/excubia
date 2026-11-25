@@ -24,6 +24,7 @@ mod pairing;
 mod parse;
 mod run;
 mod strata;
+mod toolchain;
 mod types;
 mod usage;
 mod vault;
@@ -38,6 +39,6 @@ mod tests_vault;
 pub use parse::parse;
 pub use types::{
     AlfredCommand, Command, DevicesCommand, PairingPolicyCommand, RunOptions, StrataCommand,
-    TlsCommand, VaultCommand, DEFAULT_PORT,
+    TlsCommand, ToolchainCommand, VaultCommand, DEFAULT_PORT,
 };
 pub use usage::{BIN, GRANT_HINT, USAGE};

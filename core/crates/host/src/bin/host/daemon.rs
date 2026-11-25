@@ -79,6 +79,13 @@ async fn proven_plugin_dir(
 
 pub(super) async fn run(options: RunOptions) -> Result<()> {
     paths::ensure_data_dir(&options.data_dir)?;
+    // The fixed toolchain folders go on PATH before any agent starts; nothing is installed here.
+    // A failure is a warning: the host still starts, without the managed Git/gh profile.
+    if let Err(error) = excubia_toolchain::Layout::new(&options.data_dir)
+        .apply_to_process(&excubia_toolchain::pinned())
+    {
+        eprintln!("host: no se pudo preparar el perfil de Git/GitHub CLI: {error}");
+    }
     // Before any database or key is opened. A failure is a warning: the host still starts.
     match acl::restrict_dir_to_owner(&options.data_dir) {
         Ok(true) => println!(

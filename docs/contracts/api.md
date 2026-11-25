@@ -1938,6 +1938,8 @@ Un plan es el encargo entero que un agente propone antes del primer paso: 1 a 20
 
 Agente (MCP): `plan.propose {steps}` (lead o Alfred) y `plan.status {plan_id}`; `delegation.assign` acepta `steps` y `plan_id`. Con `plan_id` mandan los pasos del plan y `steps` se ignora.
 
+`plan.propose` acepta `run_on_approval` (opcional, `false` por defecto). Con `true` el plan es un trabajo que debe empezar ya: al aprobarlo (`POST /v1/plans/{id}/approve`) el host entrega el plan a Alfred una sola vez, como turno de sistema sin mensaje del operador, y Alfred lo asigna al líder del proyecto. Una segunda aprobación no añade nada. Rechazado, con cambios pedidos, archivado o ya vinculado a una delegación, no arranca. Los planes de recetas y programaciones no lo usan.
+
 Timeline: cada plan deja una línea `kind: "plan"` al proponerse y otra al responderse, con `seq` propio (`ref_id` = id del plan, `status`, `summary`, `decider_kind`). Un cliente que no conozca el tipo la dibuja como línea neutra. Requiere el esquema 24.
 
 Errores: `404 not_found`/`no_such_plan`; `400 invalid_body` (título largo, 0 o 21 pasos, HTML o marcas de código); `409 plan_decided` (ya respondido, es final); `409 plan_not_approved` (`plan_required`, `plan_linked` en MCP).

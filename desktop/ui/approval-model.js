@@ -62,10 +62,6 @@ export function isPolicyLine(entry) {
 }
 
 // The inbox strip lists the open conversation's requests and those with no conversation.
-export function stripBelongs(entry, conversationId) {
-  return !entry.conversation_id || entry.conversation_id === conversationId;
-}
-
 // A request the operator still has to answer: not decided here, and the host says pending.
 export function isPendingHere(entry) {
   return !localFor(entry.id).decided && (entry.status || "pending") === "pending";
@@ -316,7 +312,77 @@ export function supersededIndexes(entries, cardIds = new Set()) {
 export const CHECKING_TEXT = t("approval.checking");
 
 export function isChecking(entry, now = Date.now()) {
-  return (entry.status || "pending") === "pending" && remainingSeconds(entry.expires_at, now) === 0;
+  return (entry.status || "pending") === "pending" && countdownStarted(entry) && remainingSeconds(entry.expires_at, now) === 0;
+}
+
+// The TTL starts at the host's first showing (`shown_at`). Before it the card shows no
+// countdown: the expiry the host sends then is only provisional.
+export function countdownStarted(entry) {
+  return Boolean(entry && entry.shown_at);
+}
+
+// `wait` for an operator-level card nobody has shown yet, `shown` once the host has it,
+// and empty for the rest (the policy's and an agent's levels never start the TTL).
+export function seenState(entry) {
+  if ((entry.status || "pending") !== "pending") return "";
+  if (countdownStarted(entry)) return "shown";
+  return isOperatorLevel(entry) ? "wait" : "";
+}
+
+// A showing: a strip of the card (48 px, or the whole card when shorter) is in view and
+// the window is visible. A tall card is seen without its full height on screen; a hidden
+// tab, a card scrolled away, or a collapsed one (height 0) is not.
+export const SHOWING_STRIP_PX = 48;
+export function isShowing({ intersecting, visibleHeight, cardHeight, visibility }) {
+  if (!intersecting || !(cardHeight > 0) || visibility !== "visible") return false;
+  return visibleHeight >= Math.min(cardHeight, SHOWING_STRIP_PX);
+}
+
+// The observer fires each time the card's visible ratio crosses one of these steps (0.5% of the
+// card), so a card that enters as a sliver and grows into its strip is evaluated again there.
+export const SHOWING_STEPS = 200;
+export const SHOWING_THRESHOLDS = Array.from({ length: SHOWING_STEPS + 1 }, (_, step) => step / SHOWING_STEPS);
+
+// The approval ids of the observer entries that are a showing. Each entry's target is its card.
+export function showingApprovalIds(entries, visibility) {
+  return entries
+    .filter((entry) =>
+      isShowing({
+        intersecting: entry.isIntersecting,
+        visibleHeight: entry.intersectionRect.height,
+        cardHeight: entry.boundingClientRect.height,
+        visibility,
+      }),
+    )
+    .map((entry) => entry.target.dataset.approval)
+    .filter(Boolean);
+}
+
+// Reports each showing card, one request at a time. A card is released (no longer observed) only
+// when the host confirms it, and a confirmed id is never reported again. A failed report keeps it
+// observed, so its next exposure reports it again.
+export function createShownReporter({ report, confirm, release }) {
+  const inFlight = new Set();
+  const confirmed = new Set();
+  return {
+    async handle(ids) {
+      for (const id of new Set(ids)) {
+        if (inFlight.has(id) || confirmed.has(id)) continue;
+        inFlight.add(id);
+        let record = null;
+        try {
+          record = await report(id);
+        } catch {
+          record = null;
+        }
+        inFlight.delete(id);
+        if (!record) continue;
+        confirmed.add(id);
+        release(id);
+        confirm(id, record);
+      }
+    },
+  };
 }
 
 // «Siempre en esta tarea» needs an agent's seat. A mail request is one send or one batch, never a task.

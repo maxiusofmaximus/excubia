@@ -31,6 +31,7 @@ pub(super) struct ApprovalColumns {
     pub status: String,
     pub scope: String,
     pub expires_at: String,
+    pub shown_at: Option<String>,
     pub decided_by: Option<String>,
     pub decided_at: Option<String>,
     pub created_at: String,
@@ -77,6 +78,7 @@ pub(super) fn approval_row(row: &Row<'_>) -> rusqlite::Result<ApprovalColumns> {
         risk_score: row.get(26)?,
         scorer_version: row.get(27)?,
         headline: row.get(28)?,
+        shown_at: row.get(29)?,
     })
 }
 
@@ -111,6 +113,7 @@ pub(super) fn approval_from_columns(columns: ApprovalColumns) -> Result<Approval
             .ok_or(ChatError::Inconsistent("unknown approval status"))?,
         scope: columns.scope,
         expires_at: columns.expires_at,
+        shown_at: columns.shown_at,
         decided_by: columns.decided_by,
         decided_at: columns.decided_at,
         created_at: columns.created_at,
@@ -266,6 +269,9 @@ pub(super) fn resolve_context(
         });
     }
     if let Some(delegation) = delegation_of_run(connection, &new.run_id)? {
+        if !delegation_is_open(connection, &delegation.1)? {
+            return Err(ChatError::ApprovalScopeDenied);
+        }
         return Ok(ApprovalContext {
             conversation_id: Some(delegation.0),
             delegation_id: Some(delegation.1),
@@ -290,7 +296,39 @@ pub(super) fn resolve_context(
             });
         }
     }
+    // A seat that ran tasks and has none open is a finished task's panel: no task
+    // would close the card, so it is refused. A seat that never ran one is unchanged.
+    if let Some(seat_id) = &new.seat_id {
+        if new.run_id.is_none() && seat_had_task(connection, seat_id)? {
+            return Err(ChatError::ApprovalScopeDenied);
+        }
+    }
     Ok(ApprovalContext::default())
+}
+
+/// Whether a delegation still runs. A finished task closes its cards and refuses
+/// new requests and burns from its hooks.
+pub(super) fn delegation_is_open(connection: &Connection, delegation_id: &str) -> Result<bool, ChatError> {
+    let open: Option<i64> = connection
+        .query_row(
+            "SELECT 1 FROM delegation WHERE id = ?1 AND state IN ('queued', 'running', 'waiting')",
+            [delegation_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(open.is_some())
+}
+
+/// Whether the seat has ever been given a task (none is open at this point).
+fn seat_had_task(connection: &Connection, seat_id: &str) -> Result<bool, ChatError> {
+    let any: Option<i64> = connection
+        .query_row(
+            "SELECT 1 FROM delegation WHERE to_agent_id = ?1 LIMIT 1",
+            [seat_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(any.is_some())
 }
 
 /// `(conversation_id, delegation_id, seat_id)` of the delegation a run owns.
@@ -335,6 +373,7 @@ pub(super) struct DigestHolder {
     pub id: String,
     pub status: String,
     pub seat_id: Option<String>,
+    pub delegation_id: Option<String>,
 }
 
 pub(super) fn digest_holder(
@@ -343,13 +382,14 @@ pub(super) fn digest_holder(
 ) -> Result<Option<DigestHolder>, ChatError> {
     Ok(connection
         .query_row(
-            "SELECT id, status, seat_id FROM approval WHERE action_digest = ?1",
+            "SELECT id, status, seat_id, delegation_id FROM approval WHERE action_digest = ?1",
             [digest],
             |row| {
                 Ok(DigestHolder {
                     id: row.get(0)?,
                     status: row.get(1)?,
                     seat_id: row.get(2)?,
+                    delegation_id: row.get(3)?,
                 })
             },
         )

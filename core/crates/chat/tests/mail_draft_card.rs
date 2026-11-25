@@ -110,6 +110,7 @@ fn an_expired_question_can_be_asked_again() {
         .store
         .create_mail_send_approval(send_question(&team, "Presupuesto"))
         .expect("the question is filed");
+    team.store.show_approval(&first.id).expect("shown");
 
     clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS) + 1);
     let again = team

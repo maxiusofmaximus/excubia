@@ -3,7 +3,10 @@ use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use excubia_chat::{new_ulid, ApprovalWaits, ChatStore, HookScope, RunState, Turn};
+use excubia_chat::{
+    is_wait_frame, new_ulid, until, ActiveBudget, ApprovalWaits, ChatStore, HookScope, RunState,
+    Turn,
+};
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::sync::broadcast::error::RecvError;
@@ -15,7 +18,6 @@ use crate::profile::SelectedProfile;
 use crate::prompt;
 use crate::quota::looks_like_quota_exhausted;
 
-use super::budget::ActiveBudget;
 use super::grant::HookTokenGuard;
 use super::output::{capture, settle, with_output};
 use super::seat::TurnEnv;
@@ -35,8 +37,15 @@ pub(super) async fn run_turn(
         .context(&turn.conversation_id, CONTEXT_MESSAGES, CONTEXT_CHARS)
         .map_err(|error| format!("context_failed: {error}"))?;
     let boundary = format!("EXCUBIA-{}", new_ulid());
-    let merged = (run_ids.len() > 1).then_some(turn.text.as_str());
-    let prompt = prompt::build_turn_prompt(&context, &boundary, merged);
+    // A host turn names no message: its text is the instruction the CLI answers.
+    let current = if run_ids.len() > 1 {
+        prompt::Current::Merged(&turn.text)
+    } else if turn.message_id.is_empty() {
+        prompt::Current::Host(&turn.text)
+    } else {
+        prompt::Current::LastUser
+    };
+    let prompt = prompt::build_turn_prompt(&context, &boundary, current);
     let attachment_dirs = prompt::attachment_dirs(&context);
     let run_dir = worker.seat_dir.join("runs").join(&turn.id);
 
@@ -265,12 +274,6 @@ pub(super) async fn wait_for_turn(
     }
 }
 
-/// The frames that can start, end or move a wait: an approval's transitions and
-/// an archive of its conversation (`chat.approval`, `chat.conversation`).
-fn is_wait_frame(event: &str) -> bool {
-    matches!(event, "chat.approval" | "chat.conversation")
-}
-
 /// The turn's waits as the store reads them, and the monotonic instant their next
 /// change falls due. The instant is fixed at the read (sampled before it, so a
 /// change is never woken late); frames that do not move the wait keep it as it is.
@@ -284,12 +287,4 @@ fn read_waits(
         .map_err(|error| error.to_string())?;
     let change = waits.next_change.map(|left| read_at + left);
     Ok((waits, change))
-}
-
-/// Sleeps until `at` on the monotonic clock; without an instant it never wakes.
-async fn until(at: Option<Instant>) {
-    match at {
-        Some(at) => tokio::time::sleep_until(tokio::time::Instant::from_std(at)).await,
-        None => std::future::pending().await,
-    }
 }

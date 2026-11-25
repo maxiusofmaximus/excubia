@@ -135,6 +135,10 @@ fn check_plan(
     if plan.status != PlanStatus::Approved || plan.conversation_id != conversation_id {
         return Err(ChatError::PlanNotApproved);
     }
+    // A plan the approval starts is never also the plan of a schedule.
+    if super::plans::is_run_plan(connection, plan_id)? {
+        return Err(ChatError::PlanLinked);
+    }
     let held: i64 = connection.query_row(
         "SELECT COUNT(*) FROM schedule
           WHERE plan_id = ?1 AND status != 'done' AND id IS NOT ?2",

@@ -190,3 +190,16 @@ pub fn migrate_to_28(connection: &mut Connection) -> Result<(), crate::error::Ch
     transaction.commit()?;
     Ok(())
 }
+
+/// Version 29: the moment an authorized UI first showed the card (`shown_at`)
+/// and the TTL the request asked for (`ttl_seconds`). The TTL clock starts at
+/// `shown_at`, once. Old rows keep NULL in both: their deadline stays the one
+/// they were written with, so an alpha.3 database reads and settles as before.
+pub fn migrate_to_29(connection: &mut Connection) -> Result<(), crate::error::ChatError> {
+    let transaction = connection.transaction()?;
+    add_column_once(&transaction, "approval", "shown_at", "TEXT")?;
+    add_column_once(&transaction, "approval", "ttl_seconds", "INTEGER")?;
+    transaction.pragma_update(None, "user_version", 29)?;
+    transaction.commit()?;
+    Ok(())
+}

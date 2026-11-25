@@ -1,12 +1,12 @@
 use std::io::Read;
 use std::time::Duration;
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use super::flag;
 use super::mcp::Mcp;
 use super::resident::resident;
-use super::scenario::scenario;
+use super::scenario::{quoted, scenario};
 use super::uac::uac_canary;
 
 pub(super) fn run() -> Result<(), String> {
@@ -119,6 +119,33 @@ pub(super) fn run() -> Result<(), String> {
                 delegation["delegation_id"].as_str().unwrap_or("?")
             );
             mcp.reply("Alfred: proyecto creado y tarea asignada al lead")?;
+        }
+        "plan" => {
+            // Alfred proposes a four-step job that runs once the operator approves it.
+            mcp.call("project.create", json!({ "name": "Demo" }))?;
+            let steps: Vec<Value> = (1..=4)
+                .map(|index| json!({ "title": format!("Paso {index}"), "touches": ["files"] }))
+                .collect();
+            mcp.call(
+                "plan.propose",
+                json!({ "steps": steps, "run_on_approval": true }),
+            )?;
+            mcp.reply("Alfred: plan propuesto para tu visto bueno")?;
+        }
+        "resume" => {
+            // The approved plan reaches Alfred as a system text: it hands the plan's
+            // delegation to the seat the text names, with the plan's id.
+            let plan_id = quoted(&prompt, "plan_id \"").ok_or("the resume names no plan")?;
+            let lead = quoted(&prompt, "to_agent_id \"").ok_or("the resume names no lead")?;
+            let delegation = mcp.call(
+                "delegation.assign",
+                json!({ "to_agent_id": lead, "task": "Implementa el plan aprobado", "plan_id": plan_id }),
+            )?;
+            eprintln!(
+                "fake-cli: plan delegation {} encolada",
+                delegation["delegation_id"].as_str().unwrap_or("?")
+            );
+            mcp.reply("Alfred: encargo del plan enviado al líder")?;
         }
         "env" => {
             // The variables this turn's CLI sees, by name only. The file is written whole,

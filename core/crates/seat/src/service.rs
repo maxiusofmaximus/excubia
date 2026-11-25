@@ -7,7 +7,6 @@
 //! per turn, passes the prompt on stdin and never reads stdout: the only valid
 //! answer arrives through `chat.reply`.
 
-mod budget;
 mod grant;
 mod output;
 mod queue;

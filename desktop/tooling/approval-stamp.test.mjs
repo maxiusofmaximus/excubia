@@ -20,8 +20,9 @@ test("the CSS reads the stamp from the card attribute, with no literal text", ()
   assert.match(css, /content:\s*attr\(data-stamp\);/);
 });
 
-test("both card variants set the stamp from i18n", () => {
+// The plain, mail/agenda and GitHub variants of the approval card all set the stamp from i18n.
+test("every card variant sets the stamp from i18n", () => {
   const js = read("../ui/approval-card.js");
   const matches = js.match(/card\.dataset\.stamp = t\("approval\.stamp"\);/g) || [];
-  assert.equal(matches.length, 2);
+  assert.equal(matches.length, 3);
 });

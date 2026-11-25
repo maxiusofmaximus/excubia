@@ -107,6 +107,7 @@ mod tests {
             created_at: "2026-10-22T09:58:00.000Z".to_string(),
             updated_at: "2026-10-22T09:58:00.000Z".to_string(),
             payload_redacted: None,
+            shown_at: None,
             audit: Vec::new(),
         }
     }

@@ -13,6 +13,7 @@ mod contacts;
 mod devices;
 mod doc_tools;
 mod events;
+mod github;
 mod hires;
 mod hooks;
 mod mail;
@@ -49,6 +50,7 @@ pub use chat::{
     create as chat_create_conversation, create_approval as chat_create_approval,
     create_attachment as chat_create_attachment, create_project as chat_create_project,
     decide_approval as chat_decide_approval, delegation as chat_delegation,
+    show_approval as chat_show_approval,
     delete_attachment as chat_delete_attachment, delete_conversation as chat_delete_conversation,
     list_approvals as chat_approvals, messages as chat_messages, read as chat_read,
     sections as chat_sections, send as chat_send_message, show as chat_conversation,
@@ -59,6 +61,7 @@ pub use chat::{
 pub use devices::{device_sas, grant_device, list_devices, revoke_device};
 pub use doc_tools::list as doc_tools;
 pub use events::events;
+pub use github::{link_cancel as github_link_cancel, link_state as github_link_state};
 pub use hires::{
     create as create_hire, dismiss as dismiss_hire, list as list_hires, team_summary,
     update as update_hire,

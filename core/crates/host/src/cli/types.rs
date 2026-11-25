@@ -138,6 +138,11 @@ pub enum Command {
         command: StrataCommand,
         data_dir: PathBuf,
     },
+    /// `excubia-host toolchain status|install`: Git and GitHub CLI for this profile.
+    Toolchain {
+        command: ToolchainCommand,
+        data_dir: PathBuf,
+    },
     /// `excubia-host alfred local|use local|use claude|status`: the model Alfred answers with.
     Alfred {
         command: AlfredCommand,
@@ -168,4 +173,11 @@ pub enum StrataCommand {
     Status,
     /// Write the `claude-local` entry into `agents.toml` when it is missing.
     EnableAgent,
+}
+
+/// The toolchain subcommands. Installing takes no arguments: the distributions are pinned.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ToolchainCommand {
+    Status,
+    Install,
 }

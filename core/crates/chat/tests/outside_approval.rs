@@ -123,6 +123,7 @@ fn the_same_file_is_asked_again_after_an_expired_or_spent_card_but_not_after_a_d
         .store
         .create_outside_approval(short)
         .expect("first card");
+    team.store.show_approval(&expired.id).expect("shown");
     std::thread::sleep(std::time::Duration::from_millis(1_200));
 
     let again = team

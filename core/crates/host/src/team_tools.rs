@@ -67,7 +67,9 @@ impl TeamService {
                 self.request_approval(&grant.actor, Some(grant.pane_id.clone()), request)
                     .await
             }
-            ToolCall::PlanPropose(propose) => self.propose_plan(&grant.actor, propose.steps),
+            ToolCall::PlanPropose(propose) => {
+                self.propose_plan(&grant.actor, propose.steps, propose.run_on_approval)
+            }
             ToolCall::PlanRead(plan_id) => self.read_plan(&grant.actor, plan_id),
             ToolCall::ApprovalDecide(decide) => self.decide_delegated(&grant.actor, decide),
             ToolCall::ApprovalPending => self.pending_approvals(&grant.actor),
@@ -77,6 +79,16 @@ impl TeamService {
                     "scope_denied",
                     "tool",
                     "status.overview belongs to Alfred; a project seat reads its own panel",
+                )),
+            },
+            ToolCall::GithubLink => match grant.actor.role_id.as_str() {
+                "alfred" | "lead" => {
+                    self.github_link(&grant.actor, Some(grant.pane_id.clone())).await
+                }
+                _ => Err(ToolError::invalid(
+                    "scope_denied",
+                    "tool",
+                    "only Alfred and a project lead ask to link GitHub",
                 )),
             },
             ToolCall::Mail(_) => Err(ToolError::invalid(
@@ -196,8 +208,11 @@ impl TeamService {
             ToolCall::ApprovalRequest(request) => {
                 self.request_approval(&actor, None, request).await
             }
+            ToolCall::GithubLink => self.github_link(&actor, None).await,
             ToolCall::ApprovalDecide(decide) => self.decide_delegated(&actor, decide),
-            ToolCall::PlanPropose(propose) => self.propose_plan(&actor, propose.steps),
+            ToolCall::PlanPropose(propose) => {
+                self.propose_plan(&actor, propose.steps, propose.run_on_approval)
+            }
             ToolCall::PlanRead(plan_id) => self.read_plan(&actor, plan_id),
             ToolCall::ApprovalPending => self.pending_approvals(&actor),
             ToolCall::StatusOverview => self.status_overview(&actor).await,
@@ -213,6 +228,17 @@ impl TeamService {
             ToolCall::Calendar(call) => self.calendar_tool(&actor, call),
             ToolCall::Alert(call) => self.alert_tool(&actor, call),
         }
+    }
+
+    /// `github.link`: the answer waits for the operator and for the link to end (see `github_link`).
+    pub(super) async fn github_link(
+        &self,
+        actor: &SeatActor,
+        pane_id: Option<String>,
+    ) -> Result<ToolReply, ToolError> {
+        std::sync::Arc::clone(&self.github)
+            .request(actor.clone(), pane_id)
+            .await
     }
 
     pub(super) async fn create_project(

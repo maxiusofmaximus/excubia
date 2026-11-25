@@ -221,6 +221,16 @@ async fn a_command_without_an_answer_expires_and_does_not_run() {
 
     let run_id = send(&client, "Permiso opencode").await;
     wait_for_approval(&client, "pending", CLI_TIMEOUT).await;
+    // The inbox shows the card, which starts its TTL; nobody answers it.
+    let inbox = client
+        .chat_approvals(&[("status", "pending")])
+        .await
+        .expect("inbox");
+    let id = inbox["approvals"][0]["id"].as_str().expect("id").to_owned();
+    client
+        .request("POST", &format!("/v1/chat/approvals/{id}/seen"), None)
+        .await
+        .expect("seen");
     wait_for_approval(&client, "expired", CLI_TIMEOUT).await;
 
     wait_for_run_end(&host, &run_id, CLI_TIMEOUT).await;

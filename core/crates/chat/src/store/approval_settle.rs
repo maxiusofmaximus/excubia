@@ -144,7 +144,8 @@ pub(super) fn settle_due(
         let mut statement = connection.prepare(
             "SELECT id FROM approval
               WHERE status = 'pending'
-                AND (expires_at <= ?1 OR level_expires_at <= ?1)",
+                AND ((expires_at <= ?1 AND (shown_at IS NOT NULL OR ttl_seconds IS NULL))
+                     OR level_expires_at <= ?1)",
         )?;
         let rows = statement.query_map([&now], |row| row.get(0))?;
         rows.collect::<Result<Vec<String>, _>>()?
@@ -163,41 +164,58 @@ fn settle_one(
 ) -> Result<Vec<ChatFrame>, ChatError> {
     let mut frames = Vec::new();
     loop {
-        let Some((expires, level_deadline)) = deadlines(connection, approval_id)? else {
+        let Some(deadlines) = deadlines(connection, approval_id)? else {
             return Ok(frames);
         };
-        match level_deadline {
-            Some(at) if at < expires && at <= now_ms => {
-                frames.extend(escalate(connection, approval_id, at, expires)?);
+        match deadlines.level {
+            Some(at) if at <= now_ms && deadlines.expires.is_none_or(|expires| at < expires) => {
+                // While the TTL has not started, the hop sees the whole TTL ahead of it.
+                let expires_ms = deadlines.expires.unwrap_or(at + deadlines.ttl_ms);
+                frames.extend(escalate(connection, approval_id, at, expires_ms)?);
             }
-            _ if expires <= now_ms => {
-                frames.extend(expire(connection, approval_id, expires)?);
-                return Ok(frames);
-            }
-            _ => return Ok(frames),
+            _ => match deadlines.expires {
+                Some(expires) if expires <= now_ms => {
+                    frames.extend(expire(connection, approval_id, expires)?);
+                    return Ok(frames);
+                }
+                _ => return Ok(frames),
+            },
         }
     }
 }
 
-/// The TTL and the level deadline of a pending approval, in milliseconds.
-fn deadlines(
-    connection: &Connection,
-    approval_id: &str,
-) -> Result<Option<(i64, Option<i64>)>, ChatError> {
-    let row: Option<(String, Option<String>)> = connection
+/// When a pending approval changes by itself, in milliseconds. `expires` is the
+/// TTL's end, and it is `None` while the card has not been shown: nothing expires
+/// then, only a level may still run out.
+struct Deadlines {
+    expires: Option<i64>,
+    ttl_ms: i64,
+    level: Option<i64>,
+}
+
+fn deadlines(connection: &Connection, approval_id: &str) -> Result<Option<Deadlines>, ChatError> {
+    let row: Option<(String, Option<String>, Option<String>, Option<i64>)> = connection
         .query_row(
-            "SELECT expires_at, level_expires_at FROM approval
+            "SELECT expires_at, level_expires_at, shown_at, ttl_seconds FROM approval
               WHERE id = ?1 AND status = 'pending'",
             [approval_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .optional()?;
-    let Some((expires, level_deadline)) = row else {
+    let Some((expires, level_deadline, shown_at, ttl_seconds)) = row else {
         return Ok(None);
     };
-    let expires = parse_iso(&expires).ok_or(ChatError::Inconsistent("approval deadline"))?;
-    let level_deadline = level_deadline.as_deref().and_then(parse_iso);
-    Ok(Some((expires, level_deadline)))
+    // A row with no TTL (written before v29) keeps the deadline it was written with.
+    let started = shown_at.is_some() || ttl_seconds.is_none();
+    let expires = match started {
+        true => Some(parse_iso(&expires).ok_or(ChatError::Inconsistent("approval deadline"))?),
+        false => None,
+    };
+    Ok(Some(Deadlines {
+        expires,
+        ttl_ms: ttl_seconds.unwrap_or(0) * 1000,
+        level: level_deadline.as_deref().and_then(parse_iso),
+    }))
 }
 
 /// The earliest instant at which a pending approval changes by itself.
@@ -205,8 +223,42 @@ pub(super) fn next_deadline_ms(
     connection: &Connection,
     approval_id: &str,
 ) -> Result<Option<i64>, ChatError> {
-    Ok(deadlines(connection, approval_id)?
-        .map(|(expires, level_deadline)| level_deadline.map_or(expires, |at| at.min(expires))))
+    Ok(deadlines(connection, approval_id)?.and_then(|deadlines| {
+        match (deadlines.level, deadlines.expires) {
+            (Some(level), Some(expires)) => Some(level.min(expires)),
+            (level, expires) => level.or(expires),
+        }
+    }))
+}
+
+/// The first authorized showing of a pending card starts its TTL, once. A later
+/// showing, or another device, changes nothing: the clock is not renewed. Rows
+/// without a TTL (before v29) and cards already shown are left as they are.
+pub(super) fn show(
+    connection: &Connection,
+    approval_id: &str,
+    now_ms: i64,
+) -> Result<bool, ChatError> {
+    let ttl: Option<Option<i64>> = connection
+        .query_row(
+            "SELECT ttl_seconds FROM approval
+              WHERE id = ?1 AND status = 'pending' AND shown_at IS NULL AND level = 'user'",
+            [approval_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let Some(Some(ttl_seconds)) = ttl else {
+        return Ok(false);
+    };
+    connection.execute(
+        "UPDATE approval SET shown_at = ?1, expires_at = ?2 WHERE id = ?3",
+        params![
+            iso(now_ms),
+            iso(now_ms + ttl_seconds * 1000),
+            approval_id
+        ],
+    )?;
+    Ok(true)
 }
 
 /// A level ran out at `at_ms`: the request climbs, and the new level gets its
@@ -282,7 +334,7 @@ fn expire(
         "UPDATE approval
             SET status = 'expired', decided_at = ?1, updated_at = ?1, level_expires_at = NULL,
                 decider_kind = 'system', decider_id = 'host'
-          WHERE id = ?2 AND status = 'pending'",
+          WHERE id = ?2 AND status IN ('pending', 'approved')",
         params![at, approval_id],
     )?;
     write_audit(
@@ -302,6 +354,28 @@ fn expire(
     let expired = approval_by_id(connection, approval_id)?;
     record_timeline_line(connection, &expired)?;
     Ok(vec![frame_of(connection, approval_id, "expired")?])
+}
+
+/// The task ended (failed, cancelled or completed): its pending cards close with
+/// it, as the host's decision (`expired`), so nothing can answer for a task that
+/// is over. Only the cards the task owns (`approval.delegation_id`) are closed.
+pub(super) fn close_task_cards(
+    connection: &Connection,
+    delegation_id: &str,
+    now_ms: i64,
+) -> Result<Vec<ChatFrame>, ChatError> {
+    let ids: Vec<String> = {
+        let mut statement = connection.prepare(
+            "SELECT id FROM approval WHERE status IN ('pending', 'approved') AND delegation_id = ?1",
+        )?;
+        let rows = statement.query_map([delegation_id], |row| row.get(0))?;
+        rows.collect::<Result<Vec<String>, _>>()?
+    };
+    let mut frames = Vec::new();
+    for approval_id in ids {
+        frames.extend(expire(connection, &approval_id, now_ms)?);
+    }
+    Ok(frames)
 }
 
 /// The host restarted: no process will deliver a decision that was pending,

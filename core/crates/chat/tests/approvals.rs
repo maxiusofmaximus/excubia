@@ -164,6 +164,7 @@ fn the_ttl_expires_the_approval() {
     new.ttl_seconds = 1;
     let approval = store.create_approval(new).expect("approval");
     assert_eq!(approval.status, ApprovalStatus::Pending);
+    store.show_approval(&approval.id).expect("shown");
 
     std::thread::sleep(Duration::from_millis(1_200));
     let expired = store.approval(&approval.id).expect("approval");
@@ -249,6 +250,7 @@ fn an_expired_digest_is_never_reopened_and_is_not_coalesced() {
     let mut new = request(&store, &conversation_id, "cargo build");
     new.ttl_seconds = 1;
     let approval = store.create_approval(new).expect("approval");
+    store.show_approval(&approval.id).expect("shown");
 
     std::thread::sleep(Duration::from_millis(1_200));
     assert_eq!(
