@@ -438,6 +438,7 @@ async fn budget_watch(
 ) {
     let mut frames = chat.subscribe();
     let mut frames_open = true;
+    let mut holds = chat.wait_holds_changed();
     let mut budget = ActiveBudget::new(Instant::now(), timeout);
     let mut pending = 0;
     let mut change = None;
@@ -473,6 +474,8 @@ async fn budget_watch(
             }
             // An approval's level ran out or its TTL passed: read the waits again.
             _ = until(change) => read = true,
+            // A held wait began or ended (the GitHub code): read the waits again.
+            _ = holds.changed() => read = true,
             frame = frames.recv(), if frames_open => match frame {
                 Ok(frame) => read = is_wait_frame(&frame.event),
                 Err(RecvError::Lagged(_)) => read = true,

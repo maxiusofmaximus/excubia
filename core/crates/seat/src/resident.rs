@@ -6,7 +6,9 @@
 //! `delegation.complete`; if it does not, its last words close it here, so a task never
 //! hangs because the model forgot the tool.
 
+use std::future::Future;
 use std::process::Stdio;
+use std::time::Instant;
 
 use excubia_chat::ToolRequest;
 use serde_json::{json, Value};
@@ -14,6 +16,7 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWrite
 use tokio::process::Command;
 
 use crate::env;
+use crate::free_models::{is_free_limit, FreeModels, FREE_MODELS};
 use crate::mcp::post_tool;
 
 /// The most of the CLI's output kept as the result: the end, where the answer is.
@@ -27,6 +30,8 @@ pub async fn run_resident(engine: &[String]) -> Result<(), String> {
         .ok_or("EXCUBIA_TOOL_URL is not set; the resident only runs under the host")?;
     let token = env::var_or_legacy("EXCUBIA_TOOL_TOKEN", "HN_TOOL_TOKEN")
         .ok_or("EXCUBIA_TOOL_TOKEN is not set; the resident only runs under the host")?;
+    // The free models this panel found spent; it lives as long as the panel, so the memory does too.
+    let book = FreeModels::default();
     println!("Listo. Espero tareas.");
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
     while let Some(line) = lines
@@ -41,7 +46,7 @@ pub async fn run_resident(engine: &[String]) -> Result<(), String> {
             break;
         };
         println!("\n── Tarea de {from} ──");
-        serve_task(program, args, &url, &token, &id, &from, &text).await;
+        serve_task(program, args, &book, &url, &token, &id, &from, &text).await;
         println!("── Tarea cerrada ──");
     }
     Ok(())
@@ -52,6 +57,7 @@ pub async fn run_resident(engine: &[String]) -> Result<(), String> {
 async fn serve_task(
     program: &str,
     args: &[String],
+    book: &FreeModels,
     url: &str,
     token: &str,
     id: &str,
@@ -59,7 +65,13 @@ async fn serve_task(
     text: &str,
 ) {
     let before = changes().await;
-    let (ran, answer) = match run_engine(program, args, &task_prompt(from, text)).await {
+    let prompt = task_prompt(from, text);
+    let (program, prompt) = (program, prompt.as_str());
+    let outcome = run_task(book, args, |run_args| async move {
+        run_engine(program, &run_args, prompt).await
+    })
+    .await;
+    let (ran, answer) = match outcome {
         Ok((true, output)) if !output.trim().is_empty() => (true, output),
         Ok((true, _)) => (true, "Terminé la tarea sin texto de resultado.".to_string()),
         Ok((false, output)) => (false, format!("No pude terminar la tarea. Última salida:\n{output}")),
@@ -82,6 +94,45 @@ async fn serve_task(
             eprintln!("delegation.complete: {} ({})", error.message, error.code);
         }
     }
+}
+
+/// Runs one task's CLI with the model it should use. On a free OpenCode model that is the first
+/// one not known to be spent; a run that reports its free tier spent marks that model, so the
+/// next task skips it. This task is not retried: it reports the CLI's own output.
+async fn run_task<Fut>(
+    book: &FreeModels,
+    args: &[String],
+    mut run: impl FnMut(Vec<String>) -> Fut,
+) -> Result<(bool, String), String>
+where
+    Fut: Future<Output = Result<(bool, String, bool), String>>,
+{
+    let slot = free_model_slot(args);
+    let run_args = match slot {
+        Some(slot) => {
+            let model = *book
+                .usable(Instant::now())
+                .first()
+                .ok_or("todos los modelos gratuitos de OpenCode están agotados")?;
+            let mut run_args = args.to_vec();
+            run_args[slot] = model.to_string();
+            run_args
+        }
+        None => args.to_vec(),
+    };
+    let (ran, output, limited) = run(run_args.clone()).await?;
+    if let (Some(slot), true) = (slot, limited) {
+        book.mark_exhausted(&run_args[slot], Instant::now());
+    }
+    Ok((ran, output))
+}
+
+/// Where the free OpenCode model sits in a resident's CLI args: the value after `--model`, when
+/// it is one of `FREE_MODELS`. Any other CLI or model keeps its args as they are.
+fn free_model_slot(args: &[String]) -> Option<usize> {
+    let slot = args.iter().position(|arg| arg == "--model")? + 1;
+    let model = args.get(slot)?;
+    FREE_MODELS.iter().any(|free| free == model).then_some(slot)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -211,12 +262,13 @@ fn changed_files(before: &Changes, after: &Changes) -> String {
     format!("\n\nArchivos cambiados:\n{list}")
 }
 
-/// Runs the CLI once: the prompt on stdin, both outputs shown live, the end of stdout kept.
+/// Runs the CLI once: the prompt on stdin, both outputs shown live, the end of stdout kept. The
+/// third value says whether the output reports the free tier of the model spent.
 async fn run_engine(
     program: &str,
     args: &[String],
     prompt: &str,
-) -> Result<(bool, String), String> {
+) -> Result<(bool, String, bool), String> {
     let mut child = Command::new(program)
         .args(args)
         .stdin(Stdio::piped())
@@ -233,20 +285,17 @@ async fn run_engine(
     }
     let out = child.stdout.take().ok_or("no stdout")?;
     let err = child.stderr.take().ok_or("no stderr")?;
-    let (kept, _, status) = tokio::join!(
-        echo(out, tokio::io::stdout(), true),
-        echo(err, tokio::io::stderr(), false),
+    let (kept, errors, status) = tokio::join!(
+        echo(out, tokio::io::stdout()),
+        echo(err, tokio::io::stderr()),
         child.wait()
     );
     let status = status.map_err(|error| error.to_string())?;
-    Ok((status.success(), tail(&kept, RESULT_CHARS)))
+    let limited = is_free_limit(&format!("{kept}\n{errors}"));
+    Ok((status.success(), tail(&kept, RESULT_CHARS), limited))
 }
 
-async fn echo(
-    mut from: impl AsyncRead + Unpin,
-    mut to: impl AsyncWrite + Unpin,
-    keep: bool,
-) -> String {
+async fn echo(mut from: impl AsyncRead + Unpin, mut to: impl AsyncWrite + Unpin) -> String {
     let mut kept = Vec::new();
     let mut buffer = [0u8; 4096];
     while let Ok(read) = from.read(&mut buffer).await {
@@ -255,9 +304,7 @@ async fn echo(
         }
         let _ = to.write_all(&buffer[..read]).await;
         let _ = to.flush().await;
-        if keep {
-            kept.extend_from_slice(&buffer[..read]);
-        }
+        kept.extend_from_slice(&buffer[..read]);
     }
     String::from_utf8_lossy(&kept).to_string()
 }
@@ -346,6 +393,47 @@ mod tests {
         );
     }
 
+    fn opencode_args(model: &str) -> Vec<String> {
+        ["run", "--standalone", "--model", model, "--agent", "alfred"].map(String::from).to_vec()
+    }
+
+    #[test]
+    fn only_a_free_model_in_the_model_flag_is_rotated() {
+        assert_eq!(free_model_slot(&opencode_args(FREE_MODELS[0])), Some(3));
+        assert_eq!(free_model_slot(&opencode_args("openai/gpt-5")), None);
+        assert_eq!(free_model_slot(&["exec".to_string()]), None);
+    }
+
+    /// A task whose free model reports its tier spent marks it; the next task runs on the next
+    /// free model, and when none is left the task does not run at all.
+    #[tokio::test]
+    async fn a_task_skips_the_free_models_spent_by_earlier_tasks() {
+        let book = FreeModels::default();
+        let args = opencode_args(FREE_MODELS[0]);
+        let mut ran_on = Vec::new();
+        let first = run_task(&book, &args, |run_args| {
+            ran_on.push(run_args[3].clone());
+            let limited = run_args[3] == FREE_MODELS[0];
+            async move { Ok((false, "Free usage limit reached".to_string(), limited)) }
+        })
+        .await;
+        assert_eq!(first, Ok((false, "Free usage limit reached".to_string())));
+
+        let second = run_task(&book, &args, |run_args| {
+            ran_on.push(run_args[3].clone());
+            async move { Ok((true, "Listo".to_string(), false)) }
+        })
+        .await;
+        assert_eq!(second, Ok((true, "Listo".to_string())));
+        assert_eq!(ran_on, [FREE_MODELS[0], FREE_MODELS[1]]);
+
+        for model in FREE_MODELS {
+            book.mark_exhausted(model, Instant::now());
+        }
+        let none = run_task(&book, &args, |_| async { Ok((true, String::new(), false)) }).await;
+        assert!(none.is_err(), "{none:?}");
+    }
+
     /// A stub CLI that answers the task and states its end: the runner closes the
     /// delegation through MCP with the panel's token in the header, never in the prompt.
     #[cfg(windows)]
@@ -386,7 +474,8 @@ mod tests {
         });
         let (program, args) = stub_cli("ESTADO: HECHO");
         let url = format!("http://{address}/internal/chat/tools");
-        serve_task(&program, &args, &url, "tok-panel", "dlg_1", "Alfred", "Haz X").await;
+        let book = FreeModels::default();
+        serve_task(&program, &args, &book, &url, "tok-panel", "dlg_1", "Alfred", "Haz X").await;
         let request = server.await.expect("server");
         assert!(request.contains("delegation.complete"), "{request}");
         assert!(request.contains("\"delegation_id\":\"dlg_1\""), "{request}");

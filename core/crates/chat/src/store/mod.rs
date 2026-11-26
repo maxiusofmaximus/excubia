@@ -20,6 +20,9 @@ mod approval_timeline;
 #[path = "approval_waits_tests.rs"]
 mod approval_waits_tests;
 #[cfg(test)]
+#[path = "wait_holds_tests.rs"]
+mod wait_holds_tests;
+#[cfg(test)]
 #[path = "delegation_scope_tests.rs"]
 mod delegation_scope_tests;
 #[cfg(test)]
@@ -79,6 +82,8 @@ mod schedule_brakes;
 mod schedule_check;
 mod schedule_claim;
 mod schedules;
+mod wait_holds;
+pub use wait_holds::WaitHold;
 
 pub use schedule_claim::{Claim, Launch};
 mod projects;
@@ -136,6 +141,8 @@ pub struct ChatStore {
     clock: Mutex<Arc<dyn Clock>>,
     /// The file behind the connection; `None` for an in-memory store.
     database: Option<PathBuf>,
+    /// The waits the host holds open outside the cards (`wait_holds`).
+    holds: Arc<wait_holds::Holds>,
 }
 
 impl ChatStore {
@@ -174,6 +181,7 @@ impl ChatStore {
             attachment_files: Mutex::new(None),
             clock: Mutex::new(Arc::new(SystemClock)),
             database: None,
+            holds: Arc::new(wait_holds::Holds::new()),
         }
     }
 

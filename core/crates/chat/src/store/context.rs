@@ -49,6 +49,8 @@ impl super::ChatStore {
                     body_md: row.get(4)?,
                     state: row.get(5)?,
                     created_at: row.get(6)?,
+                    failure_reason: None,
+                    model: None,
                 };
                 Ok((message, row.get::<_, Option<String>>(7)?))
             })?

@@ -72,6 +72,7 @@ test("cancel is offered only while this question's link runs; a finished card sh
   assert.equal(linked.resultKey, "github.result.linked");
   assert.equal(linked.login, "octocat");
   assert.equal(githubFacts("failed", served("failed")).resultKey, "github.result.failed");
+  assert.equal(githubFacts("expired", served("expired")).resultKey, "github.result.expired");
   assert.equal(githubFacts("declined", null).resultKey, "github.result.declined");
 });
 
@@ -92,11 +93,13 @@ test("ES and EN read the same states with their own words", () => {
     assert.equal(t("github.result.linked", { login: "octocat" }), "✓ Enlazado como octocat. Excubia guarda solo el nombre y el usuario públicos.");
     assert.equal(t("github.allow"), "Permitir");
     assert.equal(t("github.later"), "Ahora no");
+    assert.equal(t("github.result.expired"), "El código caducó. Vuelve a pedirlo si lo necesitas.");
   } finally {
     setLang("en");
   }
   assert.equal(t("github.result.linked", { login: "octocat" }), "✓ Linked as octocat. Excubia keeps only the public name and username.");
   assert.equal(t("github.later"), "Not now");
+  assert.equal(t("github.result.expired"), "The code expired. Ask again if you still need it.");
 });
 
 test("every GitHub key exists in both languages", () => {

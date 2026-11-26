@@ -98,8 +98,8 @@ fn schema_and_migrations_are_idempotent() {
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .expect("version");
         assert_eq!(
-            version, 30,
-            "the approval mode tables are schema 6;schema 7 adds the mail card table, schema 8 its expiry, schema 9 the hires, schema 10 the mail draft cards, schema 11 the reply fields of messages, schema 12 the progress line of runs, schema 13 the attachments, schema 14 the notes, schema 15 the contacts, schema 16 the origin of each address, schema 17 the app as a source of an address, schema 18 the calendar, schema 19 the recurrence of events, schema 20 the uid of an imported event, schema 21 the alert rules, schema 22 the plans, schema 23 the recipes, schema 24 the plan lines of the timeline, schema 25 the scheduled tasks, schema 26 the run that made each file of Alfred, schema 27 the headline of each action, schema 28 the operator's words of a denial, schema 29 the showing and TTL of each approval; schema 30 the plan tables"
+            version, 31,
+            "the approval mode tables are schema 6;schema 7 adds the mail card table, schema 8 its expiry, schema 9 the hires, schema 10 the mail draft cards, schema 11 the reply fields of messages, schema 12 the progress line of runs, schema 13 the attachments, schema 14 the notes, schema 15 the contacts, schema 16 the origin of each address, schema 17 the app as a source of an address, schema 18 the calendar, schema 19 the recurrence of events, schema 20 the uid of an imported event, schema 21 the alert rules, schema 22 the plans, schema 23 the recipes, schema 24 the plan lines of the timeline, schema 25 the scheduled tasks, schema 26 the run that made each file of Alfred, schema 27 the headline of each action, schema 28 the operator's words of a denial, schema 29 the showing and TTL of each approval; schema 30 the plan tables; schema 31 the failure reason of a failed card and the model of a reply"
         );
         assert_eq!(
             connection

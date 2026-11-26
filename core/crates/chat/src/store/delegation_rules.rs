@@ -370,6 +370,8 @@ pub(super) fn message_by_id(
                     body_md: row.get(5)?,
                     state: row.get(6)?,
                     created_at: row.get(7)?,
+                    failure_reason: None,
+                    model: None,
                 })
             },
         )

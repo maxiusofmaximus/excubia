@@ -28,6 +28,7 @@ fn input<'a>(
         hook_command: Path::new("C:\\bin\\excubia-uac-hook.exe"),
         plugin_dir: None,
         attachment_dirs: &[],
+        engine_model: None,
     }
 }
 
@@ -248,6 +249,18 @@ fn opencode_plan_sets_agent_prompt_without_a_session() {
     assert_eq!(config["permission"]["bash"], "deny");
     assert_eq!(config["permission"]["edit"], "deny");
     assert!(config.get("plugin").is_none());
+}
+
+#[test]
+fn an_opencode_turn_runs_on_the_free_model_it_is_given() {
+    let profile = crate::profile::shipped().remove(2);
+    let root = PathBuf::from("run-dir");
+    let mut turn = input(&profile, &root, "role", "prompt");
+    turn.engine_model = Some(FREE_MODELS[1]);
+    let plan = prepare(&turn).expect("plan");
+    let at = plan.args.iter().position(|arg| arg == "--model").expect("--model");
+    assert_eq!(plan.args[at + 1], FREE_MODELS[1]);
+    assert!(!plan.args.iter().any(|arg| arg == FREE_MODELS[0]), "{:?}", plan.args);
 }
 
 #[test]

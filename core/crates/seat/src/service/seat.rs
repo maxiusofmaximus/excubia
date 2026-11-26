@@ -10,6 +10,7 @@ use excubia_chat::{
 };
 use tokio::task::JoinHandle;
 
+use crate::free_models::FreeModels;
 use crate::launch;
 use crate::profile::{self, CliProfile, SelectedProfile};
 use crate::prompt;
@@ -157,6 +158,7 @@ impl SeatService {
             agent_id,
             turn_env: config.turn_env,
             on_quota_exhausted: config.on_quota_exhausted,
+            free_models: Arc::new(FreeModels::default()),
         }));
         *lock(&service.worker) = Some(worker);
         Ok(service)

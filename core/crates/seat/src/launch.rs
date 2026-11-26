@@ -9,21 +9,17 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
+use crate::free_models::FREE_MODELS;
 use crate::profile::{CliProfile, PromptDelivery};
 
-/// The OpenCode model Alfred's engine turns run on (free tier, the Master's pick: DeepSeek V4.1 Flash is better than GLM 5.3 Flash).
-const OPENCODE_ENGINE_MODEL: &str = "opencode/deepseek-v4.1-flash-free";
-
-/// The OpenCode arguments of one run, after the binary. A turn and a resident task use the
-/// same ones: a fresh session, the free model, the `alfred` agent, no approval bypass.
-const OPENCODE_RUN_ARGS: &[&str] = &[
-    "run",
-    "--standalone",
-    "--model",
-    OPENCODE_ENGINE_MODEL,
-    "--agent",
-    "alfred",
-];
+/// The OpenCode arguments of one run, after the binary: a fresh session, the free model, the
+/// `alfred` agent, no approval bypass. A turn and a resident task use the same ones.
+fn opencode_run_args(model: &str) -> Vec<String> {
+    ["run", "--standalone", "--model", model, "--agent", "alfred"]
+        .iter()
+        .map(|arg| arg.to_string())
+        .collect()
+}
 
 /// The Codex arguments of one run, after the binary: a read-only sandbox, no shell and
 /// no approval bypass. A turn and a resident task use the same ones.
@@ -72,6 +68,9 @@ pub struct LaunchInput<'a> {
     /// Folders that hold this turn's attachments. Only the restricted Claude CLI
     /// needs them: it reads files only under its working directory.
     pub attachment_dirs: &'a [PathBuf],
+    /// The free OpenCode model this turn runs on (`free_models::FREE_MODELS`). Only the
+    /// OpenCode configuration reads it; `None` keeps the first free model.
+    pub engine_model: Option<&'a str>,
 }
 
 /// A resident panel: one CLI process per seat that reads tasks from stdin
@@ -226,8 +225,9 @@ pub fn prepare(input: &LaunchInput<'_>) -> Result<LaunchPlan, LaunchError> {
                     "1".to_string(),
                 ),
             ]);
-            // shortcut: a fixed free model, because the account default is paid and can run out of balance, upgrade with a per-device engine model setting.
-            args.extend(OPENCODE_RUN_ARGS.iter().map(|arg| arg.to_string()));
+            // shortcut: free models only, because the account default is paid and can run out of balance; a turn falls back along FREE_MODELS when one is spent.
+            let model = input.engine_model.unwrap_or(FREE_MODELS[0]);
+            args.extend(opencode_run_args(model));
             // No `--session`: every turn is a new OpenCode session. A reused session
             // kept failing with `provider.free-limit` on the free tier, while fresh
             // sessions with the same request passed. Alfred's context page carries the chat.
@@ -330,7 +330,8 @@ fn opencode_resident(input: &ResidentInput<'_>) -> Result<LaunchPlan, LaunchErro
         tool_url: input.tool_url,
         role: input.role,
     };
-    let cli_args: Vec<String> = OPENCODE_RUN_ARGS.iter().map(|arg| arg.to_string()).collect();
+    // The sidecar runs each task on the first free model not known to be spent (`resident.rs`).
+    let cli_args = opencode_run_args(FREE_MODELS[0]);
     let (program, args) = resident_sidecar(input, &cli_args);
     let mut env = resident_env(input);
     env.extend([

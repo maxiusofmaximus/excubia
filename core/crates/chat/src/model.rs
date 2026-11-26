@@ -192,6 +192,12 @@ pub struct Message {
     pub body_md: String,
     pub state: String,
     pub created_at: String,
+    /// Failed messages only: the run's reason, which the shell reads to say what went wrong.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failure_reason: Option<String>,
+    /// Agent replies only: the engine model that wrote the reply, when the seat knew it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]

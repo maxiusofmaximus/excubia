@@ -15,6 +15,9 @@ fn message(seq: i64, author: &str, body: &str) -> Message {
         quote: None,
         attachments: Vec::new(),
         created_at: "2026-10-22T10:00:00.000Z".to_string(),
+        failure_reason: None,
+        failure_text: None,
+        model: None,
     }
 }
 
@@ -344,4 +347,33 @@ fn reopening_the_same_conversation_keeps_the_page_but_another_one_resets() {
     feed.ensure("cnv_2");
     assert_eq!(feed.snapshot().entries.len(), 0);
     assert_eq!(feed.conversation_id(), Some("cnv_2"));
+}
+
+#[test]
+fn a_failed_card_gets_its_words_from_its_reason_and_a_reply_keeps_its_model() {
+    let mut feed = ChatFeed::default();
+    feed.reset("cnv_1");
+    let mut spent = message(1, "agent", "");
+    spent.state = "failed".to_string();
+    spent.failure_reason = Some("free_models_exhausted; última salida: Free usage limit reached".to_string());
+    let mut other = message(2, "agent", "");
+    other.state = "failed".to_string();
+    other.failure_reason = Some("process_exit: 1".to_string());
+    let mut reply = message(3, "agent", "Listo");
+    reply.model = Some("opencode/deepseek-v4.1-flash-free".to_string());
+    feed.merge_messages([spent, other, reply]);
+
+    let entries = feed.snapshot().entries;
+    match (&entries[0], &entries[1], &entries[2]) {
+        (
+            ChatEntry::Message { message: spent, .. },
+            ChatEntry::Message { message: other, .. },
+            ChatEntry::Message { message: reply, .. },
+        ) => {
+            assert!(spent.failure_text.as_deref().is_some_and(|text| !text.is_empty()));
+            assert_eq!(other.failure_text, None, "a reason without words stays as it was");
+            assert_eq!(reply.model.as_deref(), Some("opencode/deepseek-v4.1-flash-free"));
+        }
+        other => panic!("se esperaban tres mensajes, llegó {other:?}"),
+    }
 }

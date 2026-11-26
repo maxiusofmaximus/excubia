@@ -188,6 +188,23 @@ pub fn team_text_in(code: &str, field: Option<&str>, lang: UiLang) -> Option<&'s
     })
 }
 
+/// What a failed turn's reason means to the operator. The reason is `code; last output`, and
+/// only the code decides; a `None` means the code is not an engine rule.
+pub fn run_failure_text(reason: &str) -> Option<&'static str> {
+    run_failure_text_in(reason, ui_lang::current())
+}
+
+pub fn run_failure_text_in(reason: &str, lang: UiLang) -> Option<&'static str> {
+    let code = reason.split_once(';').map_or(reason, |(code, _)| code).trim();
+    Some(match code {
+        "free_models_exhausted" => lang.pick(
+            "Los modelos gratuitos de OpenCode han llegado a su límite de uso. Vuelve a intentarlo más tarde o conecta otro motor en Ajustes.",
+            "The free OpenCode models have reached their usage limit. Try again later or connect another engine in Settings.",
+        ),
+        _ => return None,
+    })
+}
+
 /// The words of a refused alert rule. A `None` means the code is not a rule refusal.
 pub(super) fn alert_text(code: &str) -> Option<&'static str> {
     alert_text_in(code, ui_lang::current())
@@ -259,6 +276,18 @@ mod tests {
         assert!(team_text_in("resident_unsupported", None, UiLang::En)
             .unwrap()
             .contains("no resident panel mode"));
+    }
+
+    #[test]
+    fn an_exhausted_free_model_says_what_to_do_in_both_languages() {
+        // The stored reason carries the CLI's last output after the code; only the code decides.
+        let reason = "free_models_exhausted; última salida: Free usage limit reached";
+        let es = run_failure_text_in(reason, UiLang::Es).expect("spanish");
+        let en = run_failure_text_in(reason, UiLang::En).expect("english");
+        assert!(es.contains("límite de uso") && es.contains("Ajustes"), "{es}");
+        assert!(en.contains("usage limit") && en.contains("Settings"), "{en}");
+        assert_ne!(es, en);
+        assert_eq!(run_failure_text_in("process_exit: 1", UiLang::En), None);
     }
 
     #[test]

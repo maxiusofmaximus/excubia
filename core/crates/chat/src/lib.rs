@@ -46,6 +46,7 @@ mod schema_contact;
 mod schema_hire;
 mod schema_ics;
 mod schema_mail;
+mod schema_message;
 mod schema_plan;
 mod schema_progress;
 mod schema_recipe;
@@ -136,6 +137,7 @@ pub use store::{
     validate_suggestions, AlertSummary, AlertWriter, ApprovalWaits, CalendarSummary, ChatStore,
     Claim, EventOrigin, HireLink, Launch, MailDraftCard, NewMailCard, NextEvent, PendingApproval,
     PendingPlan, ProgressOutcome, SenderHistory, StatusApproval, StatusDelegation, StatusFacts,
+    WaitHold,
 };
 pub use text::{
     close_title, headline_of, message_text, title_from, without_internal_ids, NameError,

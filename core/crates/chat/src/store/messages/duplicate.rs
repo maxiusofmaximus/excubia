@@ -22,6 +22,8 @@ impl Duplicate {
             body_md: self.body_md,
             state: self.state,
             created_at: self.created_at,
+            failure_reason: None,
+            model: None,
         }
     }
 }

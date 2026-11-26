@@ -10,6 +10,7 @@ import { renderDelegationCard } from "./delegations.js";
 import { showInThread } from "./delegation-model.js";
 import { stripTestMarkers } from "./format.js";
 import { answeredAfter, delegationResultIndexes, isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
+import { answerModel, failedTitle } from "./chat-card-model.js";
 import { quickRepliesDisabled, quoteLabel, suggestionsAt } from "./chat-reply-model.js";
 import { announcement, openStep } from "./chat-progress-model.js";
 import { action, element } from "./chatdom.js";
@@ -65,6 +66,7 @@ function messageNode(message, alfredName, line = null, detail = null, continued 
   }
   const meta = element("div", "msg-meta");
   meta.append(element("span", null, formatTime(message.created_at)));
+  if (!user && answerModel(message)) meta.append(element("span", "msg-model", answerModel(message)));
   if (!user && (message.state === "failed" || message.state === "interrupted")) {
     meta.append(element("span", "failed", message.state === "interrupted" ? t("chat.thread.interrupted") : t("chat.thread.failed")));
   }
@@ -113,7 +115,7 @@ function failedTurnNode(message, alfredName) {
   const body = element("div", "error-body");
   const who = alfredName || "Alfred";
   body.append(
-    element("h3", null, t("chat.thread.failed_title", { who })),
+    element("h3", null, failedTitle(message, t("chat.thread.failed_title", { who }))),
     element(
       "p",
       null,

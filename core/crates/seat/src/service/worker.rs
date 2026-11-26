@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use excubia_chat::{ChatStore, Turn};
 
+use crate::free_models::FreeModels;
 use crate::profile::{self, SelectedProfile};
 use crate::prompt::Role;
 
@@ -31,6 +32,8 @@ pub(super) struct Worker {
     pub(super) agent_id: String,
     pub(super) turn_env: Arc<dyn Fn() -> TurnEnv + Send + Sync>,
     pub(super) on_quota_exhausted: Arc<dyn Fn() + Send + Sync>,
+    /// The free OpenCode models that ran out, shared by the turns of this service.
+    pub(super) free_models: Arc<FreeModels>,
 }
 
 pub(super) async fn run_worker(worker: Worker) {

@@ -40,7 +40,7 @@ pub use calendar_model::*;
 pub use client::CHAT_PAGE_LIMIT;
 pub(crate) use error::protocol;
 pub use error::{ChatFailure, ChatResult};
-pub use error_text::{delegation_text, team_text};
+pub use error_text::{delegation_text, run_failure_text, team_text};
 pub use hires::*;
 pub use mail_draft::*;
 pub use model::*;

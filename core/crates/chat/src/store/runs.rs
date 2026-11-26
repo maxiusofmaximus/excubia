@@ -218,6 +218,11 @@ impl super::ChatStore {
                 params![serde_json::to_string(suggestions)?, message_id],
             )?;
         }
+        // The reply names the model its turn ran on (set by the seat; NULL when it did not say).
+        transaction.execute(
+            "UPDATE message SET model = (SELECT model FROM run WHERE id = ?1) WHERE id = ?2",
+            params![run_id, message_id],
+        )?;
         check_agent_files(&transaction, &info.conversation_id, attachment_ids)?;
         link_in(
             &transaction,
@@ -246,6 +251,8 @@ impl super::ChatStore {
             body_md: text.to_string(),
             state: "complete".to_string(),
             created_at,
+            failure_reason: None,
+            model: None,
         })
     }
 
@@ -292,6 +299,8 @@ impl super::ChatStore {
             body_md: text.to_string(),
             state: "complete".to_string(),
             created_at,
+            failure_reason: None,
+            model: None,
         })
     }
 
@@ -336,6 +345,15 @@ impl super::ChatStore {
         Ok(ProgressOutcome::Accepted)
     }
 
+    /// The engine model this turn runs on. The reply that closes the run carries it.
+    pub fn set_run_model(&self, run_id: &str, model: &str) -> Result<(), ChatError> {
+        self.lock().execute(
+            "UPDATE run SET model = ?1 WHERE id = ?2",
+            params![model, run_id],
+        )?;
+        Ok(())
+    }
+
     /// The process ended without `chat.reply` (or hit the turn timeout). A
     /// failed, empty agent message is the card: clients render it as "the
     /// agent ended without answering", never as invented text.
@@ -375,6 +393,10 @@ impl super::ChatStore {
             Some(&info.agent_id),
             "",
             "failed",
+        )?;
+        transaction.execute(
+            "UPDATE message SET failure_reason = ?1 WHERE id = ?2",
+            params![reason, message_id],
         )?;
         let created = append_event(
             &transaction,

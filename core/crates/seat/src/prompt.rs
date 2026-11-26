@@ -176,6 +176,8 @@ mod tests {
             body_md: body.to_string(),
             state: "complete".to_string(),
             created_at: "2026-10-21T00:00:00Z".to_string(),
+            failure_reason: None,
+            model: None,
         }
     }
 

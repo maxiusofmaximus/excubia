@@ -306,6 +306,8 @@ impl super::ChatStore {
                 AND COALESCE(conversation.archived, 0) = 0"
         ))?;
         for value in values {
+            // A held wait (the GitHub code on github.com) pauses the budget like a card.
+            waits.pending += self.holds.count(column, value);
             let ids = statement
                 .query_map([value], |row| row.get::<_, String>(0))?
                 .collect::<Result<Vec<String>, _>>()?;

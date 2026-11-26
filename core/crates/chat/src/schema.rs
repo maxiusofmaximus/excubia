@@ -26,7 +26,7 @@ use crate::schema_reply::MESSAGE_REPLY_SCHEMA;
 use crate::schema_team::TEAM_SCHEMA;
 use crate::vault_db::open_keyed;
 
-pub const SCHEMA_VERSION: i64 = 30;
+pub const SCHEMA_VERSION: i64 = 31;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SearchMode {
@@ -241,6 +241,9 @@ fn migrate(connection: &mut Connection) -> Result<(), ChatError> {
     }
     if version < 30 {
         crate::schema_plan::migrate_to_30(connection)?;
+    }
+    if version < 31 {
+        crate::schema_message::migrate_to_31(connection)?;
     }
     Ok(())
 }

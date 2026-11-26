@@ -516,5 +516,5 @@ fn a_version_ten_database_gains_the_reply_columns_and_keeps_its_messages() {
         .expect("raw")
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .expect("version");
-    assert_eq!(version, 30);
+    assert_eq!(version, 31);
 }

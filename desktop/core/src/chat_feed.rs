@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::chat::{Approval, MailDraftCard, Message, TimelineEntry};
+use crate::chat::{run_failure_text, Approval, MailDraftCard, Message, TimelineEntry};
 
 /// One card per delegation: `ref_id` is the delegation id; older hosts may
 /// only send `delegation_id`. Card `seq` is stable, so the highest seq wins.
@@ -99,6 +99,11 @@ impl ChatFeed {
     pub fn merge_messages(&mut self, messages: impl IntoIterator<Item = Message>) {
         for mut message in messages {
             let seq = message.seq;
+            message.failure_text = message
+                .failure_reason
+                .as_deref()
+                .and_then(|reason| run_failure_text(reason))
+                .map(str::to_string);
             // A message page has no suggestions or quote: keep what the timeline gave.
             if let Some(ChatEntry::Message { message: held, .. }) = self.entries.get(&seq) {
                 if message.suggestions.is_empty() {

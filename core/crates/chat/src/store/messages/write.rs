@@ -168,6 +168,8 @@ impl super::super::ChatStore {
                 body_md: text.to_string(),
                 state: "complete".to_string(),
                 created_at: now,
+                failure_reason: None,
+                model: None,
             },
             turn: Turn {
                 id: run_id,
@@ -225,6 +227,8 @@ impl super::super::ChatStore {
             body_md: text.to_string(),
             state: "complete".to_string(),
             created_at,
+            failure_reason: None,
+            model: None,
         })
     }
 

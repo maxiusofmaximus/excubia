@@ -4,7 +4,7 @@ use crate::error::ChatError;
 use crate::model::{Message, TimelineEntry};
 
 use super::super::attachments::linked_files;
-use super::rows::{message_row, timeline_message_row};
+use super::rows::{page_message_row, timeline_message_row};
 
 /// The message rows of a timeline page, with what only the timeline shows: the
 /// quick replies, the turn state of a user message, the message it answers and
@@ -61,12 +61,12 @@ pub(super) fn load_desc(
 ) -> Result<Vec<Message>, ChatError> {
     let sql = match before_seq {
         Some(_) => {
-            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at
+            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at, failure_reason, model
                FROM message WHERE conversation_id = ?1 AND seq < ?2
               ORDER BY seq DESC LIMIT ?3"
         }
         None => {
-            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at
+            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at, failure_reason, model
                FROM message WHERE conversation_id = ?1
               ORDER BY seq DESC LIMIT ?2"
         }
@@ -75,12 +75,12 @@ pub(super) fn load_desc(
     let rows = match before_seq {
         Some(before) => statement
             .query_map(params![conversation_id, before, limit as i64], |row| {
-                message_row(row, conversation_id)
+                page_message_row(row, conversation_id)
             })?
             .collect::<Result<Vec<_>, _>>()?,
         None => statement
             .query_map(params![conversation_id, limit as i64], |row| {
-                message_row(row, conversation_id)
+                page_message_row(row, conversation_id)
             })?
             .collect::<Result<Vec<_>, _>>()?,
     };
@@ -96,12 +96,12 @@ pub(super) fn load_asc(
 ) -> Result<Vec<Message>, ChatError> {
     let sql = match before_seq {
         Some(_) => {
-            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at
+            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at, failure_reason, model
                FROM message WHERE conversation_id = ?1 AND seq > ?2 AND seq < ?3
               ORDER BY seq ASC LIMIT ?4"
         }
         None => {
-            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at
+            "SELECT id, seq, author_kind, author_agent_id, body_md, state, created_at, failure_reason, model
                FROM message WHERE conversation_id = ?1 AND seq > ?2
               ORDER BY seq ASC LIMIT ?3"
         }
@@ -111,12 +111,12 @@ pub(super) fn load_asc(
         Some(before) => statement
             .query_map(
                 params![conversation_id, after_seq, before, limit as i64],
-                |row| message_row(row, conversation_id),
+                |row| page_message_row(row, conversation_id),
             )?
             .collect::<Result<Vec<_>, _>>()?,
         None => statement
             .query_map(params![conversation_id, after_seq, limit as i64], |row| {
-                message_row(row, conversation_id)
+                page_message_row(row, conversation_id)
             })?
             .collect::<Result<Vec<_>, _>>()?,
     };

@@ -39,5 +39,16 @@ pub(super) fn message_row(row: &Row<'_>, conversation_id: &str) -> rusqlite::Res
         body_md: row.get(4)?,
         state: row.get(5)?,
         created_at: row.get(6)?,
+        failure_reason: None,
+        model: None,
+    })
+}
+
+/// A row of a message page: `message_row` plus the failure reason and the model (columns 7 and 8).
+pub(super) fn page_message_row(row: &Row<'_>, conversation_id: &str) -> rusqlite::Result<Message> {
+    Ok(Message {
+        failure_reason: row.get(7)?,
+        model: row.get(8)?,
+        ..message_row(row, conversation_id)?
     })
 }

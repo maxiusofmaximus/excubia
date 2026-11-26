@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -11,10 +12,11 @@ use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::sync::broadcast::error::RecvError;
 
+use crate::free_models::{is_free_limit, FreeModels, EXHAUSTED_REASON};
 use crate::launch;
 use crate::launch::LaunchInput;
 use crate::output_tail::OutputTail;
-use crate::profile::SelectedProfile;
+use crate::profile::{CliId, SelectedProfile};
 use crate::prompt;
 use crate::quota::looks_like_quota_exhausted;
 
@@ -25,7 +27,9 @@ use super::worker::Worker;
 use super::{lock, Phase, RunGrant, CONTEXT_CHARS, CONTEXT_MESSAGES};
 
 /// Runs the CLI for a turn that answers `run_ids` (its first run is `turn.id`). When the
-/// turn merges several messages, `turn.text` holds them in order.
+/// turn merges several messages, `turn.text` holds them in order. An OpenCode turn runs on
+/// the free models not known to be spent, in order: when one reports its free tier spent, the
+/// turn retries on the next, and fails with `free_models_exhausted` when none is left.
 pub(super) async fn run_turn(
     worker: &Worker,
     selected: &SelectedProfile,
@@ -47,6 +51,78 @@ pub(super) async fn run_turn(
     };
     let prompt = prompt::build_turn_prompt(&context, &boundary, current);
     let attachment_dirs = prompt::attachment_dirs(&context);
+
+    let attempts: Vec<Option<&'static str>> = if selected.profile.id == CliId::OpenCode {
+        worker
+            .free_models
+            .usable(Instant::now())
+            .into_iter()
+            .map(Some)
+            .collect()
+    } else {
+        vec![None]
+    };
+    let (prompt, attachment_dirs) = (prompt.as_str(), attachment_dirs.as_slice());
+    answer_on_engines(&worker.free_models, attempts, |engine_model| {
+        attempt(
+            worker,
+            selected,
+            turn,
+            run_ids,
+            prompt,
+            attachment_dirs,
+            engine_model,
+        )
+    })
+    .await
+}
+
+/// How one CLI run of a turn ended, when it did not fail outright.
+enum Attempt {
+    /// The turn answered, or the user stopped it.
+    Done,
+    /// The free model's tier is spent; the excerpt is the CLI's last output.
+    FreeLimit(String),
+}
+
+/// Runs the turn on each engine in order until one does not report its free tier spent. A
+/// spent free model is remembered in `book` and the next one is tried; with none left the turn
+/// fails with `free_models_exhausted`, followed by the last output.
+async fn answer_on_engines<Fut>(
+    book: &FreeModels,
+    engines: Vec<Option<&'static str>>,
+    mut run: impl FnMut(Option<&'static str>) -> Fut,
+) -> Result<(), String>
+where
+    Fut: Future<Output = Result<Attempt, String>>,
+{
+    let mut excerpt = String::new();
+    for engine_model in engines {
+        match run(engine_model).await? {
+            Attempt::Done => return Ok(()),
+            Attempt::FreeLimit(output) => {
+                if let Some(model) = engine_model {
+                    eprintln!("seat: {model} has no free usage left");
+                    book.mark_exhausted(model, Instant::now());
+                }
+                excerpt = output;
+            }
+        }
+    }
+    Err(with_output(EXHAUSTED_REASON.to_string(), &excerpt))
+}
+
+/// One CLI run of the turn. `engine_model` is the free OpenCode model it runs on, `None` for
+/// any other CLI.
+async fn attempt(
+    worker: &Worker,
+    selected: &SelectedProfile,
+    turn: &Turn,
+    run_ids: &[String],
+    prompt: &str,
+    attachment_dirs: &[PathBuf],
+    engine_model: Option<&str>,
+) -> Result<Attempt, String> {
     let run_dir = worker.seat_dir.join("runs").join(&turn.id);
 
     // The hook credential of this turn: minted here, handed to the CLI in its
@@ -69,10 +145,16 @@ pub(super) async fn run_turn(
     if !matches!(state, Ok(Some(RunState::Running))) {
         lock(&worker.tokens).remove(&token);
         return state
-            .map(|_| ())
+            .map(|_| Attempt::Done)
             .map_err(|error| format!("run_state_failed: {error}"));
     }
 
+    // The reply this run writes names the free model it runs on (`message.model`).
+    if let Some(model) = engine_model {
+        if let Err(error) = worker.chat.set_run_model(&turn.id, model) {
+            eprintln!("seat: could not record the model of run {}: {error}", turn.id);
+        }
+    }
     let input = LaunchInput {
         profile: &selected.profile,
         run_id: &turn.id,
@@ -80,14 +162,15 @@ pub(super) async fn run_turn(
         conversation_id: &turn.conversation_id,
         run_dir: &run_dir,
         role: &worker.role.text,
-        prompt: &prompt,
+        prompt,
         tool_url: &worker.tool_url,
         mcp_command: &worker.mcp_command,
         hook_url: &worker.hook_url,
         hook_token: &hook_token,
         hook_command: &worker.hook_command,
         plugin_dir: worker.plugin_dir.as_deref(),
-        attachment_dirs: &attachment_dirs,
+        attachment_dirs,
+        engine_model,
     };
     let plan = match launch::prepare(&input) {
         Ok(plan) => plan,
@@ -175,11 +258,15 @@ pub(super) async fn run_turn(
     };
     // A stopped turn is not a failure: the store already marked it `interrupted`.
     if replied || matches!(outcome, Outcome::Stopped) {
-        return Ok(());
+        return Ok(Attempt::Done);
     }
     settle(readers).await;
     let secrets = [token.as_str(), hook_token.as_str(), turn.text.as_str()];
     let excerpt = lock(&tail).excerpt(&secrets);
+    // A spent free model is not a failed turn: the caller tries the next free model.
+    if engine_model.is_some() && is_free_limit(&excerpt) {
+        return Ok(Attempt::FreeLimit(excerpt));
+    }
     // A turn on the local model or a chosen engine is not the seat's quota: only the default CLI counts.
     let on_default = worker
         .selected
@@ -231,6 +318,7 @@ pub(super) async fn wait_for_turn(
     tokio::pin!(exit);
     let mut frames = chat.subscribe();
     let mut frames_open = true;
+    let mut holds = chat.wait_holds_changed();
     let mut budget = ActiveBudget::new(Instant::now(), timeout);
     let (mut waits, mut change) = match read_waits(chat, &grant.run_ids) {
         Ok(read) => read,
@@ -263,6 +351,8 @@ pub(super) async fn wait_for_turn(
             _ = until(budget.deadline()) => return Outcome::Timeout,
             // A card's level ran out or its TTL passed: read the approvals again.
             _ = until(change) => read = true,
+            // A held wait began or ended (the GitHub code): read the waits again.
+            _ = holds.changed() => read = true,
             // Only the approval and conversation frames can change a wait; the
             // others, and a lag, are not worth a read (a lag may hide one).
             frame = frames.recv(), if frames_open => match frame {
@@ -287,4 +377,84 @@ fn read_waits(
         .map_err(|error| error.to_string())?;
     let change = waits.next_change.map(|left| read_at + left);
     Ok((waits, change))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use super::*;
+    use crate::free_models::FREE_MODELS;
+
+    /// Runs `answer_on_engines` with a fake CLI: each model answers with the given outcome.
+    async fn answer(
+        book: &FreeModels,
+        engines: Vec<Option<&'static str>>,
+        spent: &[&str],
+        tried: &RefCell<Vec<Option<&'static str>>>,
+    ) -> Result<(), String> {
+        answer_on_engines(book, engines, |engine_model| {
+            tried.borrow_mut().push(engine_model);
+            let spent_here = engine_model.is_some_and(|model| spent.contains(&model));
+            async move {
+                Ok(if spent_here {
+                    Attempt::FreeLimit("provider.free-limit".to_string())
+                } else {
+                    Attempt::Done
+                })
+            }
+        })
+        .await
+    }
+
+    #[tokio::test]
+    async fn a_turn_whose_first_free_model_is_spent_completes_on_the_second() {
+        let book = FreeModels::default();
+        let tried = RefCell::new(Vec::new());
+        let engines = vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])];
+        let result = answer(&book, engines, &[FREE_MODELS[0]], &tried).await;
+        assert_eq!(result, Ok(()));
+        assert_eq!(*tried.borrow(), vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])]);
+        // The spent model is remembered: the next turn starts on the second one.
+        assert_eq!(book.usable(Instant::now()), vec![FREE_MODELS[1]]);
+    }
+
+    #[tokio::test]
+    async fn a_turn_with_every_free_model_spent_fails_with_the_exhausted_reason() {
+        let book = FreeModels::default();
+        let tried = RefCell::new(Vec::new());
+        let engines = vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])];
+        let result = answer(&book, engines, FREE_MODELS, &tried).await;
+        let reason = result.expect_err("every model is spent");
+        assert!(reason.starts_with("free_models_exhausted"), "{reason}");
+        assert!(reason.contains("provider.free-limit"), "{reason}");
+        assert_eq!(tried.borrow().len(), 2);
+        assert!(book.usable(Instant::now()).is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_spent_model_is_not_tried_again_inside_its_window() {
+        let book = FreeModels::default();
+        let now = Instant::now();
+        book.mark_exhausted(FREE_MODELS[0], now);
+        // The turn starts from the usable list, so the spent model is never an engine of it.
+        let engines: Vec<Option<&'static str>> = book.usable(now).into_iter().map(Some).collect();
+        let tried = RefCell::new(Vec::new());
+        assert_eq!(answer(&book, engines, &[], &tried).await, Ok(()));
+        assert_eq!(*tried.borrow(), vec![Some(FREE_MODELS[1])]);
+    }
+
+    #[tokio::test]
+    async fn a_failure_that_is_not_a_spent_free_tier_is_not_retried() {
+        let book = FreeModels::default();
+        let calls = RefCell::new(0);
+        let result = answer_on_engines(&book, vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])], |_| {
+            *calls.borrow_mut() += 1;
+            async { Err("process_exit: 1".to_string()) }
+        })
+        .await;
+        assert_eq!(result, Err("process_exit: 1".to_string()));
+        assert_eq!(*calls.borrow(), 1);
+        assert_eq!(book.usable(Instant::now()), FREE_MODELS.to_vec());
+    }
 }

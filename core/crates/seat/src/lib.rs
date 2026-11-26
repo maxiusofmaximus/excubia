@@ -15,6 +15,7 @@ mod canary_provider;
 pub mod env;
 pub mod hook_action;
 pub mod http;
+mod free_models;
 mod launch;
 mod mcp;
 mod output_tail;

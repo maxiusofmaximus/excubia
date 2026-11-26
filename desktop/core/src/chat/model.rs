@@ -207,6 +207,15 @@ pub struct Message {
     pub attachments: Vec<Attachment>,
     #[serde(default)]
     pub created_at: String,
+    /// Failed agent messages: the run's reason, as the host gives it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_reason: Option<String>,
+    /// Failed agent messages whose reason has words: the card's text in the UI language.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_text: Option<String>,
+    /// Agent replies: the engine model that wrote the reply, when the seat knew it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
 }
 
 /// The message a reply answers. `preview` is at most 120 characters.

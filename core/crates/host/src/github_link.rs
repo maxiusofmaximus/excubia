@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use excubia_chat::{
     action_digest, Approval, ApprovalKind, ApprovalStatus, ChatError, ChatStore, GithubLinkCard,
-    NewApproval, SeatActor, ToolError, ToolReply, DEFAULT_TTL_SECONDS,
+    NewApproval, SeatActor, ToolError, ToolReply, WaitHold, DEFAULT_TTL_SECONDS,
 };
 use excubia_toolchain::github::{LinkManager, Phase, View, HOST};
 use serde_json::json;
@@ -198,6 +198,7 @@ impl GithubLink {
     /// The word the question's own attempt ends with. A question this profile never launched
     /// answers `failed` at once, so no caller waits for an attempt that is not its own.
     async fn await_outcome(&self, approval_id: &str) -> &'static str {
+        let mut hold = self.chat.hold_approval_wait(approval_id).ok();
         loop {
             {
                 let mut track = lock(&self.track);
@@ -209,12 +210,15 @@ impl GithubLink {
                     return "failed";
                 }
             }
+            self.hold_while_code_shown(&mut hold);
             tokio::time::sleep(LINK_POLL).await;
         }
     }
 
     /// The word the link running for someone else ends with, for a caller without a question.
     async fn wait_running(&self) -> &'static str {
+        let latest = lock(&self.track).ids.last().cloned();
+        let mut hold = latest.and_then(|id| self.chat.hold_approval_wait(&id).ok());
         loop {
             {
                 let mut track = lock(&self.track);
@@ -230,7 +234,21 @@ impl GithubLink {
                     return "failed";
                 }
             }
+            self.hold_while_code_shown(&mut hold);
             tokio::time::sleep(LINK_POLL).await;
+        }
+    }
+
+    /// Holds the runs' budget while the code is on the card: the operator types it on
+    /// github.com, and that time is not the agent's. The hold ends with the wait, so a
+    /// login that ends, expires or is cancelled resumes the turn with its balance.
+    fn hold_while_code_shown(&self, hold: &mut Option<WaitHold>) {
+        let shown = self
+            .link
+            .view()
+            .is_some_and(|view| view.phase == Phase::CodeReady);
+        if let Some(hold) = hold {
+            hold.set(shown);
         }
     }
 
