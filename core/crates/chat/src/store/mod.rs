@@ -66,6 +66,10 @@ mod device_tests;
 mod hire_links;
 mod hires;
 mod hook_tokens;
+mod host_log;
+#[cfg(test)]
+#[path = "host_log_tests.rs"]
+mod host_log_tests;
 mod journal;
 mod lookup;
 mod mail_card;
@@ -295,6 +299,10 @@ impl ChatStore {
     }
 
     pub(super) fn publish(&self, frame: ChatFrame) {
+        // Published after the commit, so the line never names a change that rolled back.
+        if let Some(line) = host_log::host_line(&frame) {
+            eprintln!("{line}");
+        }
         let _ = self.events.send(frame);
     }
 

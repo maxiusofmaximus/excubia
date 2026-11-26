@@ -2,11 +2,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
+import { setLang } from "../ui/i18n.js";
 import {
   canApproveMove,
   canAlwaysAllow,
   canApproveTask,
+  commandSizeLine,
   commandText,
+  shellCommand,
   conversationContext,
   conversationProject,
   countdownText,
@@ -616,4 +619,25 @@ test("«git -C <folder> status» reads like «git status»", () => {
   assert.equal(isLookCommand('ls -la /c/Users/Max/bench-proj && echo "---" && git -C /c/Users/Max/bench-proj status'), true);
   assert.equal(isLookCommand("git -C /c/Users/Max/bench-proj commit -m x"), false);
   assert.equal(isLookCommand("git -C /c/Users/Max/bench-proj push"), false);
+});
+
+test("a 60-line shell command is kept whole, and its size line counts its lines and characters", () => {
+  setLang("es");
+  const lines = Array.from({ length: 60 }, (_, i) => `Write-Output "línea ${i + 1}"`);
+  const command = lines.join("\n");
+  const shell = { tool: "PowerShell", payload_redacted: { command }, summary: "x" };
+  assert.equal(shellCommand(shell), command);
+  assert.equal(shellCommand(shell).split("\n").length, 60);
+  assert.ok(shellCommand(shell).endsWith('Write-Output "línea 60"'), "the last line is there");
+  const chars = lines.reduce((n, line) => n + [...line].length, 0) + 59;
+  assert.equal(commandSizeLine(command), `60 líneas · ${chars} caracteres`);
+  assert.equal(commandSizeLine("uno"), "1 línea · 3 caracteres");
+  assert.equal(commandSizeLine("x"), "1 línea · 1 carácter");
+  assert.equal(shellCommand({ tool: "Write", payload_redacted: { command } }), "", "only shell tools show a command block");
+  setLang("en");
+  try {
+    assert.equal(commandSizeLine("uno"), "1 line · 3 characters");
+  } finally {
+    setLang("es");
+  }
 });

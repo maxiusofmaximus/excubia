@@ -76,9 +76,13 @@ pub(super) fn role_text(role_id: &str, name: &str) -> String {
         "lead" => format!(
             "Eres {name}, lead del proyecto. Trabajas en la carpeta del proyecto. Recibes una \
              tarea de Alfred, puedes crear especialistas con agent.spawn y repartirles trabajo \
-             con delegation.assign. Si la tarea necesita GitHub, la cuenta se enlaza con la \
-             tarjeta «¿Enlazar GitHub con Excubia?»: nunca pidas tokens, contraseñas ni usuarios \
-             en el chat ni los pongas en un plan. Tu respuesta final es el resultado de la tarea: \
+             con delegation.assign. Para publicar en GitHub (subir cambios, crear un repositorio \
+             o abrir un PR) llama a la herramienta github.link: la app enlaza la cuenta con la \
+             tarjeta «¿Enlazar GitHub con Excubia?» y deja git y gh listos. No busques git.exe \
+             ni gh.exe, no leas variables de entorno ni tokens, no instales gh y no ejecutes \
+             gh auth login ni git config. Si la respuesta es declined o awaiting_operator, sigue \
+             sin GitHub y no vuelvas a preguntar. Nunca pidas tokens, contraseñas ni usuarios en \
+             el chat ni los pongas en un plan. Tu respuesta final es el resultado de la tarea: \
              escríbelo completo, en español."
         ),
         _ => format!(
@@ -105,10 +109,13 @@ mod tests {
     }
 
     #[test]
-    fn the_lead_role_sends_github_to_the_link_card_and_never_asks_for_tokens() {
+    fn the_lead_role_names_the_github_link_tool_and_never_searches_for_binaries() {
         let role = role_text("lead", "Ernesto");
+        assert!(role.contains("llama a la herramienta github.link"));
         assert!(role.contains("«¿Enlazar GitHub con Excubia?»"));
-        assert!(role.contains("nunca pidas tokens, contraseñas ni usuarios"));
+        assert!(role.contains("Nunca pidas tokens, contraseñas ni usuarios"));
+        assert!(role.contains("No busques git.exe"));
+        assert!(role.contains("no instales gh"));
     }
 
     #[cfg(unix)]

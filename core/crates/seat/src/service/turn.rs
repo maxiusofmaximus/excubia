@@ -135,6 +135,7 @@ async fn attempt(
     attachment_dirs: &[PathBuf],
     engine_model: Option<&str>,
 ) -> Result<Attempt, String> {
+    let started = Instant::now();
     let run_dir = worker.seat_dir.join("runs").join(&turn.id);
 
     // The hook credential of this turn: minted here, handed to the CLI in its
@@ -270,6 +271,11 @@ async fn attempt(
     };
     // A stopped turn is not a failure: the store already marked it `interrupted`.
     if replied || matches!(outcome, Outcome::Stopped) {
+        if replied {
+            let model = engine_model.unwrap_or(selected.profile.id.as_str());
+            let seconds = started.elapsed().as_secs();
+            eprintln!("{}", done_line(&turn.id, &worker.agent_id, model, seconds));
+        }
         return Ok(Attempt::Done);
     }
     settle(readers).await;
@@ -397,12 +403,28 @@ fn read_waits(
     Ok((waits, change))
 }
 
+/// The `host.log` line of a run that answered. It takes the run, the seat and the model only:
+/// the prompt and the tokens never reach it.
+fn done_line(run_id: &str, agent: &str, model: &str, seconds: u64) -> String {
+    format!("seat: run {run_id} done by {agent} on {model} in {seconds}s")
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
 
     use super::*;
     use crate::free_models::FREE_MODELS;
+
+    #[test]
+    fn a_finished_run_logs_its_seat_model_and_seconds() {
+        let line = done_line("01RUN", "alfred", "deepseek-v4.1-flash-free", 42);
+        assert_eq!(
+            line,
+            "seat: run 01RUN done by alfred on deepseek-v4.1-flash-free in 42s"
+        );
+        assert!(!line.contains("TOKEN_SENTINEL"));
+    }
 
     /// Runs `answer_on_engines` with a fake CLI: each model answers with the given outcome.
     async fn answer(

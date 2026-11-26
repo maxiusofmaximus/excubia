@@ -277,6 +277,22 @@ export function commandText(entry) {
   return String(payload.command || entry.summary || "");
 }
 
+// The whole command of a shell request, or "" for any other tool.
+export function shellCommand(entry) {
+  return SHELL_TOOLS.has(String(entry.tool || "").toLowerCase()) ? commandText(entry) : "";
+}
+
+// «N líneas · M caracteres»: how much the operator is about to approve, counted on the text as sent.
+export function commandSizeLine(text) {
+  const plural = (n, one, many) => t(n === 1 ? one : many, { n });
+  const lines = text.split("\n").length;
+  const chars = [...text].length;
+  return t("approval.command_stats", {
+    lines: plural(lines, "approval.count_line", "approval.count_lines"),
+    chars: plural(chars, "approval.count_char", "approval.count_chars"),
+  });
+}
+
 // Local-only facts about an approval the host has not echoed yet: a request in
 // flight, a 403, or the client id a retry must reuse. The host row wins for
 // status; this only colours the card in between.
@@ -629,7 +645,7 @@ export function detailFacts(entry) {
   const paths = Array.isArray(entry.paths) ? entry.paths.join(", ") : "";
   const shown = [[t("approval.fact_path"), paths]];
   const said = String(entry.headline || "").trim();
-  const command = SHELL_TOOLS.has(String(entry.tool || "").toLowerCase()) ? commandText(entry) : "";
+  const command = shellCommand(entry);
   const technical = [
     [t("approval.fact_command"), command],
     [t("approval.fact_folder"), isRunFolder(entry.cwd) ? "" : entry.cwd || ""],

@@ -32,6 +32,8 @@ import {
   countdownStarted,
   seenState,
   settledLine,
+  shellCommand,
+  commandSizeLine,
   shortDigest,
   statusMeta,
 } from "./approval-model.js";
@@ -135,9 +137,22 @@ function plainActions(entry, open, ttl) {
   return row;
 }
 
+// The whole command, with its size above it. Long lines wrap and a tall command scrolls in its own box,
+// so the buttons under it stay in view.
+function commandBlock(command) {
+  const box = element("div", "approval-command-box");
+  const full = element("pre", "approval-command-full", command);
+  full.tabIndex = 0;
+  box.append(element("p", "approval-command-size", commandSizeLine(command)), full);
+  return box;
+}
+
 // «Detalles» holds the file's path; «Detalles técnicos» is one level below it, or sits on the card when there is no path.
+// The command is on the card already, so the technical level leaves it out.
 function plainDetails(entry) {
-  const { shown, technical } = detailFacts(entry);
+  const { shown, technical: all } = detailFacts(entry);
+  const command = shellCommand(entry);
+  const technical = all.filter(([, value]) => value !== command);
   let tech = null;
   if (technical.length) {
     tech = element("details", "approval-tech");
@@ -185,6 +200,8 @@ function renderPlainCard(entry, now) {
   }
   const risk = riskNote(entry);
   if (risk) card.append(element("p", "approval-note", risk));
+  const command = shellCommand(entry);
+  if (command) card.append(commandBlock(command));
 
   const ttl = element("span", "approval-ttl", isChecking(entry, now) ? CHECKING_TEXT : "");
   ttl.dataset.expires = countdownStarted(entry) ? entry.expires_at || "" : "";
