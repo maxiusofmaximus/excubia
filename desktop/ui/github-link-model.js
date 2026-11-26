@@ -9,6 +9,21 @@ export const GITHUB_TOOL = "github.link";
 const FINISHED = ["linked", "setup_failed", "failed", "expired", "cancelled", "declined", "superseded"];
 // The stages in which the operator can still cancel this question's link.
 const CANCELLABLE = ["starting", "preparing", "waiting_code", "code_ready", "verifying"];
+// The stages that offer «Volver a intentar»: the link failed or its request expired.
+const RETRYABLE = ["failed", "setup_failed", "expired"];
+// The cause of a failed link, from the host's fixed code. A code not listed here is `other`.
+const CAUSE_OF_CODE = new Map([
+  ["download_failed", "offline"],
+  ["api_failed", "offline"],
+  ["login_failed", "login"],
+  ["busy", "install"],
+  ["size_mismatch", "install"],
+  ["digest_mismatch", "install"],
+  ["extract_failed", "install"],
+  ["layout_missing", "install"],
+  ["version_mismatch", "install"],
+  ["swap_failed", "install"],
+]);
 // The result line for each stage that ends the card.
 const RESULT_KEYS = {
   linked: "github.result.linked",
@@ -47,6 +62,13 @@ export function isGithubFinished(stage) {
   return FINISHED.includes(stage);
 }
 
+// The cause of a failed link as one key suffix (`offline`, `install`, `login`, `other`), or null
+// when the stage has no failure to explain. The code comes from the host, never from text it wrote.
+export function githubCause(stage, card) {
+  if (stage !== "failed" && stage !== "setup_failed") return null;
+  return CAUSE_OF_CODE.get(card && card.failure) || "other";
+}
+
 // What the card shows for a stage. The code and the button appear only at `code_ready`, and the
 // cancel button only while this question's link runs.
 export function githubFacts(stage, card) {
@@ -58,6 +80,8 @@ export function githubFacts(stage, card) {
     showOpen: stage === "code_ready" || stage === "waiting_code",
     openUrl: GITHUB_DEVICE_URL,
     showCancel: CANCELLABLE.includes(stage),
+    showRetry: RETRYABLE.includes(stage),
+    cause: githubCause(stage, card),
     resultKey: RESULT_KEYS[stage] || null,
     login: card && card.login ? card.login : null,
   };

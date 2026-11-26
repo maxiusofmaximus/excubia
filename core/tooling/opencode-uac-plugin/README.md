@@ -67,7 +67,7 @@ configuración.
 | `EXCUBIA_HOOK_TOKEN` | sí | Token por run; se envía en `X-Excubia-Hook-Token` |
 | `EXCUBIA_PANE_ID` | recomendada | Panel que se marca `blocked` |
 | `EXCUBIA_RUN_ID` | opcional | Run de la delegación |
-| `EXCUBIA_UAC_TTL_SECONDS` | no | TTL, por defecto 120 s (máx. 300) |
+| `EXCUBIA_UAC_TTL_SECONDS` | no | TTL, por defecto 600 s (máx. 600) |
 | `EXCUBIA_UAC_POLL_MS` | no | Sondeo, por defecto 750 ms |
 | `EXCUBIA_UAC_EXTRA_TOOLS` | no | Herramientas extra separadas por comas |
 

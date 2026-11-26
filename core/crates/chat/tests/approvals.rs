@@ -188,26 +188,26 @@ fn the_maximum_ttl_is_three_hundred_seconds() {
     new.ttl_seconds = 10_000;
     let approval = store.create_approval(new).expect("approval");
 
-    // The host clamps the TTL: the deadline is at most 300 seconds away and
+    // The host clamps the TTL: the deadline is at most 600 seconds away and
     // it is not cut to the minimum.
     let connection = rusqlite::Connection::open(&path).expect("raw");
     let horizon: String = connection
         .query_row(
-            "SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+300 seconds')",
+            "SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+600 seconds')",
             [],
             |row| row.get(0),
         )
         .expect("horizon");
     let floor: String = connection
         .query_row(
-            "SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+290 seconds')",
+            "SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+590 seconds')",
             [],
             |row| row.get(0),
         )
         .expect("floor");
     assert!(
         approval.expires_at <= horizon,
-        "{} is further away than 300 s",
+        "{} is further away than 600 s",
         approval.expires_at
     );
     assert!(

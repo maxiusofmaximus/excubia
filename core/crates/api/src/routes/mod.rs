@@ -61,7 +61,10 @@ pub use chat::{
 pub use devices::{device_sas, grant_device, list_devices, revoke_device};
 pub use doc_tools::list as doc_tools;
 pub use events::events;
-pub use github::{link_cancel as github_link_cancel, link_state as github_link_state};
+pub use github::{
+    link_cancel as github_link_cancel, link_retry as github_link_retry,
+    link_state as github_link_state,
+};
 pub use hires::{
     create as create_hire, dismiss as dismiss_hire, list as list_hires, team_summary,
     update as update_hire,

@@ -317,6 +317,23 @@ impl GithubLink {
         let track = lock(&self.track);
         track.ids.iter().any(|id| id == approval_id) && !track.settled && self.link.cancel()
     }
+
+    /// The card's «Volver a intentar»: the same checks as Alfred's request, so a new question
+    /// waits for the operator's allow and nothing is skipped. `true` when a question or a link
+    /// is in progress.
+    pub fn retry(&self) -> bool {
+        let Ok(boot) = self.chat.bootstrap() else {
+            return false;
+        };
+        let actor = SeatActor {
+            agent_id: boot.alfred.agent_id,
+            role_id: "alfred".into(),
+            project_id: None,
+            conversation_id: String::new(),
+            run_id: String::new(),
+        };
+        matches!(self.open(&actor, None), Ok(Step::Wait(_) | Step::Link))
+    }
 }
 
 /// The card's words for a link. The code is kept only while the login shows it.
@@ -503,6 +520,21 @@ mod tests {
             Some(json!({ "host": HOST, "missing_tools": ["git", "gh"] }))
         );
         assert_eq!(row.action_digest, digest());
+    }
+
+    /// The card's retry asks for one new question; a second press joins the one still open.
+    #[test]
+    fn retry_asks_once_and_a_second_press_joins_it() {
+        let (chat, github) = fixture();
+        assert!(github.retry());
+        assert!(github.retry());
+        let pending = chat
+            .approvals_for_tool(TOOL)
+            .expect("list")
+            .into_iter()
+            .filter(|approval| approval.status == ApprovalStatus::Pending)
+            .count();
+        assert_eq!(pending, 1);
     }
 
     fn status_of(chat: &ChatStore, id: &str) -> ApprovalStatus {

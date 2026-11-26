@@ -294,7 +294,7 @@ export default {
   "chat.thread.quick_replies_aria": "Quick replies",
   "chat.thread.quick_reply_aria": "Reply: {text}",
   "chat.thread.failed_title": "{who} finished without replying",
-  "chat.thread.failed_body": "The turn failed before calling chat.reply; no reply was made up. The project, the cards and the history are kept.",
+  "chat.thread.failed_body": "Alfred did not get to reply. The project, the cards and the history are kept; you can retry.",
   "chat.thread.retry": "Retry",
   "chat.thread.open_team": "Open team",
   "chat.note.delegation": "TASK",

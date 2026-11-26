@@ -12,9 +12,9 @@ use serde_json::Value;
 use crate::policy::Category;
 
 /// The TTL of an approval when nobody asks for another one.
-pub const DEFAULT_TTL_SECONDS: u32 = 120;
-/// The longest TTL the host accepts.
-pub const MAX_TTL_SECONDS: u32 = 300;
+pub const DEFAULT_TTL_SECONDS: u32 = 600;
+/// The longest TTL the host accepts. The store clamps to it, so it is never below the default.
+pub const MAX_TTL_SECONDS: u32 = 600;
 /// The longest TTL of a batch of mail moves (F2b-1): the operator may take longer
 /// over a batch than over a single decision. Only `mail_organize` gets it.
 pub const MAIL_ORGANIZE_MAX_TTL_SECONDS: u32 = 1800;

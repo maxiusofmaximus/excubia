@@ -17,14 +17,14 @@ use crate::tools;
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
 /// The longest a tool call may take. The slowest are the calls that wait for the
-/// operator's card: up to 300 s for a mailbox or style rule, plus the host's
-/// decision slack. Shorter, and an approval given after the cut is recorded but
+/// operator's card: up to the default approval TTL (600 s), plus the host's
+/// decision slack (30 s). Shorter, and an approval given after the cut is recorded but
 /// never applied.
-const CALL_TIMEOUT: Duration = Duration::from_secs(330);
-/// `github.link` waits for the operator's card (120 s), for the installer when the tools are
-/// missing (one download, up to 900 s) and for GitHub's device code (15 min). Shorter, and the
-/// host finishes the link after the seat already gave up on the answer.
-const LINK_CALL_TIMEOUT: Duration = Duration::from_secs(2_100);
+const CALL_TIMEOUT: Duration = Duration::from_secs(630);
+/// `github.link` waits for the operator's card (600 s), for the installer when the tools are
+/// missing (one download, up to 900 s) and for GitHub's device code (15 min), plus 60 s of slack.
+/// Shorter, and the host finishes the link after the seat already gave up on the answer.
+const LINK_CALL_TIMEOUT: Duration = Duration::from_secs(2_460);
 
 fn call_timeout(tool: &str) -> Duration {
     if tool == "github.link" {
@@ -299,10 +299,10 @@ mod tests {
 
     #[test]
     fn github_link_waits_for_the_device_code_and_other_tools_keep_the_short_limit() {
-        assert_eq!(call_timeout("github.link"), Duration::from_secs(2_100));
-        assert!(call_timeout("github.link") >= Duration::from_secs(120 + 900 + 900));
-        assert_eq!(call_timeout("chat.reply"), Duration::from_secs(330));
-        assert_eq!(call_timeout("approval.request"), Duration::from_secs(330));
+        assert_eq!(call_timeout("github.link"), Duration::from_secs(2_460));
+        assert!(call_timeout("github.link") >= Duration::from_secs(600 + 900 + 900));
+        assert_eq!(call_timeout("chat.reply"), Duration::from_secs(630));
+        assert_eq!(call_timeout("approval.request"), Duration::from_secs(630));
     }
 
     #[test]

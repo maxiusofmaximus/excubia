@@ -497,6 +497,7 @@ fn client_routes(ctx: &ApiContext) -> Router<ApiContext> {
         .route("/v1/vault/finish", post(routes::vault_finish))
         .route("/v1/github/link", get(routes::github_link_state))
         .route("/v1/github/link/cancel", post(routes::github_link_cancel))
+        .route("/v1/github/link/retry", post(routes::github_link_retry))
         .route("/v1/mail/login/start", post(routes::mail_login_start))
         .route("/v1/mail/login/status", get(routes::mail_login_status))
         .route("/v1/mail/accounts", get(routes::mail_accounts))

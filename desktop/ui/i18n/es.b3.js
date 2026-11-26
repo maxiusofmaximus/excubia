@@ -294,7 +294,7 @@ export default {
   "chat.thread.quick_replies_aria": "Respuestas rápidas",
   "chat.thread.quick_reply_aria": "Responder: {text}",
   "chat.thread.failed_title": "{who} terminó sin responder",
-  "chat.thread.failed_body": "El turno falló antes de llamar a chat.reply; no se inventó una respuesta. El proyecto, las tarjetas y el historial se conservan.",
+  "chat.thread.failed_body": "Alfred no llegó a responder. El proyecto, las tarjetas y el historial se conservan; puedes reintentar.",
   "chat.thread.retry": "Reintentar",
   "chat.thread.open_team": "Abrir equipo",
   "chat.note.delegation": "DELEG",

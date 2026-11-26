@@ -134,6 +134,7 @@ pub fn classify(method: &str, target: &str) -> Result<EndpointRule, Forbidden> {
         // the operator's device only, like the approval it belongs to.
         ("GET", "/v1/github/link") => Ok(rule(Permission::Approve, Budget::Read)),
         ("POST", "/v1/github/link/cancel") => Ok(rule(Permission::Approve, Budget::Write)),
+        ("POST", "/v1/github/link/retry") => Ok(rule(Permission::Approve, Budget::Write)),
         // Starting a conversation launches an agent on the host.
         ("POST", "/v1/workspaces") => Ok(rule(Permission::Respond, Budget::Write)),
         // A voice note is a message in other form: the same permission, the same budget.

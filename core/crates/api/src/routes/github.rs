@@ -36,6 +36,17 @@ pub async fn link_cancel(State(ctx): State<ApiContext>, body: Bytes) -> Response
     no_store(Json(json!({ "ok": true, "cancelled": cancelled })).into_response())
 }
 
+/// `POST /v1/github/link/retry` (signed, `APPROVE`): asks for the link again. The host opens a new
+/// question for the operator to allow; nothing is started without that allow.
+pub async fn link_retry(State(ctx): State<ApiContext>) -> Response {
+    let seat = ctx.seat.clone();
+    // The checks read the local Git and gh: they run off the async workers.
+    let asked = tokio::task::spawn_blocking(move || seat.github_link_retry())
+        .await
+        .unwrap_or(false);
+    no_store(Json(json!({ "ok": true, "asked": asked })).into_response())
+}
+
 fn no_store(mut response: Response) -> Response {
     response
         .headers_mut()

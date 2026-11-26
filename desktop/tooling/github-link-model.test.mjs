@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { dictionaries, setLang, t } from "../ui/i18n.js";
 import {
   GITHUB_DEVICE_URL,
+  githubCause,
   githubExplanation,
   githubFacts,
   githubMissing,
@@ -85,6 +86,37 @@ test("only the approval of github.link takes this card, and only pending or star
   assert.equal(githubPolls("code_ready"), true);
   assert.equal(githubPolls("linked"), false);
   assert.equal(githubPolls("superseded"), false);
+});
+
+test("a failed link names its cause from the host's code, and every cause has words in both languages", () => {
+  const failed = (failure, phase = "failed") => ({ phase, failure, approval_ids: ["apr_mine"] });
+  assert.equal(githubCause("failed", failed("download_failed")), "offline");
+  assert.equal(githubCause("failed", failed("login_failed")), "login");
+  assert.equal(githubCause("failed", failed("digest_mismatch")), "install");
+  assert.equal(githubCause("failed", failed("spawn_failed")), "other");
+  assert.equal(githubCause("failed", failed(undefined)), "other", "a failure without a code is other");
+  assert.equal(githubCause("setup_failed", failed("identity_failed", "setup_failed")), "other");
+  assert.equal(githubCause("linked", served("linked")), null);
+  assert.equal(githubCause("expired", served("expired")), null, "an expired request states its cause in its result");
+  assert.equal(githubFacts("failed", failed("login_failed")).cause, "login");
+  for (const lang of ["es", "en"]) {
+    setLang(lang);
+    for (const cause of ["offline", "install", "login", "other"]) {
+      const text = t(`github.cause.${cause}`);
+      assert.ok(text && !text.startsWith("github."), `${lang} has the ${cause} cause`);
+      assert.ok(!/_failed|download|digest|gh |setup/.test(text), `${lang} ${cause} names no internal term`);
+    }
+  }
+  setLang("es");
+});
+
+test("retry is offered only where the link failed or the request expired, never over another question's card", () => {
+  for (const stage of ["failed", "setup_failed", "expired"]) {
+    assert.equal(githubFacts(stage, served(stage)).showRetry, true, `${stage} offers retry`);
+  }
+  for (const stage of ["linked", "code_ready", "waiting_code", "cancelled", "declined", "superseded", "starting"]) {
+    assert.equal(githubFacts(stage, served(stage)).showRetry, false, `${stage} offers no retry`);
+  }
 });
 
 test("ES and EN read the same states with their own words", () => {

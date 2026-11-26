@@ -39,4 +39,10 @@ export default {
   "github.cancel": "Cancel link",
   "github.hint": "Open GitHub, type the code and confirm. Excubia never sees your password.",
   "github.stale": "No answer from the link. Ask again.",
+  "github.cause.offline": "There is no connection to GitHub. Check your internet and try again.",
+  "github.cause.install": "The tools needed could not be prepared. Try again.",
+  "github.cause.login": "GitHub rejected the sign-in or it was cancelled. Try again.",
+  "github.cause.other": "Something went wrong linking the account. Try again.",
+  "github.retry": "Try again",
+  "github.retry_failed": "Could not try again. Please retry.",
 };

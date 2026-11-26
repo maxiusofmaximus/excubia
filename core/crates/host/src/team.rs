@@ -183,6 +183,10 @@ impl ChatSeat for TeamService {
         self.github.cancel(approval_id)
     }
 
+    fn github_link_retry(&self) -> bool {
+        self.github.retry()
+    }
+
     fn actor(&self, token: &str) -> Option<SeatActor> {
         self.grant(token)
             .map(|grant| grant.actor)

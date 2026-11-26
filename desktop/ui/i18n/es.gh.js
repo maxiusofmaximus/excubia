@@ -39,4 +39,10 @@ export default {
   "github.cancel": "Cancelar enlace",
   "github.hint": "Abre GitHub, escribe el código y confirma. Excubia nunca ve tu contraseña.",
   "github.stale": "No llega respuesta del enlace. Vuelve a pedirlo.",
+  "github.cause.offline": "No hay conexión con GitHub. Revisa internet y vuelve a intentarlo.",
+  "github.cause.install": "No se pudieron preparar las herramientas necesarias. Vuelve a intentarlo.",
+  "github.cause.login": "GitHub rechazó el inicio de sesión o lo cancelaste. Vuelve a intentarlo.",
+  "github.cause.other": "Algo falló al enlazar la cuenta. Vuelve a intentarlo.",
+  "github.retry": "Volver a intentar",
+  "github.retry_failed": "No se pudo volver a intentar. Prueba de nuevo.",
 };

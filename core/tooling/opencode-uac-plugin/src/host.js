@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { redact, redactText } from "./digest.js";
 
-const DEFAULT_TTL_SECONDS = 120;
-const MAX_TTL_SECONDS = 300;
+const DEFAULT_TTL_SECONDS = 600;
+const MAX_TTL_SECONDS = 600;
 const REQUEST_TIMEOUT_MS = 5000;
 const DEFAULT_POLL_MS = 750;
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "[::1]", "localhost"]);

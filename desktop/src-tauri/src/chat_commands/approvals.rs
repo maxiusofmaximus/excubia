@@ -76,6 +76,15 @@ pub async fn chat_github_link_cancel(
     Ok(client.chat_github_link_cancel(&approval_id).await?)
 }
 
+/// Asks for the GitHub link again after a failure or an expiry. The host opens a new question,
+/// which the operator must allow.
+#[tauri::command]
+pub async fn chat_github_link_retry(state: State<'_, Shared>) -> Result<bool, ChatFailure> {
+    let shared = shared(&state);
+    let client = client(&shared)?;
+    Ok(client.chat_github_link_retry().await?)
+}
+
 /// The operator's inbox: every approval that waits for him, across
 /// conversations. Conversation-less ones only show up here.
 #[tauri::command]

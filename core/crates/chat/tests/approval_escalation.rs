@@ -132,10 +132,10 @@ fn a_level_that_runs_out_climbs_and_the_ttl_expires_it() {
     assert_eq!(user.level.as_deref(), Some("user"));
     assert_eq!(user.escalated_from.as_deref(), Some("cto"));
     assert_eq!(user.status, ApprovalStatus::Pending);
-    // The user sees the card at t=80: the 120 s TTL starts there, not at creation.
+    // The user sees the card at t=80: the TTL starts there, not at creation.
     team.store.show_approval(&approval.id).expect("shown to the user");
 
-    clock.advance_secs(119);
+    clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS) - 1);
     assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Pending);
 
     clock.advance_secs(1);
@@ -189,7 +189,7 @@ fn an_operator_who_answers_after_the_ttl_finds_it_expired_and_the_hook_sees_it()
 
     clock.advance_secs(80);
     team.store.show_approval(&approval.id).expect("shown to the user");
-    clock.advance_secs(120);
+    clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS));
     let late = team
         .store
         .decide_approval(&approval.id, Decision::Approve, "device-1", "device-1");
@@ -268,7 +268,7 @@ fn with_no_live_lead_and_no_cto_the_approval_goes_straight_to_the_user() {
     assert_eq!(approval.reason.as_deref(), Some("decider_unavailable"));
     team.store.show_approval(&approval.id).expect("shown to the user");
 
-    clock.advance_secs(119);
+    clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS) - 1);
     assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Pending);
     clock.advance_secs(1);
     assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Expired);
@@ -290,7 +290,7 @@ fn the_expiry_leaves_its_line_in_the_timeline() {
 
     clock.advance_secs(80);
     team.store.show_approval(&approval.id).expect("shown to the user");
-    clock.advance_secs(120);
+    clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS));
     let page = team
         .store
         .timeline(&team.conversation, None, 50)
@@ -331,7 +331,7 @@ fn a_showing_at_the_lead_does_not_start_the_ttl_only_the_users_does() {
     assert!(read(&team, &approval.id).shown_at.is_none());
 
     team.store.show_approval(&approval.id).expect("shown to the user");
-    clock.advance_secs(119);
+    clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS) - 1);
     assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Pending);
     clock.advance_secs(1);
     assert_eq!(read(&team, &approval.id).status, ApprovalStatus::Expired);

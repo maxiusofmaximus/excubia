@@ -86,6 +86,10 @@ function paintStage(section, stage, card) {
     const key = stage === "linked" && !facts.login ? "github.result.linked_plain" : facts.resultKey;
     section.append(el("p", "github-result", t(key, facts.login ? { login: facts.login } : undefined)));
   }
+  if (facts.cause) section.append(el("p", "github-cause", t(`github.cause.${facts.cause}`)));
+  if (facts.showRetry) {
+    section.append(button(t("github.retry"), "btn secondary", () => retryLink(section)));
+  }
 }
 
 function button(label, className, onClick) {
@@ -105,6 +109,18 @@ async function cancelLink(approvalId) {
     await invoke("chat_github_link_cancel", { approvalId });
   } catch {
     // The next read shows the state; a failed cancel leaves the link running and visible.
+  }
+  refresh();
+}
+
+// Asks again: the host opens a new question, which appears for the operator to allow. Nothing starts
+// before that allow, so a retry never skips the permission.
+async function retryLink(section) {
+  try {
+    await invoke("chat_github_link_retry");
+  } catch {
+    section.append(el("p", "github-hint", t("github.retry_failed")));
+    return;
   }
   refresh();
 }

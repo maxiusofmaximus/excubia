@@ -54,6 +54,11 @@ struct LinkCancelled {
     cancelled: bool,
 }
 
+#[derive(Deserialize)]
+struct LinkRetried {
+    asked: bool,
+}
+
 impl HostClient {
     /// The card's state, or `None` while no link was approved.
     pub async fn chat_github_link(&self) -> ChatResult<Option<GithubLinkCard>> {
@@ -72,5 +77,14 @@ impl HostClient {
             .chat_call(Method::POST, "/v1/github/link/cancel", &[], Some(&body), true)
             .await?;
         Ok(done.cancelled)
+    }
+
+    /// Asks for the link again. `false` when the host did not open a question. The operator
+    /// still has to allow the new question.
+    pub async fn chat_github_link_retry(&self) -> ChatResult<bool> {
+        let asked: LinkRetried = self
+            .chat_call(Method::POST, "/v1/github/link/retry", &[], None, true)
+            .await?;
+        Ok(asked.asked)
     }
 }

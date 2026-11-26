@@ -395,6 +395,6 @@
 /* «Enlazar GitHub»: the progress, the one-time code and the result on the approval card. */
 .github-link { display: grid; gap: 0.5rem; margin: 0.5rem 0; }
 .github-stage, .github-result { margin: 0; }
-.github-code-label, .github-hint { margin: 0; font-size: 0.9em; opacity: 0.8; }
+.github-code-label, .github-hint, .github-cause { margin: 0; font-size: 0.9em; opacity: 0.8; }
 .github-code { font-size: 1.4em; letter-spacing: 0.12em; user-select: all; }
 .github-btn { justify-self: start; }

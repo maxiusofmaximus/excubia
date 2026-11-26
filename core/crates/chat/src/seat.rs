@@ -183,6 +183,11 @@ pub trait ChatSeat: Send + Sync + 'static {
         false
     }
 
+    /// Asks for the GitHub link again after a failure or an expiry; the operator still allows it.
+    fn github_link_retry(&self) -> bool {
+        false
+    }
+
     /// Start a recipe: the hire takes the body from Alfred and the panel gets it.
     /// A seat that cannot deliver refuses, so no work is left queued forever.
     async fn run_recipe(

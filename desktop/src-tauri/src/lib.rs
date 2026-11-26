@@ -117,6 +117,7 @@ pub fn run() {
             chat_commands::approvals::chat_approval_seen,
             chat_commands::approvals::chat_github_link_state,
             chat_commands::approvals::chat_github_link_cancel,
+            chat_commands::approvals::chat_github_link_retry,
             chat_commands::approvals::chat_approval_settings,
             chat_commands::approvals::chat_pending_approvals,
             chat_commands::approvals::chat_approvals_with_status,

@@ -10,6 +10,9 @@ use std::time::{Duration, Instant};
 /// The free models in order of preference. Only `opencode/*-free` ids belong here.
 pub const FREE_MODELS: &[&str] = &[
     "opencode/deepseek-v4.1-flash-free",
+    "opencode/mimo-v2.6-flash-free",
+    "opencode/hy4-flash-free",
+    "opencode/nemotron-3.5-super-vl-free",
     "opencode/nemotron-3.5-lightning-free",
 ];
 

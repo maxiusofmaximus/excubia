@@ -10,7 +10,7 @@ el plugin se prueba contra un servidor de eco local. No sustituye al contrato de
    `::1` o `localhost`, y rechaza URL con usuario/contraseña.
 2. Token por run en `X-Excubia-Hook-Token` (el mismo `EXCUBIA_HOOK_TOKEN` de `HOOKS.md`).
    El token nunca va en argv, prompt, URL ni logs.
-3. TTL por defecto 120 s, máximo 300 s. El host es la autoridad de `expires_at`.
+3. TTL por defecto 600 s, máximo 600 s. El host es la autoridad de `expires_at`.
 4. Un solo uso: tras `approved`, el plugin llama a `consume`; si falla, deniega.
 5. Fail closed: timeout, HTTP no esperado, JSON inválido o estado desconocido
    bloquean la herramienta.

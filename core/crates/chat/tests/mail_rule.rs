@@ -1,6 +1,6 @@
 //! A mailbox rule (F3B) is one question for the operator's device alone: no lead,
 //! CTO, worker or allow rule decides it, however it is worded. It waits the ordinary
-//! five minutes, and the generic path cannot file it.
+//! ten minutes, and the generic path cannot file it.
 
 mod common;
 
@@ -89,7 +89,7 @@ cwd_under = "any"
 }
 
 #[test]
-fn a_rule_may_wait_five_minutes_and_no_longer() {
+fn a_rule_may_wait_ten_minutes_and_no_longer() {
     let team = team("rule-ttl");
     let clock = Arc::new(ManualClock::at(START_MS));
     team.store.set_clock(clock);
@@ -99,7 +99,7 @@ fn a_rule_may_wait_five_minutes_and_no_longer() {
         .create_mail_rule_approval(rule(&team, "Facturas", 1800))
         .expect("the rule is filed");
 
-    assert_eq!(asked.expires_at, "2026-10-21T00:05:00.000Z");
+    assert_eq!(asked.expires_at, "2026-10-21T00:10:00.000Z");
 }
 
 #[test]

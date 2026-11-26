@@ -176,6 +176,9 @@ fn the_github_link_card_is_an_approve_surface() {
     let cancel = classify("POST", "/v1/github/link/cancel").expect("cancel");
     assert_eq!(cancel.permission, Some(Permission::Approve));
     assert_eq!(cancel.budget, Budget::Write);
+    let retry = classify("POST", "/v1/github/link/retry").expect("retry");
+    assert_eq!(retry.permission, Some(Permission::Approve));
+    assert_eq!(retry.budget, Budget::Write);
     assert!(classify("POST", "/v1/github/link").is_err());
 }
 

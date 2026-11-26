@@ -183,7 +183,7 @@ fn a_batch_may_wait_thirty_minutes_and_no_longer() {
 }
 
 #[test]
-fn every_other_question_keeps_the_five_minute_ceiling() {
+fn every_other_question_keeps_the_ten_minute_ceiling() {
     let team = team("organize-ttl-others");
     let clock = Arc::new(ManualClock::at(START_MS));
     team.store.set_clock(clock.clone());
@@ -197,13 +197,13 @@ fn every_other_question_keeps_the_five_minute_ceiling() {
             1800,
         ))
         .expect("the send is filed");
-    assert_eq!(send.expires_at, "2026-10-21T00:05:00.000Z");
+    assert_eq!(send.expires_at, "2026-10-21T00:10:00.000Z");
 
     let shell = team
         .store
         .create_approval(command(&team, "npm test", 1800))
         .expect("the command is filed");
-    assert_eq!(shell.expires_at, "2026-10-21T00:05:00.000Z");
+    assert_eq!(shell.expires_at, "2026-10-21T00:10:00.000Z");
 }
 
 #[test]

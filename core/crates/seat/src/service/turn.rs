@@ -83,11 +83,15 @@ enum Attempt {
     Done,
     /// The free model's tier is spent; the excerpt is the CLI's last output.
     FreeLimit(String),
+    /// The free model's run ended without `chat.reply` and without a stop: the turn moves on
+    /// to the next model. The string is the failure the run would have reported.
+    NoAnswer(String),
 }
 
-/// Runs the turn on each engine in order until one does not report its free tier spent. A
-/// spent free model is remembered in `book` and the next one is tried; with none left the turn
-/// fails with `free_models_exhausted`, followed by the last output.
+/// Runs the turn on each engine in order until one answers. A spent free model is remembered
+/// in `book` and the next one is tried; a model that ends without answering is only skipped for
+/// this turn. The last model's failure is the turn's failure: `free_models_exhausted` when it
+/// reported its tier spent, its own failure otherwise.
 async fn answer_on_engines<Fut>(
     book: &FreeModels,
     engines: Vec<Option<&'static str>>,
@@ -97,7 +101,9 @@ where
     Fut: Future<Output = Result<Attempt, String>>,
 {
     let mut excerpt = String::new();
+    let mut last_failure = None;
     for engine_model in engines {
+        last_failure = None;
         match run(engine_model).await? {
             Attempt::Done => return Ok(()),
             Attempt::FreeLimit(output) => {
@@ -107,9 +113,15 @@ where
                 }
                 excerpt = output;
             }
+            Attempt::NoAnswer(failure) => {
+                if let Some(model) = engine_model {
+                    eprintln!("seat: {model} ended without answering; trying the next model");
+                }
+                last_failure = Some(failure);
+            }
         }
     }
-    Err(with_output(EXHAUSTED_REASON.to_string(), &excerpt))
+    Err(last_failure.unwrap_or_else(|| with_output(EXHAUSTED_REASON.to_string(), &excerpt)))
 }
 
 /// One CLI run of the turn. `engine_model` is the free OpenCode model it runs on, `None` for
@@ -275,7 +287,13 @@ async fn attempt(
     if turn_env == TurnEnv::default() && on_default && looks_like_quota_exhausted(&excerpt) {
         (worker.on_quota_exhausted)();
     }
-    Err(with_output(outcome.failure_reason(), &excerpt))
+    // A free model whose CLI ended on its own, without an answer, hands the turn to the next one.
+    let ended_alone = engine_model.is_some() && matches!(outcome, Outcome::Exited(_));
+    let failure = with_output(outcome.failure_reason(), &excerpt);
+    if ended_alone {
+        return Ok(Attempt::NoAnswer(failure));
+    }
+    Err(failure)
 }
 
 pub(super) enum Outcome {
@@ -416,19 +434,19 @@ mod tests {
         assert_eq!(result, Ok(()));
         assert_eq!(*tried.borrow(), vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])]);
         // The spent model is remembered: the next turn starts on the second one.
-        assert_eq!(book.usable(Instant::now()), vec![FREE_MODELS[1]]);
+        assert_eq!(book.usable(Instant::now()), FREE_MODELS[1..].to_vec());
     }
 
     #[tokio::test]
     async fn a_turn_with_every_free_model_spent_fails_with_the_exhausted_reason() {
         let book = FreeModels::default();
         let tried = RefCell::new(Vec::new());
-        let engines = vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])];
+        let engines: Vec<Option<&'static str>> = FREE_MODELS.iter().copied().map(Some).collect();
         let result = answer(&book, engines, FREE_MODELS, &tried).await;
         let reason = result.expect_err("every model is spent");
         assert!(reason.starts_with("free_models_exhausted"), "{reason}");
         assert!(reason.contains("provider.free-limit"), "{reason}");
-        assert_eq!(tried.borrow().len(), 2);
+        assert_eq!(tried.borrow().len(), FREE_MODELS.len());
         assert!(book.usable(Instant::now()).is_empty());
     }
 
@@ -455,6 +473,43 @@ mod tests {
         .await;
         assert_eq!(result, Err("process_exit: 1".to_string()));
         assert_eq!(*calls.borrow(), 1);
+        assert_eq!(book.usable(Instant::now()), FREE_MODELS.to_vec());
+    }
+
+    #[tokio::test]
+    async fn a_model_that_ends_without_answering_hands_the_turn_to_the_next_one() {
+        let book = FreeModels::default();
+        let tried = RefCell::new(Vec::new());
+        let engines = vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])];
+        let result = answer_on_engines(&book, engines, |engine_model| {
+            tried.borrow_mut().push(engine_model);
+            async move {
+                Ok(if engine_model == Some(FREE_MODELS[0]) {
+                    Attempt::NoAnswer("process_exit: 0".to_string())
+                } else {
+                    Attempt::Done
+                })
+            }
+        })
+        .await;
+        assert_eq!(result, Ok(()));
+        assert_eq!(*tried.borrow(), vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])]);
+        // Skipped for this turn only: no model is marked as spent.
+        assert_eq!(book.usable(Instant::now()), FREE_MODELS.to_vec());
+    }
+
+    #[tokio::test]
+    async fn the_last_model_that_ends_without_answering_keeps_its_own_failure() {
+        let book = FreeModels::default();
+        let tried = RefCell::new(Vec::new());
+        let engines = vec![Some(FREE_MODELS[0]), Some(FREE_MODELS[1])];
+        let result = answer_on_engines(&book, engines, |engine_model| {
+            tried.borrow_mut().push(engine_model);
+            async { Ok(Attempt::NoAnswer("process_exit: 0".to_string())) }
+        })
+        .await;
+        assert_eq!(result, Err("process_exit: 0".to_string()));
+        assert_eq!(tried.borrow().len(), 2);
         assert_eq!(book.usable(Instant::now()), FREE_MODELS.to_vec());
     }
 }

@@ -25,7 +25,7 @@ fn mcp_rule(tool: &str) -> String {
 /// approval and exits `2` unless the operator allows it. Claude runs hooks
 /// before its permission check, so the hook is the gate, and the permission
 /// list must allow the same tools or the approved call is still refused. The
-/// hook timeout must outlast the approval TTL (120 s by default), or Claude
+/// hook timeout must outlast the approval TTL (600 s by default), or Claude
 /// would treat a timed-out hook as non-blocking and run the command.
 ///
 /// Print mode has no prompt to answer: an MCP tool missing from the list is
