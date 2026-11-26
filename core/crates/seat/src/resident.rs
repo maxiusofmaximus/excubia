@@ -39,11 +39,8 @@ pub async fn run_resident(engine: &[String]) -> Result<(), String> {
         .await
         .map_err(|error| format!("read task: {error}"))?
     {
-        let Some(task) = parse_task(&line) else {
+        let Some(Task { id, from, text }) = parse_task(&line) else {
             continue;
-        };
-        let Task::Work { id, from, text } = task else {
-            break;
         };
         println!("\n── Tarea de {from} ──");
         serve_task(program, args, &book, &url, &token, &id, &from, &text).await;
@@ -72,11 +69,16 @@ async fn serve_task(
     })
     .await;
     let (ran, answer) = match outcome {
-        Ok((true, output)) if !output.trim().is_empty() => (true, output),
-        Ok((true, _)) => (true, "Terminé la tarea sin texto de resultado.".to_string()),
-        Ok((false, output)) => (false, format!("No pude terminar la tarea. Última salida:\n{output}")),
+        Ok((true, output, _)) if !output.trim().is_empty() => (true, output),
+        Ok((true, _, _)) => (true, "Terminé la tarea sin texto de resultado.".to_string()),
+        Ok((false, output, errors)) => {
+            let shown = if output.trim().is_empty() { tail(&errors, RESULT_CHARS) } else { output };
+            (false, format!("No pude terminar la tarea. Última salida:\n{shown}"))
+        }
         Err(error) => (false, format!("No pude arrancar el agente: {error}")),
     };
+    // The CLI inherits the tool token; a CLI that dumps its env must not carry it into the chat.
+    let answer = if token.is_empty() { answer } else { answer.replace(token, "***") };
     let (declared_failed, mut result) = closing_status(&answer);
     let failed = !ran || declared_failed;
     result.push_str(&changed_files(&before, &changes().await));
@@ -96,35 +98,39 @@ async fn serve_task(
     }
 }
 
-/// Runs one task's CLI with the model it should use. On a free OpenCode model that is the first
-/// one not known to be spent; a run that reports its free tier spent marks that model, so the
-/// next task skips it. This task is not retried: it reports the CLI's own output.
+/// Runs one task's CLI on the free OpenCode models in order, within the same task. A run whose
+/// free tier is spent marks its model and the next one is tried; a run that ends without any
+/// text tries the next one unmarked; the first run that answers ends the task. Any other CLI
+/// runs once. Returns the run's stdout and stderr.
 async fn run_task<Fut>(
     book: &FreeModels,
     args: &[String],
     mut run: impl FnMut(Vec<String>) -> Fut,
-) -> Result<(bool, String), String>
+) -> Result<(bool, String, String), String>
 where
-    Fut: Future<Output = Result<(bool, String, bool), String>>,
+    Fut: Future<Output = Result<(bool, String, String, bool), String>>,
 {
-    let slot = free_model_slot(args);
-    let run_args = match slot {
-        Some(slot) => {
-            let model = *book
-                .usable(Instant::now())
-                .first()
-                .ok_or("todos los modelos gratuitos de OpenCode están agotados")?;
-            let mut run_args = args.to_vec();
-            run_args[slot] = model.to_string();
-            run_args
-        }
-        None => args.to_vec(),
+    let Some(slot) = free_model_slot(args) else {
+        let (ran, output, errors, _) = run(args.to_vec()).await?;
+        return Ok((ran, output, errors));
     };
-    let (ran, output, limited) = run(run_args.clone()).await?;
-    if let (Some(slot), true) = (slot, limited) {
-        book.mark_exhausted(&run_args[slot], Instant::now());
+    let mut last = None;
+    for model in book.usable(Instant::now()) {
+        let mut run_args = args.to_vec();
+        run_args[slot] = model.to_string();
+        let (ran, output, errors, limited) = run(run_args).await?;
+        if limited {
+            book.mark_exhausted(model, Instant::now());
+        }
+        // A run that said it succeeded keeps its answer even if its text quotes the limit.
+        if ran || (!limited && !output.trim().is_empty()) {
+            return Ok((ran, output, errors));
+        }
+        if !limited {
+            last = Some((ran, output, errors));
+        }
     }
-    Ok((ran, output))
+    last.ok_or_else(|| "todos los modelos gratuitos están agotados de momento".to_string())
 }
 
 /// Where the free OpenCode model sits in a resident's CLI args: the value after `--model`, when
@@ -136,15 +142,16 @@ fn free_model_slot(args: &[String]) -> Option<usize> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum Task {
-    Work {
-        id: String,
-        from: String,
-        text: String,
-    },
-    Cancel,
+struct Task {
+    id: String,
+    from: String,
+    text: String,
 }
 
+/// A line that is not a task is skipped. A cancel is one of those: the host sends it when a
+/// delegation is cancelled, and the panel stays up for the next task.
+/// shortcut: a task queued behind a cancelled one still runs, since a running CLI cannot be
+/// interrupted from here; upgrade when the CLI offers a cancel.
 fn parse_task(line: &str) -> Option<Task> {
     let line = line.trim();
     if line.is_empty() {
@@ -152,11 +159,10 @@ fn parse_task(line: &str) -> Option<Task> {
     }
     let value: Value = serde_json::from_str(line).ok()?;
     if value.get("cancel").is_some() {
-        return Some(Task::Cancel);
+        return None;
     }
-    let id = value["delegation_id"].as_str()?.to_string();
-    Some(Task::Work {
-        id,
+    Some(Task {
+        id: value["delegation_id"].as_str()?.to_string(),
         from: value["from"].as_str().unwrap_or("Alfred").to_string(),
         text: value["task"].as_str().unwrap_or_default().to_string(),
     })
@@ -262,13 +268,13 @@ fn changed_files(before: &Changes, after: &Changes) -> String {
     format!("\n\nArchivos cambiados:\n{list}")
 }
 
-/// Runs the CLI once: the prompt on stdin, both outputs shown live, the end of stdout kept. The
-/// third value says whether the output reports the free tier of the model spent.
+/// Runs the CLI once: the prompt on stdin, both outputs shown live, the end of each output kept.
+/// The last value says whether the output reports the free tier of the model spent.
 async fn run_engine(
     program: &str,
     args: &[String],
     prompt: &str,
-) -> Result<(bool, String, bool), String> {
+) -> Result<(bool, String, String, bool), String> {
     let mut child = Command::new(program)
         .args(args)
         .stdin(Stdio::piped())
@@ -292,7 +298,7 @@ async fn run_engine(
     );
     let status = status.map_err(|error| error.to_string())?;
     let limited = is_free_limit(&format!("{kept}\n{errors}"));
-    Ok((status.success(), tail(&kept, RESULT_CHARS), limited))
+    Ok((status.success(), tail(&kept, RESULT_CHARS), tail(&errors, RESULT_CHARS), limited))
 }
 
 async fn echo(mut from: impl AsyncRead + Unpin, mut to: impl AsyncWrite + Unpin) -> String {
@@ -324,16 +330,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_task_line_is_work_a_cancel_stops_and_noise_is_skipped() {
+    fn a_task_line_is_work_and_a_cancel_or_noise_is_skipped() {
         assert_eq!(
             parse_task(r#"{"delegation_id":"dlg_1","from":"Alfred","task":"Lee README.md"}"#),
-            Some(Task::Work {
+            Some(Task {
                 id: "dlg_1".to_string(),
                 from: "Alfred".to_string(),
                 text: "Lee README.md".to_string()
             })
         );
-        assert_eq!(parse_task(r#"{"cancel":true}"#), Some(Task::Cancel));
+        // A cancel does not end the panel: the next task is still read.
+        assert_eq!(parse_task(r#"{"cancel":"dlg_1","reason":"user_cancelled"}"#), None);
         assert_eq!(parse_task("   "), None);
         assert_eq!(parse_task("not json"), None);
         assert_eq!(parse_task(r#"{"task":"sin id"}"#), None);
@@ -404,34 +411,66 @@ mod tests {
         assert_eq!(free_model_slot(&["exec".to_string()]), None);
     }
 
-    /// A task whose free model reports its tier spent marks it; the next task runs on the next
-    /// free model, and when none is left the task does not run at all.
+    /// The first free model is spent: its run marks it and the task goes on, in the same run, to
+    /// the second, which answers. The spent model is skipped by the tasks after it.
     #[tokio::test]
-    async fn a_task_skips_the_free_models_spent_by_earlier_tasks() {
+    async fn a_task_goes_on_to_the_next_free_model_when_the_first_is_spent() {
         let book = FreeModels::default();
         let args = opencode_args(FREE_MODELS[0]);
         let mut ran_on = Vec::new();
-        let first = run_task(&book, &args, |run_args| {
+        let outcome = run_task(&book, &args, |run_args| {
             ran_on.push(run_args[3].clone());
-            let limited = run_args[3] == FREE_MODELS[0];
-            async move { Ok((false, "Free usage limit reached".to_string(), limited)) }
+            let spent = run_args[3] == FREE_MODELS[0];
+            async move {
+                Ok(if spent {
+                    (false, "Free usage limit reached".to_string(), String::new(), true)
+                } else {
+                    (true, "Listo".to_string(), String::new(), false)
+                })
+            }
         })
         .await;
-        assert_eq!(first, Ok((false, "Free usage limit reached".to_string())));
-
-        let second = run_task(&book, &args, |run_args| {
-            ran_on.push(run_args[3].clone());
-            async move { Ok((true, "Listo".to_string(), false)) }
-        })
-        .await;
-        assert_eq!(second, Ok((true, "Listo".to_string())));
+        assert_eq!(outcome, Ok((true, "Listo".to_string(), String::new())));
         assert_eq!(ran_on, [FREE_MODELS[0], FREE_MODELS[1]]);
+        assert!(!book.usable(Instant::now()).contains(&FREE_MODELS[0]));
+    }
 
-        for model in FREE_MODELS {
-            book.mark_exhausted(model, Instant::now());
-        }
-        let none = run_task(&book, &args, |_| async { Ok((true, String::new(), false)) }).await;
-        assert!(none.is_err(), "{none:?}");
+    /// Every free model spent: the task says so in Spanish, and with none left nothing runs.
+    #[tokio::test]
+    async fn when_every_free_model_is_spent_the_task_says_so() {
+        let book = FreeModels::default();
+        let args = opencode_args(FREE_MODELS[0]);
+        let mut runs = 0;
+        let outcome = run_task(&book, &args, |_| {
+            runs += 1;
+            async { Ok((false, "Free usage limit reached".to_string(), String::new(), true)) }
+        })
+        .await;
+        assert_eq!(runs, FREE_MODELS.len());
+        assert_eq!(
+            outcome,
+            Err("todos los modelos gratuitos están agotados de momento".to_string())
+        );
+
+        let again = run_task(&book, &args, |_| async {
+            Ok((true, String::new(), String::new(), false))
+        })
+        .await;
+        assert!(again.is_err(), "{again:?}");
+    }
+
+    /// A run that ends without text moves on to the next model without marking the first one.
+    #[tokio::test]
+    async fn a_silent_failure_tries_the_next_model_unmarked() {
+        let book = FreeModels::default();
+        let args = opencode_args(FREE_MODELS[0]);
+        let outcome = run_task(&book, &args, |run_args| {
+            let answers = run_args[3] == FREE_MODELS[1];
+            async move { Ok((answers, String::new(), "boom".to_string(), false)) }
+        })
+        .await;
+        assert_eq!(outcome, Ok((true, String::new(), "boom".to_string())));
+        assert!(book.usable(Instant::now()).contains(&FREE_MODELS[0]));
     }
 
     /// A stub CLI that answers the task and states its end: the runner closes the
@@ -452,8 +491,8 @@ mod tests {
         )
     }
 
-    #[tokio::test]
-    async fn a_stub_cli_task_is_closed_through_mcp_with_the_result() {
+    /// A local MCP endpoint that answers one call; the URL to post to, and the request it got.
+    async fn mock_tool_server() -> (String, tokio::task::JoinHandle<String>) {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind mock");
@@ -472,8 +511,13 @@ mod tests {
             let _ = socket.write_all(body).await;
             String::from_utf8_lossy(&buffer[..read]).to_string()
         });
+        (format!("http://{address}/internal/chat/tools"), server)
+    }
+
+    #[tokio::test]
+    async fn a_stub_cli_task_is_closed_through_mcp_with_the_result() {
+        let (url, server) = mock_tool_server().await;
         let (program, args) = stub_cli("ESTADO: HECHO");
-        let url = format!("http://{address}/internal/chat/tools");
         let book = FreeModels::default();
         serve_task(&program, &args, &book, &url, "tok-panel", "dlg_1", "Alfred", "Haz X").await;
         let request = server.await.expect("server");
@@ -482,5 +526,28 @@ mod tests {
         assert!(request.contains("\"outcome\":\"done\""), "{request}");
         assert!(request.contains("Resultado listo"), "{request}");
         assert!(request.to_lowercase().contains("x-excubia-tool-token: tok-panel"), "{request}");
+    }
+
+    /// A CLI that fails with nothing on stdout: the task is closed as failed and the result shows
+    /// the end of stderr, where the reason is.
+    #[cfg(windows)]
+    fn failing_cli() -> (String, Vec<String>) {
+        ("cmd".to_string(), vec!["/C".to_string(), "echo boom 1>&2 & exit /b 3".to_string()])
+    }
+
+    #[cfg(not(windows))]
+    fn failing_cli() -> (String, Vec<String>) {
+        ("sh".to_string(), vec!["-c".to_string(), "echo boom >&2; exit 3".to_string()])
+    }
+
+    #[tokio::test]
+    async fn a_failure_with_empty_stdout_shows_the_end_of_stderr() {
+        let (url, server) = mock_tool_server().await;
+        let (program, args) = failing_cli();
+        let book = FreeModels::default();
+        serve_task(&program, &args, &book, &url, "tok-panel", "dlg_2", "Alfred", "Haz X").await;
+        let request = server.await.expect("server");
+        assert!(request.contains("\"outcome\":\"failed\""), "{request}");
+        assert!(request.contains("Última salida:\\nboom"), "{request}");
     }
 }
