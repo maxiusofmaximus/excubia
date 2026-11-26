@@ -153,3 +153,72 @@ fn other_frames_give_no_line() {
         );
     }
 }
+
+#[test]
+fn approval_allowed_names_the_rule_that_decided() {
+    let line = line_of(
+        "chat.approval",
+        json!({
+            "change": "decided", "status": "approved", "kind": "command",
+            "agent_id": "alfred", "approval_id": "A1B2C3D4E5F6G7H8",
+            "decider_kind": "policy", "decider_id": "read-in-project",
+            "summary": SECRETS.join(" "),
+        }),
+    );
+    assert_eq!(
+        line,
+        "approval allowed: kind=command agent=alfred id=E5F6G7H8 by=policy:read-in-project"
+    );
+}
+
+#[test]
+fn approval_denied_by_the_operator_never_writes_the_device() {
+    let line = line_of(
+        "chat.approval",
+        json!({
+            "change": "decided", "status": "denied", "kind": "command",
+            "agent_id": "alfred", "approval_id": "A1B2C3D4E5F6G7H8",
+            "decider_kind": "user", "decider_id": "DEVICE_ID_42",
+            "summary": SECRETS.join(" "),
+        }),
+    );
+    assert_eq!(
+        line,
+        "approval denied: kind=command agent=alfred id=E5F6G7H8 by=operator"
+    );
+    assert!(!line.contains("DEVICE_ID_42"), "the device id leaks: {line}");
+}
+
+#[test]
+fn approval_allowed_by_an_agent_names_the_agent() {
+    let line = line_of(
+        "chat.approval",
+        json!({
+            "change": "decided", "status": "approved", "kind": "command",
+            "agent_id": "alfred", "approval_id": "A1B2C3D4E5F6G7H8",
+            "decider_kind": "agent", "decider_id": "lead",
+            "summary": SECRETS.join(" "),
+        }),
+    );
+    assert_eq!(
+        line,
+        "approval allowed: kind=command agent=alfred id=E5F6G7H8 by=agent:lead"
+    );
+}
+
+#[test]
+fn approval_allowed_by_task_scope_is_not_the_operator() {
+    let line = line_of(
+        "chat.approval",
+        json!({
+            "change": "decided", "status": "approved", "kind": "command",
+            "agent_id": "alfred", "approval_id": "A1B2C3D4E5F6G7H8",
+            "decider_kind": "user", "decider_id": "DEVICE_ID_42", "auto": "task-scope",
+            "summary": SECRETS.join(" "),
+        }),
+    );
+    assert_eq!(
+        line,
+        "approval allowed: kind=command agent=alfred id=E5F6G7H8 by=task-scope"
+    );
+}

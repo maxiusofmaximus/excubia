@@ -9,7 +9,7 @@ import { setThreadApprovals } from "./approval-inbox.js";
 import { renderDelegationCard } from "./delegations.js";
 import { showInThread } from "./delegation-model.js";
 import { stripTestMarkers } from "./format.js";
-import { STATUS_LABELS } from "./plan-model.js";
+import { STATUS_LABELS, supersededPlanIndexes } from "./plan-model.js";
 import { answeredAfter, delegationResultIndexes, isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
 import { answerModel, failedTitle } from "./chat-card-model.js";
 import { quickRepliesDisabled, quoteLabel, suggestionsAt } from "./chat-reply-model.js";
@@ -285,6 +285,7 @@ export function renderThread(chat) {
   cards.forEach(rememberAction);
   const cardIds = new Set(cards.map((approval) => approval.id));
   const superseded = supersededIndexes(chat.entries, cardIds);
+  supersededPlanIndexes(chat.entries).forEach((index) => superseded.add(index));
   // Only the operator's last message shows the step of its turn.
   let lastOwn = -1;
   chat.entries.forEach((entry, index) => {

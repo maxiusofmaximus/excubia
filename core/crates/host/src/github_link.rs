@@ -118,14 +118,15 @@ impl GithubLink {
         if self.link.session_ready() {
             return Ok(Step::Reply("linked"));
         }
-        let ours = digest();
-        let history: Vec<Approval> = self
-            .chat
-            .approvals_for_tool(TOOL)
-            .map_err(tool_chat_error)?
-            .into_iter()
-            .filter(|approval| approval.action_digest == ours)
-            .collect();
+        let history = self.history()?;
+        // A refusal holds for the run that asked, even while a later run's question is open:
+        // asking again in the same run never opens a card. A later run asks again on its own.
+        if history
+            .iter()
+            .any(|approval| approval.status == ApprovalStatus::Denied && same_run(approval, actor))
+        {
+            return Ok(Step::Reply("declined"));
+        }
         if let Some(open) = history
             .iter()
             .find(|approval| approval.status == ApprovalStatus::Pending)
@@ -137,13 +138,6 @@ impl GithubLink {
             .find(|approval| approval.status == ApprovalStatus::Approved)
         {
             return Ok(Step::Wait(approved.id.clone()));
-        }
-        // A refusal holds for the run that asked: asking again in the same run never opens a
-        // new card. A later run asks again on its own.
-        if let Some(last) = history.last() {
-            if last.status == ApprovalStatus::Denied && same_run(last, actor) {
-                return Ok(Step::Reply("declined"));
-            }
         }
         // The desktop words the question; the host sends only the fixed names of the tools to install.
         let missing = self.link.missing_tools();
@@ -160,17 +154,45 @@ impl GithubLink {
             cwd: None,
             paths: Vec::new(),
             risk: None,
-            action_digest: ours,
+            action_digest: digest(),
             payload_redacted: Some(args),
             ttl_seconds: DEFAULT_TTL_SECONDS,
         };
         drop(track);
         match self.chat.create_github_link_approval(new) {
             Ok(approval) => Ok(Step::Wait(approval.id)),
-            // The store refuses a second open question with the same digest: take the one open.
-            Err(ChatError::ApprovalDigestReused) => Ok(Step::Reply("awaiting_operator")),
+            // The store refused the digest: answer "awaiting" only when a question is really open.
+            Err(ChatError::ApprovalDigestReused) => {
+                if self
+                    .history()?
+                    .iter()
+                    .any(|approval| approval.status == ApprovalStatus::Pending)
+                {
+                    Ok(Step::Reply("awaiting_operator"))
+                } else {
+                    Err(ToolError::unavailable(
+                        "the GitHub question could not be opened; try again",
+                    ))
+                }
+            }
             Err(error) => Err(tool_chat_error(error)),
         }
+    }
+
+    /// Every question of this purpose, in any state. A question that ended keeps its audit
+    /// under a renamed digest (`{digest}#…`, see `ChatStore::create_github_link_approval`).
+    fn history(&self) -> Result<Vec<Approval>, ToolError> {
+        let ours = digest();
+        let renamed = format!("{ours}#");
+        Ok(self
+            .chat
+            .approvals_for_tool(TOOL)
+            .map_err(tool_chat_error)?
+            .into_iter()
+            .filter(|approval| {
+                approval.action_digest == ours || approval.action_digest.starts_with(&renamed)
+            })
+            .collect())
     }
 
     /// Waits for the operator's answer. Approved: the question is launched once; when the
@@ -404,7 +426,7 @@ mod tests {
     use std::io;
     use std::path::{Path, PathBuf};
 
-    use excubia_chat::Decision;
+    use excubia_chat::{Decision, ManualClock};
     use excubia_toolchain::fetch::Fetch;
     use excubia_toolchain::github::{ChildEnv, LoginChild, Runner};
     use excubia_toolchain::install::Probe;
@@ -581,5 +603,110 @@ mod tests {
         github.tick();
         assert_eq!(github.card().expect("card"), first);
         assert_eq!(github.await_outcome(&id).await, "failed");
+    }
+
+    fn actor_of(chat: &ChatStore, run_id: &str) -> SeatActor {
+        SeatActor {
+            agent_id: chat.bootstrap().expect("bootstrap").alfred.agent_id,
+            role_id: "alfred".into(),
+            project_id: None,
+            conversation_id: String::new(),
+            run_id: run_id.into(),
+        }
+    }
+
+    /// The fixture with a clock the test moves, so a question can expire.
+    fn timed_fixture() -> (Arc<ChatStore>, GithubLink, Arc<ManualClock>) {
+        let (chat, github) = fixture();
+        let clock = Arc::new(ManualClock::at(1_700_000_000_000));
+        chat.set_clock(clock.clone());
+        (chat, github, clock)
+    }
+
+    fn opened(step: Step) -> String {
+        match step {
+            Step::Wait(id) => id,
+            _ => panic!("the request opens a question"),
+        }
+    }
+
+    #[test]
+    fn an_expired_question_lets_the_next_request_ask_again() {
+        let (chat, github, clock) = timed_fixture();
+        let first = opened(github.open(&actor_of(&chat, "run_a"), None).expect("open"));
+        // The TTL runs from the moment the card is shown: the operator's app shows it.
+        chat.show_approval(&first).expect("shown");
+        clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS) + 1);
+        let second = opened(github.open(&actor_of(&chat, "run_a"), None).expect("open"));
+        assert_ne!(first, second);
+        assert_eq!(status_of(&chat, &first), ApprovalStatus::Expired);
+        assert_eq!(status_of(&chat, &second), ApprovalStatus::Pending);
+    }
+
+    #[tokio::test]
+    async fn a_consumed_question_lets_the_next_request_ask_again() {
+        let (chat, github) = fixture();
+        let id = opened(github.open(&actor_of(&chat, "run_a"), None).expect("open"));
+        chat.decide_approval(&id, Decision::Approve, "client_test", "device_test")
+            .expect("approve");
+        github.tick();
+        assert_eq!(github.await_outcome(&id).await, "failed");
+        let next = opened(github.open(&actor_of(&chat, "run_a"), None).expect("open"));
+        assert_ne!(next, id);
+        assert_eq!(status_of(&chat, &next), ApprovalStatus::Pending);
+    }
+
+    #[test]
+    fn a_pending_question_is_shared_by_every_run() {
+        let (chat, github) = fixture();
+        let id = opened(github.open(&actor_of(&chat, "run_a"), None).expect("open"));
+        let shared = opened(github.open(&actor_of(&chat, "run_b"), None).expect("open"));
+        assert_eq!(shared, id);
+    }
+
+    #[test]
+    fn a_refusal_holds_for_its_run_and_another_run_asks_again() {
+        let (chat, github) = fixture();
+        let id = opened(github.open(&actor_of(&chat, "run_a"), None).expect("open"));
+        chat.decide_approval(&id, Decision::Deny, "client_test", "device_test")
+            .expect("deny");
+        assert!(matches!(
+            github.open(&actor_of(&chat, "run_a"), None).expect("open"),
+            Step::Reply("declined")
+        ));
+        let other = opened(github.open(&actor_of(&chat, "run_b"), None).expect("open"));
+        assert_ne!(other, id);
+        // The refusal still holds for its own run, while the other run's question is open.
+        assert!(matches!(
+            github.open(&actor_of(&chat, "run_a"), None).expect("open"),
+            Step::Reply("declined")
+        ));
+        assert_eq!(
+            opened(github.open(&actor_of(&chat, "run_c"), None).expect("open")),
+            other
+        );
+    }
+
+    #[test]
+    fn retry_asks_again_after_the_question_expired() {
+        let (chat, github, clock) = timed_fixture();
+        assert!(github.retry());
+        let first = chat
+            .approvals_for_tool(TOOL)
+            .expect("list")
+            .into_iter()
+            .find(|approval| approval.status == ApprovalStatus::Pending)
+            .expect("the first question")
+            .id;
+        chat.show_approval(&first).expect("shown");
+        clock.advance_secs(i64::from(DEFAULT_TTL_SECONDS) + 1);
+        assert!(github.retry());
+        let pending = chat
+            .approvals_for_tool(TOOL)
+            .expect("list")
+            .into_iter()
+            .filter(|approval| approval.status == ApprovalStatus::Pending)
+            .count();
+        assert_eq!(pending, 1);
     }
 }

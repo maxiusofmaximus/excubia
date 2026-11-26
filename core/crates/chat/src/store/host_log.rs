@@ -38,12 +38,32 @@ fn approval_line(body: &Value) -> Option<String> {
         ("expired", _) => "expired",
         _ => return None,
     };
+    let by = match verb {
+        "allowed" | "denied" => decider(body).map_or_else(String::new, |by| format!(" by={by}")),
+        _ => String::new(),
+    };
     Some(format!(
-        "approval {verb}: kind={} agent={} id={}",
+        "approval {verb}: kind={} agent={} id={}{by}",
         field(body, "kind"),
         field(body, "agent_id"),
         short(field(body, "approval_id")),
     ))
+}
+
+/// Who decided, as the frame names it. A rule, an agent or the scorer is named; the
+/// operator's device is only `operator`, its id never reaches the log.
+fn decider(body: &Value) -> Option<String> {
+    if field(body, "auto") == "task-scope" {
+        return Some("task-scope".to_string());
+    }
+    let kind = field(body, "decider_kind");
+    let id = field(body, "decider_id");
+    match kind {
+        "" => None,
+        "user" => Some("operator".to_string()),
+        "policy" | "agent" if !id.is_empty() => Some(format!("{kind}:{id}")),
+        _ => Some(kind.to_string()),
+    }
 }
 
 fn field<'a>(body: &'a Value, key: &str) -> &'a str {

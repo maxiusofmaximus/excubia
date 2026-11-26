@@ -17,6 +17,7 @@ import {
   summaryLine,
   sortPlans,
   touchLabels,
+  supersededPlanIndexes,
 } from "../ui/plan-model.js";
 import { LOAD_FAILED, OFFLINE_TEXT, REJECTED_TEXT } from "../ui/friendly-error.js";
 
@@ -41,6 +42,12 @@ test("cada toque del contrato tiene su etiqueta llana, sin repetir y en un orden
     "Toca correo",
     "Usa internet",
   ]);
+});
+
+test("la línea de un plan en el chat es la de su estado más nuevo", () => {
+  const line = (ref_id, status) => ({ kind: "plan", entry: { kind: "plan", ref_id, status } });
+  const entries = [line("plan_1", "proposed"), { kind: "message", message: {} }, line("plan_2", "proposed"), line("plan_1", "approved")];
+  assert.deepEqual([...supersededPlanIndexes(entries)], [0]);
 });
 
 test("un plan que no toca nada se lee como «Solo lee»", () => {

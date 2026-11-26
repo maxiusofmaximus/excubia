@@ -77,6 +77,8 @@
   max-height: min(40vh, 22rem);
   overflow-x: hidden;
   overflow-y: auto;
+  /* The wheel stops at the box's ends instead of moving the page and the buttons. */
+  overscroll-behavior: contain;
   padding: 8px 10px;
   border-radius: 8px;
   background: var(--raised);

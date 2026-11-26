@@ -64,6 +64,19 @@ export function summaryLine(steps) {
   return `${count} · ${touch}`;
 }
 
+// The host writes a plan's line at each status it reaches; the thread keeps only the newest of each plan.
+export function supersededPlanIndexes(entries) {
+  const newest = new Map();
+  entries.forEach((entry, index) => {
+    if (entry.kind === "plan" && entry.entry) newest.set(entry.entry.ref_id, index);
+  });
+  const skip = new Set();
+  entries.forEach((entry, index) => {
+    if (entry.kind === "plan" && entry.entry && newest.get(entry.entry.ref_id) !== index) skip.add(index);
+  });
+  return skip;
+}
+
 // The proposals first, in the order the host sent them; then the decided ones, newest decision first.
 export function sortPlans(plans) {
   const rank = (plan) => (plan.status === "proposed" ? 0 : 1);

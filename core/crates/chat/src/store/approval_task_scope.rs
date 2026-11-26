@@ -9,7 +9,8 @@
 use rusqlite::{params, OptionalExtension};
 
 use crate::error::ChatError;
-use crate::model_approval::{Approval, ApprovalStatus, Decision, MAIL_ACTIONS};
+use crate::model_approval::{Approval, ApprovalStatus, Decision, Risk, MAIL_ACTIONS};
+use crate::policy::Category;
 
 /// The longest reason a denial carries.
 pub const MAX_DENIAL_REASON_CHARS: usize = 300;
@@ -30,22 +31,30 @@ fn inside(folder: &str, path: &str) -> bool {
 
 impl super::ChatStore {
     /// Whether this approval may be answered «always in this task»: it belongs to a
-    /// task, it is not a mail action, and everything it names is inside its folder.
+    /// task, it is not a mail action, its category is one the user does not keep and its
+    /// risk is low or medium, and everything it names is inside its folder.
     pub fn task_scope_allowed(&self, approval_id: &str) -> Result<bool, ChatError> {
         let connection = self.lock();
-        let row: Option<(Option<String>, String, Option<String>, String)> = connection
+        type Row = (Option<String>, String, Option<String>, String, Option<String>, String);
+        let row: Option<Row> = connection
             .query_row(
-                "SELECT delegation_id, tool, cwd, paths_json FROM approval WHERE id = ?1",
+                "SELECT delegation_id, tool, cwd, paths_json, category, risk FROM approval WHERE id = ?1",
                 [approval_id],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
             )
             .optional()?;
-        let Some((delegation, tool, cwd, paths)) = row else {
+        let Some((delegation, tool, cwd, paths, category, risk)) = row else {
             return Err(ChatError::NoSuchApproval);
         };
         let (Some(_), Some(cwd)) = (delegation, cwd.filter(|cwd| !cwd.is_empty())) else {
             return Ok(false);
         };
+        let category = category.as_deref().and_then(Category::from_config);
+        if !category.is_some_and(|category| !category.never_delegate())
+            || !matches!(Risk::from_db(&risk), Some(Risk::Low | Risk::Medium))
+        {
+            return Ok(false);
+        }
         let paths: Vec<String> = serde_json::from_str(&paths).unwrap_or_default();
         Ok(!MAIL_ACTIONS.contains(&tool.as_str()) && paths.iter().all(|path| inside(&cwd, path)))
     }
@@ -102,7 +111,7 @@ impl super::ChatStore {
                         AND g.status IN ('approved', 'consumed')
                         AND g.delegation_id = n.delegation_id AND g.seat_id = n.seat_id
                         AND g.kind = n.kind AND g.tool = n.tool AND g.cwd = n.cwd
-                        AND g.decided_by IS NOT NULL
+                        AND g.category = n.category AND g.decided_by IS NOT NULL
                       LIMIT 1",
                     [&approval.id],
                     |row| row.get(0),

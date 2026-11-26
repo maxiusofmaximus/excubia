@@ -133,7 +133,33 @@ impl super::ChatStore {
     /// `Credentials`, which no rule reaches: only the operator's device decides it.
     pub fn create_github_link_approval(&self, new: NewApproval) -> Result<Approval, ChatError> {
         self.expire_now()?;
+        self.retire_ended_digest(&new.action_digest)?;
         self.create_placed(new, Some(Category::Credentials), None)
+    }
+
+    /// Frees the digest of an ended question, so the same purpose can ask again. The purpose's
+    /// digest is fixed, and the column is unique: an expired, consumed or denied row would
+    /// block every later question. The row keeps its audit under `{digest}#{status}:{id}`; the
+    /// host finds its history by that prefix. A pending or approved row keeps its digest, so
+    /// the host shares that question instead.
+    fn retire_ended_digest(&self, digest: &str) -> Result<(), ChatError> {
+        let mut connection = self.lock();
+        let transaction = connection.transaction()?;
+        if let Some(holder) = digest_holder(&transaction, digest)? {
+            let open = holder.status == ApprovalStatus::Pending.as_str()
+                || holder.status == ApprovalStatus::Approved.as_str();
+            if !open {
+                transaction.execute(
+                    "UPDATE approval SET action_digest = ?1 WHERE id = ?2",
+                    params![
+                        format!("{digest}#{}:{}", holder.status, holder.id),
+                        holder.id
+                    ],
+                )?;
+            }
+        }
+        transaction.commit()?;
+        Ok(())
     }
 
     /// Create the question for sending one mail (MAIL2A). Forced to `MailSend`,
@@ -341,6 +367,7 @@ impl super::ChatStore {
             (&iso(expires_ms), &now),
             headline,
             ttl_seconds,
+            basis.assessment.category,
         )?;
         if let Some(rule) = &placement.rule {
             let decider = Decider {
@@ -412,6 +439,7 @@ fn insert_approval(
     (deadline, now): (&str, &str),
     headline: Option<&str>,
     ttl_seconds: i64,
+    category: Option<Category>,
 ) -> Result<(), ChatError> {
     let paths = serde_json::to_string(&new.paths).map_err(ChatError::from)?;
     let payload = new.payload_redacted.as_ref().map(|value| value.to_string());
@@ -427,9 +455,9 @@ fn insert_approval(
              pane_id, kind, tool, summary, cwd, paths_json, risk, action_digest,
              payload_redacted, status, scope, expires_at, decided_at, decider_kind,
              decider_id, level, escalated_from, reason, level_expires_at, risk_score,
-             scorer_version, created_at, updated_at, headline, ttl_seconds)
+             scorer_version, created_at, updated_at, headline, ttl_seconds, category)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-                 'once', ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?28, ?29, ?30)",
+                 'once', ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?28, ?29, ?30, ?31)",
         params![
             approval_id,
             company_id(transaction)?,
@@ -460,7 +488,8 @@ fn insert_approval(
             scorer_version,
             now,
             headline,
-            ttl_seconds
+            ttl_seconds,
+            category.map(Category::as_str)
         ],
     )?;
     Ok(())

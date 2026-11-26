@@ -214,28 +214,39 @@ pub(super) fn frame_of(
     change: &str,
 ) -> Result<ChatFrame, ChatError> {
     let approval = approval_by_id(connection, approval_id)?;
+    // Approved by «always in this task» (audit client_id `task-scope:…`): the operator did not press it.
+    let task_scope = connection.query_row(
+        "SELECT EXISTS (SELECT 1 FROM approval_audit
+          WHERE approval_id = ?1 AND client_id LIKE 'task-scope:%')",
+        [approval_id],
+        |row| row.get::<_, bool>(0),
+    )?;
+    let mut body = serde_json::json!({
+        "event": "chat.approval",
+        "conversation_id": approval.conversation_id,
+        "approval_id": approval.id,
+        "agent_id": approval.seat_id,
+        "pane_id": approval.pane_id,
+        "change": change,
+        "status": approval.status.as_str(),
+        "level": approval.level,
+        "escalated_from": approval.escalated_from,
+        "decider_kind": approval.decider_kind,
+        "decider_id": approval.decider_id,
+        "risk_score": approval.risk_score,
+        "scorer_version": approval.scorer_version,
+        "kind": approval.kind.as_str(),
+        "summary": approval.summary,
+        "expires_at": approval.expires_at,
+    });
+    if task_scope {
+        body["auto"] = "task-scope".into();
+    }
     append_event(
         connection,
         "chat.approval",
         approval.conversation_id.as_deref().unwrap_or_default(),
-        serde_json::json!({
-            "event": "chat.approval",
-            "conversation_id": approval.conversation_id,
-            "approval_id": approval.id,
-            "agent_id": approval.seat_id,
-            "pane_id": approval.pane_id,
-            "change": change,
-            "status": approval.status.as_str(),
-            "level": approval.level,
-            "escalated_from": approval.escalated_from,
-            "decider_kind": approval.decider_kind,
-            "decider_id": approval.decider_id,
-            "risk_score": approval.risk_score,
-            "scorer_version": approval.scorer_version,
-            "kind": approval.kind.as_str(),
-            "summary": approval.summary,
-            "expires_at": approval.expires_at,
-        }),
+        body,
     )
 }
 

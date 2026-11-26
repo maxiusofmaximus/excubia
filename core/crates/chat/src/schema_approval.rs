@@ -203,3 +203,14 @@ pub fn migrate_to_29(connection: &mut Connection) -> Result<(), crate::error::Ch
     transaction.commit()?;
     Ok(())
 }
+
+/// Version 32: the category the host gave the action (`category`). «Always in this task»
+/// repeats only a card of the same category, so it never covers a card the rules keep for
+/// the user. Old rows keep NULL, which «always» never covers.
+pub fn migrate_to_32(connection: &mut Connection) -> Result<(), crate::error::ChatError> {
+    let transaction = connection.transaction()?;
+    add_column_once(&transaction, "approval", "category", "TEXT")?;
+    transaction.pragma_update(None, "user_version", 32)?;
+    transaction.commit()?;
+    Ok(())
+}

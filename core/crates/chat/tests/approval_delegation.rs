@@ -6,8 +6,8 @@ mod common;
 
 use common::{team, Team};
 use excubia_chat::{
-    action_digest, Approval, ApprovalKind, ApprovalStatus, ChatError, Decision, HookScope,
-    NewApproval, NewProject, SeatActor, DEFAULT_TTL_SECONDS,
+    action_digest, Approval, ApprovalKind, ApprovalMode, ApprovalStatus, ChatError, Decision,
+    HookScope, NewApproval, NewProject, SeatActor, DEFAULT_TTL_SECONDS,
 };
 use serde_json::json;
 
@@ -407,15 +407,43 @@ fn always_in_this_task_covers_the_same_action_kind_in_the_same_folder_only() {
             .expect("card")
     };
 
-    let first = card("npm install", vec![]);
+    // Under `always_user` the rules' own approvals climb to the operator, as in the VM.
+    team.store
+        .set_approval_mode("req-scope", "device-scope", None, ApprovalMode::AlwaysUser)
+        .expect("always user");
+
+    let first = card("npm run build", vec![]);
+    assert_eq!(first.status, ApprovalStatus::Pending, "the operator decides the first one");
     assert!(team.store.task_scope_allowed(&first.id).expect("allowed"));
     team.store
         .decide_approval(&first.id, Decision::Approve, "client-1", "device-1")
         .expect("approved");
     assert!(team.store.grant_task_scope(&first.id).expect("granted"));
 
-    let second = card("npm run build", vec![]);
+    let second = card("pnpm run build", vec![]);
     assert_eq!(second.status, ApprovalStatus::Approved, "covered by the grant");
+    let frames = team.store.events_after(0, 1000).expect("frames");
+    let decided = frames
+        .iter()
+        .find(|frame| {
+            frame.body["approval_id"].as_str() == Some(second.id.as_str())
+                && frame.body["change"] == "decided"
+        })
+        .expect("the decision frame");
+    assert_eq!(decided.body["auto"], "task-scope", "the frame says it was not pressed");
+
+    // A read is another category than a build: the grant does not reach it.
+    let reading = card("cat src/lib.rs", vec![]);
+    assert_eq!(reading.status, ApprovalStatus::Pending, "another category still asks");
+
+    // A delete in the same folder and tool is kept for the operator, and no «always» reaches it.
+    let removal = card("Remove-Item -Recurse build", vec![]);
+    assert_eq!(removal.status, ApprovalStatus::Pending, "a delete still asks");
+    assert!(!team.store.task_scope_allowed(&removal.id).expect("checked"));
+    team.store
+        .decide_approval(&removal.id, Decision::Approve, "client-2", "device-1")
+        .expect("approved once");
+    assert!(!team.store.grant_task_scope(&removal.id).expect("refused"));
 
     let outside = card(
         "cp secreto.txt .",
