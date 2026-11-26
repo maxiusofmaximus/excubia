@@ -3,6 +3,7 @@
 
 use crate::role_seed_apply::ROLE_SEED_MAIL_APPLY;
 use crate::role_seed_auto::ROLE_SEED_MAIL_AUTO;
+use crate::role_seed_before_github::ROLE_SEED_BEFORE_GITHUB;
 use crate::role_seed_before_web::ROLE_SEED_BEFORE_WEB;
 use crate::role_seed_folders::ROLE_SEED_MAIL_FOLDERS;
 use crate::role_seed_inbox::ROLE_SEED_MAIL_INBOX;
@@ -554,7 +555,8 @@ por el sentido y pregunta solo si el error cambiaría la acción.
 /// The seeds this host shipped before the current one. A role file still holding
 /// one of them byte for byte is rewritten to `ROLE_SEED`; any other edit is the
 /// operator's and stays.
-pub(crate) const OLD_ROLE_SEEDS: [&str; 18] = [
+pub(crate) const OLD_ROLE_SEEDS: [&str; 19] = [
+    ROLE_SEED_BEFORE_GITHUB,
     ROLE_SEED_BEFORE_WEB,
     ROLE_SEED_UNDO,
     ROLE_SEED_PREVIOUS,

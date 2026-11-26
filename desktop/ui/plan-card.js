@@ -90,7 +90,7 @@ export function planCard(plan, view, { readOnly, decide }) {
   const confirmStep = () => {
     const yes = button(t("plan.approve_anyway"), "btn primary", () => send("approve", { id: plan.id }, yes));
     const back = button(t("common.back"), "btn ghost", answers);
-    mount([element("p", "plan-ask", confirmApproveText()), actionRow([yes, back])], yes);
+    mount([element("p", "plan-ask", confirmApproveText(plan.steps)), actionRow([yes, back])], yes);
   };
 
   const changesStep = () => {

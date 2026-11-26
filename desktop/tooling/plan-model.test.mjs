@@ -79,7 +79,9 @@ test("un plan que toca correo o internet pide confirmación extra; los demás no
   assert.equal(needsExtraConfirm(plan({ steps: [{ title: "a", touches: ["mail"] }] })), true);
   assert.equal(needsExtraConfirm(plan({ steps: [{ title: "a", touches: ["files", "network"] }] })), true);
   assert.equal(needsExtraConfirm(plan({ steps: [{ title: "a", touches: ["files", "tools", "nothing"] }] })), false);
-  assert.match(confirmApproveText(), /correo o internet/);
+  assert.equal(confirmApproveText([{ title: "a", touches: ["mail"] }]), "Este plan toca correo. Revisa los pasos antes de aprobarlo.");
+  assert.equal(confirmApproveText([{ title: "a", touches: ["network"] }]), "Este plan toca internet. Revisa los pasos antes de aprobarlo.");
+  assert.equal(confirmApproveText([{ title: "a", touches: ["files", "mail", "network"] }]), "Este plan toca correo e internet. Revisa los pasos antes de aprobarlo.");
 });
 
 test("la nota de cambios tiene texto y no pasa de 300 caracteres", () => {

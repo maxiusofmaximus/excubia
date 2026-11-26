@@ -403,6 +403,13 @@ mod tests {
     }
 
     #[test]
+    fn the_current_seed_never_asks_for_github_tokens() {
+        assert!(ROLE_SEED.contains("«¿Enlazar GitHub con Excubia?»"));
+        assert!(ROLE_SEED.contains("tokens, contraseñas ni usuarios"));
+        assert!(crate::role_seed_before_github::ROLE_SEED_BEFORE_GITHUB.starts_with("# Alfred"));
+    }
+
+    #[test]
     fn the_current_seed_checks_a_received_mail_before_answering_it() {
         for needle in [
             "## Correo recibido",

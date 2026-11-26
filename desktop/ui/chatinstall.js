@@ -1,5 +1,6 @@
 import { app, $, invoke, toast } from "./core.js";
 import { showView } from "./nav.js";
+import { reviewPlan } from "./plans.js";
 import { openSettings } from "./settings.js";
 import { openDetail } from "./detail.js";
 import { installDelegationHandlers } from "./delegations.js";
@@ -316,6 +317,7 @@ export function installChatHandlers() {
       if (text) sender.send(text);
     } else if (target.dataset.action === "load-more") loadOlder();
     else if (target.dataset.action === "open-team") showView("agents");
+    else if (target.dataset.action === "review-plan") reviewPlan(target.dataset.planId);
     else if (target.dataset.action === "unarchive" && chat.conversation) {
       patchConversation(chat.conversation, { archived: false }, t("chat.unarchived"));
     } else if (target.dataset.action === "reconnect") reconnect();

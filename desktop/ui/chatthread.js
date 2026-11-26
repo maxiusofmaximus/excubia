@@ -9,6 +9,7 @@ import { setThreadApprovals } from "./approval-inbox.js";
 import { renderDelegationCard } from "./delegations.js";
 import { showInThread } from "./delegation-model.js";
 import { stripTestMarkers } from "./format.js";
+import { STATUS_LABELS } from "./plan-model.js";
 import { answeredAfter, delegationResultIndexes, isOwn, turnOf, turnStatusLine } from "./chat-turn-model.js";
 import { answerModel, failedTitle } from "./chat-card-model.js";
 import { quickRepliesDisabled, quoteLabel, suggestionsAt } from "./chat-reply-model.js";
@@ -146,8 +147,15 @@ function noteNode(entry) {
   const title = entry.title || entry.summary || entry.preview || t("chat.thread.entry_fallback");
   text.append(element("strong", null, title));
   if (entry.summary && entry.title) text.append(document.createTextNode(` · ${entry.summary}`));
-  if (entry.status) text.append(document.createTextNode(` · ${entry.status}`));
+  if (entry.status) {
+    const plan = entry.kind === "plan";
+    text.append(document.createTextNode(` · ${plan ? STATUS_LABELS[entry.status] ?? entry.status : entry.status}`));
+  }
   note.append(mark, text);
+  // The decision is made on the plan's card under Equipo: the line only opens it.
+  if (entry.kind === "plan" && entry.status === "proposed") {
+    note.append(action(t("plan.review"), { action: "review-plan", planId: entry.ref_id }, "btn secondary btn-small"));
+  }
   return note;
 }
 

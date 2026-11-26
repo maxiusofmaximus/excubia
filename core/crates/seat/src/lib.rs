@@ -27,6 +27,7 @@ mod resident;
 mod role_seed;
 mod role_seed_apply;
 mod role_seed_auto;
+mod role_seed_before_github;
 mod role_seed_before_web;
 mod role_seed_folders;
 mod role_seed_inbox;

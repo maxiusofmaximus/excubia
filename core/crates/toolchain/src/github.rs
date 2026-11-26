@@ -27,8 +27,9 @@ use crate::manifest::{pinned, Distribution};
 pub const HOST: &str = "github.com";
 /// The only page the card opens. Fixed; never taken from the output of the CLI.
 pub const DEVICE_URL: &str = "https://github.com/login/device";
-/// The arguments of the login, fixed: web flow, no clipboard, no insecure storage.
-pub const LOGIN_ARGS: [&str; 8] = [
+/// The arguments of the login, fixed: web flow, no clipboard (gh copies the code by default,
+/// `--clipboard=false` keeps it out), no insecure storage.
+pub const LOGIN_ARGS: [&str; 9] = [
     "auth",
     "login",
     "--web",
@@ -37,13 +38,16 @@ pub const LOGIN_ARGS: [&str; 8] = [
     "--git-protocol",
     "https",
     "--skip-ssh-key",
+    "--clipboard=false",
 ];
 /// GitHub's device codes expire after 15 minutes.
 pub const DEFAULT_DEADLINE: Duration = Duration::from_secs(15 * 60);
 /// Git and gh, by the executable names a trusted PATH entry holds them under (`Context::dists` order).
 const TOOL_EXES: [&str; 2] = ["git", "gh"];
 
+/// gh 2.93 prints `one-time code: XXXX-XXXX`; gh 2.105 prints `One-time code (XXXX-XXXX) copied to clipboard`.
 const CODE_PREFIX: &str = "one-time code:";
+const COPIED_CODE_PREFIX: &str = "One-time code (";
 const MAX_BUFFER: usize = 8 * 1024;
 const KEEP_TAIL: usize = 256;
 const POLL: Duration = Duration::from_millis(200);
@@ -292,21 +296,52 @@ impl CodeCollector {
     }
 }
 
-/// The code after `one-time code:`, when it has the GitHub shape `XXXX-XXXX`.
+/// The code of either gh form, when it has the GitHub shape `XXXX-XXXX`. The copied form ends at `)`,
+/// so a fragment that stops before it waits for more.
 pub fn parse_code(text: &str) -> Option<String> {
-    let at = text.find(CODE_PREFIX)? + CODE_PREFIX.len();
-    let token: String = text[at..]
-        .trim_start_matches([' ', '\t'])
-        .chars()
-        .take_while(|c| !c.is_whitespace())
-        .collect();
-    let shaped = token.len() == 9
+    let plain = text.find(CODE_PREFIX).map(|at| {
+        text[at + CODE_PREFIX.len()..]
+            .trim_start_matches([' ', '\t'])
+            .chars()
+            .take_while(|c| !c.is_whitespace())
+            .collect::<String>()
+    });
+    let copied = text
+        .find(COPIED_CODE_PREFIX)
+        .and_then(|at| text[at + COPIED_CODE_PREFIX.len()..].split_once(')'))
+        .map(|(token, _)| token.to_string());
+    plain.into_iter().chain(copied).find(|token| is_code(token))
+}
+
+fn is_code(token: &str) -> bool {
+    token.len() == 9
         && token.as_bytes()[4] == b'-'
         && token
             .char_indices()
             .filter(|(index, _)| *index != 4)
-            .all(|(_, c)| c.is_ascii_uppercase() || c.is_ascii_digit());
-    shaped.then_some(token)
+            .all(|(_, c)| c.is_ascii_uppercase() || c.is_ascii_digit())
+}
+
+/// The `host.log` line of a phase change. Codes and accounts never appear in it.
+fn phase_line(phase: &Phase) -> String {
+    let state = match phase {
+        Phase::Preparing => "preparing".to_string(),
+        Phase::WaitingForCode => "waiting_for_code".to_string(),
+        Phase::CodeReady => "code_ready".to_string(),
+        Phase::Verifying => "verifying".to_string(),
+        Phase::Linked { .. } => "linked".to_string(),
+        Phase::SetupFailed { code, .. } => format!("setup_failed {code}"),
+        Phase::Failed { code, .. } => format!("failed {code}"),
+        Phase::Expired => "expired".to_string(),
+        Phase::Cancelled => "cancelled".to_string(),
+    };
+    format!("github link: {state}")
+}
+
+/// Moves the attempt to `phase` and logs the change.
+fn enter(attempt: &mut Attempt, phase: Phase) {
+    eprintln!("{}", phase_line(&phase));
+    attempt.phase = phase;
 }
 
 /// The account the login verified: the fields the link needs, nothing else.
@@ -486,6 +521,7 @@ impl LinkManager {
             }
         }
         let cancel = Arc::new(AtomicBool::new(false));
+        eprintln!("{}", phase_line(&Phase::Preparing));
         *guard = Some(Attempt {
             phase: Phase::Preparing,
             code: None,
@@ -552,7 +588,7 @@ impl LinkManager {
                     child.kill();
                 }
                 attempt.code = None;
-                attempt.phase = Phase::Cancelled;
+                enter(attempt, Phase::Cancelled);
                 true
             }
             _ => false,
@@ -584,7 +620,7 @@ fn mine(shared: &Shared, cancel: &Arc<AtomicBool>, write: impl FnOnce(&mut Attem
 fn run_flow(context: &Context, shared: &Shared, cancel: Arc<AtomicBool>, deadline: Duration) {
     let result = flow(context, shared, &cancel, deadline);
     mine(shared, &cancel, |attempt| {
-        attempt.phase = result;
+        enter(attempt, result);
         attempt.code = None;
         attempt.child = None;
     });
@@ -593,7 +629,7 @@ fn run_flow(context: &Context, shared: &Shared, cancel: Arc<AtomicBool>, deadlin
 fn set_phase(shared: &Shared, cancel: &Arc<AtomicBool>, phase: Phase) {
     mine(shared, cancel, |attempt| {
         attempt.code = None;
-        attempt.phase = phase;
+        enter(attempt, phase);
     });
 }
 
@@ -676,7 +712,7 @@ fn flow(context: &Context, shared: &Shared, cancel: &Arc<AtomicBool>, deadline: 
                     if let Some(code) = collector.push(&bytes) {
                         mine(shared, cancel, move |attempt| {
                             attempt.code = Some(code);
-                            attempt.phase = Phase::CodeReady;
+                            enter(attempt, Phase::CodeReady);
                         });
                     }
                 }
@@ -814,6 +850,47 @@ mod tests {
         assert_eq!(parse_code("one-time code: ABCD-123"), None);
         assert_eq!(parse_code("no code here"), None);
         assert_eq!(parse_code("one-time code: ABCD-1234 "), Some("ABCD-1234".into()));
+        assert_eq!(parse_code("One-time code (abcd-1234) copied to clipboard"), None);
+        assert_eq!(parse_code("One-time code (ABCD1234) copied to clipboard"), None);
+        assert_eq!(parse_code("One-time code (ABCD-12345) copied to clipboard"), None);
+        assert_eq!(parse_code("One-time code (ABCD-1234 extra) copied to clipboard"), None);
+        assert_eq!(parse_code("One-time code (ABCD-1234"), None);
+    }
+
+    #[test]
+    fn both_real_gh_forms_give_the_code() {
+        // The text gh 2.105 prints when it copies the code, and the one gh 2.93 prints.
+        assert_eq!(
+            parse_code("! One-time code (ABCD-1234) copied to clipboard\n"),
+            Some("ABCD-1234".into())
+        );
+        assert_eq!(
+            parse_code("! First copy your one-time code: ABCD-1234\nOpen https://github.com/login/device\n"),
+            Some("ABCD-1234".into())
+        );
+    }
+
+    #[test]
+    fn the_copied_form_split_across_fragments_is_assembled_once() {
+        let mut collector = CodeCollector::default();
+        assert_eq!(collector.push(b"! One-time code (AB"), None);
+        assert_eq!(collector.push(b"CD-12"), None);
+        assert_eq!(collector.push(b"34) copied to clipboard\n"), Some("ABCD-1234".into()));
+    }
+
+    #[test]
+    fn the_phase_line_never_carries_the_code_or_the_account() {
+        assert_eq!(phase_line(&Phase::CodeReady), "github link: code_ready");
+        assert_eq!(phase_line(&Phase::Linked { login: "octo".into() }), "github link: linked");
+        assert_eq!(
+            phase_line(&Phase::Failed { step: "login", code: "login_failed" }),
+            "github link: failed login_failed"
+        );
+    }
+
+    #[test]
+    fn the_login_asks_gh_not_to_copy_the_code() {
+        assert!(LOGIN_ARGS.contains(&"--clipboard=false"));
     }
 
     #[test]

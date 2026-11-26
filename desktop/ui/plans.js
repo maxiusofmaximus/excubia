@@ -16,7 +16,7 @@ import { waitingText } from "./team-summary-model.js";
 const COMMANDS = { approve: "plan_approve", reject: "plan_reject", request_changes: "plan_request_changes" };
 
 // `plans` is null until the first answer. `denied` is set when the host refused a decision.
-const state = { plans: null, denied: false, failure: "", inFlight: false, key: "", cards: new Map() };
+const state = { plans: null, denied: false, failure: "", inFlight: false, key: "", cards: new Map(), focusId: null };
 
 function showBody(key, nodes) {
   if (state.key === key) return;
@@ -82,6 +82,16 @@ function paint() {
   $("team-plans").hidden = plans.length === 0;
   paintCards(plans);
   paintCount(state.plans);
+  focusRequested();
+}
+
+// The card a «Revisar plan» line asked for: scrolled to once, when the list is painted.
+function focusRequested() {
+  const id = state.focusId;
+  if (!id) return;
+  state.focusId = null;
+  const card = $("team-plans-body").querySelector(`[data-plan="${CSS.escape(id)}"]`);
+  card?.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
 // A read the host refused: the wait is said, anything else can be read again. A list already on
@@ -128,6 +138,13 @@ async function decide(plan, action, args) {
     }
     throw error;
   }
+}
+
+// «Revisar plan» in the chat: Equipo opens and scrolls to that plan's card once the list is here.
+export function reviewPlan(id) {
+  state.focusId = id;
+  showView("agents");
+  refreshPlans();
 }
 
 // «Ver pendientes» on a team card: the proposal waits here; an approval waits in the chat.

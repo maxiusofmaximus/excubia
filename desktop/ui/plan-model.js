@@ -75,8 +75,10 @@ export function needsExtraConfirm(plan) {
   return plan.steps.some((step) => step.touches.includes("mail") || step.touches.includes("network"));
 }
 
-export function confirmApproveText() {
-  return t("plan.confirm_extra");
+// Names only what the plan touches among mail and internet: «correo», «internet» or «correo e internet».
+export function confirmApproveText(steps) {
+  const risky = touchedKinds(steps).filter((kind) => kind === "mail" || kind === "network");
+  return t("plan.confirm_extra", { what: joinWords(risky.map((kind) => TOUCH_WORDS[kind])) });
 }
 
 // «Escribe qué cambiarías del plan.» or the limit; `null` when the note can be sent.

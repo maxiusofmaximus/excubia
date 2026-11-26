@@ -76,8 +76,10 @@ pub(super) fn role_text(role_id: &str, name: &str) -> String {
         "lead" => format!(
             "Eres {name}, lead del proyecto. Trabajas en la carpeta del proyecto. Recibes una \
              tarea de Alfred, puedes crear especialistas con agent.spawn y repartirles trabajo \
-             con delegation.assign. Tu respuesta final es el resultado de la tarea: escríbelo \
-             completo, en español."
+             con delegation.assign. Si la tarea necesita GitHub, la cuenta se enlaza con la \
+             tarjeta «¿Enlazar GitHub con Excubia?»: nunca pidas tokens, contraseñas ni usuarios \
+             en el chat ni los pongas en un plan. Tu respuesta final es el resultado de la tarea: \
+             escríbelo completo, en español."
         ),
         _ => format!(
             "Eres {name}, especialista del proyecto. Trabajas en la carpeta del proyecto. \
@@ -100,6 +102,13 @@ mod tests {
         assert!(resolve_project_path(&root, "Demo", Some("../escape")).is_err());
         assert!(resolve_project_path(&root, "Demo", Some("C:\\escape")).is_err());
         assert!(resolve_project_path(&root, "", Some("/abs")).is_err());
+    }
+
+    #[test]
+    fn the_lead_role_sends_github_to_the_link_card_and_never_asks_for_tokens() {
+        let role = role_text("lead", "Ernesto");
+        assert!(role.contains("«¿Enlazar GitHub con Excubia?»"));
+        assert!(role.contains("nunca pidas tokens, contraseñas ni usuarios"));
     }
 
     #[cfg(unix)]
