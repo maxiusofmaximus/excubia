@@ -65,14 +65,17 @@ export function summaryLine(steps) {
 }
 
 // The host writes a plan's line at each status it reaches; the thread keeps only the newest of each plan.
+// The desktop feed wraps a plan line as `{ kind: "unknown", entry: { kind: "plan", ... } }`, so the kind is read inside.
+const isPlanLine = (entry) => Boolean(entry.entry) && entry.entry.kind === "plan";
+
 export function supersededPlanIndexes(entries) {
   const newest = new Map();
   entries.forEach((entry, index) => {
-    if (entry.kind === "plan" && entry.entry) newest.set(entry.entry.ref_id, index);
+    if (isPlanLine(entry)) newest.set(entry.entry.ref_id, index);
   });
   const skip = new Set();
   entries.forEach((entry, index) => {
-    if (entry.kind === "plan" && entry.entry && newest.get(entry.entry.ref_id) !== index) skip.add(index);
+    if (isPlanLine(entry) && newest.get(entry.entry.ref_id) !== index) skip.add(index);
   });
   return skip;
 }

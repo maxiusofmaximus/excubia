@@ -10,6 +10,7 @@ import {
   githubExplanation,
   githubFacts,
   githubMissing,
+  githubNewer,
   githubPolls,
   githubStage,
   isGithubLinkTool,
@@ -117,6 +118,51 @@ test("retry is offered only where the link failed or the request expired, never 
   for (const stage of ["linked", "code_ready", "waiting_code", "cancelled", "declined", "superseded", "starting"]) {
     assert.equal(githubFacts(stage, served(stage)).showRetry, false, `${stage} offers no retry`);
   }
+});
+
+test("the real sequence: a retry's card shows its own code, and the earlier card keeps its failure without retry", () => {
+  // Attempt 1 (apr_01) reaches code_ready, then fails with login_failed.
+  const first = (phase, extra = {}) => ({ phase, approval_ids: ["apr_01"], ...extra });
+  assert.equal(githubFacts(githubStage("consumed", first("code_ready", { code: "AAAA-1111" }), "apr_01"), first("code_ready", { code: "AAAA-1111" })).code, "AAAA-1111");
+  const failed = first("failed", { failure: "login_failed" });
+  const oldFacts = githubFacts(githubStage("consumed", failed, "apr_01"), failed);
+  assert.equal(oldFacts.stage, "failed");
+  assert.equal(oldFacts.cause, "login");
+  assert.equal(oldFacts.showRetry, true, "a failed card offers retry while nothing newer exists");
+
+  // «Volver a intentar» opens apr_02, still pending: the old card is history with no retry.
+  const ids = ["apr_01", "apr_02"];
+  assert.equal(githubNewer("apr_01", ids), true);
+  assert.equal(githubNewer("apr_02", ids), false);
+  assert.equal(githubFacts(oldFacts.stage, failed, githubNewer("apr_01", ids)).showRetry, false, "old card: no retry");
+  assert.equal(githubStage("pending", failed, "apr_02"), "awaiting");
+
+  // The operator allows apr_02: the host still shows attempt 1, so the new card is starting, not failed,
+  // and shows no earlier failure or code.
+  const starting = githubStage("approved", failed, "apr_02");
+  assert.equal(starting, "starting");
+  const startingFacts = githubFacts(starting, null, false);
+  assert.equal(startingFacts.code, null);
+  assert.equal(startingFacts.cause, null);
+  assert.equal(startingFacts.showRetry, false);
+
+  // The host starts attempt 2: its card serves apr_02 and shows its own code; the old card is still history.
+  const second = { phase: "code_ready", code: "BBBB-2222", approval_ids: ["apr_02"] };
+  const newStage = githubStage("consumed", second, "apr_02");
+  assert.equal(newStage, "code_ready");
+  const newFacts = githubFacts(newStage, second, githubNewer("apr_02", ids));
+  assert.equal(newFacts.code, "BBBB-2222", "the new card shows its own code");
+  assert.equal(newFacts.showOpen, true);
+  assert.equal(newFacts.showRetry, false);
+  assert.equal(githubStage("consumed", second, "apr_01"), "superseded", "attempt 1 is no longer served");
+  assert.equal(githubFacts("superseded", second).code, null, "the old card never shows attempt 2's code");
+});
+
+test("a card with no later question is unchanged and a later question is the larger id", () => {
+  assert.equal(githubNewer("apr_02", ["apr_01", "apr_02"]), false);
+  assert.equal(githubNewer("apr_01", ["apr_01"]), false);
+  assert.equal(githubFacts("failed", served("failed"), false).showRetry, true);
+  assert.equal(githubFacts("failed", served("failed"), true).showRetry, false);
 });
 
 test("ES and EN read the same states with their own words", () => {

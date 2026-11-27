@@ -103,8 +103,9 @@ impl super::ChatStore {
                 params![plan_id, new.conversation_id, now],
             )?;
         }
-        record_plan_line(&transaction, &plan)?;
+        let frame = record_plan_line(&transaction, &plan)?;
         transaction.commit()?;
+        self.publish(frame);
         Ok(plan)
     }
 
@@ -155,8 +156,9 @@ impl super::ChatStore {
             params![plan_id, resume, now],
         )?;
         let plan = load(&transaction, plan_id)?;
-        record_plan_line(&transaction, &plan)?;
+        let frame = record_plan_line(&transaction, &plan)?;
         transaction.commit()?;
+        self.publish(frame);
         Ok(plan)
     }
 

@@ -240,7 +240,7 @@ export function chatOnEvent(event) {
     if (chat.conversation && event.conversation_id === chat.conversation.id) renderChat();
   }
   if (event.conversation_id && chat.conversation && event.conversation_id === chat.conversation.id) {
-    const refreshes = ["chat.message", "chat.conversation", "chat.delegation", "chat.activity", "chat.approval"];
+    const refreshes = ["chat.message", "chat.conversation", "chat.delegation", "chat.activity", "chat.approval", "chat.plan"];
     if (refreshes.includes(event.event)) scheduleRefresh();
   }
   if (event.conversation_id) {

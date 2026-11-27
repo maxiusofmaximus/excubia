@@ -2,14 +2,16 @@
 //! conversation share one `seq` order, and this module reads them as one page.
 
 use rusqlite::{params, Connection, Row};
+use serde_json::json;
 
 use crate::error::ChatError;
-use crate::model::{ApprovalLine, PlanLine, TimelineEntry, TimelinePage};
+use crate::model::{ApprovalLine, ChatFrame, PlanLine, TimelineEntry, TimelinePage};
 use crate::model_plan::Plan;
 use crate::model_team::Card;
 
 use super::calendar_card::load_calendar_cards;
 use super::conversation_exists;
+use super::journal::append_event;
 use super::lookup::next_seq;
 use super::mail_card::load_mail_cards;
 use super::mail_draft_card::load_mail_draft_cards;
@@ -174,8 +176,9 @@ pub(super) fn load_lines(
 }
 
 /// The line of a plan at the status it just reached. Each status is a line of
-/// its own, numbered with the rest of the conversation.
-pub(super) fn record_plan_line(connection: &Connection, plan: &Plan) -> Result<(), ChatError> {
+/// its own, numbered with the rest of the conversation. The frame tells an open
+/// chat to read the line; the caller publishes it after the commit.
+pub(super) fn record_plan_line(connection: &Connection, plan: &Plan) -> Result<ChatFrame, ChatError> {
     let seq = next_seq(connection, &plan.conversation_id)?;
     connection.execute(
         "INSERT INTO timeline_plan
@@ -191,7 +194,17 @@ pub(super) fn record_plan_line(connection: &Connection, plan: &Plan) -> Result<(
             plan.updated_at,
         ],
     )?;
-    Ok(())
+    append_event(
+        connection,
+        "chat.plan",
+        &plan.conversation_id,
+        json!({
+            "event": "chat.plan",
+            "conversation_id": &plan.conversation_id,
+            "plan_id": &plan.id,
+            "status": plan.status.as_str(),
+        }),
+    )
 }
 
 fn load_plan_lines(

@@ -4,7 +4,7 @@
 // gone when the card leaves the page.
 import { copyText, invoke } from "./core.js";
 import { t } from "./i18n.js";
-import { GITHUB_DEVICE_URL, githubFacts, githubPolls, githubStage } from "./github-link-model.js";
+import { GITHUB_DEVICE_URL, githubFacts, githubNewer, githubPolls, githubStage } from "./github-link-model.js";
 
 const POLL_MS = 1000;
 // A started question with no link after this many polls (about 20 s) is a failure, not a wait.
@@ -25,7 +25,7 @@ export function githubSection(entry, status) {
   section.dataset.githubLink = entry.id;
   section.dataset.approvalStatus = status;
   section.dataset.stale = "0";
-  paintStage(section, githubStage(status, null, entry.id), null);
+  paintStage(section, githubStage(status, null, entry.id), null, false);
   ensurePolling();
   return section;
 }
@@ -36,8 +36,15 @@ function ensurePolling() {
 
 // One read of the link's state, shared by every open section of this profile.
 async function refresh() {
-  const sections = [...document.querySelectorAll("[data-github-link]")].filter(
-    (section) => section.isConnected && githubPolls(section.dataset.stage || "awaiting"),
+  const all = [...document.querySelectorAll("[data-github-link]")].filter((section) => section.isConnected);
+  const ids = all.map((section) => section.dataset.githubLink);
+  // A later question takes «Volver a intentar» off an earlier card; that card keeps its own result.
+  for (const section of all) {
+    if (githubNewer(section.dataset.githubLink, ids)) section.querySelector(".github-retry")?.remove();
+  }
+  // Read while a section polls, or while its start is overdue (its own card may still be missing).
+  const sections = all.filter(
+    (section) => githubPolls(section.dataset.stage || "awaiting") || section.dataset.stale !== "0",
   );
   if (!sections.length) return;
   let card = null;
@@ -49,22 +56,30 @@ async function refresh() {
   for (const section of sections) {
     if (!section.isConnected) continue;
     let stage = githubStage(section.dataset.approvalStatus, card, section.dataset.githubLink);
+    let shown = card;
     if (stage === "starting") {
       section.dataset.stale = String(Number(section.dataset.stale || 0) + 1);
-      if (Number(section.dataset.stale) > STALE_POLLS) stage = "failed";
+      // The card still shows an earlier attempt: its failure is not this question's, so none is shown.
+      if (Number(section.dataset.stale) > STALE_POLLS) {
+        stage = "failed";
+        shown = null;
+      }
     } else {
       section.dataset.stale = "0";
     }
-    paintStage(section, stage, card);
+    paintStage(section, stage, shown, githubNewer(section.dataset.githubLink, ids));
   }
 }
 
-function paintStage(section, stage, card) {
+function paintStage(section, stage, card, newer) {
   const showingCode = section.querySelector(".github-code") !== null;
-  // Redraw only when the stage moves or the code first appears: the buttons keep their focus.
-  if (section.dataset.stage === stage && (stage !== "code_ready" || showingCode)) return;
-  const facts = githubFacts(stage, card);
+  // Redraw only when the stage moves, the card or a newer question changes, or the code first appears:
+  // the buttons keep their focus.
+  const key = `${stage}|${card ? 1 : 0}|${newer ? 1 : 0}`;
+  if (section.dataset.paint === key && (stage !== "code_ready" || showingCode)) return;
+  const facts = githubFacts(stage, card, newer);
   section.dataset.stage = stage;
+  section.dataset.paint = key;
   section.replaceChildren(el("p", "github-stage", t(`github.stage.${stage}`)));
 
   if (facts.code) {
@@ -88,7 +103,9 @@ function paintStage(section, stage, card) {
   }
   if (facts.cause) section.append(el("p", "github-cause", t(`github.cause.${facts.cause}`)));
   if (facts.showRetry) {
-    section.append(button(t("github.retry"), "btn secondary", () => retryLink(section)));
+    const retry = button(t("github.retry"), "btn secondary", () => retryLink(section));
+    retry.classList.add("github-retry");
+    section.append(retry);
   }
 }
 

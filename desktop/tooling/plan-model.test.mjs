@@ -45,7 +45,8 @@ test("cada toque del contrato tiene su etiqueta llana, sin repetir y en un orden
 });
 
 test("la línea de un plan en el chat es la de su estado más nuevo", () => {
-  const line = (ref_id, status) => ({ kind: "plan", entry: { kind: "plan", ref_id, status } });
+  // The desktop feed sends a plan line as kind "unknown" with the plan nested in `entry`.
+  const line = (ref_id, status) => ({ kind: "unknown", seq: 1, entry: { kind: "plan", ref_id, status } });
   const entries = [line("plan_1", "proposed"), { kind: "message", message: {} }, line("plan_2", "proposed"), line("plan_1", "approved")];
   assert.deepEqual([...supersededPlanIndexes(entries)], [0]);
 });

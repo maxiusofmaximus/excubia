@@ -69,9 +69,16 @@ export function githubCause(stage, card) {
   return CAUSE_OF_CODE.get(card && card.failure) || "other";
 }
 
+// Whether a later question than this one is on the card list. Approval ids are `apr_` + a monotonic
+// ULID, so the larger id is the later question (as in `predates`).
+export function githubNewer(approvalId, ids) {
+  return ids.some((id) => id > approvalId);
+}
+
 // What the card shows for a stage. The code and the button appear only at `code_ready`, and the
-// cancel button only while this question's link runs.
-export function githubFacts(stage, card) {
+// cancel button only while this question's link runs. `newer`: a later question exists, so an earlier
+// card is history and offers no retry.
+export function githubFacts(stage, card, newer = false) {
   const code = stage === "code_ready" && card && card.code ? card.code : null;
   return {
     stage,
@@ -80,7 +87,7 @@ export function githubFacts(stage, card) {
     showOpen: stage === "code_ready" || stage === "waiting_code",
     openUrl: GITHUB_DEVICE_URL,
     showCancel: CANCELLABLE.includes(stage),
-    showRetry: RETRYABLE.includes(stage),
+    showRetry: RETRYABLE.includes(stage) && !newer,
     cause: githubCause(stage, card),
     resultKey: RESULT_KEYS[stage] || null,
     login: card && card.login ? card.login : null,

@@ -110,3 +110,41 @@ fn plans_and_approvals_share_one_seq_order_with_no_repeats() {
     assert!(entries.iter().any(|entry| entry.kind == "approval"));
     assert_eq!(plan_lines(&t).len(), 2);
 }
+
+#[test]
+fn a_decision_from_equipo_publishes_a_plan_frame_for_the_open_chat() {
+    // Equipo approves with the device as decider; the open chat reloads on this frame.
+    let t = team("plan-timeline-frame");
+    let steps = vec![PlanStep {
+        title: "Consultar la web".to_string(),
+        touches: vec![Touch::Network],
+    }];
+    let plan = t
+        .store
+        .propose_plan(NewPlan {
+            conversation_id: t.conversation.clone(),
+            proposer_agent_id: t.lead.clone(),
+            steps,
+        })
+        .expect("plan");
+    t.store
+        .decide_plan(&plan.id, PlanDecision::Approve, None, "device-1")
+        .expect("approve");
+
+    let frames: Vec<_> = t
+        .store
+        .events_after(0, 1000)
+        .expect("frames")
+        .into_iter()
+        .filter(|frame| frame.event == "chat.plan")
+        .collect();
+    let statuses: Vec<&str> = frames
+        .iter()
+        .filter_map(|frame| frame.body["status"].as_str())
+        .collect();
+    assert_eq!(statuses, ["proposed", "approved"]);
+    assert!(frames.iter().all(|frame| {
+        frame.body["conversation_id"].as_str() == Some(t.conversation.as_str())
+            && frame.body["plan_id"].as_str() == Some(plan.id.as_str())
+    }));
+}
