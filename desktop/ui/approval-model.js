@@ -67,6 +67,12 @@ export function isPendingHere(entry) {
   return !localFor(entry.id).decided && (entry.status || "pending") === "pending";
 }
 
+// The newest pending card the thread has not shown yet, or "" when none: the thread scrolls it into view, buttons included.
+export function freshPendingId(cards, shown) {
+  const fresh = cards.filter((entry) => isPendingHere(entry) && !shown.has(entry.id));
+  return fresh.length ? fresh[fresh.length - 1].id : "";
+}
+
 // A send the operator approves: the host adds its `details` for this device only.
 export function isMailSend(entry) {
   return entry.tool === "mail.send";
@@ -437,9 +443,11 @@ export function sameDecision(mine = {}, ask) {
   );
 }
 
-// The stamp says «Enviando…» while a decision is in flight, so «¡Tu OK!» never reads as sent.
+// The stamp asks «¿Tu OK?» while the request waits, says «Enviando…» while a decision is in flight,
+// and says «¡Tu OK!» only once the host approved it, so a pending card never reads as approved.
 export function stampFor(mine = {}) {
-  return mine.busy ? t("approval.sending") : t("approval.stamp");
+  if (mine.busy) return t("approval.sending");
+  return mine.decided === "approved" || mine.decided === "consumed" ? t("approval.stamp") : t("approval.stamp_ask");
 }
 
 // The host's answer to one decision (a reply or a refusal). Only the host's status settles the
@@ -639,7 +647,8 @@ export function actionPhrase(entry) {
   // Without the words the host sent, the generic phrase stays.
   if (tool === "websearch" && webQuery(entry)) return t("approval.phrase_search", { query: webQuery(entry) });
   if (tool === "webfetch" && pageAddress(entry)) return t("approval.phrase_open_page", { address: pageAddress(entry) });
-  return t("approval.phrase_tool");
+  // The card always names the tool; a request without one says so instead of a bare «una herramienta».
+  return entry.tool ? t("approval.phrase_tool_named", { tool: entry.tool }) : t("approval.phrase_tool_unnamed");
 }
 
 // The card's title: «Ernesto quiere guardar «uno-t.txt»».
@@ -672,6 +681,8 @@ export function detailFacts(entry) {
     [t("approval.fact_original"), isEnglish(said) ? said : ""],
     [t("approval.fact_risk"), riskBadge(entry)],
     [t("approval.fact_level"), entry.escalated_from ? t("approval.escalated") : ""],
+    [t("approval.fact_tool"), entry.tool || t("approval.tool_unnamed")],
+    [t("approval.fact_summary"), String(entry.summary || "").trim()],
   ];
   const keep = ([, value]) => Boolean(value);
   return { shown: shown.filter(keep), technical: technical.filter(keep) };

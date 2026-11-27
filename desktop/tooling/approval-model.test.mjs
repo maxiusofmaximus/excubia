@@ -30,6 +30,7 @@ import {
   isMailOrAgendaTool,
   isMoveBatch,
   isOperatorLevel,
+  freshPendingId,
   isPendingHere,
   isPolicyLine,
   isRunFolder,
@@ -193,7 +194,7 @@ test("the headline says what the agent wants in plain words, and never the raw c
   );
   assert.equal(humanHeadline({ ...bob, tool: "Read", paths: ["notas/x"] }), "Bob quiere leer «x»");
   assert.equal(humanHeadline({ ...bob, tool: "Read" }), "Bob quiere leer un archivo");
-  assert.equal(humanHeadline({ ...bob, tool: "Grep" }), "Bob quiere usar una herramienta");
+  assert.equal(humanHeadline({ ...bob, tool: "Grep" }), "Bob quiere usar la herramienta «Grep»");
   assert.equal(humanHeadline({ tool: "Bash" }), "Un agente quiere ejecutar un comando");
 });
 
@@ -511,14 +512,14 @@ test("the plain card shows only where the action lands; the rest is technical", 
   };
   const { shown, technical } = detailFacts(entry);
   assert.deepEqual(shown, [["Ruta", "C:/p/a.txt"]]);
-  assert.deepEqual(technical.map(([label]) => label), ["Carpeta", "Riesgo", "Nivel"]);
+  assert.deepEqual(technical.map(([label]) => label), ["Carpeta", "Riesgo", "Nivel", "Herramienta"]);
   assert.deepEqual(detailFacts({ cwd: "" }).shown, []);
 });
 
 test("the technical level keeps no hash and no run folder: the host's ids are not the operator's words", () => {
   const run = { cwd: "C:\\Users\\Max\\AppData\\excubia\\core\\runs\\run_01M7ABC", action_digest: "sha256:bcca0172345678901234" };
   const { technical } = detailFacts(run);
-  assert.deepEqual(technical, []);
+  assert.deepEqual(technical, [["Herramienta", "herramienta sin nombre"]]);
   assert.equal(JSON.stringify(detailFacts(run)).includes("sha256"), false);
 });
 
@@ -539,13 +540,33 @@ test("a web search says what it looks for, a page says its address; without the 
   const search = { ...bob, summary: "Buscar en internet: Hi3D 1.0 qué es" };
   assert.equal(humanHeadline(search), "Bob quiere buscar en internet: «Hi3D 1.0 qué es»");
   assert.equal(settledLine("approved", { ...search, scope: "once" }), "✓ Permitido · buscar en internet: «Hi3D 1.0 qué es»");
-  assert.equal(humanHeadline({ ...bob }), "Bob quiere usar una herramienta");
-  assert.equal(humanHeadline({ ...bob, summary: "Hi3D 1.0 qué es" }), "Bob quiere usar una herramienta");
-  assert.equal(humanHeadline({ ...bob, summary: "Buscar en internet:   " }), "Bob quiere usar una herramienta");
+  assert.equal(humanHeadline({ ...bob }), "Bob quiere usar la herramienta «WebSearch»");
+  assert.equal(humanHeadline({ ...bob, summary: "Hi3D 1.0 qué es" }), "Bob quiere usar la herramienta «WebSearch»");
+  assert.equal(humanHeadline({ ...bob, summary: "Buscar en internet:   " }), "Bob quiere usar la herramienta «WebSearch»");
   const fetch = { ...bob, tool: "WebFetch", summary: "Abrir página: https://example.com/guia" };
   assert.equal(humanHeadline(fetch), "Bob quiere abrir una página: https://example.com/guia");
-  assert.equal(humanHeadline({ ...bob, tool: "WebFetch" }), "Bob quiere usar una herramienta");
+  assert.equal(humanHeadline({ ...bob, tool: "WebFetch" }), "Bob quiere usar la herramienta «WebFetch»");
   assert.equal(detailFacts(search).technical.some(([label]) => label === "Comando"), false, "a search runs no command");
+});
+
+test("a tool request names its tool in the title and under «Detalles técnicos»; without a tool it says so", () => {
+  const bob = { seat_id: "ag_bob", kind: "tool", tool: "mcp__x__crear" };
+  assert.equal(humanHeadline(bob), "Bob quiere usar la herramienta «mcp__x__crear»");
+  assert.deepEqual(detailFacts(bob).technical.find(([label]) => label === "Herramienta"), ["Herramienta", "mcp__x__crear"]);
+  const nameless = { seat_id: "ag_bob", kind: "tool", risk: "high" };
+  assert.equal(humanHeadline(nameless), "Bob quiere usar una herramienta sin nombre");
+  assert.deepEqual(detailFacts(nameless).technical.find(([label]) => label === "Herramienta"), ["Herramienta", "herramienta sin nombre"]);
+});
+
+test("the card to scroll into view is the newest pending one the thread has not shown yet", () => {
+  const cards = [
+    { id: "apr_fresh_a", status: "pending" },
+    { id: "apr_fresh_b", status: "pending" },
+    { id: "apr_fresh_c", status: "denied" },
+  ];
+  assert.equal(freshPendingId(cards, new Set()), "apr_fresh_b");
+  assert.equal(freshPendingId(cards, new Set(["apr_fresh_b"])), "apr_fresh_a");
+  assert.equal(freshPendingId(cards, new Set(["apr_fresh_a", "apr_fresh_b"])), "");
 });
 
 test("a request waits only while pending and not answered here", () => {

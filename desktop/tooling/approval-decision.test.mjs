@@ -46,8 +46,14 @@ test("another conflict or a failed call never shows the card as decided", () => 
 
 test("the stamp says «Enviando…» while the decision is in flight, not «¡Tu OK!»", () => {
   assert.equal(stampFor({ busy: true }), t("approval.sending"));
-  assert.equal(stampFor({}), t("approval.stamp"));
+  assert.equal(stampFor({}), t("approval.stamp_ask"));
   assert.notEqual(stampFor({ busy: true }), stampFor({}));
+});
+
+test("a pending card asks «¿Tu OK?»; only an approved one says «¡Tu OK!»", () => {
+  assert.equal(stampFor({}), "¿Tu OK?");
+  assert.equal(stampFor({ decided: "approved" }), "¡Tu OK!");
+  assert.equal(stampFor({ decided: "consumed" }), "¡Tu OK!");
 });
 
 test("the late text exists in both languages", () => {

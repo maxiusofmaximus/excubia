@@ -4,7 +4,14 @@ import { paintAvatar } from "./avatar.js";
 import { installLinkOpener, renderMarkdown } from "./markdown.js";
 import { formatTime } from "./chatlist.js";
 import { renderApprovalEntry, renderApprovalLine } from "./approval-card.js";
-import { conversationContext, isOperatorLevel, repeatsCard, rememberAction, supersededIndexes } from "./approval-model.js";
+import {
+  conversationContext,
+  freshPendingId,
+  isOperatorLevel,
+  repeatsCard,
+  rememberAction,
+  supersededIndexes,
+} from "./approval-model.js";
 import { setThreadApprovals } from "./approval-inbox.js";
 import { renderDelegationCard } from "./delegations.js";
 import { showInThread } from "./delegation-model.js";
@@ -27,6 +34,18 @@ import { chat as chatState } from "./chatstate.js";
 // above it is new and slams in once (ui/comic.css); a repaint replays nothing.
 const shownSeq = new Map();
 let newAfter = Infinity;
+// The approval cards the thread has drawn: a pending card not in here is new and scrolls into view once.
+const shownCards = new Set();
+
+// Scrolls the thread just far enough to show a card's bottom, where its buttons sit; a card taller than the
+// thread keeps its top in view instead. Only scrollTop moves: the composer keeps its focus.
+function revealBottom(timeline, node) {
+  const box = timeline.getBoundingClientRect();
+  const rect = node.getBoundingClientRect();
+  const hidden = rect.bottom - box.bottom + 16;
+  const room = rect.top - box.top;
+  if (hidden > 0) timeline.scrollTop += room > 0 ? Math.min(hidden, room) : hidden;
+}
 
 // `continued`: Alfred's message right after another one of his. Only the first of a run
 // shows his face and tail; the rest are indented to line up with the first bubble.
@@ -346,9 +365,15 @@ export function renderThread(chat) {
   // Requests of the operator's level are cards below the conversation; the
   // strip above the thread leaves them out.
   setThreadApprovals(cards.map((approval) => approval.id));
+  const freshId = freshPendingId(cards, shownCards);
+  const cardNodes = new Map();
   for (const approval of cards) {
-    timeline.append(renderApprovalEntry(approval, Date.now(), conversationContext(chat.conversation.id)));
+    const node = renderApprovalEntry(approval, Date.now(), conversationContext(chat.conversation.id));
+    if (!node) continue;
+    timeline.append(node);
+    cardNodes.set(approval.id, node);
   }
+  cards.forEach((approval) => shownCards.add(approval.id));
 
   for (const pending of chat.pending) {
     timeline.append(pendingNode(pending, alfredName));
@@ -414,5 +439,8 @@ export function renderThread(chat) {
   } else {
     timeline.scrollTop = previousScroll;
   }
+  // A request that just came in shows its buttons without the operator pressing «Ir al final».
+  const freshNode = cardNodes.get(freshId);
+  if (freshNode) revealBottom(timeline, freshNode);
   chat.forceScroll = false;
 }

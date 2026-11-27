@@ -241,6 +241,7 @@ export default {
   "approval.reason_label": "Motivo para el agente",
   "approval.deny": "Denegar",
   "approval.stamp": "¡Tu OK!",
+  "approval.stamp_ask": "¿Tu OK?",
   "palette.label": "Órdenes",
   "palette.placeholder": "Escribe una orden o el nombre de una conversación…",
   "palette.foot": "↑↓ para elegir · Enter para abrir · Esc para cerrar",

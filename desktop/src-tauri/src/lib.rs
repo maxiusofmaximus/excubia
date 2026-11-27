@@ -24,10 +24,30 @@ pub mod voice_commands;
 
 use std::sync::Arc;
 use std::time::SystemTime;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, PhysicalPosition, PhysicalSize};
 use tauri_plugin_notification::NotificationExt;
 
 use app_state::AppState;
+
+// The config centres the window on the whole screen, so the taskbar could cover its foot: the window
+// shrinks to the work area (the screen without the taskbar) and sits centred in it.
+fn fit_to_work_area(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+    let Some(monitor) = window.current_monitor()? else {
+        return Ok(());
+    };
+    let area = *monitor.work_area();
+    let outer = window.outer_size()?;
+    let inner = window.inner_size()?;
+    // The title bar and borders are not part of the inner size, so they count against the area too.
+    let frame_width = outer.width.saturating_sub(inner.width);
+    let frame_height = outer.height.saturating_sub(inner.height);
+    let width = inner.width.min(area.size.width.saturating_sub(frame_width));
+    let height = inner.height.min(area.size.height.saturating_sub(frame_height));
+    window.set_size(PhysicalSize::new(width, height))?;
+    let x = area.position.x + (area.size.width.saturating_sub(width + frame_width) / 2) as i32;
+    let y = area.position.y + (area.size.height.saturating_sub(height + frame_height) / 2) as i32;
+    window.set_position(PhysicalPosition::new(x, y))
+}
 
 pub fn run() {
     // WebView2 keeps cookies, storage and the mic permission in its own folder; move it too.
@@ -53,6 +73,11 @@ pub fn run() {
             // The local host starts on the first `bootstrap`, after the shell sent its language.
             let state = Arc::new(AppState::new(app.handle()));
             app.manage(state.clone());
+            if let Some(window) = app.get_webview_window("main") {
+                if let Err(error) = fit_to_work_area(&window) {
+                    eprintln!("la ventana no cabe ajustada al área de trabajo: {error}");
+                }
+            }
             let handle = app.handle().clone();
             let registered = app.notification().on_action(move |performed| {
                 if performed.action_id() != "tap" {
