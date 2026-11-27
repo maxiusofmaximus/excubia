@@ -117,6 +117,11 @@ impl PtySession {
         if let Some(cwd) = &cmd.cwd {
             builder.cwd(cwd);
         }
+        // On Windows the base environment is rebuilt from the registry, which drops the PATH this
+        // process changed at startup (the toolchain folders). The process's own PATH wins.
+        if let Some(path) = std::env::var_os("PATH") {
+            builder.env("PATH", path);
+        }
         for (key, value) in &cmd.env {
             builder.env(key, value);
         }

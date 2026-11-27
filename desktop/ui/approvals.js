@@ -9,6 +9,7 @@ import {
   CHECKING_TEXT,
   countdownText,
   decisionArgs,
+  decisionOutcome,
   denyReason,
   excludeFor,
   isMailMove,
@@ -144,20 +145,23 @@ async function decide(id, decision, card, extra = {}) {
 
   try {
     const record = await invoke("chat_approval_decision", decisionArgs(id, decision, clientId, exclude, extra));
-    // Only the host's own status counts as decided; the time keeps the card on the strip a while.
-    patchLocal(id, { busy: false, decided: (record && record.status) || "", settledAt: Date.now() });
+    // Only the host's own status settles the card; the time keeps it on the strip a while.
+    const outcome = decisionOutcome(record, null);
+    patchLocal(id, outcome.patch);
+    if (outcome.late) toast(t("approval.late_expired"));
     refreshInbox();
   } catch (error) {
+    const outcome = decisionOutcome(null, error);
     if (error && error.kind === "forbidden") {
       patchLocal(id, { busy: false, forbidden: true });
       await rememberDeviceId();
     } else if (error && error.kind === "approvalConflict") {
-      // Decided elsewhere, expired or consumed: the host's message, then its state.
-      patchLocal(id, { busy: false });
-      toast(errorMessage(error));
+      // Decided elsewhere, expired or consumed: the card takes the host's state, then the host's message.
+      patchLocal(id, outcome.patch);
+      toast(outcome.late ? t("approval.late_expired") : errorMessage(error));
       readHostAgain();
     } else {
-      patchLocal(id, { busy: false });
+      patchLocal(id, outcome.patch);
       toast(errorMessage(error));
     }
   }

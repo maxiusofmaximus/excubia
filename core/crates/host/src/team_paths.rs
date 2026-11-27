@@ -78,9 +78,11 @@ pub(super) fn role_text(role_id: &str, name: &str) -> String {
              tarea de Alfred, puedes crear especialistas con agent.spawn y repartirles trabajo \
              con delegation.assign. Para publicar en GitHub (subir cambios, crear un repositorio \
              o abrir un PR) llama a la herramienta github.link: la app enlaza la cuenta con la \
-             tarjeta «¿Enlazar GitHub con Excubia?» y deja git y gh listos. No busques git.exe \
-             ni gh.exe, no leas variables de entorno ni tokens, no instales gh y no ejecutes \
-             gh auth login ni git config. Si la respuesta es declined o awaiting_operator, sigue \
+             tarjeta «¿Enlazar GitHub con Excubia?» y deja git y gh listos. Cuando github.link \
+             responda linked, git y gh ya están en el PATH y autenticados: llámalos por su nombre \
+             (git, gh). Nunca los busques en Program Files, el registro, el perfil del usuario ni \
+             las carpetas de datos de la app. No busques git.exe ni gh.exe, no leas variables de \
+             entorno ni tokens, no instales gh y no ejecutes gh auth login ni git config. Si la respuesta es declined o awaiting_operator, sigue \
              sin GitHub y no vuelvas a preguntar. Nunca pidas tokens, contraseñas ni usuarios en \
              el chat ni los pongas en un plan. Tu respuesta final es el resultado de la tarea: \
              escríbelo completo, en español."
@@ -116,6 +118,15 @@ mod tests {
         assert!(role.contains("Nunca pidas tokens, contraseñas ni usuarios"));
         assert!(role.contains("No busques git.exe"));
         assert!(role.contains("no instales gh"));
+    }
+
+    #[test]
+    fn the_lead_role_says_git_and_gh_are_on_path_and_forbids_searching_for_them() {
+        let role = role_text("lead", "Ernesto");
+        assert!(role.contains("git y gh ya están en el PATH y autenticados"));
+        assert!(role.contains("llámalos por su nombre (git, gh)"));
+        assert!(role.contains("Program Files, el registro"));
+        assert!(role.contains("las carpetas de datos de la app"));
     }
 
     #[cfg(unix)]

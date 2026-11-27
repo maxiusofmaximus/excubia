@@ -99,10 +99,28 @@ impl GithubLink {
             .await
             .map_err(|_| ToolError::unavailable("the GitHub check stopped; try again"))??;
         match step {
-            Step::Reply(status) => Ok(reply(status)),
-            Step::Wait(approval_id) => self.resolve(&approval_id).await,
-            Step::Link => Ok(reply(self.wait_running().await)),
+            Step::Reply(status) => Ok(self.answer(status).await),
+            Step::Wait(approval_id) => {
+                let status = self.decide(&approval_id).await?;
+                Ok(self.answer(status).await)
+            }
+            Step::Link => {
+                let status = self.wait_running().await;
+                Ok(self.answer(status).await)
+            }
         }
+    }
+
+    /// The answer as the agent reads it. A linked profile also names its working tools, so the
+    /// agent calls git and gh by name instead of searching for them.
+    async fn answer(self: Arc<Self>, status: &'static str) -> ToolReply {
+        if status != "linked" {
+            return reply(status);
+        }
+        let tools = tokio::task::spawn_blocking(move || self.link.tool_versions())
+            .await
+            .unwrap_or_default();
+        linked_reply(tools)
     }
 
     /// The checks and the question, under the lock: one step at a time per profile.
@@ -197,7 +215,7 @@ impl GithubLink {
 
     /// Waits for the operator's answer. Approved: the question is launched once; when the
     /// ticker burned it first, this caller waits for that same attempt.
-    async fn resolve(&self, approval_id: &str) -> Result<ToolReply, ToolError> {
+    async fn decide(&self, approval_id: &str) -> Result<&'static str, ToolError> {
         let decided = self
             .chat
             .await_decision(approval_id)
@@ -214,7 +232,7 @@ impl GithubLink {
             ApprovalStatus::Expired => "expired",
             _ => "failed",
         };
-        Ok(reply(status))
+        Ok(status)
     }
 
     /// The word the question's own attempt ends with. A question this profile never launched
@@ -417,6 +435,16 @@ fn reply(status: &str) -> ToolReply {
     }
 }
 
+/// Said to the agent once the link is ready: fixed words, no paths and no account.
+const LINKED_NOTE: &str = "git y gh ya están en el PATH y autenticados. Llámalos por su nombre (git, gh); no los busques en el sistema, el registro ni las carpetas de datos.";
+
+/// The `linked` answer: the status, the fixed note and the tools' version lines.
+fn linked_reply(tools: Vec<String>) -> ToolReply {
+    ToolReply {
+        result: json!({ "status": "linked", "note": LINKED_NOTE, "tools": tools }),
+    }
+}
+
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
@@ -440,6 +468,23 @@ mod tests {
         let generic = action_digest("tool", TOOL, &json!({ "host": HOST }), "", &[]);
         assert_ne!(generic, digest());
         assert_eq!(digest(), digest(), "the fixed digest is stable");
+    }
+
+    #[test]
+    fn the_linked_answer_names_the_tools_without_paths_or_accounts() {
+        let answer = linked_reply(vec![
+            "git version 2.47.1.windows.1".into(),
+            "gh version 2.93.0 (2026-01-01)".into(),
+        ])
+        .result;
+        assert_eq!(answer["status"], "linked");
+        let note = answer["note"].as_str().expect("the note is text");
+        assert!(note.contains("PATH") && note.contains("por su nombre"), "{note}");
+        assert!(!note.contains('\\') && !note.contains(":/"), "no path in the note: {note}");
+        assert_eq!(answer["tools"].as_array().map(Vec::len), Some(2));
+        assert_eq!(answer["tools"][0], "git version 2.47.1.windows.1");
+        // Other answers keep their plain shape.
+        assert_eq!(reply("declined").result, json!({ "status": "declined" }));
     }
 
     /// No network: every download fails, so an attempt ends at once without touching GitHub.

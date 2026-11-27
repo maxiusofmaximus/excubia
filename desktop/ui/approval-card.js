@@ -36,6 +36,7 @@ import {
   commandSizeLine,
   shortDigest,
   statusMeta,
+  stampFor,
 } from "./approval-model.js";
 import { moveBatch } from "./approval-move.js";
 import { digestRows } from "./mail-model.js";
@@ -85,7 +86,7 @@ function approveButton(entry, open, unchecked) {
 // «Siempre en esta tarea» and «Denegar con motivo…» sit beside the one-shot buttons.
 function actionsRow(entry, status, mine) {
   const row = element("div", "approval-actions");
-  const open = status === "pending" && !mine.busy;
+  const open = status === "pending" && !mine.busy && !isChecking(entry);
   const ghost = "btn ghost btn-small approval-btn";
   row.append(approveButton(entry, open, mine.unchecked));
   if (canAlwaysAllow(entry)) row.append(actionButton(t("approval.allow_task"), "approve-task", entry.id, ghost, !open));
@@ -180,7 +181,7 @@ function renderPlainCard(entry, now) {
   const card = element("article", `approval-card plain tone-${meta.tone}`);
   card.dataset.approval = id;
   card.dataset.seen = seenState(entry);
-  card.dataset.stamp = t("approval.stamp");
+  card.dataset.stamp = stampFor(mine);
   cardEntries.set(card, { entry, context: "" });
 
   if (status !== "pending") {
@@ -223,7 +224,7 @@ function renderMailCard(entry, now = Date.now(), context = "") {
   const card = element("article", `approval-card tone-${meta.tone}`);
   card.dataset.approval = id;
   card.dataset.seen = seenState(entry);
-  card.dataset.stamp = t("approval.stamp");
+  card.dataset.stamp = stampFor(mine);
   cardEntries.set(card, { entry, context });
 
   const head = element("div", "approval-head");
@@ -284,7 +285,7 @@ function renderGithubCard(entry, now = Date.now(), context = "") {
   const card = element("article", `approval-card github-card tone-${meta.tone}`);
   card.dataset.approval = id;
   card.dataset.seen = seenState(entry);
-  card.dataset.stamp = t("approval.stamp");
+  card.dataset.stamp = stampFor(mine);
   cardEntries.set(card, { entry, context });
 
   const head = element("div", "approval-head");

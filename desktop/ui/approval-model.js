@@ -437,6 +437,26 @@ export function sameDecision(mine = {}, ask) {
   );
 }
 
+// The stamp says «Enviando…» while a decision is in flight, so «¡Tu OK!» never reads as sent.
+export function stampFor(mine = {}) {
+  return mine.busy ? t("approval.sending") : t("approval.stamp");
+}
+
+// The host's answer to one decision (a reply or a refusal). Only the host's status settles the
+// card; a reply still pending, or a refusal the host did not explain, leaves it open to answer again.
+export function decisionOutcome(record, error) {
+  const late = lateRefusal(error) || (!error && Boolean(record) && record.status === "expired");
+  const status = error ? (lateRefusal(error) ? "expired" : "") : (record && record.status) || "";
+  const settled = status !== "" && status !== "pending";
+  const patch = settled ? { busy: false, decided: status, settledAt: Date.now() } : { busy: false };
+  return { late, patch };
+}
+
+// «approval_expired»: the answer came after the host's deadline, so nothing ran.
+function lateRefusal(error) {
+  return Boolean(error) && error.kind === "approvalConflict" && error.code === "approval_expired";
+}
+
 // The settled card's line. The host's `scope` says whether the whole task was allowed. `reason` on a card is why it was sent on, not the operator's words, so it is not shown.
 export function resultText(status, entry = {}) {
   if (status === "approved" || status === "consumed") {

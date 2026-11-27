@@ -35,6 +35,8 @@ export default {
   "approval.result_once": "Permitida una vez. Solo esta acción.",
   "approval.result_denied": "Denegada. El agente no la ejecutó.",
   "approval.checking": "Comprobando con el PC…",
+  "approval.sending": "Enviando…",
+  "approval.late_expired": "Llegó tarde: la petición ya había caducado. Pídele a Alfred que la repita.",
   "approval.agent_unnamed": "Un agente",
   "approval.device_placeholder": "<dispositivo>",
   "approval.verb_save": "guardar",

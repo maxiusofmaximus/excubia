@@ -35,6 +35,8 @@ export default {
   "approval.result_once": "Allowed once. This action only.",
   "approval.result_denied": "Denied. The agent did not run it.",
   "approval.checking": "Checking with the PC…",
+  "approval.sending": "Sending…",
+  "approval.late_expired": "Too late: the request had already expired. Ask Alfred to send it again.",
   "approval.agent_unnamed": "An agent",
   "approval.device_placeholder": "<device>",
   "approval.verb_save": "save",

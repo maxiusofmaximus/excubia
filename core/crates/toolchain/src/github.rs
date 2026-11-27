@@ -558,6 +558,21 @@ impl LinkManager {
         session && setup_done(context, &git, &env)
     }
 
+    /// The first line of `--version` of each working Git and gh of this profile: a version only,
+    /// never an account or a token. A tool that does not answer is left out.
+    pub fn tool_versions(&self) -> Vec<String> {
+        let context = &self.context;
+        let env = ChildEnv::for_profile(&context.layout, &context.dists);
+        (0..TOOL_EXES.len())
+            .filter_map(|index| {
+                let exe = self.resolved(index)?;
+                let text = context.runner.run(&exe, &["--version"], &env, CALL_TIMEOUT).ok()?;
+                text.lines().next().map(|line| line.trim().to_string())
+            })
+            .filter(|line| !line.is_empty())
+            .collect()
+    }
+
     /// The fixed names (`git`, `gh`) of the tools a link would have to install: missing, or broken
     /// with no working copy on the trusted PATH. They go in the question's payload, nothing else.
     pub fn missing_tools(&self) -> Vec<&'static str> {
